@@ -20,6 +20,9 @@ tokio-util = "0.7"
 
 [features]
 crossterm = ["dep:crossterm"]
+default = [
+  "crossterm",
+]
 
 [dev-dependencies]
 ratatui = {git = "https://github.com/tui-rs-revival/ratatui", rev = "33b3f4e3122cc59eaa789c684dd17dae3a716be1"}

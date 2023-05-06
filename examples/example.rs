@@ -1,11 +1,13 @@
-use std::io::{stdout, Stdout};
+use std::{
+    error::Error,
+    io::{stdout, Stdout},
+};
 
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use leptos_reactive::{create_effect, create_signal, Scope, SignalGet, SignalUpdate};
 use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Direction, Layout, Rect},
@@ -13,7 +15,10 @@ use ratatui::{
     widgets::Block,
     Frame, Terminal,
 };
-use rooibos::{run_system, use_event_provider, Event, EventHandler};
+use rooibos::{
+    reactive::{create_effect, create_signal, Scope, SignalGet, SignalUpdate},
+    run_system, use_event_provider, Event, EventHandler,
+};
 use tui_rsx::prelude::*;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -26,7 +31,7 @@ fn main() {
 }
 
 #[tokio::main]
-async fn run(cx: Scope) {
+async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     enable_raw_mode().unwrap();
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
@@ -64,6 +69,7 @@ async fn run(cx: Scope) {
     )
     .unwrap();
     terminal.show_cursor().unwrap();
+    Ok(())
 }
 
 fn create_test(cx: Scope) -> impl Fn(&mut Frame<CrosstermBackend<Stdout>>, Rect) {

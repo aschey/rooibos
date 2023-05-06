@@ -26,6 +26,8 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
+pub use leptos_reactive as reactive;
+
 #[derive(thiserror::Error, Debug)]
 pub enum MessageError {
     #[error("{0}")]
@@ -161,8 +163,16 @@ impl EventProvider {
     }
 }
 
-pub fn run_system(f: impl FnOnce(Scope) + 'static) -> ScopeDisposer {
-    create_scope(create_runtime(), f)
+pub fn run_system<F, E>(f: F) -> (Result<(), E>, ScopeDisposer)
+where
+    F: FnOnce(Scope) -> Result<(), E> + 'static,
+    E: 'static,
+{
+    let (tx, rx) = std::sync::mpsc::channel();
+    let scope = create_scope(create_runtime(), move |cx| {
+        tx.send(f(cx)).unwrap();
+    });
+    (rx.recv().unwrap(), scope)
 }
 
 pub fn use_event_provider(cx: Scope) -> EventProvider {
