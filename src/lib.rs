@@ -12,14 +12,12 @@ use std::{
 };
 
 use async_recursion::async_recursion;
-use crossterm::event::{KeyCode, KeyModifiers};
 use dyn_clonable::clonable;
 use futures_util::{stream::FuturesUnordered, Future, Stream};
 use leptos_reactive::{
     create_effect, create_runtime, create_scope, create_signal, provide_context, use_context,
     ReadSignal, Scope, ScopeDisposer, SignalGet, SignalSet, WriteSignal,
 };
-use ratatui::{backend::Backend, Terminal};
 use tokio::{
     runtime::Handle,
     sync::mpsc,
@@ -52,6 +50,7 @@ where
 
 #[derive(Clone)]
 pub enum Event {
+    #[cfg(feature = "crossterm")]
     TermEvent(crossterm::event::Event),
     CancellationComplete(Option<String>),
     QuitRequested,
@@ -170,22 +169,20 @@ pub fn use_event_provider(cx: Scope) -> EventProvider {
     use_context::<EventProvider>(cx).unwrap()
 }
 
-pub struct EventHandler<B: Backend> {
+pub struct EventHandler<W> {
     cx: Scope,
-    terminal: Rc<RefCell<Option<Terminal<B>>>>,
+    writer: Rc<RefCell<Option<W>>>,
     set_event: WriteSignal<Option<Event>>,
     cancellation_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
-
     set_custom_signal: WriteSignal<Option<Box<dyn AnyClone + Send>>>,
     message_handler_task: Option<JoinHandle<Result<(), MessageError>>>,
-    // event_handler_task: Option<task::JoinHandle<()>>,
     custom_event_rx: mpsc::Receiver<Box<dyn AnyClone + Send>>,
     event_rx: mpsc::Receiver<Event>,
     handler_token: CancellationToken,
 }
 
-impl<B: Backend + 'static> EventHandler<B> {
-    pub fn initialize(cx: Scope, terminal: Terminal<B>) -> Self {
+impl<W: 'static> EventHandler<W> {
+    pub fn initialize(cx: Scope, writer: W) -> Self {
         let (read_event_signal, set_event_signal) = create_signal(cx, None);
         let (read_custom_signal, set_custom_signal) = create_signal(cx, None);
 
@@ -202,7 +199,7 @@ impl<B: Backend + 'static> EventHandler<B> {
             },
         );
 
-        let terminal = Rc::new(RefCell::new(Some(terminal)));
+        let writer = Rc::new(RefCell::new(Some(writer)));
 
         let cancellation_tokens: Arc<Mutex<HashMap<String, CancellationToken>>> =
             Default::default();
@@ -218,7 +215,7 @@ impl<B: Backend + 'static> EventHandler<B> {
 
         Self {
             cx,
-            terminal,
+            writer,
             cancellation_tokens,
             set_event: set_event_signal,
             set_custom_signal,
@@ -235,28 +232,45 @@ impl<B: Backend + 'static> EventHandler<B> {
         }
     }
 
-    pub fn render(&self, f: impl Fn(&mut Terminal<B>) + 'static) {
-        let terminal = self.terminal.clone();
+    pub fn render(&self, f: impl Fn(&mut W) + 'static) {
+        let writer = self.writer.clone();
         create_effect(self.cx, move |_| {
-            if let Some(terminal) = terminal.borrow_mut().as_mut() {
-                f(terminal)
+            if let Some(writer) = writer.borrow_mut().as_mut() {
+                f(writer)
             }
         });
     }
 
-    pub async fn run(mut self) -> Terminal<B> {
+    pub async fn run(mut self) -> W {
+        #[cfg(feature = "crossterm")]
         let mut event_reader = crossterm::event::EventStream::new().fuse();
 
         loop {
+            #[cfg(feature = "crossterm")]
+            let next_event = event_reader.next();
+            #[cfg(not(feature = "crossterm"))]
+            let next_event = future::pending::<Option<Result<bool, ()>>>();
             tokio::select! {
-                Some(Ok(event)) = event_reader.next() => {
-                    if let crossterm::event::Event::Key(crossterm::event::KeyEvent {code, modifiers, ..})=  event {
-                        if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
-                            self.set_event.set(Some(Event::QuitRequested));
-                            break;
+                // cfg checks don't work with select: https://github.com/tokio-rs/tokio/issues/3974
+                Some(Ok(event)) = next_event => {
+                    #[cfg(feature = "crossterm")]
+                    {
+                        use crossterm::event::{KeyModifiers, KeyCode, KeyEvent};
+
+                        if let crossterm::event::Event::Key(KeyEvent {code, modifiers, ..})=  event {
+                            if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
+                                self.set_event.set(Some(Event::QuitRequested));
+                                break;
+                            }
                         }
+                        self.set_event.set(Some(Event::TermEvent(event)));
                     }
-                    self.set_event.set(Some(Event::TermEvent(event)));
+                    #[cfg(not(feature="crossterm"))]
+                    {
+                         // suppress unused warnings
+                        _ = event;
+                    }
+
                 }
                 Some(event) = self.event_rx.recv() => {
                     if let Event::QuitRequested = event {
@@ -277,7 +291,7 @@ impl<B: Backend + 'static> EventHandler<B> {
             handler.await.unwrap().unwrap();
         }
 
-        self.terminal.borrow_mut().take().unwrap()
+        self.writer.borrow_mut().take().unwrap()
     }
 }
 
@@ -298,7 +312,6 @@ impl FuturesUnorderedCounter {
         if next.is_some() {
             self.count.fetch_sub(1, Ordering::SeqCst);
         }
-
         next
     }
 

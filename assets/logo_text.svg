@@ -25,14 +25,14 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.70710678"
-     inkscape:cx="764.38243"
+     inkscape:cx="765.08954"
      inkscape:cy="280.72139"
-     inkscape:window-width="1702"
+     inkscape:window-width="2552"
      inkscape:window-height="1396"
-     inkscape:window-x="1709"
+     inkscape:window-x="6"
      inkscape:window-y="38"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer2" /><defs
+     inkscape:current-layer="layer1" /><defs
      id="defs2" /><g
      inkscape:groupmode="layer"
      id="layer2"
@@ -64,15 +64,15 @@
        id="path6503"
        style="fill:#d81713;fill-opacity:1;stroke:#d81713;stroke-width:0.943204;stroke-opacity:1"
        d="m 62.089498,60.597602 a 37.028397,37.028397 0 0 0 -11.617896,26.90275 37.028397,37.028397 0 0 0 37.028748,37.028228 37.028397,37.028397 0 0 0 21.93458,-7.2285 V 60.597602 Z" /><g
-       style="fill:#e6e4e4;fill-opacity:1;stroke-width:1.00862247;stroke-dasharray:none"
+       style="fill:#777575;fill-opacity:1;stroke-width:1.00862247;stroke-dasharray:none"
        id="g14312"
        transform="matrix(-0.0250912,0.03328703,-0.0335122,-0.02797795,57.581362,90.444309)"
        inkscape:transform-center-x="4.3585437"
        inkscape:transform-center-y="-8.9774083"><g
          id="g14303"
-         style="fill:#e6e4e4;fill-opacity:1;stroke-width:1.00862247;stroke-dasharray:none">
+         style="fill:#777575;fill-opacity:1;stroke-width:1.00862247;stroke-dasharray:none">
 	<path
    d="m 413.695,0 c 0,0 -45.366,44.014 -94.43,61.759 -363.333,131.419 -210.1,387.518 -205.101,388.362 0,0 20.374,-35.48 47.896,-55.717 C 336.704,266.015 372.2,118.233 372.2,118.233 c 0,0 -39.19,177.829 -194.562,288.479 -34.316,24.426 -57.552,84.568 -67.388,144.679 0,0 24.325,-9.828 34.785,-12.49 4.079,-26.618 12.607,-52.106 27.025,-74.875 C 389.211,489.88 460.332,314.903 469.623,253.89 491.552,109.79 413.695,0 413.695,0 Z"
    id="path14301"
-   style="fill:#e6e4e4;fill-opacity:1;stroke-width:1.00862247;stroke-dasharray:none" />
+   style="fill:#777575;fill-opacity:1;stroke-width:1.00862247;stroke-dasharray:none" />
 </g></g></g></svg>
