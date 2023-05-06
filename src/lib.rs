@@ -179,6 +179,16 @@ pub fn use_event_provider(cx: Scope) -> EventProvider {
     use_context::<EventProvider>(cx).unwrap()
 }
 
+#[cfg(feature = "crossterm")]
+pub fn create_key_effect(cx: Scope, f: impl Fn(crossterm::event::KeyEvent) + 'static) {
+    let event_signal = use_event_provider(cx).create_event_signal();
+    create_effect(cx, move |_| {
+        if let Some(Event::TermEvent(crossterm::event::Event::Key(event))) = event_signal() {
+            f(event);
+        }
+    })
+}
+
 pub struct EventHandler<W> {
     cx: Scope,
     writer: Rc<RefCell<Option<W>>>,
