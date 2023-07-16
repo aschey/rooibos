@@ -27,6 +27,10 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 pub use leptos_reactive as reactive;
+use tracing::info;
+
+#[cfg(feature = "rsx")]
+pub mod components;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MessageError {
@@ -50,7 +54,7 @@ where
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Event {
     #[cfg(feature = "crossterm")]
     TermEvent(crossterm::event::Event),
@@ -136,6 +140,7 @@ impl core::fmt::Debug for CommandFn {
 
 #[derive(Clone)]
 pub struct EventProvider {
+    cx: Scope,
     event_signal: ReadSignal<Option<Event>>,
     custom_signal: ReadSignal<Option<Box<dyn AnyClone + Send>>>,
     command_sender: mpsc::Sender<Command>,
@@ -158,8 +163,18 @@ impl EventProvider {
         move || event_signal.get()
     }
 
-    pub fn disptach(&self, command: Command) {
+    pub fn dispatch(&self, command: Command) {
         self.command_sender.try_send(command).unwrap();
+    }
+
+    #[cfg(feature = "crossterm")]
+    pub fn create_key_effect(&self, f: impl Fn(crossterm::event::KeyEvent) + 'static) {
+        let event_signal = self.create_event_signal();
+        create_effect(self.cx, move |_| {
+            if let Some(Event::TermEvent(crossterm::event::Event::Key(event))) = event_signal() {
+                f(event);
+            }
+        })
     }
 }
 
@@ -179,16 +194,6 @@ pub fn use_event_provider(cx: Scope) -> EventProvider {
     use_context::<EventProvider>(cx).unwrap()
 }
 
-#[cfg(feature = "crossterm")]
-pub fn create_key_effect(cx: Scope, f: impl Fn(crossterm::event::KeyEvent) + 'static) {
-    let event_signal = use_event_provider(cx).create_event_signal();
-    create_effect(cx, move |_| {
-        if let Some(Event::TermEvent(crossterm::event::Event::Key(event))) = event_signal() {
-            f(event);
-        }
-    })
-}
-
 pub struct EventHandler<W> {
     cx: Scope,
     writer: Rc<RefCell<Option<W>>>,
@@ -203,8 +208,8 @@ pub struct EventHandler<W> {
 
 impl<W: 'static> EventHandler<W> {
     pub fn initialize(cx: Scope, writer: W) -> Self {
-        let (read_event_signal, set_event_signal) = create_signal(cx, None);
-        let (read_custom_signal, set_custom_signal) = create_signal(cx, None);
+        let (event_signal, set_event_signal) = create_signal(cx, None);
+        let (custom_signal, set_custom_signal) = create_signal(cx, None);
 
         let (command_tx, command_rx) = mpsc::channel(32);
         let (custom_event_tx, custom_event_rx) = mpsc::channel(32);
@@ -213,8 +218,9 @@ impl<W: 'static> EventHandler<W> {
         provide_context(
             cx,
             EventProvider {
-                event_signal: read_event_signal,
-                custom_signal: read_custom_signal,
+                cx,
+                event_signal,
+                custom_signal,
                 command_sender: command_tx.clone(),
             },
         );
@@ -252,11 +258,12 @@ impl<W: 'static> EventHandler<W> {
         }
     }
 
-    pub fn render(&self, f: impl Fn(&mut W) + 'static) {
+    pub fn render(&self, f: impl FnMut(&mut W) + 'static) {
         let writer = self.writer.clone();
+        let f = Rc::new(RefCell::new(f));
         create_effect(self.cx, move |_| {
             if let Some(writer) = writer.borrow_mut().as_mut() {
-                f(writer)
+                f.borrow_mut()(writer)
             }
         });
     }
@@ -277,7 +284,7 @@ impl<W: 'static> EventHandler<W> {
                     {
                         use crossterm::event::{KeyModifiers, KeyCode, KeyEvent};
 
-                        if let crossterm::event::Event::Key(KeyEvent {code, modifiers, ..})=  event {
+                        if let crossterm::event::Event::Key(KeyEvent {code, modifiers, ..}) = event {
                             if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
                                 self.set_event.set(Some(Event::QuitRequested));
                                 break;
@@ -293,11 +300,10 @@ impl<W: 'static> EventHandler<W> {
 
                 }
                 Some(event) = self.event_rx.recv() => {
-                    if let Event::QuitRequested = event {
-                        self.set_event.set(Some(event));
+                    let quit_requested = event == Event::QuitRequested;
+                    self.set_event.set(Some(event));
+                    if quit_requested{
                         break;
-                    } else {
-                        self.set_event.set(Some(event));
                     }
                 }
                 Some(event) = self.custom_event_rx.recv() => {

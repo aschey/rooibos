@@ -7,26 +7,30 @@ version = "0.1.0"
 
 [dependencies]
 async-recursion = "1"
-crossterm = {version = "0.26", features = ["event-stream"], optional = true}
+crossterm = { version = "0.26", features = ["event-stream"], optional = true }
 dyn-clonable = "0.9"
-futures-cancel = {git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d"}
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }
 futures-util = "0.3"
-leptos_reactive = {version = "0.2", features = ["stable"]}
+leptos_reactive = { version = "0.4" }
 pin-project-lite = "0.2"
 thiserror = "1"
-tokio = {version = "1", features = ["rt-multi-thread", "macros", "sync"]}
-tokio-stream = {version = "0.1", features = ["sync"]}
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
 tokio-util = "0.7"
+tracing = "0.1"
+tui-rsx = { path = "../tui-rsx/crates/tui-rsx", optional = true }
+ratatui = { path = "../ratatui", optional = true }
+typed-builder = { version = "0.15", optional = true }
 
 [features]
 crossterm = ["dep:crossterm"]
-default = [
-  "crossterm",
-]
+default = ["crossterm", "rsx"]
+rsx = ["tui-rsx", "ratatui", "typed-builder"]
 
 [dev-dependencies]
-ratatui = {git = "https://github.com/tui-rs-revival/ratatui", rev = "33b3f4e3122cc59eaa789c684dd17dae3a716be1"}
-tui-rsx = {git = "https://github.com/aschey/tui-rsx", rev = "177e7770420b97ce751d7b9b85abc0688e4b29c8"}
+ratatui = { path = "../ratatui" }
+tui-rsx = { path = "../tui-rsx/crates/tui-rsx" }
+typed-builder = "0.15.1"
 
 [[example]]
 name = "example"
