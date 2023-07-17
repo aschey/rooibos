@@ -1,7 +1,6 @@
-use core::marker::PhantomData;
-use leptos_reactive::{create_memo, Scope, SignalGet};
+use leptos_reactive::Scope;
 use ratatui::backend::Backend;
-use tui_rsx::{prelude::*, view};
+use tui_rsx::prelude::*;
 use typed_builder::TypedBuilder;
 
 #[component]
@@ -26,37 +25,17 @@ where
     }
 }
 
-#[derive(TypedBuilder)]
+#[caller_id]
+#[derive(TypedBuilder, ComponentChildren)]
 pub struct Case<B>
 where
     B: Backend + 'static,
 {
-    #[builder(setter(!strip_option, transform = |f: impl IntoBoxed<dyn Fn() -> bool>| f.into_boxed()))]
+    #[builder(setter(transform = |f: impl IntoBoxed<dyn Fn() -> bool>| f.into_boxed()))]
     when: Box<dyn Fn() -> bool>,
+    #[children]
+    #[builder(setter(transform = |f: impl IntoBoxed<dyn Fn() -> Box<dyn View<B>>>| f.into_boxed()))]
     children: Box<dyn Fn() -> Box<dyn View<B>>>,
-    __caller_id: u32,
-    #[builder(default)]
-    _phantom: PhantomData<B>,
-}
-
-impl<B> Case<B>
-where
-    B: Backend + 'static,
-{
-    #[allow(clippy::new_ret_no_self, clippy::type_complexity)]
-    pub fn new(
-        children: impl IntoBoxed<dyn Fn() -> Box<dyn View<B>>>,
-    ) -> CaseBuilder<
-        B,
-        (
-            (),
-            (Box<(dyn Fn() -> Box<(dyn tui_rsx::View<B> + 'static)> + 'static)>,),
-            (),
-            (),
-        ),
-    > {
-        Self::builder().children(children.into_boxed())
-    }
 }
 
 #[component]
