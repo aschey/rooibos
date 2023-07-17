@@ -8,8 +8,9 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use leptos_reactive::SignalGetUntracked;
 use ratatui::{
-    backend::CrosstermBackend,
+    backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     widgets::Block,
@@ -40,22 +41,15 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 
     let handler = EventHandler::initialize(cx, terminal);
 
-    let counter = create_counter(cx);
-    let label = create_label(cx);
-    let test = create_test(cx);
-
+    let mut v = mount! { cx,
+        <column>
+            <Counter length=5/>
+        </column>
+    };
     handler.render(move |terminal| {
         terminal
             .draw(|f| {
-                let v = view! {
-                    <Column>
-                        <counter length=5/>
-                        <test length=2 />
-                        <block length=3 style=prop!(<style bg=Color::Black/>)/>
-                        <label min=0/>
-                    </Column>
-                };
-                v(f, f.size());
+                v.view(f, f.size());
             })
             .unwrap();
     });
@@ -72,21 +66,11 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn create_test(cx: Scope) -> impl Fn(&mut Frame<CrosstermBackend<Stdout>>, Rect) {
-    let counter = create_counter(cx);
-    let label = create_label(cx);
-    view! { move
-        <Row>
-            <counter length=10/>
-            <label min=0/>
-        </Row>
-    }
-}
-
-fn create_counter(cx: Scope) -> impl Fn(&mut Frame<CrosstermBackend<Stdout>>, Rect) {
+#[component]
+fn Counter<B: Backend + 'static>(cx: Scope) -> impl View<B> {
     let (count, set_count) = create_signal(cx, 0);
-    let sig = use_event_provider(cx).create_event_signal();
-    // let sig = provider.create_event_signal();
+    let provider = use_event_provider(cx);
+    let sig = provider.create_event_signal();
 
     create_effect(cx, move |_| match sig() {
         Some(Event::TermEvent(crossterm::event::Event::Key(KeyEvent {
@@ -95,17 +79,12 @@ fn create_counter(cx: Scope) -> impl Fn(&mut Frame<CrosstermBackend<Stdout>>, Re
         }))) => {
             set_count.update(|c| *c += 1);
         }
-        // Some(Event::Custom(CustomEvent::Increment)) => {
-        //     set_count.update(|c| *c += 1);
-        // }
         _ => {}
     });
 
-    view! {
-        move <block title=format!("count {}", count.get())/>
+    move || {
+        view! { cx,
+            <block title=format!("count {}",  count.get())/>
+        }
     }
-}
-
-fn create_label(cx: Scope) -> impl Fn(&mut Frame<CrosstermBackend<Stdout>>, Rect) {
-    view! { <block title="test"/> }
 }
