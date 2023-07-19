@@ -18,6 +18,7 @@ use leptos_reactive::{
     create_effect, create_runtime, create_scope, create_signal, provide_context, use_context,
     ReadSignal, Scope, ScopeDisposer, SignalGet, SignalSet, WriteSignal,
 };
+use reactive::{create_rw_signal, create_selector, RwSignal, Signal, SignalUpdate};
 use tokio::{
     runtime::Handle,
     sync::mpsc,
@@ -27,7 +28,6 @@ use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
 pub use leptos_reactive as reactive;
-use tracing::info;
 
 #[cfg(feature = "rsx")]
 pub mod components;
@@ -138,15 +138,38 @@ impl core::fmt::Debug for CommandFn {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct FocusContext {
+    cx: Scope,
+    focused_id: RwSignal<Option<String>>,
+}
+
+impl FocusContext {
+    pub fn create_focus_handler(&self, id: &str) -> Signal<bool> {
+        let id = id.to_owned();
+        let focused_id = self.focused_id;
+        let selector = create_selector(self.cx, move || focused_id.get());
+        Signal::derive(self.cx, move || selector(Some(id.clone())))
+    }
+
+    pub fn get_focus_selector(&self) -> Signal<Option<String>> {
+        self.focused_id.into()
+    }
+
+    pub fn set_focus<S: Into<String>>(&self, id: Option<S>) {
+        self.focused_id
+            .update(|focused_id| *focused_id = id.map(|i| i.into()));
+    }
+}
 #[derive(Clone)]
-pub struct EventProvider {
+pub struct EventContext {
     cx: Scope,
     event_signal: ReadSignal<Option<Event>>,
     custom_signal: ReadSignal<Option<Box<dyn AnyClone + Send>>>,
     command_sender: mpsc::Sender<Command>,
 }
 
-impl EventProvider {
+impl EventContext {
     pub fn create_custom_event_signal<T: PartialEq + Sized + Clone + 'static>(
         &self,
     ) -> impl Fn() -> Option<T> {
@@ -190,8 +213,12 @@ where
     (rx.recv().unwrap(), scope)
 }
 
-pub fn use_event_provider(cx: Scope) -> EventProvider {
-    use_context::<EventProvider>(cx).unwrap()
+pub fn use_event_context(cx: Scope) -> EventContext {
+    use_context::<EventContext>(cx).unwrap()
+}
+
+pub fn use_focus_context(cx: Scope) -> FocusContext {
+    use_context::<FocusContext>(cx).unwrap()
 }
 
 pub struct EventHandler<W> {
@@ -217,11 +244,19 @@ impl<W: 'static> EventHandler<W> {
 
         provide_context(
             cx,
-            EventProvider {
+            EventContext {
                 cx,
                 event_signal,
                 custom_signal,
                 command_sender: command_tx.clone(),
+            },
+        );
+
+        provide_context(
+            cx,
+            FocusContext {
+                cx,
+                focused_id: create_rw_signal(cx, None),
             },
         );
 
