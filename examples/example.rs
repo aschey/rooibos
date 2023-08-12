@@ -8,7 +8,6 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use leptos_reactive::SignalGetUntracked;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
@@ -17,18 +16,14 @@ use ratatui::{
     Frame, Terminal,
 };
 use rooibos::{
-    reactive::{create_effect, create_signal, Scope, SignalGet, SignalUpdate},
-    run_system, use_event_provider, Event, EventHandler,
+    reactive::{create_signal, Scope, SignalGet, SignalUpdate},
+    run_system, use_event_context, EventHandler,
 };
 use tui_rsx::prelude::*;
 
-#[derive(Clone, PartialEq, Eq)]
-enum CustomEvent {
-    Increment,
-}
-
-fn main() {
-    let _scope = run_system(run);
+fn main() -> Result<(), Box<dyn Error>> {
+    let (_handle, err) = run_system(run);
+    err
 }
 
 #[tokio::main]
@@ -68,18 +63,13 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 
 #[component]
 fn Counter<B: Backend + 'static>(cx: Scope) -> impl View<B> {
-    let (count, set_count) = create_signal(cx, 0);
-    let provider = use_event_provider(cx);
-    let sig = provider.create_event_signal();
+    let count = create_signal(cx, 0);
+    let context = use_event_context(cx);
 
-    create_effect(cx, move |_| match sig() {
-        Some(Event::TermEvent(crossterm::event::Event::Key(KeyEvent {
-            code: KeyCode::Enter,
-            ..
-        }))) => {
-            set_count.update(|c| *c += 1);
+    context.create_key_effect(cx, move |event| {
+        if event.code == KeyCode::Enter {
+            count.update(|c| *c += 1);
         }
-        _ => {}
     });
 
     move || {

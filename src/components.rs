@@ -1,11 +1,10 @@
-use leptos_reactive::Scope;
+use crate::reactive::Scope;
 use ratatui::backend::Backend;
 use tui_rsx::prelude::*;
 use typed_builder::TypedBuilder;
 
 #[component]
 pub fn Show<B, F1, F2, V1, V2, W>(
-    _cx: Scope,
     #[prop(children)] children: F1,
     when: W,
 
@@ -19,9 +18,12 @@ where
     V1: View<B> + 'static,
     V2: View<B> + 'static,
 {
-    move || match when() {
-        true => children().into_boxed_view(),
-        false => fallback().into_boxed_view(),
+    move || {
+        if when() {
+            children().into_boxed_view()
+        } else {
+            fallback().into_boxed_view()
+        }
     }
 }
 

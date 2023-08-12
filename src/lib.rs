@@ -14,11 +14,10 @@ use std::{
 use async_recursion::async_recursion;
 use dyn_clonable::clonable;
 use futures_util::{stream::FuturesUnordered, Future, Stream};
-use leptos_reactive::{
-    create_effect, create_runtime, create_scope, create_signal, provide_context, use_context,
-    ReadSignal, Scope, ScopeDisposer, SignalGet, SignalSet, WriteSignal,
+use reactive::{
+    create_effect, create_root, create_selector, create_signal, provide_context, use_context,
+    IntoSignal, ReadSignal, RootHandle, Scope, Signal, SignalGet, SignalUpdate, WriteSignal,
 };
-use reactive::{create_rw_signal, create_selector, RwSignal, Signal, SignalUpdate};
 use tokio::{
     runtime::Handle,
     sync::mpsc,
@@ -27,7 +26,7 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-pub use leptos_reactive as reactive;
+pub mod reactive;
 
 #[cfg(feature = "rsx")]
 pub mod components;
@@ -54,7 +53,7 @@ where
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Event {
     #[cfg(feature = "crossterm")]
     TermEvent(crossterm::event::Event),
@@ -141,19 +140,19 @@ impl core::fmt::Debug for CommandFn {
 #[derive(Clone, Copy)]
 pub struct FocusContext {
     cx: Scope,
-    focused_id: RwSignal<Option<String>>,
+    focused_id: Signal<Option<String>>,
 }
 
 impl FocusContext {
-    pub fn create_focus_handler(&self, id: &str) -> Signal<bool> {
+    pub fn create_focus_handler(&self, id: &str) -> ReadSignal<bool> {
         let id = id.to_owned();
         let focused_id = self.focused_id;
         let selector = create_selector(self.cx, move || focused_id.get());
-        Signal::derive(self.cx, move || selector(Some(id.clone())))
+        (move || selector.get() == Some(id.clone())).derive_signal(self.cx)
     }
 
     pub fn get_focus_selector(&self) -> Signal<Option<String>> {
-        self.focused_id.into()
+        self.focused_id
     }
 
     pub fn set_focus<S: Into<String>>(&self, id: Option<S>) {
@@ -161,9 +160,9 @@ impl FocusContext {
             .update(|focused_id| *focused_id = id.map(|i| i.into()));
     }
 }
+
 #[derive(Clone)]
 pub struct EventContext {
-    cx: Scope,
     event_signal: ReadSignal<Option<Event>>,
     custom_signal: ReadSignal<Option<Box<dyn AnyClone + Send>>>,
     command_sender: mpsc::Sender<Command>,
@@ -181,9 +180,9 @@ impl EventContext {
         }
     }
 
-    pub fn create_event_signal(&self) -> impl Fn() -> Option<Event> {
+    pub fn create_event_signal(&self, cx: Scope) -> ReadSignal<Option<Event>> {
         let event_signal = self.event_signal;
-        move || event_signal.get()
+        (move || event_signal.get()).derive_signal(cx)
     }
 
     pub fn dispatch(&self, command: Command) {
@@ -191,34 +190,35 @@ impl EventContext {
     }
 
     #[cfg(feature = "crossterm")]
-    pub fn create_key_effect(&self, f: impl Fn(crossterm::event::KeyEvent) + 'static) {
-        let event_signal = self.create_event_signal();
-        create_effect(self.cx, move |_| {
-            if let Some(Event::TermEvent(crossterm::event::Event::Key(event))) = event_signal() {
+    pub fn create_key_effect(&self, cx: Scope, f: impl Fn(crossterm::event::KeyEvent) + 'static) {
+        let event_signal = self.create_event_signal(cx);
+        create_effect(cx, move || {
+            if let Some(Event::TermEvent(crossterm::event::Event::Key(event))) = event_signal.get()
+            {
                 f(event);
             }
         })
     }
 }
 
-pub fn run_system<F, E>(f: F) -> (Result<(), E>, ScopeDisposer)
+pub fn run_system<F, E>(mut f: F) -> (RootHandle, Result<(), E>)
 where
-    F: FnOnce(Scope) -> Result<(), E> + 'static,
+    F: FnMut(Scope) -> Result<(), E> + 'static,
     E: 'static,
 {
-    let (tx, rx) = std::sync::mpsc::channel();
-    let scope = create_scope(create_runtime(), move |cx| {
-        tx.send(f(cx)).unwrap();
-    });
-    (rx.recv().unwrap(), scope)
+    create_root(move |cx| {
+        let out = f(cx);
+        cx.dispose();
+        out
+    })
 }
 
 pub fn use_event_context(cx: Scope) -> EventContext {
-    use_context::<EventContext>(cx).unwrap()
+    use_context::<EventContext>(cx)
 }
 
 pub fn use_focus_context(cx: Scope) -> FocusContext {
-    use_context::<FocusContext>(cx).unwrap()
+    use_context::<FocusContext>(cx)
 }
 
 pub struct EventHandler<W> {
@@ -235,8 +235,8 @@ pub struct EventHandler<W> {
 
 impl<W: 'static> EventHandler<W> {
     pub fn initialize(cx: Scope, writer: W) -> Self {
-        let (event_signal, set_event_signal) = create_signal(cx, None);
-        let (custom_signal, set_custom_signal) = create_signal(cx, None);
+        let (event_signal, set_event_signal) = create_signal(cx, None).split();
+        let (custom_signal, set_custom_signal) = create_signal(cx, None).split();
 
         let (command_tx, command_rx) = mpsc::channel(32);
         let (custom_event_tx, custom_event_rx) = mpsc::channel(32);
@@ -245,7 +245,6 @@ impl<W: 'static> EventHandler<W> {
         provide_context(
             cx,
             EventContext {
-                cx,
                 event_signal,
                 custom_signal,
                 command_sender: command_tx.clone(),
@@ -256,7 +255,7 @@ impl<W: 'static> EventHandler<W> {
             cx,
             FocusContext {
                 cx,
-                focused_id: create_rw_signal(cx, None),
+                focused_id: create_signal(cx, None),
             },
         );
 
@@ -295,8 +294,10 @@ impl<W: 'static> EventHandler<W> {
 
     pub fn render(&self, f: impl FnMut(&mut W) + 'static) {
         let writer = self.writer.clone();
+
         let f = Rc::new(RefCell::new(f));
-        create_effect(self.cx, move |_| {
+
+        create_effect(self.cx, move || {
             if let Some(writer) = writer.borrow_mut().as_mut() {
                 f.borrow_mut()(writer)
             }
