@@ -1,4 +1,4 @@
-use rooibos_reactive::{create_child_scope, Scope};
+use rooibos_reactive::Scope;
 use typed_builder::TypedBuilder;
 
 use crate::prelude::*;
@@ -14,22 +14,24 @@ where
     B: Backend + 'static,
     V: LazyView<B> + Clone + 'static,
 {
+    let inverse_y = (100 - percent_y) / 2;
+    let inverse_x = (100 - percent_x) / 2;
     move || {
         let mut children = children.clone();
         view! { cx,
             <column>
-                <row percentage=(100 - percent_y)/2 />
+                <row percentage=inverse_y />
                 <row percentage=percent_y>
-                    <column percentage=(100 - percent_x)/2 />
+                    <column percentage=inverse_x />
                     <column percentage=percent_x>
                         <overlay>
                             <clear/>
                             {children}
                         </overlay>
                     </column>
-                    <column percentage=(100 - percent_x)/2 />
+                    <column percentage=inverse_x />
                 </row>
-                <row percentage=(100 - percent_y)/2 />
+                <row percentage=inverse_y />
             </column>
         }
     }
@@ -37,7 +39,7 @@ where
 
 #[component]
 pub fn Show<B, F1, F2, V1, V2, W>(
-    cx: Scope,
+    _cx: Scope,
     #[prop(children)] children: F1,
     when: W,
     fallback: F2,
@@ -80,7 +82,7 @@ where
 
 #[component]
 pub fn Switch<B>(
-    cx: Scope,
+    _cx: Scope,
     #[prop(children)] children: Vec<Case<B>>,
     #[prop(default = false)] eager: bool,
 ) -> impl View<B>

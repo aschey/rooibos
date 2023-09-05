@@ -9,17 +9,6 @@ use std::fmt::{self, Formatter};
 /// Usually created using [`create_memo`], [`create_selector`], and [`create_selector_with`].
 pub struct Memo<T: 'static>(pub(crate) ReadSignal<T>);
 
-impl<T> Memo<T> {
-    /// Get the inner [`Signal`] that is backing this memo.
-    ///
-    /// Be careful when using this! Normally, you should not be able to update a memo manually
-    /// because that is already being done automatically. However, you can use this to create a
-    /// "writable memo", one which can be both updated manually and automatically.
-    pub fn inner_signal(self) -> ReadSignal<T> {
-        self.0
-    }
-}
-
 impl<T: Clone> SignalGet<T> for Memo<T> {
     fn get(self) -> T {
         self.0.get()

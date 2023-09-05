@@ -311,20 +311,6 @@ where
         });
     }
 
-    // pub fn render(&self, f: impl FnMut(&mut Terminal<B>) + 'static) {
-    //     let writer = self.writer.clone();
-
-    //     let f = Rc::new(RefCell::new(f));
-
-    //     create_effect(self.cx, move || {
-    //         if let Some(writer) = writer.borrow_mut().as_mut() {
-    //             WIDGET_CACHE.with(|c| c.next_iteration());
-    //             f.borrow_mut()(writer);
-    //             WIDGET_CACHE.with(|c| c.evict::<B>());
-    //         }
-    //     });
-    // }
-
     pub async fn run(mut self) -> Terminal<B> {
         #[cfg(feature = "crossterm")]
         let mut event_reader = crossterm::event::EventStream::new().fuse();

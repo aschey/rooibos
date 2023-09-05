@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 async-recursion = "1"
-crossterm = { version = "0.26", features = ["event-stream"], optional = true }
+crossterm = { version = "0.27", features = ["event-stream"], optional = true }
 dyn-clonable = "0.9"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "563f413a206c50c7cc1a003cf6a9d3b227b0b04d" }
 futures-util = "0.3"
@@ -18,7 +18,7 @@ tokio-stream = { version = "0.1", features = ["sync"] }
 tokio-util = "0.7"
 tracing = "0.1"
 rooibos-rsx = { path = "../rooibos-rsx" }
-ratatui = { path = "../../../ratatui" }
+ratatui = { version = "0.23" }
 typed-builder = { version = "0.16" }
 slotmap = "1"
 once_cell = "1"

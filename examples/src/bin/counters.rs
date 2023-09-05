@@ -11,7 +11,7 @@ use ratatui::{
     Frame, Terminal,
 };
 use rooibos::{
-    reactive::{create_child_scope, create_signal, Scope, SignalGet, SignalUpdate},
+    reactive::{create_signal, Scope, SignalGet, SignalUpdate},
     runtime::{run_system, use_event_context},
 };
 use rooibos::{rsx::prelude::*, runtime::EventHandler};
@@ -22,11 +22,11 @@ fn main() -> Result<(), Box<dyn Error>> {
 
 #[tokio::main]
 async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
-    enable_raw_mode().unwrap();
+    enable_raw_mode()?;
     let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture).unwrap();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
-    let terminal = Terminal::new(backend).unwrap();
+    let terminal = Terminal::new(backend)?;
 
     let handler = EventHandler::initialize(cx, terminal);
 
@@ -35,19 +35,18 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     });
 
     let mut terminal = handler.run().await;
-    disable_raw_mode().unwrap();
+    disable_raw_mode()?;
     execute!(
         terminal.backend_mut(),
         LeaveAlternateScreen,
         DisableMouseCapture,
-    )
-    .unwrap();
-    terminal.show_cursor().unwrap();
+    )?;
+    terminal.show_cursor()?;
     Ok(())
 }
 
 #[component]
-fn Counters<B: Backend + 'static>(cx: Scope) -> impl View<B> {
+fn Counters<B: Backend + 'static>(cx: Scope) -> impl rooibos::rsx::View<B> {
     let n_counters = create_signal(cx, 1);
     let context = use_event_context(cx);
 

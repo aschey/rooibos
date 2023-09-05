@@ -1,6 +1,4 @@
-use std::sync::atomic::Ordering;
-
-use crate::{get_import, NEXT_ID};
+use crate::{get_import, next_id};
 use attribute_derive::Attribute as AttributeDerive;
 use convert_case::{
     Case::{Pascal, Snake},
@@ -54,17 +52,15 @@ impl Parse for Model {
                 "this method requires a `Scope` parameter";
                 help = "try `fn {}(cx: Scope, /* ... */)`", item.sig.ident
             );
+        } else if !is_valid_scope_type(&props[0].ty) {
+            abort!(
+                item.sig.inputs,
+                "this method requires a `Scope` parameter";
+                help = "try `fn {}(cx: Scope, /* ... */ */)`", item.sig.ident
+            );
         } else {
             (props[0].name.clone(), props[0].ty.clone())
         };
-
-        // else if !is_valid_scope_type(&props[0].ty) {
-        //     abort!(
-        //         item.sig.inputs,
-        //         "this method requires a `Scope` parameter";
-        //         help = "try `fn {}(cx: Scope, /* ... */ */)`", item.sig.ident
-        //     );
-        // }
 
         // We need to remove the `#[doc = ""]` and `#[builder(_)]`
         // attrs from the function signature
@@ -73,6 +69,7 @@ impl Parse for Model {
             Meta::List(attr) => attr.path == parse_quote!(prop),
             _ => false,
         });
+
         item.sig.inputs.iter_mut().for_each(|arg| {
             if let FnArg::Typed(ty) = arg {
                 drain_filter(&mut ty.attrs, |attr| match &attr.meta {
@@ -84,14 +81,6 @@ impl Parse for Model {
         });
 
         let view_type = get_view_generics(&item.sig.output);
-        // Make sure return type is correct
-        // if !is_valid_into_view_return_type(&item.sig.output) {
-        //     abort!(
-        //         item.sig,
-        //         "return type is incorrect";
-        //         help = "return signature must be `-> impl IntoView`"
-        //     );
-        // }
 
         Ok(Self {
             is_transparent: false,
@@ -108,21 +97,33 @@ impl Parse for Model {
     }
 }
 
+fn is_valid_scope_type(ty: &Type) -> bool {
+    [
+        parse_quote!(Scope),
+        parse_quote!(rooibos::reactive::Scope),
+        parse_quote!(::rooibos::reactive::Scope),
+        parse_quote!(rooibos_reactive::Scope),
+        parse_quote!(::rooibos_reactive::Scope),
+    ]
+    .iter()
+    .any(|test| ty == test)
+}
+
 fn get_view_generics(return_type: &ReturnType) -> Type {
     if let ReturnType::Type(_, return_type) = &return_type {
         if let Type::ImplTrait(impl_trait) = return_type.as_ref() {
-            let bound = impl_trait.bounds.first().unwrap();
-            if let TypeParamBound::Trait(bound_trait) = bound {
-                if let PathArguments::AngleBracketed(args) = &bound_trait.path.segments[0].arguments
+            if let Some(TypeParamBound::Trait(bound_trait)) = impl_trait.bounds.first() {
+                if let Some(PathArguments::AngleBracketed(args)) =
+                    &bound_trait.path.segments.last().map(|s| &s.arguments)
                 {
-                    if let GenericArgument::Type(generic_type) = &args.args.first().unwrap() {
+                    if let Some(GenericArgument::Type(generic_type)) = &args.args.first() {
                         return generic_type.clone();
                     }
                 }
             }
         }
     };
-    abort!(return_type,"return type is incorrect"; help = "return signature must be `-> impl View<B>`");
+    abort!(return_type, "return type is incorrect"; help = "return signature must be `-> impl View<B>`");
 }
 
 // implemented manually because Vec::drain_filter is nightly only
@@ -255,14 +256,7 @@ impl ToTokens for Model {
             }
         };
 
-        // let cache_name = format_ident!("{}_CACHE", body.sig.ident.to_string().to_uppercase());
-        // let widget_cache_decl = quote! {
-        //     thread_local! {
-        //         static #cache_name: ::std::cell::RefCell<#crate_import::once_cell::sync::Lazy<#crate_import::typemap::TypeMap>> =
-        //             ::std::cell::RefCell::new(#crate_import::once_cell::sync::Lazy::new(#crate_import::typemap::TypeMap::new));
-        //     }
-        // };
-        let widget_id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
+        let widget_id = next_id();
         let widget_cache_impl = quote! {
             WIDGET_CACHE.with(|c| {
                 let widget_id: u32 = (__caller_id.to_string() + &#widget_id.to_string()).parse().expect("invalid integer");
@@ -274,7 +268,7 @@ impl ToTokens for Model {
                     } else {
                         let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component));
                         map.insert(widget_id, #crate_import::KeyData {
-                            cx,
+                            cx: #scope_name,
                             view: res.clone()
                         });
                         res
@@ -283,7 +277,7 @@ impl ToTokens for Model {
                     let mut map = ::std::collections::HashMap::<u32, #crate_import::KeyData<#view_type>>::new();
                     let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component));
                     map.insert(widget_id, #crate_import::KeyData {
-                        cx,
+                        cx: #scope_name,
                         view: res.clone()
                     });
                     cache_mut.insert::<#crate_import::KeyWrapper<#view_type>>(map);
@@ -303,8 +297,6 @@ impl ToTokens for Model {
             #vis struct #props_name #impl_generics #where_clause {
                 #prop_builder_fields
             }
-
-            // #widget_cache_decl
 
             #docs
             #component_fn_prop_docs

@@ -3,10 +3,9 @@ use proc_macro_error::abort_call_site;
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::KeyedAttribute;
 use rstml::node::{Node, NodeAttribute, NodeElement};
-use std::sync::atomic::Ordering;
 use syn::{Block, Expr, ExprLit, Lit, LitInt};
 
-use crate::NEXT_ID;
+use crate::{get_import, next_id};
 
 #[derive(Clone, Debug)]
 enum Constraint {
@@ -308,6 +307,7 @@ impl NodeAttributes {
             })
             .collect();
 
+        let crate_name = get_import();
         for attribute in &custom_attrs {
             let func_name = Ident::new(&attribute.key.to_string(), Span::call_site());
             if let Some(tag_name) = tag_name {
@@ -331,7 +331,7 @@ impl NodeAttributes {
                     );
                     if let Some(cx_name) = cx_name {
                         let scope_param = if include_parent_id {
-                            quote!(create_child_scope(#cx_name))
+                            quote!(#crate_name::reactive::create_child_scope(#cx_name))
                         } else {
                             cx_name.clone()
                         };
@@ -358,7 +358,7 @@ impl NodeAttributes {
                 );
                 if let Some(cx_name) = cx_name {
                     let scope_param = if include_parent_id {
-                        quote!(create_child_scope(#cx_name))
+                        quote!(#crate_name::reactive::create_child_scope(#cx_name))
                     } else {
                         cx_name.clone()
                     };
@@ -412,7 +412,7 @@ fn build_struct(
 ) -> TokenStream {
     let object = capitalize(tag_name) + object_suffix;
     let ident = Ident::new(&object, Span::call_site());
-    let caller_id = NEXT_ID.fetch_add(1, Ordering::SeqCst);
+    let caller_id = next_id();
     let key_clause = key.map(|k| quote!(+ &#k.to_string()));
     let caller_id_args = if include_parent_id {
         quote!((__parent_id.to_string() + &#caller_id.to_string() #key_clause).parse().expect("invalid integer"))
@@ -481,10 +481,7 @@ fn parse_elements(cx_name: &TokenStream, nodes: &[Node], include_parent_id: bool
                     views.push(View {
                         view_type: ViewType::Block {
                             tokens: content,
-                            fn_name: Ident::new(
-                                &format!("__fn{}", NEXT_ID.fetch_add(1, Ordering::SeqCst)),
-                                Span::call_site(),
-                            ),
+                            fn_name: Ident::new(&format!("__fn{}", next_id()), Span::call_site()),
                         },
                         constraint: Constraint::Min,
                         constraint_val: get_default_constraint(),
@@ -597,10 +594,7 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
             View {
                 view_type: ViewType::Element {
                     name: Ident::new(name, Span::call_site()),
-                    fn_name: Ident::new(
-                        &format!("__fn{}", NEXT_ID.fetch_add(1, Ordering::SeqCst)),
-                        Span::call_site(),
-                    ),
+                    fn_name: Ident::new(&format!("__fn{}", next_id()), Span::call_site()),
                     props: attrs.props,
                     state: attrs.state,
                 },

@@ -13,6 +13,7 @@ use typemap::{Key, TypeMap};
 
 pub use once_cell;
 pub use rooibos_macros::*;
+pub use rooibos_reactive as reactive;
 pub use typed_builder;
 pub use typemap;
 
@@ -29,7 +30,7 @@ macro_rules! impl_widget {
         impl MakeBuilder for $props<'_> {}
 
         pub fn $name<T, B: Backend>(_cx: T, props: $props<'static>) -> impl View<B> {
-            move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(&props, rect)
+            move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
         }
     };
 }
@@ -41,7 +42,7 @@ macro_rules! impl_widget_no_lifetime {
         impl MakeBuilder for $props {}
 
         pub fn $name<T, B: Backend>(_cx: T, props: $props) -> impl View<B> {
-            move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(&props, rect)
+            move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
         }
     };
 }
@@ -52,7 +53,7 @@ macro_rules! impl_stateful_widget {
         where
             B: Backend,
         {
-            fn render_with_state(&mut self, widget: &$props, frame: &mut Frame<B>, rect: Rect) {
+            fn render_with_state(&mut self, widget: $props, frame: &mut Frame<B>, rect: Rect) {
                 frame.render_stateful_widget(widget, rect, &mut self.borrow_mut())
             }
         }
@@ -61,7 +62,7 @@ macro_rules! impl_stateful_widget {
         where
             B: Backend,
         {
-            fn render_with_state(&mut self, widget: &$props, frame: &mut Frame<B>, rect: Rect) {
+            fn render_with_state(&mut self, widget: $props, frame: &mut Frame<B>, rect: Rect) {
                 frame.render_stateful_widget(widget, rect, &mut self.clone())
             }
         }
@@ -74,7 +75,7 @@ macro_rules! impl_stateful_widget {
             mut state: impl StatefulRender<B, $widget<'a>> + 'static,
         ) -> impl View<B> {
             move |frame: &mut Frame<B>, rect: Rect| {
-                state.render_with_state(&props, frame, rect);
+                state.render_with_state(props.clone(), frame, rect);
             }
         }
     };
@@ -85,7 +86,7 @@ where
     B: Backend,
     W: StatefulWidget,
 {
-    fn render_with_state(&mut self, widget: &W, frame: &mut Frame<B>, rect: Rect);
+    fn render_with_state(&mut self, widget: W, frame: &mut Frame<B>, rect: Rect);
 }
 
 pub struct KeyData<B: Backend + 'static> {
@@ -337,37 +338,12 @@ where
 }
 
 pub trait WrapExt {
-    fn default() -> Self;
-    fn builder() -> Self;
     fn trim(self, trim: bool) -> Self;
 }
 
 impl WrapExt for Wrap {
-    fn default() -> Self {
-        Self { trim: false }
-    }
-
-    fn builder() -> Self {
-        Self::default()
-    }
-
     fn trim(self, trim: bool) -> Self {
         Self { trim }
-    }
-}
-
-pub trait ClearExt {
-    fn default() -> Self;
-    fn builder() -> Self;
-}
-
-impl ClearExt for Clear {
-    fn default() -> Self {
-        Self
-    }
-
-    fn builder() -> Self {
-        Self
     }
 }
 

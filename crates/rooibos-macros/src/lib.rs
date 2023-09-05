@@ -1,4 +1,4 @@
-use std::sync::atomic::AtomicU32;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use proc_macro::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
@@ -11,7 +11,10 @@ mod component;
 mod component_children;
 mod view;
 
-pub(crate) static NEXT_ID: AtomicU32 = AtomicU32::new(0);
+static NEXT_ID: AtomicU32 = AtomicU32::new(0);
+pub(crate) fn next_id() -> u32 {
+    NEXT_ID.fetch_add(1, Ordering::SeqCst)
+}
 
 #[proc_macro]
 #[proc_macro_error]
