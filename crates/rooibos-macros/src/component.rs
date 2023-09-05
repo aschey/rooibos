@@ -309,6 +309,7 @@ impl ToTokens for Model {
             ) #ret #(+ #lifetimes)*
             #where_clause
             {
+                #[allow(non_snake_case, clippy::too_many_arguments, unused_mut)]
                 #body
                 #destructure_props
                 #widget_cache_impl
