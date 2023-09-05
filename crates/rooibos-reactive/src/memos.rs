@@ -28,7 +28,7 @@ impl<T: Clone> SignalGet<T> for Memo<T> {
 
 impl<T> Clone for Memo<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 impl<T> Copy for Memo<T> {}

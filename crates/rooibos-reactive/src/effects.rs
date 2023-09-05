@@ -71,6 +71,8 @@ pub fn create_effect_scoped(cx: Scope, mut f: impl FnMut(Scope) + 'static) {
         if let Some(child_scope) = child_scope {
             child_scope.dispose();
         }
-        child_scope = Some(create_child_scope(cx, &mut f));
+        let child_cx = create_child_scope(cx);
+        f(child_cx);
+        child_scope = Some(child_cx);
     });
 }

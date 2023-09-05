@@ -1,0 +1,12 @@
+[package]
+name = "rooibos-examples"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = "0.26"
+rooibos = { path = "../crates/rooibos" }
+ratatui = { path = "../../ratatui" }
+tokio = { version = "1.31.0", features = ["rt-multi-thread", "macros"] }

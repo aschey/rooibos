@@ -46,23 +46,28 @@ pub fn provide_global_context<T: 'static>(cx: Scope, value: T) {
 /// Tries to get a context value of the given type. If no context is found, returns `None`.
 pub fn try_use_context<T: Clone + 'static>(cx: Scope) -> Option<T> {
     // Walk up the scope stack until we find one with the context of the right type.
-    cx.get_data(|scope| {
+    let found_context = cx.get_data(|scope| {
         for value in &scope.context {
             if let Some(value) = value.downcast_ref::<T>().cloned() {
                 return Some(value);
             }
         }
+        None
+    });
 
+    if found_context.is_some() {
+        return found_context;
+    }
+
+    if let Some(parent) = cx.get_data(|scope| scope.parent) {
         // No context of the right type found for this scope. Now check the parent scope.
-        if let Some(parent) = scope.parent {
-            try_use_context::<T>(Scope {
-                id: parent,
-                root: cx.root,
-            })
-        } else {
-            None
-        }
-    })
+        try_use_context::<T>(Scope {
+            id: parent,
+            root: cx.root,
+        })
+    } else {
+        None
+    }
 }
 
 /// Get a context with the given type. If no context is found, this panics.

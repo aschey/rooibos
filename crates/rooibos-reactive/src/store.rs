@@ -116,10 +116,7 @@ impl<T> Store<T> {
 
 impl<T> Clone for Store<T> {
     fn clone(&self) -> Self {
-        Self {
-            inner: self.inner,
-            cx: self.cx,
-        }
+        *self
     }
 }
 impl<T> Copy for Store<T> {}

@@ -442,10 +442,15 @@ impl<T> SignalUpdate<T> for Signal<T> {
 
 impl<T> Signal<T> {
     pub fn split(self) -> (ReadSignal<T>, WriteSignal<T>) {
-        (
-            ReadSignal(ReadSignalType::Base(self.0)),
-            WriteSignal(self.0),
-        )
+        (self.to_read_signal(), self.to_write_signal())
+    }
+
+    pub fn to_read_signal(self) -> ReadSignal<T> {
+        ReadSignal(ReadSignalType::Base(self.0))
+    }
+
+    pub fn to_write_signal(self) -> WriteSignal<T> {
+        WriteSignal(self.0)
     }
 }
 
@@ -461,11 +466,7 @@ where
 /// We manually implement `Clone` + `Copy` for `Signal` so that we don't get extra bounds on `T`.
 impl<T> Clone for BaseSignal<T> {
     fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-            root: self.root,
-            _phantom: self._phantom,
-        }
+        *self
     }
 }
 
@@ -473,21 +474,21 @@ impl<T> Copy for BaseSignal<T> {}
 
 impl<T> Clone for Signal<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 impl<T> Copy for Signal<T> {}
 
 impl<T> Clone for ReadSignal<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 impl<T> Copy for ReadSignal<T> {}
 
 impl<T> Clone for WriteSignal<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 impl<T> Copy for WriteSignal<T> {}

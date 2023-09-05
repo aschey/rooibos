@@ -14,10 +14,12 @@ use std::{
 use async_recursion::async_recursion;
 use dyn_clonable::clonable;
 use futures_util::{stream::FuturesUnordered, Future, Stream};
-use reactive::{
+use ratatui::{prelude::Backend, Terminal};
+use rooibos_reactive::{
     create_effect, create_root, create_selector, create_signal, provide_context, use_context,
-    IntoSignal, ReadSignal, RootHandle, Scope, Signal, SignalGet, SignalUpdate, WriteSignal,
+    IntoSignal, ReadSignal, Scope, Signal, SignalGet, SignalUpdate, WriteSignal,
 };
+use rooibos_rsx::{View, WIDGET_CACHE};
 use tokio::{
     runtime::Handle,
     sync::mpsc,
@@ -25,11 +27,6 @@ use tokio::{
 };
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
-
-pub mod reactive;
-
-#[cfg(feature = "rsx")]
-pub mod components;
 
 #[derive(thiserror::Error, Debug)]
 pub enum MessageError {
@@ -201,7 +198,7 @@ impl EventContext {
     }
 }
 
-pub fn run_system<F, E>(mut f: F) -> (RootHandle, Result<(), E>)
+pub fn run_system<F, E>(mut f: F) -> Result<(), E>
 where
     F: FnMut(Scope) -> Result<(), E> + 'static,
     E: 'static,
@@ -221,9 +218,12 @@ pub fn use_focus_context(cx: Scope) -> FocusContext {
     use_context::<FocusContext>(cx)
 }
 
-pub struct EventHandler<W> {
+pub struct EventHandler<B>
+where
+    B: Backend + 'static,
+{
     cx: Scope,
-    writer: Rc<RefCell<Option<W>>>,
+    writer: Rc<RefCell<Option<Terminal<B>>>>,
     set_event: WriteSignal<Option<Event>>,
     cancellation_tokens: Arc<Mutex<HashMap<String, CancellationToken>>>,
     set_custom_signal: WriteSignal<Option<Box<dyn AnyClone + Send>>>,
@@ -233,8 +233,11 @@ pub struct EventHandler<W> {
     handler_token: CancellationToken,
 }
 
-impl<W: 'static> EventHandler<W> {
-    pub fn initialize(cx: Scope, writer: W) -> Self {
+impl<B> EventHandler<B>
+where
+    B: Backend + 'static,
+{
+    pub fn initialize(cx: Scope, writer: Terminal<B>) -> Self {
         let (event_signal, set_event_signal) = create_signal(cx, None).split();
         let (custom_signal, set_custom_signal) = create_signal(cx, None).split();
 
@@ -292,19 +295,37 @@ impl<W: 'static> EventHandler<W> {
         }
     }
 
-    pub fn render(&self, f: impl FnMut(&mut W) + 'static) {
+    pub fn render(&self, view: Rc<RefCell<impl View<B> + 'static>>) {
         let writer = self.writer.clone();
-
-        let f = Rc::new(RefCell::new(f));
 
         create_effect(self.cx, move || {
             if let Some(writer) = writer.borrow_mut().as_mut() {
-                f.borrow_mut()(writer)
+                WIDGET_CACHE.with(|c| c.next_iteration());
+                writer
+                    .draw(|f| {
+                        view.borrow_mut().view(f, f.size());
+                    })
+                    .unwrap();
+                WIDGET_CACHE.with(|c| c.evict::<B>());
             }
         });
     }
 
-    pub async fn run(mut self) -> W {
+    // pub fn render(&self, f: impl FnMut(&mut Terminal<B>) + 'static) {
+    //     let writer = self.writer.clone();
+
+    //     let f = Rc::new(RefCell::new(f));
+
+    //     create_effect(self.cx, move || {
+    //         if let Some(writer) = writer.borrow_mut().as_mut() {
+    //             WIDGET_CACHE.with(|c| c.next_iteration());
+    //             f.borrow_mut()(writer);
+    //             WIDGET_CACHE.with(|c| c.evict::<B>());
+    //         }
+    //     });
+    // }
+
+    pub async fn run(mut self) -> Terminal<B> {
         #[cfg(feature = "crossterm")]
         let mut event_reader = crossterm::event::EventStream::new().fuse();
 

@@ -1,29 +1,23 @@
-use std::{
-    error::Error,
-    io::{stdout, Stdout},
-};
+use std::{error::Error, io::stdout};
 
 use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent},
+    event::{DisableMouseCapture, EnableMouseCapture, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    widgets::Block,
     Frame, Terminal,
 };
 use rooibos::{
-    reactive::{create_signal, Scope, SignalGet, SignalUpdate},
-    run_system, use_event_context, EventHandler,
+    reactive::{create_child_scope, create_signal, Scope, SignalGet, SignalUpdate},
+    runtime::{run_system, use_event_context},
 };
-use tui_rsx::prelude::*;
+use rooibos::{rsx::prelude::*, runtime::EventHandler};
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (_handle, err) = run_system(run);
-    err
+    run_system(run)
 }
 
 #[tokio::main]
@@ -36,17 +30,8 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 
     let handler = EventHandler::initialize(cx, terminal);
 
-    let mut v = mount! { cx,
-        <column>
-            <Counter length=5/>
-        </column>
-    };
-    handler.render(move |terminal| {
-        terminal
-            .draw(|f| {
-                v.view(f, f.size());
-            })
-            .unwrap();
+    handler.render(mount! { cx,
+        <Counters/>
     });
 
     let mut terminal = handler.run().await;
@@ -59,6 +44,31 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     .unwrap();
     terminal.show_cursor().unwrap();
     Ok(())
+}
+
+#[component]
+fn Counters<B: Backend + 'static>(cx: Scope) -> impl View<B> {
+    let n_counters = create_signal(cx, 1);
+    let context = use_event_context(cx);
+
+    context.create_key_effect(cx, move |event| {
+        if event.code == KeyCode::Char('a') {
+            n_counters.update(|c| *c += 1);
+        }
+        if event.code == KeyCode::Char('r') {
+            n_counters.update(|c| *c = (*c - 1).max(1));
+        }
+    });
+
+    move || {
+        view! { cx,
+            <column>
+                {(0..n_counters.get()).map(|i| {
+                    view!(cx, <Counter key=i/>).into_boxed_view()
+                }).collect::<Vec<_>>()}
+            </column>
+        }
+    }
 }
 
 #[component]

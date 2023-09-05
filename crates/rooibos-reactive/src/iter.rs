@@ -55,9 +55,9 @@ where
             for new_item in new_items.iter().cloned() {
                 let map_fn = &map_fn;
                 let mapped = &mut mapped;
-                let new_disposer =
-                    create_child_scope(cx, move |cx| mapped.push(map_fn(cx, new_item)));
-                disposers.push(Some(new_disposer));
+                let child_cx = create_child_scope(cx);
+                mapped.push(map_fn(child_cx, new_item));
+                disposers.push(Some(child_cx));
             }
         } else {
             mapped_tmp.clear();
@@ -142,16 +142,16 @@ where
                     }
                 } else {
                     // Create new value.
-                    let mut tmp = None;
+
                     let new_item = new_items[j].clone();
-                    let new_disposer =
-                        create_child_scope(cx, |cx| tmp = Some(map_fn(cx, new_item)));
+                    let child_cx = create_child_scope(cx);
+                    let tmp = map_fn(child_cx, new_item);
                     if mapped.len() > j {
-                        mapped[j] = tmp.unwrap();
-                        disposers[j] = Some(new_disposer);
+                        mapped[j] = tmp;
+                        disposers[j] = Some(child_cx);
                     } else {
-                        mapped.push(tmp.unwrap());
-                        disposers.push(Some(new_disposer));
+                        mapped.push(tmp);
+                        disposers.push(Some(child_cx));
                     }
                 }
             }
@@ -223,15 +223,14 @@ where
                 let eqs = item != Some(&new_item);
 
                 if item.is_none() || eqs {
-                    let mut tmp = None;
-                    let new_disposer =
-                        create_child_scope(cx, |cx| tmp = Some(map_fn(cx, new_item)));
+                    let child_cx = create_child_scope(cx);
+                    let tmp = map_fn(cx, new_item);
                     if item.is_none() {
-                        mapped.push(tmp.unwrap());
-                        disposers.push(new_disposer);
+                        mapped.push(tmp);
+                        disposers.push(child_cx);
                     } else if eqs {
-                        mapped[i] = tmp.unwrap();
-                        let prev = mem::replace(&mut disposers[i], new_disposer);
+                        mapped[i] = tmp;
+                        let prev = mem::replace(&mut disposers[i], child_cx);
                         prev.dispose();
                     }
                 }

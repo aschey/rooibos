@@ -309,14 +309,14 @@ impl Root {
 ///
 /// This is generally obtained from [`create_root`].
 #[derive(Clone, Copy)]
-pub struct RootHandle {
+struct RootHandle {
     _ref: &'static Root,
 }
 
 impl RootHandle {
     /// Reinitializes the root. Once the root is reinitialized, nothing from before this call
     /// should reference this `Root`.
-    pub fn reinitialize<O>(&self, mut f: impl FnMut(Scope) -> O) -> O {
+    fn reinitialize<O>(&self, mut f: impl FnMut(Scope) -> O) -> O {
         // Destroy everything!
         let _ = self._ref.scopes.take();
         let _ = self._ref.signals.take();
@@ -339,7 +339,7 @@ impl RootHandle {
 
     /// Destroy everything that was created in this scope. This is simply an alias for
     /// [`RootHandle::reinitialize`] with an empty callback.
-    pub fn dispose(&self) {
+    fn dispose(&self) {
         self.reinitialize(|_| {})
     }
 }
@@ -454,6 +454,10 @@ impl Scope {
         let data = self.root.scopes.borrow_mut().remove(self.id);
         drop(data.expect("scope should not be dropped yet"));
     }
+
+    pub fn is_root(&self) -> bool {
+        self.get_data(|s| s.parent.is_none())
+    }
 }
 
 impl fmt::Debug for Scope {
@@ -477,7 +481,7 @@ impl fmt::Debug for Scope {
 ///     });
 /// });
 /// ```
-pub fn create_root<O>(f: impl FnMut(Scope) -> O) -> (RootHandle, O) {
+pub fn create_root<O>(f: impl FnMut(Scope) -> O) -> O {
     /// An unsafe wrapper around a raw pointer which we promise to never touch, effectively making
     /// it thread-safe.
     struct UnsafeSendPtr<T>(*const T);
@@ -487,35 +491,31 @@ pub fn create_root<O>(f: impl FnMut(Scope) -> O) -> (RootHandle, O) {
 
     /// A static variable to keep on holding to the allocated `Root`s to prevent Miri and Valgrind
     /// from complaining.
-    static KEEP_ALIVE: Mutex<Vec<UnsafeSendPtr<Root>>> = Mutex::new(Vec::new());
+    static KEEP_ALIVE: Mutex<Option<UnsafeSendPtr<Root>>> = Mutex::new(None);
 
     let root = Root::default();
     let _ref = Box::leak(Box::new(root));
-    KEEP_ALIVE
-        .lock()
-        .unwrap()
-        .push(UnsafeSendPtr(_ref as *const Root));
+    *KEEP_ALIVE.lock().unwrap() = Some(UnsafeSendPtr(_ref as *const Root));
 
     let handle = RootHandle { _ref };
     let output = handle.reinitialize(f);
-    (handle, output)
+    handle.dispose();
+    output
 }
 
 /// Create a child scope.
 ///
 /// Returns the created [`Scope`] which can be used to dispose it.
-pub fn create_child_scope(cx: Scope, f: impl FnOnce(Scope)) -> Scope {
+pub fn create_child_scope(cx: Scope) -> Scope {
     let new = ScopeState::new(cx.root, Some(cx.id));
     let key = cx.root.scopes.borrow_mut().insert(new);
     // Push the new scope onto the child scope list so that it is properly dropped when the parent
     // scope is dropped.
     cx.get_data(|cx| cx.child_scopes.push(key));
-    let scope = Scope {
+    Scope {
         id: key,
         root: cx.root,
-    };
-    f(scope);
-    scope
+    }
 }
 
 /// Adds a callback that is called when the scope is destroyed.

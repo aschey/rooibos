@@ -78,11 +78,7 @@ impl<T> Copy for StoredValue<T> {}
 
 impl<T> Clone for StoredValue<T> {
     fn clone(&self) -> Self {
-        Self {
-            id: self.id,
-            root: self.root,
-            _phantom: self._phantom,
-        }
+        *self
     }
 }
 
