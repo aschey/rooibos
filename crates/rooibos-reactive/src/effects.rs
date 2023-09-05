@@ -1,7 +1,8 @@
 //! Side effects!
 
-use super::{create_child_scope, Scope, SignalId};
 use slotmap::new_key_type;
+
+use super::{create_child_scope, Scope, SignalId};
 
 new_key_type! { pub(crate) struct EffectId; }
 

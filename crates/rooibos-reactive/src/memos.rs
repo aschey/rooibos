@@ -1,8 +1,9 @@
 //! Memos (aka. eager derived signals).
 
-use super::{create_signal, DependencyTracker, ReadSignal, Scope, SignalGet, SignalUpdate};
 use std::cell::RefCell;
 use std::fmt::{self, Formatter};
+
+use super::{create_signal, DependencyTracker, ReadSignal, Scope, SignalGet, SignalUpdate};
 
 /// A memoized derived signal.
 ///
@@ -134,8 +135,8 @@ pub fn create_selector_with<T>(
 }
 
 /// Creates a memoized value from some signals.
-/// Unlike [`create_memo`], this function will not notify dependents of a change if the output is the
-/// same. That is why the output of the function must implement [`PartialEq`].
+/// Unlike [`create_memo`], this function will not notify dependents of a change if the output is
+/// the same. That is why the output of the function must implement [`PartialEq`].
 ///
 /// To specify a custom comparison function, use [`create_selector_with`].
 ///

@@ -185,7 +185,7 @@ impl Root {
                     // Prevent effects from running twice.
                     effect.already_run_in_update = true;
                     drop(effects_mut); // We can't hold on to self.effects because a signal might
-                                       // be set inside the effect.
+                    // be set inside the effect.
                     self.run_effect_update(effect_id);
                 }
             }
@@ -530,6 +530,7 @@ pub fn create_child_scope(cx: Scope) -> Scope {
 ///     });
 /// });
 /// child_scope.dispose(); // Executes the on_cleanup callback.
+/// //
 /// # });
 /// ```
 pub fn on_cleanup(cx: Scope, f: impl FnOnce() + 'static) {

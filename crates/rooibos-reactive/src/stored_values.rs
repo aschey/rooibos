@@ -1,9 +1,7 @@
-use std::{
-    cell::RefCell,
-    fmt::{self, Formatter},
-    marker::PhantomData,
-    rc::Rc,
-};
+use std::cell::RefCell;
+use std::fmt::{self, Formatter};
+use std::marker::PhantomData;
+use std::rc::Rc;
 
 use super::{Root, Scope};
 

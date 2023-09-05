@@ -7,3 +7,7 @@ pub mod rsx {
 pub mod runtime {
     pub use rooibos_runtime::*;
 }
+
+pub mod prelude {
+    pub use rooibos_rsx::prelude::*;
+}

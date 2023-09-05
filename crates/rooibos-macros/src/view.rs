@@ -1,8 +1,7 @@
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::abort_call_site;
 use quote::{quote, ToTokens, TokenStreamExt};
-use rstml::node::KeyedAttribute;
-use rstml::node::{Node, NodeAttribute, NodeElement};
+use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::{Block, Expr, ExprLit, Lit, LitInt};
 
 use crate::{get_import, next_id};
@@ -152,13 +151,16 @@ impl View {
                 state,
             } => match (props, state) {
                 (Some(props), Some(state)) => {
-                    quote! { let mut #fn_name = ::std::rc::Rc::new(::std::cell::RefCell::new(#name(#props, #state))); }
+                    quote! { let mut #fn_name =
+                    ::std::rc::Rc::new(::std::cell::RefCell::new(#name(#props, #state))); }
                 }
                 (Some(props), None) => {
-                    quote! { let mut #fn_name = ::std::rc::Rc::new(::std::cell::RefCell::new(#name(#props))); }
+                    quote! { let mut #fn_name =
+                    ::std::rc::Rc::new(::std::cell::RefCell::new(#name(#props))); }
                 }
                 (_, _) => {
-                    quote! { let mut #fn_name = ::std::rc::Rc::new(::std::cell::RefCell::new(#name())); }
+                    quote! { let mut #fn_name =
+                    ::std::rc::Rc::new(::std::cell::RefCell::new(#name())); }
                 }
             },
         }

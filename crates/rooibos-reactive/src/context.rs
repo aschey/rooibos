@@ -1,7 +1,8 @@
 //! Context values.
 
-use super::Scope;
 use std::any::{type_name, Any};
+
+use super::Scope;
 
 /// Provide a context value in this scope.
 ///

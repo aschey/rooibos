@@ -1,25 +1,28 @@
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::marker::PhantomData;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicU32, Ordering};
+
 use once_cell::sync::Lazy;
 use prelude::*;
-use ratatui::{backend::Backend, layout::Rect, style::Style, Frame};
-use rooibos_reactive::Scope;
-use std::{
-    cell::RefCell,
-    collections::HashMap,
-    marker::PhantomData,
-    rc::Rc,
-    sync::atomic::{AtomicU32, Ordering},
-};
-use typemap::{Key, TypeMap};
-
-pub use once_cell;
+use ratatui::backend::Backend;
+use ratatui::layout::Rect;
+use ratatui::style::Style;
+use ratatui::Frame;
 pub use rooibos_macros::*;
-pub use rooibos_reactive as reactive;
-pub use typed_builder;
-pub use typemap;
+use rooibos_reactive::Scope;
+use typemap::{Key, TypeMap};
+pub use {once_cell, rooibos_reactive as reactive, typed_builder, typemap};
 
 pub mod prelude {
+    pub use ratatui::layout::*;
+    pub use ratatui::style::*;
+    pub use ratatui::text::*;
+    pub use ratatui::widgets::*;
+    pub use ratatui::Frame;
+
     pub use super::*;
-    pub use ratatui::{layout::*, style::*, text::*, widgets::*, Frame};
 }
 pub mod components;
 

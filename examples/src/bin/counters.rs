@@ -1,20 +1,17 @@
-use std::{error::Error, io::stdout};
+use std::error::Error;
+use std::io::stdout;
 
-use crossterm::{
-    event::{DisableMouseCapture, EnableMouseCapture, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout, Rect},
-    Frame, Terminal,
-};
-use rooibos::{
-    reactive::{create_signal, Scope, SignalGet, SignalUpdate},
-    runtime::{run_system, use_event_context},
-};
-use rooibos::{rsx::prelude::*, runtime::EventHandler};
+use ratatui::backend::{Backend, CrosstermBackend};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::{Frame, Terminal};
+use rooibos::reactive::{create_signal, Scope, SignalGet, SignalUpdate};
+use rooibos::rsx::prelude::*;
+use rooibos::runtime::{run_system, use_event_context, EventHandler};
 
 fn main() -> Result<(), Box<dyn Error>> {
     run_system(run)

@@ -1,13 +1,13 @@
-use ratatui::{
-    backend::{Backend, TestBackend},
-    buffer::Buffer,
-    style::{Color, Style},
-    Terminal,
-};
+use std::marker::PhantomData;
+
+use ratatui::backend::{Backend, TestBackend};
+use ratatui::buffer::Buffer;
+use ratatui::style::{Color, Style};
+use ratatui::Terminal;
 use reactive::create_root;
 use rooibos_reactive::Scope;
-use rooibos_rsx::{prelude::*, view};
-use std::marker::PhantomData;
+use rooibos_rsx::prelude::*;
+use rooibos_rsx::view;
 use typed_builder::TypedBuilder;
 
 #[test]

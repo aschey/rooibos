@@ -6,7 +6,7 @@ use regex::Regex;
 use syn::{Data, DeriveInput, Fields, Meta};
 
 macro_rules! regex {
-    ($name: ident, $re: literal $(,) ?) => {
+    ($name:ident, $re:literal $(,)?) => {
         static $name: Lazy<Regex> = Lazy::new(|| Regex::new($re).expect("Regex failed to compile"));
     };
 }
@@ -96,7 +96,8 @@ pub(crate) fn parse(input: DeriveInput) -> TokenStream {
 
     quote! {
         impl #impl_generics #props_name #generics #where_clause {
-            pub fn new(#children_prop: #fn_param_type) -> #props_builder_name <#return_generics (#(#args),*)> {
+            pub fn new(#children_prop: #fn_param_type) ->
+            #props_builder_name <#return_generics (#(#args),*)> {
                 Self::builder().#children_prop(#children_prop)
             }
         }

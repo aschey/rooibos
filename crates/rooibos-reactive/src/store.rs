@@ -1,8 +1,9 @@
 //! Stores, an easy way to make complicated data reactive.
 
-use super::{create_signal, Scope, Signal};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+
+use super::{create_signal, Scope, Signal};
 
 struct StoreState<T: 'static> {
     value: T,

@@ -1,17 +1,18 @@
-use crate::{get_import, next_id};
 use attribute_derive::Attribute as AttributeDerive;
-use convert_case::{
-    Case::{Pascal, Snake},
-    Casing,
-};
+use convert_case::Case::{Pascal, Snake};
+use convert_case::Casing;
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::abort;
 use quote::{format_ident, quote, quote_spanned, ToTokens, TokenStreamExt};
+use syn::parse::Parse;
+use syn::spanned::Spanned;
 use syn::{
-    parse::Parse, parse_quote, spanned::Spanned, AngleBracketedGenericArguments, Attribute, FnArg,
-    GenericArgument, Item, ItemFn, LitStr, Meta, Pat, PatIdent, Path, PathArguments, ReturnType,
-    Stmt, Type, TypeParamBound, TypePath, Visibility,
+    parse_quote, AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, Item, ItemFn,
+    LitStr, Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Stmt, Type, TypeParamBound,
+    TypePath, Visibility,
 };
+
+use crate::{get_import, next_id};
 
 pub struct Model {
     is_transparent: bool,
@@ -177,10 +178,9 @@ impl ToTokens for Model {
             if let Some(semi) = ends_semi {
                 proc_macro_error::emit_error!(
                     semi.span(),
-                    "A component that ends with a `view!` macro followed by a \
-                     semicolon will return (), an empty view. This is usually \
-                     an accident, not intentional, so we prevent it. If you'd \
-                     like to return (), you can do it it explicitly by \
+                    "A component that ends with a `view!` macro followed by a semicolon will \
+                     return (), an empty view. This is usually an accident, not intentional, so \
+                     we prevent it. If you'd like to return (), you can do it it explicitly by \
                      returning () as the last item from the component."
                 );
             }
@@ -235,7 +235,8 @@ impl ToTokens for Model {
 
         let crate_import = get_import();
         let component = quote! {
-            #crate_import::LazyViewWrapper::new(#body_name(#scope_name, #used_prop_names __caller_id))
+            #crate_import::LazyViewWrapper::new(
+                #body_name(#scope_name, #used_prop_names __caller_id))
         };
 
         let props_arg = if no_props {
@@ -274,7 +275,9 @@ impl ToTokens for Model {
                         res
                     }
                 } else {
-                    let mut map = ::std::collections::HashMap::<u32, #crate_import::KeyData<#view_type>>::new();
+                    let mut map = ::std::collections::HashMap::<u32,
+                    #crate_import::KeyData<#view_type>>::new();
+
                     let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component));
                     map.insert(widget_id, #crate_import::KeyData {
                         cx: #scope_name,
@@ -346,8 +349,7 @@ impl Prop {
         } else {
             abort!(
                 typed.pat,
-                "only `prop: type` style types are allowed within the \
-                 `#[component]` macro"
+                "only `prop: type` style types are allowed within the `#[component]` macro"
             );
         };
 
@@ -689,9 +691,8 @@ pub fn is_option(ty: &Type) -> bool {
 }
 
 pub fn unwrap_option(ty: &Type) -> Type {
-    const STD_OPTION_MSG: &str =
-        "make sure you're not shadowing the `std::option::Option` type that \
-         is automatically imported from the standard prelude";
+    const STD_OPTION_MSG: &str = "make sure you're not shadowing the `std::option::Option` type \
+                                  that is automatically imported from the standard prelude";
 
     if let Type::Path(TypePath {
         path: Path { segments, .. },

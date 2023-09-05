@@ -1,30 +1,26 @@
-use std::{
-    any::Any,
-    cell::RefCell,
-    collections::HashMap,
-    future,
-    pin::Pin,
-    rc::Rc,
-    sync::{
-        atomic::{AtomicU32, Ordering},
-        Arc, Mutex,
-    },
-};
+use std::any::Any;
+use std::cell::RefCell;
+use std::collections::HashMap;
+use std::future;
+use std::pin::Pin;
+use std::rc::Rc;
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Arc, Mutex};
 
 use async_recursion::async_recursion;
 use dyn_clonable::clonable;
-use futures_util::{stream::FuturesUnordered, Future, Stream};
-use ratatui::{prelude::Backend, Terminal};
+use futures_util::stream::FuturesUnordered;
+use futures_util::{Future, Stream};
+use ratatui::prelude::Backend;
+use ratatui::Terminal;
 use rooibos_reactive::{
     create_effect, create_root, create_selector, create_signal, provide_context, use_context,
     IntoSignal, ReadSignal, Scope, Signal, SignalGet, SignalUpdate, WriteSignal,
 };
 use rooibos_rsx::{View, WIDGET_CACHE};
-use tokio::{
-    runtime::Handle,
-    sync::mpsc,
-    task::{self, JoinError, JoinHandle},
-};
+use tokio::runtime::Handle;
+use tokio::sync::mpsc;
+use tokio::task::{self, JoinError, JoinHandle};
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
@@ -75,9 +71,11 @@ pub struct Command {
 }
 
 impl Command {
-    pub fn new_async<F: Future<Output = Option<Request>> + Send + 'static>(
-        f: impl FnOnce(mpsc::Sender<Command>, CancellationToken) -> F + Send + 'static,
-    ) -> Self {
+    pub fn new_async<F, Fut>(f: F) -> Self
+    where
+        F: FnOnce(mpsc::Sender<Command>, CancellationToken) -> Fut + Send + 'static,
+        Fut: Future<Output = Option<Request>> + Send + 'static,
+    {
         Self {
             name: "".to_owned(),
             func: CommandFn::Async(Box::new(|sender, cancellation_token| {
@@ -86,9 +84,10 @@ impl Command {
         }
     }
 
-    pub fn new_blocking(
-        f: impl FnOnce(mpsc::Sender<Command>, CancellationToken) -> Option<Request> + Send + 'static,
-    ) -> Self {
+    pub fn new_blocking<F>(f: F) -> Self
+    where
+        F: FnOnce(mpsc::Sender<Command>, CancellationToken) -> Option<Request> + Send + 'static,
+    {
         Self {
             name: "".to_owned(),
             func: CommandFn::Blocking(Box::new(f)),
@@ -325,10 +324,11 @@ where
                 Some(Ok(event)) = next_event => {
                     #[cfg(feature = "crossterm")]
                     {
-                        use crossterm::event::{KeyModifiers, KeyCode, KeyEvent};
+                        use crossterm::event::{KeyModifiers, KeyCode, KeyEvent, self};
 
-                        if let crossterm::event::Event::Key(KeyEvent {code, modifiers, ..}) = event {
-                            if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
+                        if let event::Event::Key(KeyEvent {code, modifiers, ..}) = event {
+                            if modifiers.contains(KeyModifiers::CONTROL)
+                            && code == KeyCode::Char('c') {
                                 self.set_event.set(Some(Event::QuitRequested));
                                 break;
                             }
@@ -419,9 +419,11 @@ impl MessageHandler {
                 tokio::select! {
                     Some(cmd) = command_rx.recv() => {
                         {
-                            let mut cancellation_tokens = handler.cancellation_tokens.lock().unwrap();
+                            let mut cancellation_tokens =
+                            handler.cancellation_tokens.lock().unwrap();
                                 if !cancellation_tokens.contains_key(&cmd.name) {
-                                    cancellation_tokens.insert(cmd.name.clone(), CancellationToken::new());
+                                    cancellation_tokens.insert(
+                                        cmd.name.clone(), CancellationToken::new());
                                 }
                         }
                         handler.handle_cmd(

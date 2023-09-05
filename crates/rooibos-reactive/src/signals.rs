@@ -7,8 +7,9 @@ use std::fmt::Formatter;
 use std::marker::PhantomData;
 use std::ops::{AddAssign, DivAssign, MulAssign, RemAssign, SubAssign};
 
-use super::{store_value, EffectId, Root, Scope, StoredValue};
 use slotmap::new_key_type;
+
+use super::{store_value, EffectId, Root, Scope, StoredValue};
 
 new_key_type! { pub(crate) struct SignalId; }
 
@@ -17,7 +18,8 @@ pub trait SignalGet<T> {
     /// the running effect to this signal.
     ///
     /// # Panics
-    /// Panics if you try to access a signal that is owned by a reactive node that has been disposed.
+    /// Panics if you try to access a signal that is owned by a reactive node that has been
+    /// disposed.
     #[track_caller]
     fn get(self) -> T;
 }
@@ -172,6 +174,7 @@ pub(crate) struct BaseSignal<T: 'static> {
 /// signal.get(); // Should return 1.
 /// signal.set(2);
 /// signal.get(); // Should return 2.
+/// //
 /// # });
 /// ```
 ///
@@ -196,8 +199,8 @@ pub(crate) struct BaseSignal<T: 'static> {
 /// double.get(); // Should return 2.
 /// signal.set(2);
 /// double.get(); // Should return 4. Notice how this value was updated automatically when we
-///               // modified signal. This way, we can rest assured that all our state will be
-///               // consistent at all times!
+/// // modified signal. This way, we can rest assured that all our state will be
+/// // consistent at all times!
 /// # });
 /// ```
 ///
