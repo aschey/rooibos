@@ -11,5 +11,5 @@ once_cell = "1"
 ratatui = { version = "0.23", default-features = false }
 rooibos-macros = { path = "../rooibos-macros" }
 typed-builder = "0.16"
-typemap = "0.3"
 rooibos-reactive = { path = "../rooibos-reactive" }
+typemap-ors = "1.0.0"

@@ -524,6 +524,41 @@ fn simple_custom_component() {
 }
 
 #[test]
+fn static_backend_component() {
+    #[component]
+    fn Viewer(cx: Scope, #[prop(into)] text: String) -> impl View<TestBackend> {
+        move || {
+            view! { cx,
+                <list>
+                    <>
+                        <listItem>{text.clone()}</listItem>
+                    </>
+                </list>
+            }
+        }
+    }
+
+    let backend = TestBackend::new(2, 1);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    create_root(|cx| {
+        let mut view = mount! { cx,
+            <column>
+                <Viewer text="hi"/>
+            </column>
+        };
+        terminal
+            .draw(|f| {
+                view.view(f, f.size());
+            })
+            .unwrap();
+        terminal
+            .backend()
+            .assert_buffer(&Buffer::with_lines(vec!["hi"]));
+    });
+}
+
+#[test]
 fn custom_component_children() {
     #[component]
     fn Viewer<B: Backend + 'static>(

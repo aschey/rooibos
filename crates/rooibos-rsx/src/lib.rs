@@ -12,8 +12,8 @@ use ratatui::style::Style;
 use ratatui::Frame;
 pub use rooibos_macros::*;
 use rooibos_reactive::Scope;
-use typemap::{Key, TypeMap};
-pub use {once_cell, rooibos_reactive as reactive, typed_builder, typemap};
+use typemap_ors::{Key, TypeMap};
+pub use {rooibos_reactive as reactive, typed_builder};
 
 pub mod prelude {
     pub use ratatui::layout::*;
