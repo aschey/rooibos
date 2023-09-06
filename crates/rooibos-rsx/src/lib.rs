@@ -377,15 +377,13 @@ impl WidgetCache {
         let wrapper = cache_mut.get_mut::<KeyWrapper<B>>().unwrap();
 
         for k in &keys {
-            let iter_val = iteration_mut.get(k);
-            if *iter_val.unwrap_or(&0) < current_iteration {
+            let iter_val = iteration_mut.get(k).unwrap_or(&0);
+            if *iter_val < current_iteration {
                 if let Some(val) = wrapper.get(k) {
                     if !val.cx.is_disposed() && !val.cx.is_root() {
                         val.cx.dispose();
                     }
                 }
-                wrapper.remove(k);
-                iteration_mut.remove(k);
             }
         }
 
