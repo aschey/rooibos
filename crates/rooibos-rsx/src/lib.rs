@@ -375,16 +375,26 @@ impl WidgetCache {
         let keys: Vec<_> = wrapper.keys().copied().collect();
 
         let wrapper = cache_mut.get_mut::<KeyWrapper<B>>().unwrap();
-        for k in keys {
-            let iter_val = iteration_mut.get(&k);
+
+        for k in &keys {
+            let iter_val = iteration_mut.get(k);
             if *iter_val.unwrap_or(&0) < current_iteration {
-                if let Some(val) = wrapper.get(&k) {
+                if let Some(val) = wrapper.get(k) {
                     if !val.cx.is_disposed() && !val.cx.is_root() {
                         val.cx.dispose();
                     }
                 }
-                wrapper.remove(&k);
-                iteration_mut.remove(&k);
+                wrapper.remove(k);
+                iteration_mut.remove(k);
+            }
+        }
+
+        for k in &keys {
+            if let Some(val) = wrapper.get(k) {
+                if val.cx.is_disposed() {
+                    wrapper.remove(k);
+                    iteration_mut.remove(k);
+                }
             }
         }
     }
