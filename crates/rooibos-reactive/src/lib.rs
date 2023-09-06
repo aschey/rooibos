@@ -455,6 +455,10 @@ impl Scope {
         drop(data.expect("scope should not be dropped yet"));
     }
 
+    pub fn is_disposed(&self) -> bool {
+        !self.root.scopes.borrow().contains_key(self.id)
+    }
+
     pub fn is_root(&self) -> bool {
         self.get_data(|s| s.parent.is_none())
     }

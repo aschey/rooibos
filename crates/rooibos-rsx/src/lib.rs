@@ -368,7 +368,7 @@ impl WidgetCache {
 
     pub fn evict<B: Backend + 'static>(&self) {
         let mut cache_mut = self.cache.borrow_mut();
-        let iteration_mut = self.iteration_map.borrow_mut();
+        let mut iteration_mut = self.iteration_map.borrow_mut();
         let current_iteration = self.iteration.load(Ordering::SeqCst);
 
         let wrapper = cache_mut.get_mut::<KeyWrapper<B>>().unwrap();
@@ -379,11 +379,12 @@ impl WidgetCache {
             let iter_val = iteration_mut.get(&k);
             if *iter_val.unwrap_or(&0) < current_iteration {
                 if let Some(val) = wrapper.get(&k) {
-                    if !val.cx.is_root() {
+                    if !val.cx.is_disposed() && !val.cx.is_root() {
                         val.cx.dispose();
-                        wrapper.remove(&k);
                     }
                 }
+                wrapper.remove(&k);
+                iteration_mut.remove(&k);
             }
         }
     }
