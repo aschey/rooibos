@@ -84,7 +84,7 @@ where
 pub fn Switch<B>(
     _cx: Scope,
     #[prop(children)] children: Vec<Case<B>>,
-    #[prop(default = false)] eager: bool,
+    #[prop(default = true)] lazy: bool,
 ) -> impl View<B>
 where
     B: Backend + 'static,
@@ -92,14 +92,14 @@ where
     move || {
         let mut res = None;
         for child in &children {
-            match ((child.when)(), eager, &res) {
-                (true, true, None) => {
+            match ((child.when)(), lazy, &res) {
+                (true, false, None) => {
                     res = Some((child.children)());
                 }
-                (false, true, _) => {
+                (false, false, _) => {
                     (child.children)();
                 }
-                (true, false, _) => return (child.children)(),
+                (true, true, _) => return (child.children)(),
                 _ => {}
             }
         }

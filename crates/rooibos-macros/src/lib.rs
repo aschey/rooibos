@@ -19,11 +19,7 @@ pub(crate) fn next_id() -> u32 {
 #[proc_macro]
 #[proc_macro_error]
 pub fn prop(tokens: TokenStream) -> TokenStream {
-    match rstml::parse(tokens) {
-        Ok(nodes) => view::parse_named_element_children(&nodes, false),
-        Err(e) => e.to_compile_error(),
-    }
-    .into()
+    view::prop(tokens.into()).into()
 }
 
 #[proc_macro]

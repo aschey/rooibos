@@ -1,4 +1,4 @@
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream, TokenTree};
 use proc_macro_error::abort_call_site;
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
@@ -316,7 +316,8 @@ impl NodeAttributes {
                 let val = if let Some(val) = &attribute.value() {
                     quote!(#val)
                 } else {
-                    quote!()
+                    // default to true if no value provided
+                    quote!(true)
                 };
 
                 if let Some(props) = attrs.props {
@@ -383,19 +384,23 @@ impl NodeAttributes {
             key: None,
         };
 
-        // let mut attribute_parsed = false;
         for node in nodes {
             if let NodeAttribute::Attribute(attribute) = node {
                 if !attrs.parse_standard_attrs(attribute) {
                     let func_name = Ident::new(&attribute.key.to_string(), Span::call_site());
-                    if let Some(val) = &attribute.value() {
-                        if let Some(props) = attrs.props {
-                            attrs.props = Some(quote! {
-                                #props.#func_name(#val)
-                            });
-                        } else {
-                            attrs.props = Some(quote! {.#func_name(#val)});
-                        }
+                    let val = if let Some(val) = &attribute.value() {
+                        quote!(#val)
+                    } else {
+                        // default to true if no value provided
+                        quote!(true)
+                    };
+
+                    if let Some(props) = attrs.props {
+                        attrs.props = Some(quote! {
+                            #props.#func_name(#val)
+                        });
+                    } else {
+                        attrs.props = Some(quote! {.#func_name(#val)});
                     }
                 }
             }
@@ -435,23 +440,49 @@ fn build_struct(
 }
 
 pub(crate) fn view(tokens: TokenStream, include_parent_id: bool) -> TokenStream {
-    let mut tokens = tokens.into_iter().peekable();
-    let cx_token = if tokens.peek().unwrap().to_string() != "<" {
-        let token = tokens.next().unwrap().to_token_stream();
-        let _comma = tokens.next().unwrap();
-        token
-    } else {
-        quote! { () }
-    };
-
-    match rstml::parse2(tokens.collect()) {
-        Ok(nodes) => {
-            let mut view = parse_root_nodes(&cx_token, nodes, include_parent_id);
+    let mut tokens = tokens.into_iter();
+    let (cx, comma) = (tokens.next(), tokens.next());
+    match (cx, comma) {
+        (Some(TokenTree::Ident(cx)), Some(TokenTree::Punct(punct))) if punct.as_char() == ',' => {
+            let (nodes, errors) = parse_rstml(tokens.collect());
+            let mut view = parse_root_nodes(&cx.to_token_stream(), nodes, include_parent_id);
             view.create_dummy_parent = !include_parent_id;
-            view.to_token_stream()
+
+            quote! {
+                {
+                    #(#errors;)*
+                    #view
+                }
+            }
         }
-        Err(e) => e.to_compile_error(),
+        _ => {
+            abort_call_site!(
+                "view! macro needs a context and RSX: e.g., view! { cx, <row>...</row> }"
+            )
+        }
     }
+}
+
+pub(crate) fn prop(tokens: TokenStream) -> TokenStream {
+    let (nodes, errors) = parse_rstml(tokens);
+    let prop = parse_named_element_children(&nodes, false);
+    quote! {
+        {
+            #(#errors;)*
+            #prop
+        }
+    }
+}
+
+fn parse_rstml(tokens: TokenStream) -> (Vec<Node>, Vec<TokenStream>) {
+    let config = rstml::ParserConfig::default().recover_block(true);
+    let parser = rstml::Parser::new(config);
+    let (nodes, errors) = parser.parse_recoverable(tokens).split_vec();
+    let errors: Vec<_> = errors
+        .into_iter()
+        .map(|e| e.emit_as_expr_tokens())
+        .collect();
+    (nodes, errors)
 }
 
 fn parse_root_nodes(cx_name: &TokenStream, nodes: Vec<Node>, include_parent_id: bool) -> View {
@@ -500,7 +531,7 @@ fn parse_elements(cx_name: &TokenStream, nodes: &[Node], include_parent_id: bool
     views
 }
 
-pub(crate) fn parse_named_element_children(nodes: &[Node], include_parent_id: bool) -> TokenStream {
+fn parse_named_element_children(nodes: &[Node], include_parent_id: bool) -> TokenStream {
     let mut tokens = vec![];
     let mut force_vec = false;
     for node in nodes {
