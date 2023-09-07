@@ -6,7 +6,7 @@ use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use ratatui::backend::{Backend, CrosstermBackend};
+use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::{Frame, Terminal};
 use rooibos::reactive::{create_signal, Scope, SignalGet, SignalUpdate};
@@ -43,7 +43,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 }
 
 #[component]
-fn Counters<B: Backend + 'static>(cx: Scope) -> impl rooibos::rsx::View<B> {
+fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
     let n_counters = create_signal(cx, 1);
     let context = use_event_context(cx);
 

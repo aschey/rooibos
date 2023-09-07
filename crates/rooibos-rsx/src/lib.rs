@@ -6,7 +6,6 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use once_cell::sync::Lazy;
 use prelude::*;
-use ratatui::backend::Backend;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::Frame;
@@ -25,6 +24,10 @@ pub mod prelude {
     pub use super::*;
 }
 pub mod components;
+
+pub trait Backend: ratatui::backend::Backend + 'static {}
+
+impl<B> Backend for B where B: ratatui::backend::Backend + 'static {}
 
 macro_rules! impl_widget {
     ($name:ident, $widget:ident, $props:ident) => {
@@ -92,14 +95,14 @@ where
     fn render_with_state(&mut self, widget: W, frame: &mut Frame<B>, rect: Rect);
 }
 
-pub struct KeyData<B: Backend + 'static> {
+pub struct KeyData<B: Backend> {
     pub cx: Scope,
     pub view: Rc<RefCell<dyn View<B>>>,
 }
 
 pub struct KeyWrapper<T>(PhantomData<T>);
 
-impl<B: Backend + 'static> Key for KeyWrapper<B> {
+impl<B: Backend> Key for KeyWrapper<B> {
     type Value = HashMap<u32, KeyData<B>>;
 }
 
@@ -163,7 +166,7 @@ impl_stateful_widget!(
     ScrollbarState
 );
 
-pub trait View<B: Backend> {
+pub trait View<B: Backend>: 'static {
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect);
     fn into_boxed_view(self) -> Box<dyn View<B>>;
 }
@@ -197,7 +200,7 @@ where
 
 impl<B> View<B> for Vec<Box<dyn View<B>>>
 where
-    B: Backend + 'static,
+    B: Backend,
 {
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
         let size = rect.height / self.len() as u16;
@@ -215,7 +218,10 @@ where
     }
 }
 
-impl<B: Backend + 'static> View<B> for Rc<RefCell<dyn View<B>>> {
+impl<B> View<B> for Rc<RefCell<dyn View<B>>>
+where
+    B: Backend,
+{
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
         self.borrow_mut().view(frame, rect)
     }
@@ -225,7 +231,11 @@ impl<B: Backend + 'static> View<B> for Rc<RefCell<dyn View<B>>> {
     }
 }
 
-impl<B: Backend + 'static, V: View<B> + 'static> View<B> for Rc<RefCell<V>> {
+impl<B, V> View<B> for Rc<RefCell<V>>
+where
+    B: Backend,
+    V: View<B>,
+{
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
         self.borrow_mut().view(frame, rect)
     }
@@ -235,13 +245,14 @@ impl<B: Backend + 'static, V: View<B> + 'static> View<B> for Rc<RefCell<V>> {
     }
 }
 
-pub trait LazyView<B: Backend> {
+pub trait LazyView<B: Backend>: 'static {
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect);
 }
 
-impl<B: Backend, F, Ret> LazyView<B> for F
+impl<B, F, Ret> LazyView<B> for F
 where
-    F: FnMut() -> Ret,
+    B: Backend,
+    F: FnMut() -> Ret + 'static,
     Ret: View<B>,
 {
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
@@ -273,8 +284,8 @@ where
 
 impl<B, F> View<B> for LazyViewWrapper<B, F>
 where
-    B: Backend + 'static,
-    F: LazyView<B> + 'static,
+    B: Backend,
+    F: LazyView<B>,
 {
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
         (self.f).view(frame, rect)
@@ -367,7 +378,7 @@ impl WidgetCache {
         self.iteration_map.borrow_mut().insert(widget_id, iter);
     }
 
-    pub fn evict<B: Backend + 'static>(&self) {
+    pub fn evict<B: Backend>(&self) {
         let mut cache_mut = self.cache.borrow_mut();
         let mut iteration_mut = self.iteration_map.borrow_mut();
         let current_iteration = self.iteration.load(Ordering::SeqCst);

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use ratatui::backend::{Backend, TestBackend};
+use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Style};
 use ratatui::Terminal;
@@ -527,11 +527,7 @@ fn array_as_variable() {
 #[test]
 fn simple_custom_component() {
     #[component]
-    fn Viewer<B: Backend + 'static>(
-        cx: Scope,
-        #[prop(into)] text: String,
-        flag: bool,
-    ) -> impl View<B> {
+    fn Viewer<B: Backend>(cx: Scope, #[prop(into)] text: String, flag: bool) -> impl View<B> {
         move || {
             view! { cx,
                 <list>
@@ -601,10 +597,7 @@ fn static_backend_component() {
 #[test]
 fn custom_component_children() {
     #[component]
-    fn Viewer<B: Backend + 'static>(
-        cx: Scope,
-        #[prop(into, children)] text: String,
-    ) -> impl View<B> {
+    fn Viewer<B: Backend>(cx: Scope, #[prop(into, children)] text: String) -> impl View<B> {
         move || {
             view! { cx,
                 <list>
@@ -641,7 +634,7 @@ fn custom_component_children() {
 #[test]
 fn generic_component() {
     #[component]
-    fn Viewer<T: 'static, B: Backend + 'static>(
+    fn Viewer<T: 'static, B: Backend>(
         cx: Scope,
         #[prop(into)] text: String,
         flag: bool,
@@ -676,7 +669,7 @@ fn generic_component() {
 #[test]
 fn custom_component_children_second() {
     #[component]
-    fn Viewer<B: Backend + 'static>(
+    fn Viewer<B: Backend>(
         cx: Scope,
         #[prop(default = 0)] _something: usize,
         #[prop(into, children)] text: String,
@@ -726,10 +719,7 @@ fn custom_child_prop() {
     }
 
     #[component]
-    fn Viewer<B: Backend + 'static>(
-        cx: Scope,
-        #[prop(into, children)] children: ChildProp,
-    ) -> impl View<B> {
+    fn Viewer<B: Backend>(cx: Scope, #[prop(into, children)] children: ChildProp) -> impl View<B> {
         move || {
             view! { cx,
                 <list>
@@ -766,7 +756,7 @@ fn custom_child_prop() {
 #[test]
 fn component_child() {
     #[component]
-    fn Viewer<B: Backend + 'static, V: LazyView<B> + Clone + 'static>(
+    fn Viewer<B: Backend, V: LazyView<B> + Clone>(
         _cx: Scope,
         #[prop(children)] children: V,
     ) -> impl View<B> {
@@ -813,7 +803,7 @@ fn component_child() {
 fn component_child_nested() {
     #[caller_id]
     #[derive(TypedBuilder, ComponentChildren)]
-    struct ChildProp<B: Backend + 'static, V: LazyView<B> + Clone + 'static> {
+    struct ChildProp<B: Backend, V: LazyView<B> + Clone> {
         #[children]
         views: V,
         #[builder(default)]
@@ -821,7 +811,7 @@ fn component_child_nested() {
     }
 
     #[component]
-    fn Viewer<B: Backend + 'static, V: LazyView<B> + Clone + 'static>(
+    fn Viewer<B: Backend, V: LazyView<B> + Clone>(
         _cx: Scope,
         #[prop(children)] children: ChildProp<B, V>,
     ) -> impl View<B> {
@@ -870,7 +860,7 @@ fn component_child_nested() {
 fn custom_component_nested_layout() {
     #[caller_id]
     #[derive(TypedBuilder, ComponentChildren)]
-    struct ChildProp<B: Backend + 'static, V: LazyView<B> + Clone + 'static> {
+    struct ChildProp<B: Backend, V: LazyView<B> + Clone> {
         #[children]
         views: V,
         #[builder(default)]
@@ -878,7 +868,7 @@ fn custom_component_nested_layout() {
     }
 
     #[component]
-    fn Viewer<B: Backend + 'static, V: LazyView<B> + Clone + 'static>(
+    fn Viewer<B: Backend, V: LazyView<B> + Clone>(
         _cx: Scope,
         #[prop(children)] children: ChildProp<B, V>,
     ) -> impl View<B> {
