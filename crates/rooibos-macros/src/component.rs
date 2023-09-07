@@ -164,8 +164,6 @@ impl ToTokens for Model {
             view_type,
         } = self;
 
-        let no_props = false; //props.len() == 1;
-
         let mut body = body.to_owned();
         let mut props = props.to_owned();
 
@@ -234,27 +232,25 @@ impl ToTokens for Model {
         let component_fn_prop_docs = generate_component_fn_prop_docs(&props);
 
         let crate_import = get_import();
+
+        let mut interior_generics = generics.to_token_stream();
+        if !interior_generics.is_empty() {
+            interior_generics = quote!(::#interior_generics);
+        }
+
         let component = quote! {
             #crate_import::LazyViewWrapper::new(
-                #body_name(#scope_name, #used_prop_names __caller_id))
+                #body_name #interior_generics (#scope_name, #used_prop_names __caller_id))
         };
 
-        let props_arg = if no_props {
-            quote! {}
-        } else {
-            quote! {
-                props: #props_name #generics
-            }
+        let props_arg = quote! {
+            props: #props_name #generics
         };
 
-        let destructure_props = if no_props {
-            quote! {}
-        } else {
-            quote! {
-                let #props_name {
-                    #prop_names
-                } = props;
-            }
+        let destructure_props = quote! {
+            let #props_name {
+                #prop_names
+            } = props;
         };
 
         let widget_id = next_id();

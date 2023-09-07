@@ -639,6 +639,41 @@ fn custom_component_children() {
 }
 
 #[test]
+fn generic_component() {
+    #[component]
+    fn Viewer<T: 'static, B: Backend + 'static>(
+        cx: Scope,
+        #[prop(into)] text: String,
+        flag: bool,
+    ) -> impl View<B> {
+        let _ = std::any::type_name::<T>();
+        move || {
+            view! { cx, <list> <>
+            <listItem>{format!("{text}={flag}")}</listItem> </> </list> }
+        }
+    }
+
+    let backend = TestBackend::new(7, 1);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    create_root(|cx| {
+        let mut view = mount! { cx,
+            <column>
+                <Viewer<usize, _> text="hi" flag/>
+            </column>
+        };
+        terminal
+            .draw(|f| {
+                view.view(f, f.size());
+            })
+            .unwrap();
+        terminal
+            .backend()
+            .assert_buffer(&Buffer::with_lines(vec!["hi=true"]));
+    });
+}
+
+#[test]
 fn custom_component_children_second() {
     #[component]
     fn Viewer<B: Backend + 'static>(

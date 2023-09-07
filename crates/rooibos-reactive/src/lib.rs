@@ -92,7 +92,7 @@ struct Root {
     rev_sorted_buf: RefCell<Vec<SignalId>>,
     /// A list of effects to be run after signal updates are over.
     effect_queue: RefCell<Vec<EffectId>>,
-    /// Whether we are currently batching signal updatse. If this is true, we do not run
+    /// Whether we are currently batching signal updates. If this is true, we do not run
     /// `effect_queue` and instead wait until the end of the batch.
     batch: Cell<bool>,
 }

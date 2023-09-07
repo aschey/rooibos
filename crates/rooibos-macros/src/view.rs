@@ -2,7 +2,7 @@ use proc_macro2::{Ident, Span, TokenStream, TokenTree};
 use proc_macro_error::abort_call_site;
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
-use syn::{Block, Expr, ExprLit, Lit, LitInt};
+use syn::{Block, Expr, ExprLit, Generics, Lit, LitInt};
 
 use crate::{get_import, next_id};
 
@@ -21,6 +21,7 @@ enum ViewType {
     Overlay(Vec<View>),
     Element {
         name: Ident,
+        generics: Option<Generics>,
         fn_name: Ident,
         props: Option<TokenStream>,
         state: Option<TokenStream>,
@@ -146,23 +147,39 @@ impl View {
             }
             ViewType::Element {
                 name,
+                generics,
                 fn_name,
                 props,
                 state,
-            } => match (props, state) {
-                (Some(props), Some(state)) => {
-                    quote! { let mut #fn_name =
-                    ::std::rc::Rc::new(::std::cell::RefCell::new(#name(#props, #state))); }
+            } => {
+                let generics = if let Some(generics) = generics {
+                    quote!(::#generics)
+                } else {
+                    quote!()
+                };
+
+                match (props, state) {
+                    (Some(props), Some(state)) => {
+                        quote! {
+                            let mut #fn_name =
+                            ::std::rc::Rc::new(
+                                ::std::cell::RefCell::new(#name #generics (#props, #state)));
+                        }
+                    }
+                    (Some(props), None) => {
+                        quote! {
+                            let mut #fn_name =
+                            ::std::rc::Rc::new(::std::cell::RefCell::new(#name #generics (#props)));
+                        }
+                    }
+                    (_, _) => {
+                        quote! {
+                            let mut #fn_name =
+                            ::std::rc::Rc::new(::std::cell::RefCell::new(#name #generics ()));
+                        }
+                    }
                 }
-                (Some(props), None) => {
-                    quote! { let mut #fn_name =
-                    ::std::rc::Rc::new(::std::cell::RefCell::new(#name(#props))); }
-                }
-                (_, _) => {
-                    quote! { let mut #fn_name =
-                    ::std::rc::Rc::new(::std::cell::RefCell::new(#name())); }
-                }
-            },
+            }
         }
     }
 
@@ -624,9 +641,15 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
                 "Props",
                 include_parent_id,
             );
+            let generics = &element.open_tag.generics;
             View {
                 view_type: ViewType::Element {
                     name: Ident::new(name, Span::call_site()),
+                    generics: if generics.lt_token.is_some() {
+                        Some(generics.clone())
+                    } else {
+                        None
+                    },
                     fn_name: Ident::new(&format!("__fn{}", next_id()), Span::call_site()),
                     props: attrs.props,
                     state: attrs.state,

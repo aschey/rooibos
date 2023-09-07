@@ -152,6 +152,7 @@ impl_widget!(paragraph, Paragraph, ParagraphProps);
 impl_widget!(list, List, ListProps);
 impl_widget!(tabs, Tabs, TabsProps);
 impl_widget!(table, Table, TableProps);
+impl_widget!(gauge, Gauge, GaugeProps);
 impl_widget_no_lifetime!(clear, Clear, ClearProps);
 impl_stateful_widget!(stateful_list, List, StatefulListProps, ListState);
 impl_stateful_widget!(stateful_table, Table, StatefulTableProps, TableState);
