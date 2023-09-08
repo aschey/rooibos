@@ -21,6 +21,7 @@ pub mod prelude {
     pub use ratatui::widgets::*;
     pub use ratatui::Frame;
 
+    pub use super::components::*;
     pub use super::*;
 }
 pub mod components;
@@ -349,6 +350,24 @@ where
 {
     fn into_boxed(self: F) -> Box<dyn Fn() -> R> {
         Box::new(self)
+    }
+}
+
+pub trait IntoBoxedLazyView<B>
+where
+    B: Backend,
+{
+    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View<B>>>;
+}
+
+impl<B, F, V> IntoBoxedLazyView<B> for F
+where
+    B: Backend,
+    F: Fn() -> V + 'static,
+    V: View<B>,
+{
+    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View<B>>> {
+        (move || (self)().into_boxed_view()).into_boxed()
     }
 }
 

@@ -16,7 +16,7 @@ fn standalone_widget() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <block title="test" borders=Borders::ALL/>
+            <Block title="test" borders=Borders::ALL/>
         };
 
         terminal
@@ -39,9 +39,9 @@ fn widget_no_props() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <block/>
-            </column>
+            <Column>
+                <Block/>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -63,9 +63,9 @@ fn simple_column() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <block title="test" borders=Borders::ALL/>
-            </column>
+            <Column>
+                <Block title="test" borders=Borders::ALL/>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -87,14 +87,14 @@ fn nested_layout() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <row length=4>
-                    <block title="test1" borders=Borders::ALL/>
-                </row>
-                <row length=2>
-                    <block title="test2" borders=Borders::ALL/>
-                </row>
-            </column>
+            <Column>
+                <Row length=4>
+                    <Block title="test1" borders=Borders::ALL/>
+                </Row>
+                <Row length=2>
+                    <Block title="test2" borders=Borders::ALL/>
+                </Row>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -120,14 +120,14 @@ fn conditional() {
     let a = 1;
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 {
                     match a {
-                        1 => view!(cx, <block title="test" borders=Borders::ALL/>),
-                        _ => view!(cx, <block title="test2" borders=Borders::ALL/>)
+                        1 => view!(cx, <Block title="test" borders=Borders::ALL/>),
+                        _ => view!(cx, <Block title="test2" borders=Borders::ALL/>)
                     }
                 }
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -149,12 +149,12 @@ fn list_basic() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <list>
-                    <listItem>"test1"</listItem>
-                    <listItem>"test2"</listItem>
-                </list>
-            </column>
+            <Column>
+                <List>
+                    <ListItem>"test1"</ListItem>
+                    <ListItem>"test2"</ListItem>
+                </List>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -176,14 +176,14 @@ fn prop_iteration() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <list>
+            <Column>
+                <List>
                     {
-                        (0..5).map(|i| prop!(<listItem>{format!("test{i}")}</listItem>))
+                        (0..5).map(|i| prop!(<ListItem>{format!("test{i}")}</ListItem>))
                             .collect::<Vec<_>>()
                     }
-                </list>
-            </column>
+                </List>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -210,10 +210,10 @@ fn stateful() {
     create_root(|cx| {
         let state = ListState::default();
         let mut view = mount! { cx,
-            <stateful_list state=state>
-                <listItem>"test1"</listItem>
-                <listItem>"test2"</listItem>
-            </stateful_list>
+            <StatefulList state=state>
+                <ListItem>"test1"</ListItem>
+                <ListItem>"test2"</ListItem>
+            </StatefulList>
         };
 
         terminal
@@ -236,12 +236,12 @@ fn list_styled() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <list>
-                    <listItem style=Style::default().fg(Color::Black)>"test1"</listItem>
-                    <listItem>"test2"</listItem>
-                </list>
-            </column>
+            <Column>
+                <List>
+                    <ListItem style=prop!(<Style fg=Color::Black/>)>"test1"</ListItem>
+                    <ListItem>"test2"</ListItem>
+                </List>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -270,12 +270,12 @@ fn block_children() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <tabs>
+            <Column>
+                <Tabs>
                     "tab1"
                     "tab2"
-                </tabs>
-            </column>
+                </Tabs>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -294,11 +294,11 @@ fn single_child_as_vec() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <tabs>
+            <Column>
+                <Tabs>
                     <>{"tab1"}</>
-                </tabs>
-            </column>
+                </Tabs>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -317,15 +317,15 @@ fn single_nested_child_as_vec() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <tabs>
+            <Column>
+                <Tabs>
                     <>
                         <line>
                             <span>"tab1"</span>
                         </line>
                     </>
-                </tabs>
-            </column>
+                </Tabs>
+            </Column>
         };
 
         terminal
@@ -345,12 +345,12 @@ fn complex_block_children() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <tabs select=0>
+            <Column>
+                <Tabs select=0>
                     <line>"tab1"</line>
                     <line>{vec![Span::from("tab2")]}</line>
-                </tabs>
-            </column>
+                </Tabs>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -369,11 +369,11 @@ fn macro_as_prop() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <paragraph block=prop!{<block borders=Borders::ALL/>}>
+            <Column>
+                <Paragraph block=prop!{<Block borders=Borders::ALL/>}>
                     "test"
-                </paragraph>
-            </column>
+                </Paragraph>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -394,12 +394,12 @@ fn simple_overlay() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <overlay>
-                <block borders=Borders::ALL/>
-                <paragraph>
+            <Overlay>
+                <Block borders=Borders::ALL/>
+                <Paragraph>
                     "test"
-                </paragraph>
-            </overlay>
+                </Paragraph>
+            </Overlay>
         };
         terminal
             .draw(|f| {
@@ -420,19 +420,19 @@ fn overlay_multiple() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <overlay>
-                <block borders=Borders::ALL title="test"/>
-                <column margin=1>
-                    <list length=2>
-                        <listItem>{"hi"}</listItem>
-                        <listItem>{"yo"}</listItem>
-                    </list>
-                    <list>
-                        <listItem>{"hi2"}</listItem>
-                        <listItem>{"yo2"}</listItem>
-                    </list>
-                </column>
-            </overlay>
+            <Overlay>
+                <Block borders=Borders::ALL title="test"/>
+                <Column margin=1>
+                    <List length=2>
+                        <ListItem>{"hi"}</ListItem>
+                        <ListItem>{"yo"}</ListItem>
+                    </List>
+                    <List>
+                        <ListItem>{"hi2"}</ListItem>
+                        <ListItem>{"yo2"}</ListItem>
+                    </List>
+                </Column>
+            </Overlay>
         };
         terminal
             .draw(|f| {
@@ -456,30 +456,30 @@ fn two_overlays() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <column percentage=50>
-                    <overlay>
-                        <block borders=Borders::ALL title="test"/>
-                        <column margin=1>
-                            <list length=2>
-                                <listItem>{"hi"}</listItem>
-                                <listItem>{"yo"}</listItem>
-                            </list>
-                        </column>
-                    </overlay>
-                </column>
-                <column percentage=50>
-                    <overlay>
-                        <block borders=Borders::ALL title="test2"/>
-                        <column margin=1>
-                            <list length=2>
-                                <listItem>{"hi2"}</listItem>
-                                <listItem>{"yo2"}</listItem>
-                            </list>
-                        </column>
-                    </overlay>
-                </column>
-            </column>
+            <Column>
+                <Column percentage=50>
+                    <Overlay>
+                        <Block borders=Borders::ALL title="test"/>
+                        <Column margin=1>
+                            <List length=2>
+                                <ListItem>{"hi"}</ListItem>
+                                <ListItem>{"yo"}</ListItem>
+                            </List>
+                        </Column>
+                    </Overlay>
+                </Column>
+                <Column percentage=50>
+                    <Overlay>
+                        <Block borders=Borders::ALL title="test2"/>
+                        <Column margin=1>
+                            <List length=2>
+                                <ListItem>{"hi2"}</ListItem>
+                                <ListItem>{"yo2"}</ListItem>
+                            </List>
+                        </Column>
+                    </Overlay>
+                </Column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -507,11 +507,11 @@ fn array_as_variable() {
     create_root(|cx| {
         let tab_items = vec!["tab1", "tab2"];
         let mut view = mount! { cx,
-            <column>
-                <tabs>
+            <Column>
+                <Tabs>
                     {tab_items}
-                </tabs>
-            </column>
+                </Tabs>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -530,11 +530,11 @@ fn simple_custom_component() {
     fn Viewer<B: Backend>(cx: Scope, #[prop(into)] text: String, flag: bool) -> impl View<B> {
         move || {
             view! { cx,
-                <list>
+                <List>
                     <>
-                        <listItem>{format!("{text}={flag}")}</listItem>
+                        <ListItem>{format!("{text}={flag}")}</ListItem>
                     </>
-                </list>
+                </List>
             }
         }
     }
@@ -544,9 +544,9 @@ fn simple_custom_component() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer text="hi" flag/>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -565,11 +565,11 @@ fn static_backend_component() {
     fn Viewer(cx: Scope, #[prop(into)] text: String) -> impl View<TestBackend> {
         move || {
             view! { cx,
-                <list>
+                <List>
                     <>
-                        <listItem>{text.clone()}</listItem>
+                        <ListItem>{text.clone()}</ListItem>
                     </>
-                </list>
+                </List>
             }
         }
     }
@@ -579,9 +579,9 @@ fn static_backend_component() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer text="hi"/>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -600,11 +600,11 @@ fn custom_component_children() {
     fn Viewer<B: Backend>(cx: Scope, #[prop(into, children)] text: String) -> impl View<B> {
         move || {
             view! { cx,
-                <list>
+                <List>
                     <>
-                        <listItem>{text.clone()}</listItem>
+                        <ListItem>{text.clone()}</ListItem>
                     </>
-                </list>
+                </List>
             }
         }
     }
@@ -614,11 +614,11 @@ fn custom_component_children() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer>
                     "hi"
                 </Viewer>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -641,8 +641,13 @@ fn generic_component() {
     ) -> impl View<B> {
         let _ = std::any::type_name::<T>();
         move || {
-            view! { cx, <list> <>
-            <listItem>{format!("{text}={flag}")}</listItem> </> </list> }
+            view! { cx,
+                <List>
+                    <>
+                        <ListItem>{format!("{text}={flag}")}</ListItem>
+                    </>
+                </List>
+            }
         }
     }
 
@@ -651,9 +656,9 @@ fn generic_component() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer<usize, _> text="hi" flag/>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -677,11 +682,11 @@ fn custom_component_children_second() {
     ) -> impl View<B> {
         move || {
             view! { cx,
-                <list>
+                <List>
                     <>
-                        <listItem>{text.clone()}</listItem>
+                        <ListItem>{text.clone()}</ListItem>
                     </>
-                </list>
+                </List>
             }
         }
     }
@@ -691,11 +696,11 @@ fn custom_component_children_second() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer>
                     "hi"
                 </Viewer>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -722,11 +727,11 @@ fn custom_child_prop() {
     fn Viewer<B: Backend>(cx: Scope, #[prop(into, children)] children: ChildProp) -> impl View<B> {
         move || {
             view! { cx,
-                <list>
+                <List>
                     <>
-                        <listItem>{children.text.clone()}</listItem>
+                        <ListItem>{children.text.clone()}</ListItem>
                     </>
-                </list>
+                </List>
             }
         }
     }
@@ -736,11 +741,11 @@ fn custom_child_prop() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer>
                     <ChildProp>{"hi"}</ChildProp>
                 </Viewer>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -763,9 +768,9 @@ fn component_child() {
         move || {
             let mut children = children.clone();
             view! { cx,
-                <column>
+                <Column>
                     {children}
-                </column>
+                </Column>
             }
         }
     }
@@ -775,18 +780,18 @@ fn component_child() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer> {
                     move || view! { cx,
-                        <list>
+                        <List>
                             <>
-                                <listItem>{"hi"}</listItem>
+                                <ListItem>{"hi"}</ListItem>
                             </>
-                        </list>
+                        </List>
                     }
                 }
                 </Viewer>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -818,9 +823,9 @@ fn component_child_nested() {
         move || {
             let mut children = children.views.clone();
             view! { cx,
-                <column>
+                <Column>
                     {children}
-                </column>
+                </Column>
             }
         }
     }
@@ -830,20 +835,20 @@ fn component_child_nested() {
 
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
+            <Column>
                 <Viewer>
                     <ChildProp> {
                         move || view! { cx,
-                            <list>
+                            <List>
                                 <>
-                                    <listItem>{"hi"}</listItem>
+                                    <ListItem>{"hi"}</ListItem>
                                 </>
-                            </list>
+                            </List>
                         }
                     }
                     </ChildProp>
                 </Viewer>
-            </column>
+            </Column>
         };
         terminal
             .draw(|f| {
@@ -875,9 +880,9 @@ fn custom_component_nested_layout() {
         move || {
             let mut children = children.views.clone();
             view! { cx,
-                <column>
+                <Column>
                     {children}
-                </column>
+                </Column>
             }
         }
     }
@@ -886,22 +891,22 @@ fn custom_component_nested_layout() {
     let mut terminal = Terminal::new(backend).unwrap();
     create_root(|cx| {
         let mut view = mount! { cx,
-            <column>
-                <row length=1>
+            <Column>
+                <Row length=1>
                     <Viewer>
                         <ChildProp> {
                             move || view! { cx,
-                                <list>
+                                <List>
                                     <>
-                                        <listItem>{"hi"}</listItem>
+                                        <ListItem>{"hi"}</ListItem>
                                     </>
-                                </list>
+                                </List>
                             }
                         }
                         </ChildProp>
                     </Viewer>
-                </row>
-            </column>
+                </Row>
+            </Column>
         };
         terminal
             .draw(|f| {

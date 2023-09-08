@@ -1,6 +1,5 @@
 use attribute_derive::Attribute as AttributeDerive;
-use convert_case::Case::{Pascal, Snake};
-use convert_case::Casing;
+use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_error::abort;
 use quote::{format_ident, quote, quote_spanned, ToTokens, TokenStreamExt};
@@ -87,7 +86,9 @@ impl Parse for Model {
             is_transparent: false,
             docs,
             vis: item.vis.clone(),
-            name: convert_from_snake_case(&item.sig.ident),
+            // create component functions with snake case names to prevent clashes with Ratatui's
+            // widget names
+            name: convert_to_snake_case(&item.sig.ident),
             scope_name,
             scope_type,
             props,
@@ -140,12 +141,12 @@ pub fn drain_filter<T>(vec: &mut Vec<T>, mut some_predicate: impl FnMut(&mut T) 
     }
 }
 
-pub fn convert_from_snake_case(name: &Ident) -> Ident {
+pub fn convert_to_snake_case(name: &Ident) -> Ident {
     let name_str = name.to_string();
-    if !name_str.is_case(Snake) {
+    if name_str.is_case(Case::Snake) {
         name.clone()
     } else {
-        Ident::new(&name_str.to_case(Pascal), name.span())
+        Ident::new(&name_str.to_case(Case::Snake), name.span())
     }
 }
 
@@ -184,7 +185,7 @@ impl ToTokens for Model {
             }
         }
 
-        body.sig.ident = format_ident!("__{}", body.sig.ident);
+        body.sig.ident = format_ident!("__{}", convert_to_snake_case(&body.sig.ident));
         body.sig.inputs.push(syn::parse_quote!(__parent_id: u32));
         body.sig.output = syn::parse_quote!(-> impl LazyView<#view_type>);
         #[allow(clippy::redundant_clone)] // false positive
@@ -220,7 +221,7 @@ impl ToTokens for Model {
         }
         let lifetimes = body.sig.generics.lifetimes();
 
-        let props_name = format_ident!("{name}Props");
+        let props_name = format_ident!("{}Props", name.to_string().to_case(Case::UpperCamel));
 
         let prop_builder_fields = prop_builder_fields(vis, &props);
 
@@ -285,6 +286,8 @@ impl ToTokens for Model {
             })
         };
 
+        let name = convert_to_snake_case(name);
+
         let output = quote! {
             #[doc = #builder_name_doc]
             #[doc = ""]
@@ -299,7 +302,7 @@ impl ToTokens for Model {
 
             #docs
             #component_fn_prop_docs
-            #[allow(non_snake_case, clippy::too_many_arguments, unused_mut)]
+            #[allow(clippy::too_many_arguments, unused_mut)]
             // #tracing_instrument_attr
             #vis fn #name #impl_generics (
                 #[allow(unused_variables)]
@@ -308,7 +311,7 @@ impl ToTokens for Model {
             ) #ret #(+ #lifetimes)*
             #where_clause
             {
-                #[allow(non_snake_case, clippy::too_many_arguments, unused_mut)]
+                #[allow(clippy::too_many_arguments, unused_mut)]
                 #body
                 #destructure_props
                 #widget_cache_impl

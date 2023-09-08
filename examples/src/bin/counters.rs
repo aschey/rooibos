@@ -58,17 +58,17 @@ fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
 
     move || {
         view! { cx,
-            <column>
+            <Column>
                 {(0..n_counters.get()).map(|i| {
                     view!(cx, <Counter key=i/>).into_boxed_view()
                 }).collect::<Vec<_>>()}
-            </column>
+            </Column>
         }
     }
 }
 
 #[component]
-fn Counter<B: Backend + 'static>(cx: Scope) -> impl View<B> {
+fn Counter<B: Backend>(cx: Scope) -> impl View<B> {
     let count = create_signal(cx, 0);
     let context = use_event_context(cx);
 
@@ -80,7 +80,7 @@ fn Counter<B: Backend + 'static>(cx: Scope) -> impl View<B> {
 
     move || {
         view! { cx,
-            <block title=format!("count {}",  count.get())/>
+            <Block title=format!("count {}",  count.get())/>
         }
     }
 }

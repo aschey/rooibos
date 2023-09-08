@@ -1,5 +1,6 @@
+use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Span, TokenStream, TokenTree};
-use proc_macro_error::abort_call_site;
+use proc_macro_error::{abort, abort_call_site};
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::{Block, Expr, ExprLit, Generics, Lit, LitInt};
@@ -250,7 +251,7 @@ impl NodeAttributes {
     ) -> Self {
         Self::from_nodes(
             cx_name,
-            Some(&snake_case_to_pascal_case(&element.name().to_string())),
+            Some(&element.name().to_string().to_case(Case::UpperCamel)),
             element.attributes(),
             if children.is_empty() {
                 None
@@ -434,7 +435,7 @@ fn build_struct(
     include_parent_id: bool,
     key: Option<Expr>,
 ) -> TokenStream {
-    let object = capitalize(tag_name) + object_suffix;
+    let object = tag_name.to_owned() + object_suffix;
     let ident = Ident::new(&object, Span::call_site());
     let caller_id = next_id();
     let key_clause = key.map(|k| quote!(+ &#k.to_string()));
@@ -482,12 +483,25 @@ pub(crate) fn view(tokens: TokenStream, include_parent_id: bool) -> TokenStream 
 
 pub(crate) fn prop(tokens: TokenStream) -> TokenStream {
     let (nodes, errors) = parse_rstml(tokens);
-    let prop = parse_named_element_children(&nodes, false);
-    quote! {
-        {
-            #(#errors;)*
-            #prop
+    if let [Node::Element(element)] = &nodes[..] {
+        let element_name = element.name().to_string();
+        if !element_name.is_case(Case::UpperCamel) {
+            let element_name_camel = element_name.to_case(Case::UpperCamel);
+            abort!(
+                element,
+                format!("should have an upper camel case name: {element_name_camel}")
+            )
         }
+
+        let prop = parse_named_element_children(&nodes, false);
+        quote! {
+            {
+                #(#errors;)*
+                #prop
+            }
+        }
+    } else {
+        abort_call_site!("RSX root node should be a named element");
     }
 }
 
@@ -514,7 +528,7 @@ fn parse_root_node(cx_name: &TokenStream, node: &Node, include_parent_id: bool) 
     if let Node::Element(element) = node {
         parse_element(cx_name, element, include_parent_id)
     } else {
-        abort_call_site!("RSX root node should be a named element");
+        abort!(node, "RSX root node should be a named element");
     }
 }
 
@@ -541,7 +555,7 @@ fn parse_elements(cx_name: &TokenStream, nodes: &[Node], include_parent_id: bool
                 }
             }
             node => {
-                abort_call_site!(format!("Invalid RSX node: {node:?}"));
+                abort!(node, format!("Invalid RSX node: {node:?}"));
             }
         }
     }
@@ -574,8 +588,8 @@ fn parse_named_element_children(nodes: &[Node], include_parent_id: bool) -> Toke
                     tokens.push(quote! { #content });
                 }
             }
-            Node::Doctype(_) => {
-                abort_call_site!("Doctype invalid at this location");
+            Node::Doctype(doctype) => {
+                abort!(doctype, "Doctype invalid at this location");
             }
             Node::Fragment(fragment) => {
                 let children = parse_named_element_children(&fragment.children, include_parent_id);
@@ -595,8 +609,16 @@ fn parse_named_element_children(nodes: &[Node], include_parent_id: bool) -> Toke
 }
 
 fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id: bool) -> View {
-    match element.name().to_string().as_str() {
-        "row" => {
+    let element_name = element.name().to_string();
+    if !element_name.is_case(Case::UpperCamel) {
+        let element_name_camel = element_name.to_case(Case::UpperCamel);
+        abort!(
+            element,
+            format!("should have an upper camel case name: {element_name_camel}")
+        )
+    }
+    match element_name.as_str() {
+        "Row" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes());
             let children = parse_elements(cx_name, &element.children, include_parent_id);
 
@@ -608,7 +630,7 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
                 layout_props: attrs.props,
             }
         }
-        "column" => {
+        "Column" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes());
             let children = parse_elements(cx_name, &element.children, include_parent_id);
 
@@ -620,7 +642,7 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
                 layout_props: attrs.props,
             }
         }
-        "overlay" => {
+        "Overlay" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes());
             let children = parse_elements(cx_name, &element.children, include_parent_id);
 
@@ -644,7 +666,7 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
             let generics = &element.open_tag.generics;
             View {
                 view_type: ViewType::Element {
-                    name: Ident::new(name, Span::call_site()),
+                    name: Ident::new(&name.to_case(Case::Snake), Span::call_site()),
                     generics: if generics.lt_token.is_some() {
                         Some(generics.clone())
                     } else {
@@ -661,14 +683,6 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
             }
         }
     }
-}
-
-fn capitalize(s: &str) -> String {
-    s[0..1].to_uppercase() + &s[1..]
-}
-
-fn snake_case_to_pascal_case(s: &str) -> String {
-    s.split('_').map(capitalize).collect::<Vec<_>>().join("")
 }
 
 fn get_block_contents(block: &Block) -> TokenStream {

@@ -11,28 +11,28 @@ pub fn Popup<B, V>(
     percent_y: u16,
 ) -> impl View<B>
 where
-    B: Backend + 'static,
-    V: LazyView<B> + Clone + 'static,
+    B: Backend,
+    V: LazyView<B> + Clone,
 {
     let inverse_y = (100 - percent_y) / 2;
     let inverse_x = (100 - percent_x) / 2;
     move || {
         let mut children = children.clone();
         view! { cx,
-            <column>
-                <row percentage=inverse_y />
-                <row percentage=percent_y>
-                    <column percentage=inverse_x />
-                    <column percentage=percent_x>
-                        <overlay>
-                            <clear/>
+            <Column>
+                <Row percentage=inverse_y />
+                <Row percentage=percent_y>
+                    <Column percentage=inverse_x />
+                    <Column percentage=percent_x>
+                        <Overlay>
+                            <Clear/>
                             {children}
-                        </overlay>
-                    </column>
-                    <column percentage=inverse_x />
-                </row>
-                <row percentage=inverse_y />
-            </column>
+                        </Overlay>
+                    </Column>
+                    <Column percentage=inverse_x />
+                </Row>
+                <Row percentage=inverse_y />
+            </Column>
         }
     }
 }
@@ -46,12 +46,12 @@ pub fn Show<B, F1, F2, V1, V2, W>(
     #[prop(default = false)] eager: bool,
 ) -> impl View<B>
 where
-    B: Backend + 'static,
+    B: Backend,
     W: Fn() -> bool + 'static,
     F1: Fn() -> V1 + 'static,
     F2: Fn() -> V2 + 'static,
-    V1: View<B> + 'static,
-    V2: View<B> + 'static,
+    V1: View<B>,
+    V2: View<B>,
 {
     move || match (when(), eager) {
         (true, true) => {
@@ -71,12 +71,12 @@ where
 #[derive(TypedBuilder, ComponentChildren)]
 pub struct Case<B>
 where
-    B: Backend + 'static,
+    B: Backend,
 {
     #[builder(setter(transform = |f: impl IntoBoxed<dyn Fn() -> bool>| f.into_boxed()))]
     when: Box<dyn Fn() -> bool>,
     #[children]
-    #[builder(setter(transform = |f: impl IntoBoxed<dyn Fn() -> Box<dyn View<B>>>| f.into_boxed()))]
+    #[builder(setter(transform = |f: impl IntoBoxedLazyView<B>| f.into_boxed_lazy_view()))]
     children: Box<dyn Fn() -> Box<dyn View<B>>>,
 }
 
@@ -87,7 +87,7 @@ pub fn Switch<B>(
     #[prop(default = true)] lazy: bool,
 ) -> impl View<B>
 where
-    B: Backend + 'static,
+    B: Backend,
 {
     move || {
         let mut res = None;
