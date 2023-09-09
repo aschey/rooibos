@@ -36,7 +36,7 @@ macro_rules! impl_widget {
 
         impl MakeBuilder for $props<'_> {}
 
-        pub fn $name<T, B: Backend>(_cx: T, props: $props<'static>) -> impl View<B> {
+        pub fn $name<B: Backend>(_cx: Scope, props: $props<'static>) -> impl View<B> {
             move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
         }
     };
@@ -48,7 +48,7 @@ macro_rules! impl_widget_no_lifetime {
 
         impl MakeBuilder for $props {}
 
-        pub fn $name<T, B: Backend>(_cx: T, props: $props) -> impl View<B> {
+        pub fn $name<B: Backend>(_cx: Scope, props: $props) -> impl View<B> {
             move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
         }
     };
@@ -76,8 +76,8 @@ macro_rules! impl_stateful_widget {
 
         pub type $props<'a> = $widget<'a>;
 
-        pub fn $name<'a, T, B: Backend>(
-            _cx: T,
+        pub fn $name<'a, B: Backend>(
+            _cx: Scope,
             props: $props<'static>,
             mut state: impl StatefulRender<B, $widget<'a>> + 'static,
         ) -> impl View<B> {

@@ -1,6 +1,6 @@
+use manyhow::bail;
 use once_cell::sync::Lazy;
 use proc_macro2::TokenStream;
-use proc_macro_error::{abort, abort_call_site};
 use quote::{format_ident, quote, ToTokens};
 use regex::Regex;
 use syn::{Data, DeriveInput, Fields, Meta};
@@ -17,12 +17,12 @@ regex!(
 );
 regex!(INTO_RE, r"setter\s*\(.*\s*into,?\s*\)");
 
-pub(crate) fn parse(input: DeriveInput) -> TokenStream {
+pub(crate) fn parse(input: DeriveInput) -> manyhow::Result {
     let Data::Struct(derive_struct) = &input.data else {
-        abort_call_site!("ComponentChildren can only be used on structs");
+        bail!("ComponentChildren can only be used on structs");
     };
     let Fields::Named(fields) = &derive_struct.fields else {
-        abort_call_site!("ComponentChildren can only be used on structs with named fields");
+        bail!("ComponentChildren can only be used on structs with named fields");
     };
 
     let find_children: Vec<_> = fields
@@ -40,9 +40,9 @@ pub(crate) fn parse(input: DeriveInput) -> TokenStream {
         .collect();
 
     if find_children.is_empty() {
-        return Default::default();
+        return Ok(Default::default());
     } else if find_children.len() > 1 {
-        abort!(fields, "Only one field can have the `children` attribute");
+        bail!(fields, "Only one field can have the `children` attribute");
     }
 
     let (children_index, children_field) = find_children.first().expect("length check");
@@ -94,12 +94,12 @@ pub(crate) fn parse(input: DeriveInput) -> TokenStream {
     let props_name = input.ident;
     let props_builder_name = format_ident!("{props_name}Builder");
 
-    quote! {
+    Ok(quote! {
         impl #impl_generics #props_name #generics #where_clause {
             pub fn new(#children_prop: #fn_param_type) ->
             #props_builder_name <#return_generics (#(#args),*)> {
                 Self::builder().#children_prop(#children_prop)
             }
         }
-    }
+    })
 }

@@ -1,10 +1,10 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use proc_macro::TokenStream;
+use manyhow::{manyhow, Emitter};
+use proc_macro2::TokenStream;
 use proc_macro_crate::{crate_name, FoundCrate};
-use proc_macro_error::proc_macro_error;
 use quote::ToTokens;
-use syn::{parse_macro_input, DeriveInput};
+use syn::DeriveInput;
 
 mod caller_id;
 mod component;
@@ -16,44 +16,43 @@ pub(crate) fn next_id() -> u32 {
     NEXT_ID.fetch_add(1, Ordering::SeqCst)
 }
 
+#[manyhow]
 #[proc_macro]
-#[proc_macro_error]
-pub fn prop(tokens: TokenStream) -> TokenStream {
-    view::prop(tokens.into()).into()
+pub fn prop(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+    view::prop(tokens, emitter)
 }
 
+#[manyhow]
 #[proc_macro]
-#[proc_macro_error]
-pub fn view(tokens: TokenStream) -> TokenStream {
-    view::view(tokens.into(), true).into()
+pub fn view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+    view::view(tokens, true, emitter)
 }
 
+#[manyhow]
 #[proc_macro]
-#[proc_macro_error]
-pub fn mount(tokens: TokenStream) -> TokenStream {
-    view::view(tokens.into(), false).into()
+pub fn mount(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+    view::view(tokens, false, emitter)
 }
 
+#[manyhow]
 #[proc_macro_attribute]
-#[proc_macro_error]
-pub fn component(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    parse_macro_input!(tokens as component::Model)
-        .into_token_stream()
-        .into()
+pub fn component(_attr: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    let model: component::Model = syn::parse2(tokens)?;
+    Ok(model.into_token_stream())
 }
 
+#[manyhow]
 #[proc_macro_attribute]
-#[proc_macro_error]
-pub fn caller_id(_attr: TokenStream, tokens: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(tokens as DeriveInput);
-    caller_id::parse(input).into()
+pub fn caller_id(_attr: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    let input: DeriveInput = syn::parse2(tokens)?;
+    caller_id::parse(input)
 }
 
+#[manyhow]
 #[proc_macro_derive(ComponentChildren, attributes(children))]
-#[proc_macro_error]
-pub fn component_children(tokens: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(tokens as DeriveInput);
-    component_children::parse(input).into()
+pub fn component_children(tokens: TokenStream) -> manyhow::Result {
+    let input: DeriveInput = syn::parse2(tokens)?;
+    component_children::parse(input)
 }
 
 fn get_import() -> proc_macro2::TokenStream {

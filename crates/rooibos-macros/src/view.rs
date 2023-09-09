@@ -1,8 +1,9 @@
 use convert_case::{Case, Casing};
+use manyhow::{bail, Emitter, ErrorMessage};
 use proc_macro2::{Ident, Span, TokenStream, TokenTree};
-use proc_macro_error::{abort, abort_call_site};
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
+use syn::spanned::Spanned;
 use syn::{Block, Expr, ExprLit, Generics, Lit, LitInt};
 
 use crate::{get_import, next_id};
@@ -244,22 +245,23 @@ struct NodeAttributes {
 impl NodeAttributes {
     fn from_custom(
         cx_name: Option<&TokenStream>,
-        element: &NodeElement,
+        tag: Ident,
+        attributes: &[NodeAttribute],
         children: TokenStream,
-        object_suffix: &str,
         include_parent_id: bool,
-    ) -> Self {
+        emitter: &mut Emitter,
+    ) -> manyhow::Result<Self> {
         Self::from_nodes(
             cx_name,
-            Some(&element.name().to_string().to_case(Case::UpperCamel)),
-            element.attributes(),
+            Some(tag),
+            attributes,
             if children.is_empty() {
                 None
             } else {
                 Some(children)
             },
-            object_suffix,
             include_parent_id,
+            emitter,
         )
     }
 
@@ -301,12 +303,12 @@ impl NodeAttributes {
 
     fn from_nodes(
         cx_name: Option<&TokenStream>,
-        tag_name: Option<&str>,
+        tag: Option<Ident>,
         nodes: &[NodeAttribute],
         args: Option<TokenStream>,
-        object_suffix: &str,
         include_parent_id: bool,
-    ) -> Self {
+        emitter: &mut Emitter,
+    ) -> manyhow::Result<Self> {
         let mut attrs = Self {
             constraint: Constraint::Min,
             expr: get_default_constraint(),
@@ -328,37 +330,32 @@ impl NodeAttributes {
             .collect();
 
         let crate_name = get_import();
+
         for attribute in &custom_attrs {
-            let func_name = Ident::new(&attribute.key.to_string(), Span::call_site());
-            if let Some(tag_name) = tag_name {
-                let val = if let Some(val) = &attribute.value() {
-                    quote!(#val)
+            let func_name = Ident::new(&attribute.key.to_string(), attribute.key.span());
+            if let Some(tag) = &tag {
+                let prop_func = if let Some(val) = &attribute.value() {
+                    quote!(#func_name(#val))
                 } else {
-                    // default to true if no value provided
-                    quote!(true)
+                    emitter.emit(ErrorMessage::new(func_name.span(), "value missing"));
+                    quote!(#func_name)
                 };
 
                 if let Some(props) = attrs.props {
                     attrs.props = Some(quote! {
-                        #props.#func_name(#val)
+                        #props.#prop_func
                     });
                 } else {
-                    let props = build_struct(
-                        tag_name,
-                        &args,
-                        object_suffix,
-                        include_parent_id,
-                        attrs.key.clone(),
-                    );
+                    let props = build_struct(tag, &args, include_parent_id, attrs.key.clone());
                     if let Some(cx_name) = cx_name {
                         let scope_param = if include_parent_id {
                             quote!(#crate_name::reactive::create_child_scope(#cx_name))
                         } else {
                             cx_name.clone()
                         };
-                        attrs.props = Some(quote! { #scope_param, #props.#func_name(#val) });
+                        attrs.props = Some(quote! { #scope_param, #props.#prop_func });
                     } else {
-                        attrs.props = Some(quote! { #props.#func_name(#val) });
+                        attrs.props = Some(quote! { #props.#prop_func });
                     }
                 }
             }
@@ -368,15 +365,9 @@ impl NodeAttributes {
             attrs.props = Some(quote! { #props.build() });
         }
 
-        if let Some(tag_name) = tag_name {
+        if let Some(tag) = &tag {
             if custom_attrs.is_empty() {
-                let props = build_struct(
-                    tag_name,
-                    &args,
-                    object_suffix,
-                    include_parent_id,
-                    attrs.key.clone(),
-                );
+                let props = build_struct(tag, &args, include_parent_id, attrs.key.clone());
                 if let Some(cx_name) = cx_name {
                     let scope_param = if include_parent_id {
                         quote!(#crate_name::reactive::create_child_scope(#cx_name))
@@ -390,10 +381,10 @@ impl NodeAttributes {
             }
         }
 
-        attrs
+        Ok(attrs)
     }
 
-    fn from_layout_nodes(nodes: &[NodeAttribute]) -> Self {
+    fn from_layout_nodes(nodes: &[NodeAttribute], emitter: &mut Emitter) -> Self {
         let mut attrs = Self {
             constraint: Constraint::Min,
             expr: get_default_constraint(),
@@ -405,20 +396,20 @@ impl NodeAttributes {
         for node in nodes {
             if let NodeAttribute::Attribute(attribute) = node {
                 if !attrs.parse_standard_attrs(attribute) {
-                    let func_name = Ident::new(&attribute.key.to_string(), Span::call_site());
-                    let val = if let Some(val) = &attribute.value() {
-                        quote!(#val)
+                    let func_name = Ident::new(&attribute.key.to_string(), attribute.key.span());
+                    let func = if let Some(val) = &attribute.value() {
+                        quote!(#func_name(#val))
                     } else {
-                        // default to true if no value provided
-                        quote!(true)
+                        emitter.emit(ErrorMessage::new(func_name.span(), "value missing"));
+                        quote!(#func_name)
                     };
 
                     if let Some(props) = attrs.props {
                         attrs.props = Some(quote! {
-                            #props.#func_name(#val)
+                            #props.#func
                         });
                     } else {
-                        attrs.props = Some(quote! {.#func_name(#val)});
+                        attrs.props = Some(quote!(.#func));
                     }
                 }
             }
@@ -429,14 +420,11 @@ impl NodeAttributes {
 }
 
 fn build_struct(
-    tag_name: &str,
+    tag_name: &Ident,
     args: &Option<TokenStream>,
-    object_suffix: &str,
     include_parent_id: bool,
     key: Option<Expr>,
 ) -> TokenStream {
-    let object = tag_name.to_owned() + object_suffix;
-    let ident = Ident::new(&object, Span::call_site());
     let caller_id = next_id();
     let key_clause = key.map(|k| quote!(+ &#k.to_string()));
     let caller_id_args = if include_parent_id {
@@ -448,60 +436,63 @@ fn build_struct(
     };
     if let Some(args) = args.as_ref() {
         quote! {
-            #ident::new(#args).__caller_id(#caller_id_args)
+            #tag_name::new(#args).__caller_id(#caller_id_args)
         }
     } else {
         quote! {
-            #ident::builder().__caller_id(#caller_id_args)
+            #tag_name::builder().__caller_id(#caller_id_args)
         }
     }
 }
 
-pub(crate) fn view(tokens: TokenStream, include_parent_id: bool) -> TokenStream {
+pub(crate) fn view(
+    tokens: TokenStream,
+    include_parent_id: bool,
+    emitter: &mut Emitter,
+) -> manyhow::Result {
     let mut tokens = tokens.into_iter();
     let (cx, comma) = (tokens.next(), tokens.next());
     match (cx, comma) {
         (Some(TokenTree::Ident(cx)), Some(TokenTree::Punct(punct))) if punct.as_char() == ',' => {
             let (nodes, errors) = parse_rstml(tokens.collect());
-            let mut view = parse_root_nodes(&cx.to_token_stream(), nodes, include_parent_id);
+            let mut view =
+                parse_root_nodes(&cx.to_token_stream(), nodes, include_parent_id, emitter)?;
             view.create_dummy_parent = !include_parent_id;
 
-            quote! {
+            Ok(quote! {
                 {
                     #(#errors;)*
                     #view
                 }
-            }
+            })
         }
         _ => {
-            abort_call_site!(
-                "view! macro needs a context and RSX: e.g., view! { cx, <row>...</row> }"
-            )
+            bail!("view! macro needs a context and RSX: e.g., view! {{ cx, <row>...</row> }}")
         }
     }
 }
 
-pub(crate) fn prop(tokens: TokenStream) -> TokenStream {
+pub(crate) fn prop(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
     let (nodes, errors) = parse_rstml(tokens);
     if let [Node::Element(element)] = &nodes[..] {
         let element_name = element.name().to_string();
         if !element_name.is_case(Case::UpperCamel) {
             let element_name_camel = element_name.to_case(Case::UpperCamel);
-            abort!(
+            bail!(
                 element,
-                format!("should have an upper camel case name: {element_name_camel}")
+                "should have an upper camel case name: {element_name_camel}"
             )
         }
 
-        let prop = parse_named_element_children(&nodes, false);
-        quote! {
+        let prop = parse_named_element_children(&nodes, false, emitter)?;
+        Ok(quote! {
             {
                 #(#errors;)*
                 #prop
             }
-        }
+        })
     } else {
-        abort_call_site!("RSX root node should be a named element");
+        bail!("RSX root node should be a named element");
     }
 }
 
@@ -516,28 +507,43 @@ fn parse_rstml(tokens: TokenStream) -> (Vec<Node>, Vec<TokenStream>) {
     (nodes, errors)
 }
 
-fn parse_root_nodes(cx_name: &TokenStream, nodes: Vec<Node>, include_parent_id: bool) -> View {
+fn parse_root_nodes(
+    cx_name: &TokenStream,
+    nodes: Vec<Node>,
+    include_parent_id: bool,
+    emitter: &mut Emitter,
+) -> manyhow::Result<View> {
     if let [node] = &nodes[..] {
-        parse_root_node(cx_name, node, include_parent_id)
+        parse_root_node(cx_name, node, include_parent_id, emitter)
     } else {
-        abort_call_site!(format!("RSX should contain a single root node"));
+        bail!("RSX should contain a single root node")
     }
 }
 
-fn parse_root_node(cx_name: &TokenStream, node: &Node, include_parent_id: bool) -> View {
+fn parse_root_node(
+    cx_name: &TokenStream,
+    node: &Node,
+    include_parent_id: bool,
+    emitter: &mut Emitter,
+) -> manyhow::Result<View> {
     if let Node::Element(element) = node {
-        parse_element(cx_name, element, include_parent_id)
+        parse_element(cx_name, element, include_parent_id, emitter)
     } else {
-        abort!(node, "RSX root node should be a named element");
+        bail!(node, "RSX root node should be a named element");
     }
 }
 
-fn parse_elements(cx_name: &TokenStream, nodes: &[Node], include_parent_id: bool) -> Vec<View> {
+fn parse_elements(
+    cx_name: &TokenStream,
+    nodes: &[Node],
+    include_parent_id: bool,
+    emitter: &mut Emitter,
+) -> manyhow::Result<Vec<View>> {
     let mut views = vec![];
     for node in nodes {
         match node {
             Node::Element(element) => {
-                views.push(parse_element(cx_name, element, include_parent_id));
+                views.push(parse_element(cx_name, element, include_parent_id, emitter)?);
             }
             Node::Block(block) => {
                 if let Some(block) = block.try_block() {
@@ -555,22 +561,33 @@ fn parse_elements(cx_name: &TokenStream, nodes: &[Node], include_parent_id: bool
                 }
             }
             node => {
-                abort!(node, format!("Invalid RSX node: {node:?}"));
+                bail!(node, "Invalid RSX node: {node:?}");
             }
         }
     }
-    views
+    Ok(views)
 }
 
-fn parse_named_element_children(nodes: &[Node], include_parent_id: bool) -> TokenStream {
+fn parse_named_element_children(
+    nodes: &[Node],
+    include_parent_id: bool,
+    emitter: &mut Emitter,
+) -> manyhow::Result {
     let mut tokens = vec![];
     let mut force_vec = false;
     for node in nodes {
         match node {
             Node::Element(element) => {
-                let children = parse_named_element_children(&element.children, include_parent_id);
-                let attrs =
-                    NodeAttributes::from_custom(None, element, children, "", include_parent_id);
+                let children =
+                    parse_named_element_children(&element.children, include_parent_id, emitter)?;
+                let attrs = NodeAttributes::from_custom(
+                    None,
+                    Ident::new(&element.name().to_string(), element.name().span()),
+                    element.attributes(),
+                    children,
+                    include_parent_id,
+                    emitter,
+                )?;
 
                 if let Some(props) = attrs.props {
                     tokens.push(quote! { #props });
@@ -589,84 +606,94 @@ fn parse_named_element_children(nodes: &[Node], include_parent_id: bool) -> Toke
                 }
             }
             Node::Doctype(doctype) => {
-                abort!(doctype, "Doctype invalid at this location");
+                bail!(doctype, "Doctype invalid at this location");
             }
             Node::Fragment(fragment) => {
-                let children = parse_named_element_children(&fragment.children, include_parent_id);
+                let children =
+                    parse_named_element_children(&fragment.children, include_parent_id, emitter)?;
                 tokens.push(children);
                 force_vec = true;
             }
             _ => {}
         }
     }
-    if tokens.is_empty() {
+    Ok(if tokens.is_empty() {
         TokenStream::default()
     } else if tokens.len() == 1 && !force_vec {
         tokens[0].clone()
     } else {
         quote! { vec![#(#tokens),*] }
-    }
+    })
 }
 
-fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id: bool) -> View {
+fn parse_element(
+    cx_name: &TokenStream,
+    element: &NodeElement,
+    include_parent_id: bool,
+    emitter: &mut Emitter,
+) -> manyhow::Result<View> {
     let element_name = element.name().to_string();
     if !element_name.is_case(Case::UpperCamel) {
         let element_name_camel = element_name.to_case(Case::UpperCamel);
-        abort!(
+        bail!(
             element,
-            format!("should have an upper camel case name: {element_name_camel}")
+            "should have an upper camel case name: {element_name_camel}"
         )
     }
     match element_name.as_str() {
         "Row" => {
-            let attrs = NodeAttributes::from_layout_nodes(element.attributes());
-            let children = parse_elements(cx_name, &element.children, include_parent_id);
+            let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
+            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
-            View {
+            Ok(View {
                 view_type: ViewType::Row(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
                 create_dummy_parent: false,
                 layout_props: attrs.props,
-            }
+            })
         }
         "Column" => {
-            let attrs = NodeAttributes::from_layout_nodes(element.attributes());
-            let children = parse_elements(cx_name, &element.children, include_parent_id);
+            let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
+            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
-            View {
+            Ok(View {
                 view_type: ViewType::Column(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
                 create_dummy_parent: false,
                 layout_props: attrs.props,
-            }
+            })
         }
         "Overlay" => {
-            let attrs = NodeAttributes::from_layout_nodes(element.attributes());
-            let children = parse_elements(cx_name, &element.children, include_parent_id);
+            let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
+            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
-            View {
+            Ok(View {
                 view_type: ViewType::Overlay(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
                 create_dummy_parent: false,
                 layout_props: attrs.props,
-            }
+            })
         }
         name => {
-            let children = parse_named_element_children(&element.children, include_parent_id);
+            let children =
+                parse_named_element_children(&element.children, include_parent_id, emitter)?;
+
             let attrs = NodeAttributes::from_custom(
                 Some(cx_name),
-                element,
+                Ident::new(&(name.to_owned() + "Props"), Span::call_site()),
+                element.attributes(),
                 children,
-                "Props",
                 include_parent_id,
-            );
+                emitter,
+            )?;
             let generics = &element.open_tag.generics;
-            View {
+
+            Ok(View {
                 view_type: ViewType::Element {
-                    name: Ident::new(&name.to_case(Case::Snake), Span::call_site()),
+                    name: Ident::new(&name.to_case(Case::Snake), element.name().span()),
                     generics: if generics.lt_token.is_some() {
                         Some(generics.clone())
                     } else {
@@ -680,7 +707,7 @@ fn parse_element(cx_name: &TokenStream, element: &NodeElement, include_parent_id
                 constraint_val: attrs.expr,
                 create_dummy_parent: false,
                 layout_props: None,
-            }
+            })
         }
     }
 }

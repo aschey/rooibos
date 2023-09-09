@@ -1,7 +1,7 @@
 use attribute_derive::Attribute as AttributeDerive;
 use convert_case::{Case, Casing};
+use manyhow::{bail, error_message, ErrorMessage};
 use proc_macro2::{Ident, Span, TokenStream};
-use proc_macro_error::abort;
 use quote::{format_ident, quote, quote_spanned, ToTokens, TokenStreamExt};
 use syn::parse::Parse;
 use syn::spanned::Spanned;
@@ -29,7 +29,7 @@ pub struct Model {
 impl Parse for Model {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let mut item = ItemFn::parse(input)?;
-        let docs = Docs::new(&item.attrs);
+        let docs = Docs::new(&item.attrs)?;
 
         let props = item
             .sig
@@ -37,23 +37,24 @@ impl Parse for Model {
             .clone()
             .into_iter()
             .map(Prop::new)
-            .collect::<Vec<_>>();
+            .collect::<syn::Result<Vec<Prop>>>()?;
+
         let children_count = props.iter().filter(|p| p.prop_opts.children).count();
         if children_count > 1 {
-            abort!(
+            bail!(
                 item.sig.inputs,
                 "only one parameter can be used as children"
             );
         }
 
         let (scope_name, scope_type) = if props.is_empty() {
-            abort!(
+            bail!(
                 item.sig,
                 "this method requires a `Scope` parameter";
                 help = "try `fn {}(cx: Scope, /* ... */)`", item.sig.ident
             );
         } else if !is_valid_scope_type(&props[0].ty) {
-            abort!(
+            bail!(
                 item.sig.inputs,
                 "this method requires a `Scope` parameter";
                 help = "try `fn {}(cx: Scope, /* ... */ */)`", item.sig.ident
@@ -80,7 +81,7 @@ impl Parse for Model {
             }
         });
 
-        let view_type = get_view_generics(&item.sig.output);
+        let view_type = get_view_generics(&item.sig.output)?;
 
         Ok(Self {
             is_transparent: false,
@@ -88,7 +89,7 @@ impl Parse for Model {
             vis: item.vis.clone(),
             // create component functions with snake case names to prevent clashes with Ratatui's
             // widget names
-            name: convert_to_snake_case(&item.sig.ident),
+            name: convert_to_snake_case(&item.sig.ident, item.sig.ident.span()),
             scope_name,
             scope_type,
             props,
@@ -111,7 +112,7 @@ fn is_valid_scope_type(ty: &Type) -> bool {
     .any(|test| ty == test)
 }
 
-fn get_view_generics(return_type: &ReturnType) -> Type {
+fn get_view_generics(return_type: &ReturnType) -> syn::Result<Type> {
     if let ReturnType::Type(_, return_type) = &return_type {
         if let Type::ImplTrait(impl_trait) = return_type.as_ref() {
             if let Some(TypeParamBound::Trait(bound_trait)) = impl_trait.bounds.first() {
@@ -119,13 +120,13 @@ fn get_view_generics(return_type: &ReturnType) -> Type {
                     &bound_trait.path.segments.last().map(|s| &s.arguments)
                 {
                     if let Some(GenericArgument::Type(generic_type)) = &args.args.first() {
-                        return generic_type.clone();
+                        return Ok(generic_type.clone());
                     }
                 }
             }
         }
     };
-    abort!(return_type, "return type is incorrect"; help = "return signature must be `-> impl View<B>`");
+    bail!(return_type, "return type is incorrect"; help = "return signature must be `-> impl View<B>`");
 }
 
 // implemented manually because Vec::drain_filter is nightly only
@@ -141,12 +142,12 @@ pub fn drain_filter<T>(vec: &mut Vec<T>, mut some_predicate: impl FnMut(&mut T) 
     }
 }
 
-pub fn convert_to_snake_case(name: &Ident) -> Ident {
+pub fn convert_to_snake_case(name: &Ident, span: Span) -> Ident {
     let name_str = name.to_string();
     if name_str.is_case(Case::Snake) {
         name.clone()
     } else {
-        Ident::new(&name_str.to_case(Case::Snake), name.span())
+        Ident::new(&name_str.to_case(Case::Snake), span)
     }
 }
 
@@ -175,17 +176,23 @@ impl ToTokens for Model {
                 _ => None,
             });
             if let Some(semi) = ends_semi {
-                proc_macro_error::emit_error!(
-                    semi.span(),
-                    "A component that ends with a `view!` macro followed by a semicolon will \
-                     return (), an empty view. This is usually an accident, not intentional, so \
-                     we prevent it. If you'd like to return (), you can do it it explicitly by \
-                     returning () as the last item from the component."
+                panic!(
+                    "{}",
+                    error_message!(
+                        semi.span(),
+                        "A component that ends with a `view!` macro followed by a semicolon will \
+                         return (), an empty view. This is usually an accident, not intentional, \
+                         so we prevent it. If you'd like to return (), you can do it it \
+                         explicitly by returning () as the last item from the component."
+                    )
                 );
             }
         }
 
-        body.sig.ident = format_ident!("__{}", convert_to_snake_case(&body.sig.ident));
+        body.sig.ident = format_ident!(
+            "__{}",
+            convert_to_snake_case(&body.sig.ident, Span::call_site())
+        );
         body.sig.inputs.push(syn::parse_quote!(__parent_id: u32));
         body.sig.output = syn::parse_quote!(-> impl LazyView<#view_type>);
         #[allow(clippy::redundant_clone)] // false positive
@@ -201,7 +208,7 @@ impl ToTokens for Model {
 
         if !body.sig.generics.params.is_empty() {
             props.push(Prop {
-                docs: Docs::new(&[]),
+                docs: Docs::new(&[]).unwrap(),
                 prop_opts: PropOpt {
                     default: Some(syn::parse_quote!(Default::default())),
                     ..Default::default()
@@ -223,14 +230,14 @@ impl ToTokens for Model {
 
         let props_name = format_ident!("{}Props", name.to_string().to_case(Case::UpperCamel));
 
-        let prop_builder_fields = prop_builder_fields(vis, &props);
+        let prop_builder_fields = prop_builder_fields(vis, &props).unwrap();
 
         let prop_names = prop_names(&props);
         let used_prop_names = prop_names_for_component(&props);
         let builder_name_doc =
             LitStr::new(&format!("Props for the [`{name}`] component."), name.span());
 
-        let component_fn_prop_docs = generate_component_fn_prop_docs(&props);
+        let component_fn_prop_docs = generate_component_fn_prop_docs(&props).unwrap();
 
         let crate_import = get_import();
 
@@ -286,8 +293,6 @@ impl ToTokens for Model {
             })
         };
 
-        let name = convert_to_snake_case(name);
-
         let output = quote! {
             #[doc = #builder_name_doc]
             #[doc = ""]
@@ -331,33 +336,35 @@ struct Prop {
 }
 
 impl Prop {
-    fn new(arg: FnArg) -> Self {
+    fn new(arg: FnArg) -> syn::Result<Self> {
         let typed = if let FnArg::Typed(ty) = arg {
             ty
         } else {
-            abort!(arg, "receiver not allowed in `fn`");
+            bail!(arg, "receiver not allowed in `fn`");
         };
 
-        let prop_opts = PropOpt::from_attributes(&typed.attrs).unwrap_or_else(|e| {
-            // TODO: replace with `.unwrap_or_abort()` once https://gitlab.com/CreepySkeleton/proc-macro-error/-/issues/17 is fixed
-            abort!(e.span(), e.to_string());
-        });
+        let prop_opts = match PropOpt::from_attributes(&typed.attrs) {
+            Ok(opts) => opts,
+            Err(e) => {
+                bail!(e.span(), "{}", e.to_string());
+            }
+        };
 
         let name = if let Pat::Ident(i) = *typed.pat {
             i
         } else {
-            abort!(
+            bail!(
                 typed.pat,
                 "only `prop: type` style types are allowed within the `#[component]` macro"
             );
         };
 
-        Self {
-            docs: Docs::new(&typed.attrs),
+        Ok(Self {
+            docs: Docs::new(&typed.attrs)?,
             prop_opts,
             name,
             ty: *typed.ty,
-        }
+        })
     }
 }
 
@@ -377,7 +384,7 @@ impl ToTokens for Docs {
 }
 
 impl Docs {
-    pub fn new(attrs: &[Attribute]) -> Self {
+    pub fn new(attrs: &[Attribute]) -> syn::Result<Self> {
         #[derive(Debug, Copy, Clone, PartialEq, Eq)]
         enum ViewCodeFenceState {
             Outside,
@@ -388,9 +395,9 @@ impl Docs {
         let mut quote_ws = "".to_string();
         let mut view_code_fence_state = ViewCodeFenceState::Outside;
         const RUST_START: &str =
-            "# ::leptos_reactive::create_scope(::leptos_reactive::create_runtime(), |cx| {";
+            "# ::rooibos::reactive::create_scope(::rooibos::reactive::create_runtime(), |cx| {";
         const RUST_END: &str = "# }).dispose();";
-        const RSX_START: &str = "# ::tui_rsx::view! {cx,";
+        const RSX_START: &str = "# ::rooibos::rsx::view! {cx,";
         const RSX_END: &str = "# };}).dispose();";
 
         // Seperated out of chain to allow rustfmt to work
@@ -434,7 +441,7 @@ impl Docs {
                 .collect::<Vec<_>>()
         };
 
-        let mut attrs = attrs
+        let attrs = attrs
             .iter()
             .filter_map(|attr| {
                 let Meta::NameValue(attr) = &attr.meta else {
@@ -445,13 +452,17 @@ impl Docs {
                 }
 
                 let Some(val) = value_to_string(&attr.value) else {
-                    abort!(attr, "expected string literal in value of doc comment");
+                    return Some(Err(error_message!(
+                        attr,
+                        "expected string literal in value of doc comment"
+                    )));
                 };
 
-                Some((val, attr.path.span()))
+                Some(Ok((val, attr.path.span())))
             })
-            .flat_map(map)
-            .collect::<Vec<_>>();
+            .collect::<Result<Vec<_>, ErrorMessage>>()?;
+
+        let mut attrs = attrs.into_iter().flat_map(map).collect::<Vec<_>>();
 
         if view_code_fence_state != ViewCodeFenceState::Outside {
             if view_code_fence_state == ViewCodeFenceState::Rust {
@@ -462,7 +473,7 @@ impl Docs {
             attrs.push((format!("{quote_ws}{quotes}"), Span::call_site()))
         }
 
-        Self(attrs)
+        Ok(Self(attrs))
     }
 
     pub fn padded(&self) -> TokenStream {
@@ -576,8 +587,8 @@ impl ToTokens for TypedBuilderOpts {
     }
 }
 
-fn prop_builder_fields(vis: &Visibility, props: &[Prop]) -> TokenStream {
-    props
+fn prop_builder_fields(vis: &Visibility, props: &[Prop]) -> syn::Result<TokenStream> {
+    let props = props
         .iter()
         .skip(1)
         .map(|prop| {
@@ -590,7 +601,7 @@ fn prop_builder_fields(vis: &Visibility, props: &[Prop]) -> TokenStream {
             let mut name = name.clone();
             name.mutability = None;
             let builder_attrs = TypedBuilderOpts::from_opts(prop_opts, is_option(ty));
-            let builder_docs = prop_to_doc(prop, PropDocStyle::Inline);
+            let builder_docs = prop_to_doc(prop, PropDocStyle::Inline)?;
 
             // Children won't need documentation in many cases
             let allow_missing_docs = if name.ident == "children" {
@@ -599,15 +610,17 @@ fn prop_builder_fields(vis: &Visibility, props: &[Prop]) -> TokenStream {
                 quote!()
             };
 
-            quote! {
+            Ok(quote! {
                 #docs
                 #builder_docs
                 #builder_attrs
                 #allow_missing_docs
                 #vis #name: #ty,
-            }
+            })
         })
-        .collect()
+        .collect::<syn::Result<Vec<_>>>()?;
+
+    Ok(props.into_iter().collect())
 }
 
 fn prop_names(props: &[Prop]) -> TokenStream {
@@ -636,18 +649,18 @@ fn prop_names_for_component(props: &[Prop]) -> TokenStream {
         .collect()
 }
 
-fn generate_component_fn_prop_docs(props: &[Prop]) -> TokenStream {
+fn generate_component_fn_prop_docs(props: &[Prop]) -> syn::Result<TokenStream> {
     let required_prop_docs = props
         .iter()
         .filter(|Prop { prop_opts, .. }| !(prop_opts.optional || prop_opts.optional_no_strip))
         .map(|p| prop_to_doc(p, PropDocStyle::List))
-        .collect::<TokenStream>();
+        .collect::<syn::Result<TokenStream>>()?;
 
     let optional_prop_docs = props
         .iter()
         .filter(|Prop { prop_opts, .. }| prop_opts.optional || prop_opts.optional_no_strip)
         .map(|p| prop_to_doc(p, PropDocStyle::List))
-        .collect::<TokenStream>();
+        .collect::<syn::Result<TokenStream>>()?;
 
     let required_prop_docs = if !required_prop_docs.is_empty() {
         quote! {
@@ -667,10 +680,10 @@ fn generate_component_fn_prop_docs(props: &[Prop]) -> TokenStream {
         quote! {}
     };
 
-    quote! {
+    Ok(quote! {
         #required_prop_docs
         #optional_prop_docs
-    }
+    })
 }
 
 pub fn is_option(ty: &Type) -> bool {
@@ -689,10 +702,7 @@ pub fn is_option(ty: &Type) -> bool {
     }
 }
 
-pub fn unwrap_option(ty: &Type) -> Type {
-    const STD_OPTION_MSG: &str = "make sure you're not shadowing the `std::option::Option` type \
-                                  that is automatically imported from the standard prelude";
-
+pub fn unwrap_option(ty: &Type) -> syn::Result<Type> {
     if let Type::Path(TypePath {
         path: Path { segments, .. },
         ..
@@ -705,17 +715,18 @@ pub fn unwrap_option(ty: &Type) -> Type {
                 }) = &first.arguments
                 {
                     if let [GenericArgument::Type(ty)] = &args.iter().collect::<Vec<_>>()[..] {
-                        return ty.clone();
+                        return Ok(ty.clone());
                     }
                 }
             }
         }
     }
 
-    abort!(
+    bail!(
         ty,
         "`Option` must be `std::option::Option`";
-        help = STD_OPTION_MSG
+        help = "make sure you're not shadowing the `std::option::Option` type \
+        that is automatically imported from the standard prelude"
     );
 }
 
@@ -733,9 +744,9 @@ fn prop_to_doc(
         prop_opts,
     }: &Prop,
     style: PropDocStyle,
-) -> TokenStream {
+) -> syn::Result<TokenStream> {
     let ty = if (prop_opts.optional || prop_opts.strip_option) && is_option(ty) {
-        unwrap_option(ty)
+        unwrap_option(ty)?
     } else {
         ty.to_owned()
     };
@@ -770,10 +781,10 @@ fn prop_to_doc(
 
             let arg_user_docs = docs.padded();
 
-            quote! {
+            Ok(quote! {
                 #[doc = #arg_ty_doc]
                 #arg_user_docs
-            }
+            })
         }
         PropDocStyle::Inline => {
             let arg_ty_doc = LitStr::new(
@@ -795,9 +806,9 @@ fn prop_to_doc(
                 name.ident.span(),
             );
 
-            quote! {
+            Ok(quote! {
                 #[builder(setter(doc = #arg_ty_doc))]
-            }
+            })
         }
     }
 }

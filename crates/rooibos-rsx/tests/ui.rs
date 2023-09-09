@@ -320,9 +320,9 @@ fn single_nested_child_as_vec() {
             <Column>
                 <Tabs>
                     <>
-                        <line>
-                            <span>"tab1"</span>
-                        </line>
+                        <Line>
+                            <Span>"tab1"</Span>
+                        </Line>
                     </>
                 </Tabs>
             </Column>
@@ -347,8 +347,8 @@ fn complex_block_children() {
         let mut view = mount! { cx,
             <Column>
                 <Tabs select=0>
-                    <line>"tab1"</line>
-                    <line>{vec![Span::from("tab2")]}</line>
+                    <Line>"tab1"</Line>
+                    <Line>{vec![Span::from("tab2")]}</Line>
                 </Tabs>
             </Column>
         };
@@ -545,7 +545,7 @@ fn simple_custom_component() {
     create_root(|cx| {
         let mut view = mount! { cx,
             <Column>
-                <Viewer text="hi" flag/>
+                <Viewer text="hi" flag=true/>
             </Column>
         };
         terminal
@@ -657,7 +657,7 @@ fn generic_component() {
     create_root(|cx| {
         let mut view = mount! { cx,
             <Column>
-                <Viewer<usize, _> text="hi" flag/>
+                <Viewer<usize, _> text="hi" flag=true/>
             </Column>
         };
         terminal
