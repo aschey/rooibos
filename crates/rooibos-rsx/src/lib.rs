@@ -429,6 +429,8 @@ impl WidgetCache {
     }
 }
 
+pub fn closing_tag() {}
+
 thread_local! {
     pub static WIDGET_CACHE: WidgetCache = WidgetCache {
         cache: RefCell::new(Lazy::new(TypeMap::new)),

@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use manyhow::{bail, Emitter, ErrorMessage};
 use proc_macro2::{Ident, Span, TokenStream, TokenTree};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote, quote_spanned, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
 use syn::{Block, Expr, ExprLit, Generics, Lit, LitInt};
@@ -41,6 +41,7 @@ pub(crate) struct View {
     constraint_val: Expr,
     layout_props: Option<TokenStream>,
     create_dummy_parent: bool,
+    closing_spans: Vec<Span>,
 }
 
 impl View {
@@ -185,6 +186,20 @@ impl View {
         }
     }
 
+    fn generate_closing_spans(&self) -> TokenStream {
+        let crate_import = get_import();
+
+        self.closing_spans
+            .iter()
+            .map(|span| {
+                let dummy = quote_spanned!(*span => closing_tag);
+                quote! {
+                    let _ = #crate_import::#dummy;
+                }
+            })
+            .collect()
+    }
+
     fn view_to_tokens(&self, child_index: Option<usize>, parent_is_overlay: bool) -> TokenStream {
         match &self.view_type {
             ViewType::Row(children) => self.get_layout_tokens(
@@ -219,15 +234,18 @@ impl ToTokens for View {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let fns = self.generate_fns();
         let view = self.view_to_tokens(None, false);
+        let closing_spans = self.generate_closing_spans();
         let dummy_parent = if self.create_dummy_parent {
             quote!(let __parent_id = 0;)
         } else {
             quote!()
         };
+
         tokens.append_all(quote! {
             {
                 #dummy_parent
                 #fns
+                #closing_spans
                 #view
             }
         });
@@ -557,6 +575,7 @@ fn parse_elements(
                         constraint_val: get_default_constraint(),
                         create_dummy_parent: false,
                         layout_props: None,
+                        closing_spans: vec![],
                     })
                 }
             }
@@ -646,6 +665,10 @@ fn parse_element(
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
             Ok(View {
+                closing_spans: children
+                    .iter()
+                    .flat_map(|c| c.closing_spans.clone())
+                    .collect(),
                 view_type: ViewType::Row(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
@@ -658,6 +681,10 @@ fn parse_element(
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
             Ok(View {
+                closing_spans: children
+                    .iter()
+                    .flat_map(|c| c.closing_spans.clone())
+                    .collect(),
                 view_type: ViewType::Column(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
@@ -670,6 +697,10 @@ fn parse_element(
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
             Ok(View {
+                closing_spans: children
+                    .iter()
+                    .flat_map(|c| c.closing_spans.clone())
+                    .collect(),
                 view_type: ViewType::Overlay(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
@@ -707,6 +738,11 @@ fn parse_element(
                 constraint_val: attrs.expr,
                 create_dummy_parent: false,
                 layout_props: None,
+                closing_spans: element
+                    .close_tag
+                    .as_ref()
+                    .map(|t| vec![t.name.span()])
+                    .unwrap_or(vec![]),
             })
         }
     }
