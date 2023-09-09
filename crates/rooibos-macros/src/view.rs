@@ -23,6 +23,7 @@ enum ViewType {
     Overlay(Vec<View>),
     Element {
         name: Ident,
+        closing_name: Ident,
         generics: Option<Generics>,
         fn_name: Ident,
         props: Option<TokenStream>,
@@ -41,7 +42,6 @@ pub(crate) struct View {
     constraint_val: Expr,
     layout_props: Option<TokenStream>,
     create_dummy_parent: bool,
-    closing_spans: Vec<Span>,
 }
 
 impl View {
@@ -150,6 +150,7 @@ impl View {
             }
             ViewType::Element {
                 name,
+                closing_name,
                 generics,
                 fn_name,
                 props,
@@ -161,43 +162,40 @@ impl View {
                     quote!()
                 };
 
+                let get_container = |inner: TokenStream| {
+                    quote! {
+                        ::std::rc::Rc::new(::std::cell::RefCell::new(#inner))
+                        as ::std::rc::Rc<::std::cell::RefCell<dyn View<_>>>
+                    }
+                };
+                let get_conditional = |rest: TokenStream| {
+                    let real = get_container(quote!(#name #rest));
+
+                    // in debug mode, add a dummy condition to associate the closing tag span with
+                    // the referenced function so rust analyzer can highlight it
+                    // correctly
+                    if cfg!(debug_assertions) {
+                        let fake = get_container(quote!(#closing_name #rest));
+                        quote! {
+                            let mut #fn_name = if true {
+                                #real
+                            } else {
+                                #fake
+                            };
+                        }
+                    } else {
+                        quote!(let mut #fn_name = #real;)
+                    }
+                };
                 match (props, state) {
                     (Some(props), Some(state)) => {
-                        quote! {
-                            let mut #fn_name =
-                            ::std::rc::Rc::new(
-                                ::std::cell::RefCell::new(#name #generics (#props, #state)));
-                        }
+                        get_conditional(quote!(#generics (#props, #state)))
                     }
-                    (Some(props), None) => {
-                        quote! {
-                            let mut #fn_name =
-                            ::std::rc::Rc::new(::std::cell::RefCell::new(#name #generics (#props)));
-                        }
-                    }
-                    (_, _) => {
-                        quote! {
-                            let mut #fn_name =
-                            ::std::rc::Rc::new(::std::cell::RefCell::new(#name #generics ()));
-                        }
-                    }
+                    (Some(props), None) => get_conditional(quote!(#generics (#props))),
+                    (_, _) => get_conditional(quote!(#generics ())),
                 }
             }
         }
-    }
-
-    fn generate_closing_spans(&self) -> TokenStream {
-        let crate_import = get_import();
-
-        self.closing_spans
-            .iter()
-            .map(|span| {
-                let dummy = quote_spanned!(*span => closing_tag);
-                quote! {
-                    let _ = #crate_import::#dummy;
-                }
-            })
-            .collect()
     }
 
     fn view_to_tokens(&self, child_index: Option<usize>, parent_is_overlay: bool) -> TokenStream {
@@ -234,7 +232,6 @@ impl ToTokens for View {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let fns = self.generate_fns();
         let view = self.view_to_tokens(None, false);
-        let closing_spans = self.generate_closing_spans();
         let dummy_parent = if self.create_dummy_parent {
             quote!(let __parent_id = 0;)
         } else {
@@ -245,7 +242,6 @@ impl ToTokens for View {
             {
                 #dummy_parent
                 #fns
-                #closing_spans
                 #view
             }
         });
@@ -575,7 +571,6 @@ fn parse_elements(
                         constraint_val: get_default_constraint(),
                         create_dummy_parent: false,
                         layout_props: None,
-                        closing_spans: vec![],
                     })
                 }
             }
@@ -665,10 +660,6 @@ fn parse_element(
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
             Ok(View {
-                closing_spans: children
-                    .iter()
-                    .flat_map(|c| c.closing_spans.clone())
-                    .collect(),
                 view_type: ViewType::Row(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
@@ -681,10 +672,6 @@ fn parse_element(
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
             Ok(View {
-                closing_spans: children
-                    .iter()
-                    .flat_map(|c| c.closing_spans.clone())
-                    .collect(),
                 view_type: ViewType::Column(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
@@ -697,10 +684,6 @@ fn parse_element(
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 
             Ok(View {
-                closing_spans: children
-                    .iter()
-                    .flat_map(|c| c.closing_spans.clone())
-                    .collect(),
                 view_type: ViewType::Overlay(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
@@ -725,6 +708,14 @@ fn parse_element(
             Ok(View {
                 view_type: ViewType::Element {
                     name: Ident::new(&name.to_case(Case::Snake), element.name().span()),
+                    closing_name: Ident::new(
+                        &name.to_case(Case::Snake),
+                        element
+                            .close_tag
+                            .clone()
+                            .map(|t| t.name.span())
+                            .unwrap_or(Span::call_site()),
+                    ),
                     generics: if generics.lt_token.is_some() {
                         Some(generics.clone())
                     } else {
@@ -738,11 +729,6 @@ fn parse_element(
                 constraint_val: attrs.expr,
                 create_dummy_parent: false,
                 layout_props: None,
-                closing_spans: element
-                    .close_tag
-                    .as_ref()
-                    .map(|t| vec![t.name.span()])
-                    .unwrap_or(vec![]),
             })
         }
     }
