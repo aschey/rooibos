@@ -2,12 +2,13 @@
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
+use std::rc::Rc;
 
 use super::{create_signal, Scope, Signal};
 
 struct StoreState<T: 'static> {
     value: T,
-    trie: RefCell<Option<PathTriggerTrie>>,
+    trie: Rc<RefCell<Option<PathTriggerTrie>>>,
 }
 
 pub struct Store<T: 'static> {
@@ -21,10 +22,10 @@ pub fn create_store<T>(cx: Scope, value: T) -> Store<T> {
             cx,
             StoreState {
                 value,
-                trie: RefCell::new(Some(PathTriggerTrie {
+                trie: Rc::new(RefCell::new(Some(PathTriggerTrie {
                     trigger: create_signal(cx, ()),
                     children: BTreeMap::default(),
-                })),
+                }))),
             },
         ),
         cx,
@@ -81,12 +82,15 @@ impl PathTriggerTrie {
 }
 
 impl<T> Store<T> {
-    pub fn with_untracked<U>(self, f: impl FnOnce(&T) -> U) -> U {
+    pub fn with_untracked(self, f: impl FnOnce(&T) -> T) -> T {
         self.inner.0.with_untracked(|x| f(&x.value))
     }
 
-    pub fn update_silent<U>(self, f: impl FnOnce(&mut T) -> U) -> U {
-        self.inner.0.update_silent(|x| f(&mut x.value))
+    pub fn update_silent(self, f: impl FnOnce(&T) -> T) {
+        self.inner.0.update_silent(|x| StoreState {
+            value: f(&x.value),
+            trie: x.trie.clone(),
+        })
     }
 
     #[cfg_attr(debug_assertions, track_caller)]

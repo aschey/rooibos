@@ -205,6 +205,6 @@ pub fn create_reducer<T, Msg>(
     let reduce = RefCell::new(reduce);
     let signal = create_signal(cx, initial);
     let (read_signal, write_signal) = signal.split();
-    let dispatch = move |msg| write_signal.update(|value| *value = reduce.borrow_mut()(value, msg));
+    let dispatch = move |msg| write_signal.update(|value| reduce.borrow_mut()(value, msg));
     (Memo(read_signal), dispatch)
 }

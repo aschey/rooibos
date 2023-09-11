@@ -1,7 +1,7 @@
 use convert_case::{Case, Casing};
 use manyhow::{bail, Emitter, ErrorMessage};
 use proc_macro2::{Ident, Span, TokenStream, TokenTree};
-use quote::{quote, quote_spanned, ToTokens, TokenStreamExt};
+use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
 use syn::{Block, Expr, ExprLit, Generics, Lit, LitInt};

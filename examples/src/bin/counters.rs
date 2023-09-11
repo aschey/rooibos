@@ -49,10 +49,10 @@ fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
 
     context.create_key_effect(cx, move |event| {
         if event.code == KeyCode::Char('a') {
-            n_counters.update(|c| *c += 1);
+            n_counters.update(|c| *c + 1);
         }
         if event.code == KeyCode::Char('r') {
-            n_counters.update(|c| *c = (*c - 1).max(1));
+            n_counters.update(|c| (*c - 1).max(1));
         }
     });
 
@@ -74,7 +74,7 @@ fn Counter<B: Backend>(cx: Scope) -> impl View<B> {
 
     context.create_key_effect(cx, move |event| {
         if event.code == KeyCode::Enter {
-            count.update(|c| *c += 1);
+            count.update(|c| *c + 1);
         }
     });
 

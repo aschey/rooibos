@@ -7,8 +7,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::{Frame, Terminal};
+use ratatui::Terminal;
 use rooibos::reactive::{create_signal, Scope, SignalGet, SignalUpdate};
 use rooibos::rsx::prelude::*;
 use rooibos::runtime::{run_system, use_event_context, EventHandler};
@@ -49,13 +48,13 @@ fn Counter<B: Backend + 'static>(cx: Scope) -> impl View<B> {
 
     context.create_key_effect(cx, move |event| {
         if event.code == KeyCode::Enter {
-            count.update(|c| *c += 1);
+            count.update(|c| c + 1);
         }
     });
 
     move || {
         view! { cx,
-            <Block title=format!("count {}",  count.get())/>
+            <Block title=format!("count {}", count.get())/>
         }
     }
 }

@@ -31,9 +31,9 @@ pub trait SignalUpdate<T> {
     /// **Note:** `update()` does not auto-memoize, i.e., it will notify subscribers
     /// even if the value has not actually changed.
     #[track_caller]
-    fn update<U>(self, f: impl FnOnce(&mut T) -> U) -> U;
+    fn update(self, f: impl FnOnce(&T) -> T);
 
-    fn set(self, new: T) -> T;
+    fn set(self, new: T);
 }
 
 /// Stores al the data associated with a signal.
@@ -379,16 +379,16 @@ impl<T> BaseSignal<T> {
     /// signals. As such, this is generally not recommended as it can easily lead to state
     /// inconsistencies.
     #[cfg_attr(debug_assertions, track_caller)]
-    pub(crate) fn update_silent<U>(self, f: impl FnOnce(&mut T) -> U) -> U {
+    pub(crate) fn update_silent(self, f: impl FnOnce(&T) -> T) {
         self.get_data(|signal| {
-            f(signal
-                .value
-                .borrow_mut()
+            let mut val = signal.value.borrow_mut();
+            let inner = val
                 .as_mut()
                 .expect("cannot update while updating")
                 .downcast_mut()
-                .expect("wrong signal type in slotmap"))
-        })
+                .expect("wrong signal type in slotmap");
+            *inner = f(inner);
+        });
     }
 
     #[cfg_attr(debug_assertions, track_caller)]
@@ -402,29 +402,28 @@ impl<T> BaseSignal<T> {
 
     /// Update the value of the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn update<U>(self, f: impl FnOnce(&mut T) -> U) -> U {
-        let ret = self.update_silent(f);
+    fn update(self, f: impl FnOnce(&T) -> T) {
+        self.update_silent(f);
         self.root.propagate_updates(self.id);
-        ret
     }
 
     /// Set a new value for the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    pub(crate) fn set(self, new: T) -> T {
-        self.update(|val| std::mem::replace(val, new))
+    pub(crate) fn set(self, new: T) {
+        self.update(|_| new)
     }
 }
 
 impl<T> SignalUpdate<T> for WriteSignal<T> {
     /// Update the value of the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn update<U>(self, f: impl FnOnce(&mut T) -> U) -> U {
+    fn update(self, f: impl FnOnce(&T) -> T) {
         self.0.update(f)
     }
 
     /// Set a new value for the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn set(self, new: T) -> T {
+    fn set(self, new: T) {
         self.0.set(new)
     }
 }
@@ -432,13 +431,13 @@ impl<T> SignalUpdate<T> for WriteSignal<T> {
 impl<T> SignalUpdate<T> for Signal<T> {
     /// Update the value of the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn update<U>(self, f: impl FnOnce(&mut T) -> U) -> U {
+    fn update(self, f: impl FnOnce(&T) -> T) {
         self.0.update(f)
     }
 
     /// Set a new value for the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn set(self, new: T) -> T {
+    fn set(self, new: T) {
         self.0.set(new)
     }
 }
@@ -545,62 +544,92 @@ impl<T: fmt::Display> fmt::Display for Signal<T> {
     }
 }
 
-impl<T: AddAssign<Rhs>, Rhs> AddAssign<Rhs> for WriteSignal<T> {
+impl<T: Clone + AddAssign<Rhs>, Rhs> AddAssign<Rhs> for WriteSignal<T>
+where
+    T: std::ops::Add<Rhs, Output = T>,
+{
     fn add_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this += rhs);
+        self.update(|this| this.to_owned() + rhs);
     }
 }
 
-impl<T: SubAssign<Rhs>, Rhs> SubAssign<Rhs> for WriteSignal<T> {
+impl<T: Clone + SubAssign<Rhs>, Rhs> SubAssign<Rhs> for WriteSignal<T>
+where
+    T: std::ops::Sub<Rhs, Output = T>,
+{
     fn sub_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this -= rhs);
+        self.update(|this| this.to_owned() - rhs);
     }
 }
 
-impl<T: MulAssign<Rhs>, Rhs> MulAssign<Rhs> for WriteSignal<T> {
+impl<T: Clone + MulAssign<Rhs>, Rhs> MulAssign<Rhs> for WriteSignal<T>
+where
+    T: std::ops::Mul<Rhs, Output = T>,
+{
     fn mul_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this *= rhs);
+        self.update(|this| this.to_owned() * rhs);
     }
 }
 
-impl<T: DivAssign<Rhs>, Rhs> DivAssign<Rhs> for WriteSignal<T> {
+impl<T: Clone + DivAssign<Rhs>, Rhs> DivAssign<Rhs> for WriteSignal<T>
+where
+    T: std::ops::Div<Rhs, Output = T>,
+{
     fn div_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this /= rhs);
+        self.update(|this| this.to_owned() / rhs);
     }
 }
 
-impl<T: RemAssign<Rhs>, Rhs> RemAssign<Rhs> for WriteSignal<T> {
+impl<T: Clone + RemAssign<Rhs>, Rhs> RemAssign<Rhs> for WriteSignal<T>
+where
+    T: std::ops::Rem<Rhs, Output = T>,
+{
     fn rem_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this %= rhs);
+        self.update(|this| this.to_owned() % rhs);
     }
 }
 
-impl<T: AddAssign<Rhs>, Rhs> AddAssign<Rhs> for Signal<T> {
+impl<T: Clone + AddAssign<Rhs>, Rhs> AddAssign<Rhs> for Signal<T>
+where
+    T: std::ops::Add<Rhs, Output = T>,
+{
     fn add_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this += rhs);
+        self.update(|this| this.to_owned() + rhs);
     }
 }
 
-impl<T: SubAssign<Rhs>, Rhs> SubAssign<Rhs> for Signal<T> {
+impl<T: Clone + SubAssign<Rhs>, Rhs> SubAssign<Rhs> for Signal<T>
+where
+    T: std::ops::Sub<Rhs, Output = T>,
+{
     fn sub_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this -= rhs);
+        self.update(|this| this.to_owned() - rhs);
     }
 }
 
-impl<T: MulAssign<Rhs>, Rhs> MulAssign<Rhs> for Signal<T> {
+impl<T: Clone + MulAssign<Rhs>, Rhs> MulAssign<Rhs> for Signal<T>
+where
+    T: std::ops::Mul<Rhs, Output = T>,
+{
     fn mul_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this *= rhs);
+        self.update(|this| this.to_owned() * rhs);
     }
 }
 
-impl<T: DivAssign<Rhs>, Rhs> DivAssign<Rhs> for Signal<T> {
+impl<T: Clone + DivAssign<Rhs>, Rhs> DivAssign<Rhs> for Signal<T>
+where
+    T: std::ops::Div<Rhs, Output = T>,
+{
     fn div_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this /= rhs);
+        self.update(|this| this.to_owned() / rhs);
     }
 }
 
-impl<T: RemAssign<Rhs>, Rhs> RemAssign<Rhs> for Signal<T> {
+impl<T: Clone + RemAssign<Rhs>, Rhs> RemAssign<Rhs> for Signal<T>
+where
+    T: std::ops::Rem<Rhs, Output = T>,
+{
     fn rem_assign(&mut self, rhs: Rhs) {
-        self.update(|this| *this %= rhs);
+        self.update(|this| this.to_owned() % rhs);
     }
 }

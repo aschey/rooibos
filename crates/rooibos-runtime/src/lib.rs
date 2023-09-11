@@ -133,27 +133,42 @@ impl core::fmt::Debug for CommandFn {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct FocusContext {
+pub struct FocusContext<T>
+where
+    T: Eq + 'static,
+{
     cx: Scope,
-    focused_id: Signal<Option<String>>,
+    focused_id: Signal<Option<T>>,
 }
 
-impl FocusContext {
-    pub fn create_focus_handler(&self, id: &str) -> ReadSignal<bool> {
-        let id = id.to_owned();
+impl<T> Clone for FocusContext<T>
+where
+    T: Eq + 'static,
+{
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T> Copy for FocusContext<T> where T: Eq + 'static {}
+
+impl<T> FocusContext<T>
+where
+    T: Clone + Eq + 'static,
+{
+    pub fn create_focus_handler(&self, id: impl Into<T>) -> ReadSignal<bool> {
+        let id = id.into();
         let focused_id = self.focused_id;
         let selector = create_selector(self.cx, move || focused_id.get());
         (move || selector.get() == Some(id.clone())).derive_signal(self.cx)
     }
 
-    pub fn get_focus_selector(&self) -> Signal<Option<String>> {
+    pub fn get_focus_selector(&self) -> Signal<Option<T>> {
         self.focused_id
     }
 
-    pub fn set_focus<S: Into<String>>(&self, id: Option<S>) {
-        self.focused_id
-            .update(|focused_id| *focused_id = id.map(|i| i.into()));
+    pub fn set_focus<S: Into<T>>(&self, id: Option<S>) {
+        self.focused_id.set(id.map(|i| i.into()));
     }
 }
 
@@ -167,13 +182,18 @@ pub struct EventContext {
 impl EventContext {
     pub fn create_custom_event_signal<T: PartialEq + Sized + Clone + 'static>(
         &self,
-    ) -> impl Fn() -> Option<T> {
+        cx: Scope,
+    ) -> ReadSignal<Option<T>> {
         let custom_signal = self.custom_signal;
 
-        move || {
-            let signal = custom_signal.get();
-            signal.as_any().downcast_ref::<T>().cloned()
-        }
+        (move || {
+            if let Some(signal) = custom_signal.get() {
+                signal.as_ref().as_any().downcast_ref::<T>().cloned()
+            } else {
+                None
+            }
+        })
+        .derive_signal(cx)
     }
 
     pub fn create_event_signal(&self, cx: Scope) -> ReadSignal<Option<Event>> {
@@ -213,8 +233,25 @@ pub fn use_event_context(cx: Scope) -> EventContext {
     use_context::<EventContext>(cx)
 }
 
-pub fn use_focus_context(cx: Scope) -> FocusContext {
-    use_context::<FocusContext>(cx)
+pub fn provide_focus_context<T>(cx: Scope, initial_value: Option<T>)
+where
+    T: Clone + Eq + 'static,
+{
+    provide_context(
+        cx,
+        FocusContext::<T> {
+            cx,
+            focused_id: create_signal(cx, None),
+        },
+    );
+    use_focus_context::<T>(cx).set_focus(initial_value);
+}
+
+pub fn use_focus_context<T>(cx: Scope) -> FocusContext<T>
+where
+    T: Clone + Eq + 'static,
+{
+    use_context::<FocusContext<T>>(cx)
 }
 
 pub struct EventHandler<B>
@@ -253,14 +290,6 @@ where
             },
         );
 
-        provide_context(
-            cx,
-            FocusContext {
-                cx,
-                focused_id: create_signal(cx, None),
-            },
-        );
-
         let writer = Rc::new(RefCell::new(Some(writer)));
 
         let cancellation_tokens: Arc<Mutex<HashMap<String, CancellationToken>>> =
@@ -288,15 +317,15 @@ where
         }
     }
 
-    pub async fn shutdown(&self) {
+    pub fn shutdown(&self) {
         for token in self.cancellation_tokens.lock().unwrap().values() {
             token.cancel();
         }
     }
 
-    pub fn render(&self, view: Rc<RefCell<impl View<B> + 'static>>) {
+    pub fn render(&self, view: impl View<B> + 'static) {
         let writer = self.writer.clone();
-
+        let view = Rc::new(RefCell::new(view));
         create_effect(self.cx, move || {
             if let Some(writer) = writer.borrow_mut().as_mut() {
                 WIDGET_CACHE.with(|c| c.next_iteration());
@@ -330,6 +359,7 @@ where
                             if modifiers.contains(KeyModifiers::CONTROL)
                             && code == KeyCode::Char('c') {
                                 self.set_event.set(Some(Event::QuitRequested));
+                                self.shutdown();
                                 break;
                             }
                         }
@@ -345,7 +375,9 @@ where
                 Some(event) = self.event_rx.recv() => {
                     let quit_requested = event == Event::QuitRequested;
                     self.set_event.set(Some(event));
-                    if quit_requested{
+
+                    if quit_requested {
+                        self.shutdown();
                         break;
                     }
                 }
@@ -436,12 +468,9 @@ impl MessageHandler {
                             break;
                         }
                     },
-                    _ = cancellation_token.cancelled() => {
-                        if handler.futs.is_empty() {
-                            break;
-                        }
+                    _ = cancellation_token.cancelled(), if handler.futs.is_empty() => {
+                        break;
                     }
-
                 }
             }
             Ok(())

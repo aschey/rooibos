@@ -8,7 +8,7 @@ use once_cell::sync::Lazy;
 use prelude::*;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
-use ratatui::Frame;
+use ratatui::{symbols, Frame};
 pub use rooibos_macros::*;
 use rooibos_reactive::Scope;
 use typemap_ors::{Key, TypeMap};
@@ -19,7 +19,7 @@ pub mod prelude {
     pub use ratatui::style::*;
     pub use ratatui::text::*;
     pub use ratatui::widgets::*;
-    pub use ratatui::Frame;
+    pub use ratatui::{symbols, Frame};
 
     pub use super::components::*;
     pub use super::*;
@@ -157,6 +157,7 @@ impl_widget!(list, List, ListProps);
 impl_widget!(tabs, Tabs, TabsProps);
 impl_widget!(table, Table, TableProps);
 impl_widget!(gauge, Gauge, GaugeProps);
+impl_widget!(line_gauge, LineGauge, LineGaugeProps);
 impl_widget_no_lifetime!(clear, Clear, ClearProps);
 impl_stateful_widget!(stateful_list, List, StatefulListProps, ListState);
 impl_stateful_widget!(stateful_table, Table, StatefulTableProps, TableState);
@@ -166,6 +167,68 @@ impl_stateful_widget!(
     StatefulScrollbarProps,
     ScrollbarState
 );
+
+#[derive(Clone, Default)]
+pub struct SparklineProps<'a> {
+    inner: Sparkline<'a>,
+    data: Vec<u64>,
+}
+
+impl<'a> SparklineProps<'a> {
+    pub fn block(mut self, block: Block<'a>) -> Self {
+        self.inner = self.inner.block(block);
+        self
+    }
+
+    pub fn style(mut self, style: Style) -> Self {
+        self.inner = self.inner.style(style);
+        self
+    }
+
+    pub fn data(mut self, data: Vec<u64>) -> Self {
+        self.data = data;
+        self
+    }
+
+    pub fn max(mut self, max: u64) -> Self {
+        self.inner = self.inner.max(max);
+        self
+    }
+
+    pub fn bar_set(mut self, bar_set: symbols::bar::Set) -> Self {
+        self.inner = self.inner.bar_set(bar_set);
+        self
+    }
+
+    pub fn direction(mut self, direction: RenderDirection) -> Self {
+        self.inner = self.inner.direction(direction);
+        self
+    }
+}
+
+impl<'a> Widget for SparklineProps<'a> {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
+        self.inner.data(&self.data).render(area, buf)
+    }
+}
+
+impl<'a> Styled for SparklineProps<'a> {
+    type Item = SparklineProps<'a>;
+
+    fn style(&self) -> Style {
+        Styled::style(&self.inner)
+    }
+
+    fn set_style(self, style: Style) -> Self::Item {
+        self.style(style)
+    }
+}
+
+impl MakeBuilder for SparklineProps<'_> {}
+
+pub fn sparkline<B: Backend>(_cx: Scope, props: SparklineProps<'static>) -> impl View<B> {
+    move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
+}
 
 pub trait View<B: Backend>: 'static {
     fn view(&mut self, frame: &mut Frame<B>, rect: Rect);
