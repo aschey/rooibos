@@ -320,6 +320,7 @@ impl RootHandle {
         // Destroy everything!
         let _ = self._ref.scopes.take();
         let _ = self._ref.signals.take();
+        let _ = self._ref.stored_values.take();
         let _ = self._ref.effects.take();
         let _ = self._ref.tracker.take();
         let _ = self._ref.rev_sorted_buf.take();
@@ -388,6 +389,7 @@ struct ScopeState {
     child_scopes: Vec<ScopeId>,
     /// A list of signals "owned" by this scope.
     signals: Vec<SignalId>,
+    stored_values: Vec<StoredValueId>,
     /// A list of effects "owned" by this scope.
     effects: Vec<EffectId>,
     /// A list of context values in this scope.
@@ -405,6 +407,7 @@ impl ScopeState {
             child_scopes: Vec::new(),
             cleanups: Vec::new(),
             signals: Vec::new(),
+            stored_values: Vec::new(),
             effects: Vec::new(),
             context: Vec::new(),
             parent,
@@ -425,6 +428,10 @@ impl Drop for ScopeState {
         for signal in &self.signals {
             let data = self.root.signals.borrow_mut().remove(*signal);
             drop(data.expect("scope should not be dropped yet"));
+        }
+        for stored_value in &self.stored_values {
+            let data = self.root.stored_values.borrow_mut().remove(*stored_value);
+            drop(data);
         }
         for effect in &self.effects {
             let data = self.root.effects.borrow_mut().remove(*effect);
@@ -447,6 +454,10 @@ impl Scope {
     #[cfg_attr(debug_assertions, track_caller)]
     fn get_data<T>(self, f: impl FnOnce(&mut ScopeState) -> T) -> T {
         f(&mut self.root.scopes.borrow_mut()[self.id])
+    }
+
+    pub fn id(&self) -> u64 {
+        self.id.0.as_ffi()
     }
 
     /// Remove the scope from the root and drop it.

@@ -60,6 +60,7 @@ where
         .stored_values
         .borrow_mut()
         .insert(Rc::new(RefCell::new(value)));
+    cx.get_data(|cx| cx.stored_values.push(key));
     StoredValue {
         id: key,
         root: cx.root,

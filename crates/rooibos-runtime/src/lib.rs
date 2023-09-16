@@ -323,15 +323,14 @@ where
         }
     }
 
-    pub fn render(&self, view: impl View<B> + 'static) {
+    pub fn render(&self, mut view: impl View<B> + 'static) {
         let writer = self.writer.clone();
-        let view = Rc::new(RefCell::new(view));
         create_effect(self.cx, move || {
             if let Some(writer) = writer.borrow_mut().as_mut() {
                 WIDGET_CACHE.with(|c| c.next_iteration());
                 writer
                     .draw(|f| {
-                        view.borrow_mut().view(f, f.size());
+                        view.view(f, f.size());
                     })
                     .unwrap();
                 WIDGET_CACHE.with(|c| c.evict::<B>());

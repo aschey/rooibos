@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::stdout;
 
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEventKind};
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -25,10 +25,8 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     let terminal = Terminal::new(backend)?;
 
     let handler = EventHandler::initialize(cx, terminal);
-
-    handler.render(mount! { cx,
-        <Counter/>
-    });
+    let counter = create_counter(cx);
+    handler.render(counter);
 
     let mut terminal = handler.run().await;
     disable_raw_mode()?;
@@ -41,20 +39,18 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-#[component]
-fn Counter<B: Backend>(cx: Scope) -> impl View<B> {
+fn create_counter<B: Backend>(cx: Scope) -> impl View<B> {
     let count = create_signal(cx, 0);
     let context = use_event_context(cx);
 
     context.create_key_effect(cx, move |event| {
-        if event.code == KeyCode::Enter && event.kind == KeyEventKind::Press {
+        if event.code == KeyCode::Enter {
             count.update(|c| c + 1);
         }
     });
 
-    move || {
-        view! { cx,
-            <Block title=format!("count {}", count.get())/>
-        }
+    move |f: &mut Frame<B>, area: Rect| {
+        let block = Block::default().title(format!("count {}", count.get()));
+        f.render_widget(block, area);
     }
 }
