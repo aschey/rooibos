@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::stdout;
 
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode};
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEventKind};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -48,11 +48,16 @@ fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
     let context = use_event_context(cx);
 
     context.create_key_effect(cx, move |event| {
-        if event.code == KeyCode::Char('a') {
-            n_counters.update(|c| *c + 1);
-        }
-        if event.code == KeyCode::Char('r') {
-            n_counters.update(|c| (*c - 1).max(1));
+        if event.kind == KeyEventKind::Press {
+            match event.code {
+                KeyCode::Char('a') => {
+                    n_counters.update(|c| *c + 1);
+                }
+                KeyCode::Char('r') => {
+                    n_counters.update(|c| (*c - 1).max(1));
+                }
+                _ => {}
+            }
         }
     });
 
@@ -73,7 +78,7 @@ fn Counter<B: Backend>(cx: Scope) -> impl View<B> {
     let context = use_event_context(cx);
 
     context.create_key_effect(cx, move |event| {
-        if event.code == KeyCode::Enter {
+        if event.kind == KeyEventKind::Press && event.code == KeyCode::Enter {
             count.update(|c| *c + 1);
         }
     });

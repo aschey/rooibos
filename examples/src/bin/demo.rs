@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::stdout;
 use std::time::Duration;
 
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode};
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEventKind};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -140,14 +140,18 @@ fn HeaderTabs<B: Backend>(cx: Scope, titles: Vec<&'static str>) -> impl View<B> 
     let next_tab = move || update_current_tab(1);
 
     let event_context = use_event_context(cx);
-    event_context.create_key_effect(cx, move |event| match event.code {
-        KeyCode::Left => {
-            previous_tab();
+    event_context.create_key_effect(cx, move |event| {
+        if event.kind == KeyEventKind::Press {
+            match event.code {
+                KeyCode::Left => {
+                    previous_tab();
+                }
+                KeyCode::Right => {
+                    next_tab();
+                }
+                _ => {}
+            }
         }
-        KeyCode::Right => {
-            next_tab();
-        }
-        _ => {}
     });
 
     move || {
