@@ -41,7 +41,6 @@ pub(crate) struct View {
     constraint: Constraint,
     constraint_val: Expr,
     layout_props: Option<TokenStream>,
-    create_dummy_parent: bool,
 }
 
 impl View {
@@ -232,15 +231,9 @@ impl ToTokens for View {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let fns = self.generate_fns();
         let view = self.view_to_tokens(None, false);
-        let dummy_parent = if self.create_dummy_parent {
-            quote!(let __parent_id = 0;)
-        } else {
-            quote!()
-        };
 
         tokens.append_all(quote! {
             {
-                #dummy_parent
                 #fns
                 #view
             }
@@ -470,9 +463,7 @@ pub(crate) fn view(
     match (cx, comma) {
         (Some(TokenTree::Ident(cx)), Some(TokenTree::Punct(punct))) if punct.as_char() == ',' => {
             let (nodes, errors) = parse_rstml(tokens.collect());
-            let mut view =
-                parse_root_nodes(&cx.to_token_stream(), nodes, include_parent_id, emitter)?;
-            view.create_dummy_parent = !include_parent_id;
+            let view = parse_root_nodes(&cx.to_token_stream(), nodes, include_parent_id, emitter)?;
 
             Ok(quote! {
                 {
@@ -570,7 +561,6 @@ fn parse_elements(
                         },
                         constraint: Constraint::Min,
                         constraint_val: get_default_constraint(),
-                        create_dummy_parent: false,
                         layout_props: None,
                     })
                 }
@@ -664,7 +654,6 @@ fn parse_element(
                 view_type: ViewType::Row(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
-                create_dummy_parent: false,
                 layout_props: attrs.props,
             })
         }
@@ -676,7 +665,6 @@ fn parse_element(
                 view_type: ViewType::Column(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
-                create_dummy_parent: false,
                 layout_props: attrs.props,
             })
         }
@@ -688,7 +676,6 @@ fn parse_element(
                 view_type: ViewType::Overlay(children),
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
-                create_dummy_parent: false,
                 layout_props: attrs.props,
             })
         }
@@ -728,7 +715,6 @@ fn parse_element(
                 },
                 constraint: attrs.constraint,
                 constraint_val: attrs.expr,
-                create_dummy_parent: false,
                 layout_props: None,
             })
         }
