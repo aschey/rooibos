@@ -50,6 +50,7 @@ pub use context::*;
 pub use effects::*;
 pub use iter::*;
 pub use memos::*;
+pub use rooibos_reactive_macros::*;
 pub use scope::*;
 pub use signals::*;
 pub use store::*;

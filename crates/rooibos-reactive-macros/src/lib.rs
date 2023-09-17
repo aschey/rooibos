@@ -51,6 +51,16 @@ fn impl_state_struct(
 
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
+    let generics_turbofish = ty_generics.as_turbofish();
+    let (phantom, init_phantom) = if !ast.generics.params.is_empty() {
+        (
+            quote!(_phantom: ::std::marker::PhantomData #generics_turbofish),
+            quote!(_phantom: Default::default()),
+        )
+    } else {
+        (quote!(), quote!())
+    };
+
     let doc_comment =
         format!("A mirrored version of [`{ident}`] with triggers for all the fields.");
     let crate_import = get_import();
@@ -60,19 +70,21 @@ fn impl_state_struct(
         #vis struct #trigger_ident #ty_generics #where_clause {
             #(#leaf_idents: #crate_import::Signal<()>,)*
             #(#node_idents: <#node_types as #crate_import::State>::Trigger,)*
+            #phantom
         }
 
-        impl #impl_generics #crate_import::StateTrigger for #trigger_ident #ty_generics #where_clause {
+        impl #impl_generics #crate_import::StateTrigger for #trigger_ident #generics_turbofish #where_clause {
             fn new(cx: #crate_import::Scope) -> Self {
                 Self {
                     #(#leaf_idents: #crate_import::create_signal(cx, ()),)*
-                    #(#node_idents: <#node_types as #crate_import::State>::Trigger::new(),)*
+                    #(#node_idents: <#node_types as #crate_import::State>::Trigger::new(cx),)*
+                    #init_phantom
                 }
             }
         }
 
-        impl #crate_import::State for #impl_generics #ident #ty_generics #where_clause {
-            type Trigger = #trigger_ident;
+        impl #impl_generics #crate_import::State for #ident #generics_turbofish #where_clause {
+            type Trigger = #trigger_ident #ty_generics;
         }
     })
 }
@@ -186,10 +198,10 @@ pub fn set(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 fn get_import() -> proc_macro2::TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {
-            FoundCrate::Itself => quote::quote!(crate::rsx),
+            FoundCrate::Itself => quote::quote!(crate::reactive),
             FoundCrate::Name(name) => {
                 let ident = proc_macro2::Ident::new(&name, proc_macro2::Span::call_site());
-                quote::quote!(#ident::rsx)
+                quote::quote!(#ident::reactive)
             }
         }
     } else {
