@@ -357,9 +357,9 @@ impl NodeAttributes {
                     if let Some(cx_name) = cx_name {
                         let scope_param = if include_parent_id {
                             let key_param = if let Some(key) = attrs.key.clone() {
-                                quote!(Some(#key as u64))
+                                quote!(Some(#key))
                             } else {
-                                quote!(None)
+                                quote!(None as Option<String>)
                             };
                             let caller_id = next_id();
                             quote!(#crate_name::WIDGET_CACHE.with(|c|
@@ -385,9 +385,9 @@ impl NodeAttributes {
                 if let Some(cx_name) = cx_name {
                     let scope_param = if include_parent_id {
                         let key_param = if let Some(key) = attrs.key.clone() {
-                            quote!(Some(#key as u64))
+                            quote!(Some(#key))
                         } else {
-                            quote!(None)
+                            quote!(None as Option<String>)
                         };
                         let caller_id = next_id();
                         quote!(#crate_name::WIDGET_CACHE.with(|c|

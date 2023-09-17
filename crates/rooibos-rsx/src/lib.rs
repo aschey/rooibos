@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -630,24 +631,29 @@ impl WidgetCache {
 
 #[derive(Default)]
 pub struct ScopeCache {
-    scopes: Rc<RefCell<HashMap<(u64, u64, Option<u64>), Scope>>>,
+    scopes: Rc<RefCell<HashMap<(u64, u64, Option<String>), Scope>>>,
 }
 
 impl ScopeCache {
-    pub fn get_or_create(&self, cx: Scope, caller_id: u64, key: Option<u64>) -> Scope {
+    pub fn get_or_create<K>(&self, cx: Scope, caller_id: u64, key: Option<K>) -> Scope
+    where
+        K: Display,
+    {
         let mut scopes = self.scopes.borrow_mut();
-        if let Some(child_cx) = scopes.get(&(cx.id(), caller_id, key)) {
+        if let Some(child_cx) =
+            scopes.get(&(cx.id(), caller_id, key.as_ref().map(|k| k.to_string())))
+        {
             *child_cx
         } else {
             let child_cx = create_child_scope(cx);
-            scopes.insert((cx.id(), caller_id, key), child_cx);
+            scopes.insert((cx.id(), caller_id, key.map(|k| k.to_string())), child_cx);
             child_cx
         }
     }
 
     fn evict(&self) {
         let mut scopes = self.scopes.borrow_mut();
-        let keys: Vec<_> = scopes.keys().copied().collect();
+        let keys: Vec<_> = scopes.keys().cloned().collect();
         for k in keys {
             if let Some(val) = scopes.get(&k) {
                 if val.is_disposed() {
