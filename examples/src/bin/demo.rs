@@ -16,7 +16,7 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::{Frame, Terminal};
 use rooibos::reactive::{
     create_effect, create_memo, create_selector, create_signal, Scope, Signal, SignalGet,
-    SignalUpdate,
+    SignalToggle, SignalUpdate, State,
 };
 use rooibos::rsx::prelude::*;
 use rooibos::runtime::{
@@ -228,8 +228,9 @@ fn Tab0<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
         view! {cx,
             <Column>
-                <Gauges length=6 enhanced_graphics=true/>
-                <Charts enhanced_graphics=true/>
+                <Gauges length=9 enhanced_graphics=true/>
+                <Charts min=8 enhanced_graphics=true/>
+                <Footer length=7 />
             </Column>
         }
     }
@@ -250,7 +251,11 @@ fn Tab2<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[derive(Clone)]
-struct RandomData<S: Iterator> {
+struct RandomData<S>
+where
+    S: Iterator + Clone,
+    S::Item: Clone,
+{
     source: S,
     pub points: Vec<S::Item>,
     tick_rate: usize,
@@ -410,10 +415,17 @@ fn DemoSparkline<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B>
 fn Charts<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     let show_chart = create_signal(cx, true);
 
+    let event_context = use_event_context(cx);
+    event_context.create_key_effect(cx, move |event| {
+        if event.kind == KeyEventKind::Press && event.code == KeyCode::Char('t') {
+            show_chart.toggle();
+        }
+    });
+
     move || {
         view! { cx,
             <Row>
-                <Column percentage=50>
+                <Column percentage=if show_chart.get() { 50 } else { 100 }>
                     <Row percentage=50>
                         <Column percentage=50>
                             <TaskList percentage=50/>
@@ -426,7 +438,7 @@ fn Charts<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                         <DemoBarChart enhanced_graphics=enhanced_graphics/>
                     </Row>
                 </Column>
-                <Column percentage=50>
+                <Column>
                     <DemoChart enhanced_graphics=enhanced_graphics/>
                 </Column>
             </Row>
@@ -769,6 +781,54 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                     data=sin2.get().points
                 />
             </Chart>
+        }
+    }
+}
+
+#[component]
+fn Footer<B: Backend>(cx: Scope) -> impl View<B> {
+    move || {
+        view! { cx,
+            <Paragraph
+                block=prop! {
+                    <Block
+                        borders=Borders::ALL
+                        title=prop! {
+                            <Span style=prop!(<Style fg=Color::Magenta add_modifier=Modifier::BOLD/>)>
+                                "Footer"
+                            </Span>
+                        }/>
+                    }
+                wrap=prop!(<Wrap trim=true/>)
+                >
+                <Line>
+                    "This is a paragraph with several lines. You can change style your text the way you want"
+                </Line>
+                <Line>""</Line>
+                <Line>
+                    <Span>"For example: "</Span>
+                    <Span style=prop!(<Style fg=Color::Red/>)>"under"</Span>
+                    <Span>" "</Span>
+                    <Span style=prop!(<Style fg=Color::Green/>)>"the"</Span>
+                    <Span>" "</Span>
+                    <Span style=prop!(<Style fg=Color::Blue/>)>"rainbow"</Span>
+                    <Span>"."</Span>
+                </Line>
+                <Line>
+                    <Span>"Oh and if you didn't "</Span>
+                    <Span style=prop!(<Style add_modifier=Modifier::ITALIC/>)>"notice"</Span>
+                    <Span>" you can "</Span>
+                    <Span style=prop!(<Style add_modifier=Modifier::BOLD/>)>"automatically"</Span>
+                    <Span>" "</Span>
+                    <Span style=prop!(<Style add_modifier=Modifier::REVERSED/>)>"wrap"</Span>
+                    <Span>" your "</Span>
+                    <Span style=prop!(<Style add_modifier=Modifier::UNDERLINED/>)>"text"</Span>
+                    <Span>"."</Span>
+                </Line>
+                <Line>
+                    "One more thing is that it should display unicode characters: 10€"
+                </Line>
+            </Paragraph>
         }
     }
 }

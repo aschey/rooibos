@@ -442,6 +442,19 @@ impl<T> SignalUpdate<T> for Signal<T> {
     }
 }
 
+pub trait SignalToggle {
+    fn toggle(self);
+}
+
+impl<T> SignalToggle for T
+where
+    T: SignalUpdate<bool>,
+{
+    fn toggle(self) {
+        self.update(|t| !t)
+    }
+}
+
 impl<T> Signal<T> {
     pub fn split(self) -> (ReadSignal<T>, WriteSignal<T>) {
         (self.to_read_signal(), self.to_write_signal())
