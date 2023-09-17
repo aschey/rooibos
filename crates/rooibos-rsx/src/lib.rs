@@ -10,8 +10,8 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::{symbols, Frame};
 use reactive::{create_child_scope, StoredValue};
-pub use rooibos_macros::*;
 use rooibos_reactive::Scope;
+pub use rooibos_rsx_macros::*;
 use typemap_ors::{Key, TypeMap};
 pub use {rooibos_reactive as reactive, typed_builder};
 

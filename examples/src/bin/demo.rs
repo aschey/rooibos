@@ -15,7 +15,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::{Frame, Terminal};
 use rooibos::reactive::{
-    create_effect, create_memo, create_signal, Scope, Signal, SignalGet, SignalUpdate, create_selector,
+    create_effect, create_memo, create_selector, create_signal, Scope, Signal, SignalGet,
+    SignalUpdate,
 };
 use rooibos::rsx::prelude::*;
 use rooibos::runtime::{
@@ -405,11 +406,9 @@ fn DemoSparkline<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B>
     }
 }
 
-
 #[component]
 fn Charts<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     let show_chart = create_signal(cx, true);
-    
 
     move || {
         view! { cx,
@@ -620,8 +619,13 @@ fn DemoBarChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> 
                 } else {
                     symbols::bar::THREE_LEVELS
                 }
-                value_style=prop!(<Style fg=Color::Black bg=Color::Green add_modifier=Modifier::ITALIC/>)                         
-                label_style=prop!(<Style fg=Color::Yellow/>)                         
+                value_style=prop!{
+                    <Style
+                        fg=Color::Black
+                        bg=Color::Green
+                        add_modifier=Modifier::ITALIC/>
+                    }
+                label_style=prop!(<Style fg=Color::Yellow/>)
                 bar_style=prop!(<Style fg=Color::Green/>)
             />
         }
@@ -657,61 +661,73 @@ impl Iterator for SinData {
 }
 
 #[component]
-fn DemoChart<B:Backend>(cx:Scope, enhanced_graphics: bool) -> impl View<B> {
+fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     let mut sin1_data = SinData::new(0.2, 3.0, 18.0);
-    let sin1 = create_signal(cx, RandomData::<SinData> {
-        points: sin1_data.by_ref().take(100).collect(),
-        source: sin1_data,
-            tick_rate:5
-    });
+    let sin1 = create_signal(
+        cx,
+        RandomData::<SinData> {
+            points: sin1_data.by_ref().take(100).collect(),
+            source: sin1_data,
+            tick_rate: 5,
+        },
+    );
 
     let mut sin2_data = SinData::new(0.1, 2.0, 10.0);
-    let sin2 = create_signal(cx,RandomData::<SinData> {
-        points: sin2_data.by_ref().take(200).collect(),
-        source: sin2_data,
-            tick_rate:10
-    });
+    let sin2 = create_signal(
+        cx,
+        RandomData::<SinData> {
+            points: sin2_data.by_ref().take(200).collect(),
+            source: sin2_data,
+            tick_rate: 10,
+        },
+    );
 
-    let window = create_signal(cx, [0.0,20.0]);
+    let window = create_signal(cx, [0.0, 20.0]);
 
     let event_context = use_event_context(cx);
     let tick_event = event_context.create_custom_event_signal::<Tick>(cx);
 
     create_effect(cx, move || {
         if tick_event.get().is_some() {
-            window.update(|[start, end]| [start + 1.0, end+1.0]);
+            window.update(|[start, end]| [start + 1.0, end + 1.0]);
             sin1.update(|s| s.clone().on_tick());
             sin2.update(|s| s.clone().on_tick());
         }
     });
 
     move || {
-        let [window_start, window_end] =window.get();
-        view! { cx, 
+        let [window_start, window_end] = window.get();
+        view! { cx,
             <Chart
                 block=prop! {
-                    <Block 
+                    <Block
                         title=prop! {
-                            <Span style=prop!(<Style fg=Color::Cyan add_modifier=Modifier::BOLD/>)>"Chart"</Span>
+                            <Span style=prop!{
+                                <Style
+                                    fg=Color::Cyan
+                                    add_modifier=Modifier::BOLD/>}
+                                >
+                                    "Chart"
+                                </Span>
                         }
                         borders=Borders::ALL
                     />
                 }
                 x_axis=prop! {
-                    <Axis 
-                        title="X Axis" 
-                        style=prop!(<Style fg=Color::Gray/>) 
+                    <Axis
+                        title="X Axis"
+                        style=prop!(<Style fg=Color::Gray/>)
                         bounds=[window_start, window_end]
                         labels=vec![
                             prop! {
-                                <Span 
+                                <Span
                                     style=prop!(<Style add_modifier=Modifier::BOLD/>)
                                 >
                                     {window_start.to_string()}
                                 </Span>
                             },
                             prop! {
-                                <Span>{((window_start+window_end) / 2.0).to_string()}</Span>
+                                <Span>{((window_start + window_end) / 2.0).to_string()}</Span>
                             },
                             prop! {
                                 <Span
@@ -726,7 +742,7 @@ fn DemoChart<B:Backend>(cx:Scope, enhanced_graphics: bool) -> impl View<B> {
                 y_axis=prop! {
                     <Axis
                         title="Y Axis"
-                        style=prop!(<Style fg=Color::Gray/>) 
+                        style=prop!(<Style fg=Color::Gray/>)
                         bounds=[-20.0, 20.0]
                         labels=vec![
                             prop!(<Span style=prop!(<Style add_modifier=Modifier::BOLD/>)>"-20"</Span>),
@@ -736,9 +752,9 @@ fn DemoChart<B:Backend>(cx:Scope, enhanced_graphics: bool) -> impl View<B> {
                     />
                 }
             >
-                <DatasetOwned 
-                    name="data2" 
-                    marker=symbols::Marker::Dot 
+                <DatasetOwned
+                    name="data2"
+                    marker=symbols::Marker::Dot
                     style=prop!(<Style fg=Color::Cyan/>)
                     data=sin1.get().points
                 />

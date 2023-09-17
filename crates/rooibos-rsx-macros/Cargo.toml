@@ -1,5 +1,5 @@
 [package]
-name = "rooibos-macros"
+name = "rooibos-rsx-macros"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,4 +17,4 @@ rstml = "0.11"
 syn = { version = "2", features = ["full"] }
 once_cell = "1"
 proc-macro-crate = "1"
-manyhow = "0.6.0"
+manyhow = "0.8"

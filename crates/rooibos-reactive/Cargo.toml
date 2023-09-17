@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 slotmap = "1"
 paste = "1"
+rooibos-reactive-macros = { path = "../rooibos-reactive-macros" }
