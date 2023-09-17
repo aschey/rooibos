@@ -17,7 +17,8 @@ use rooibos_reactive::{
     create_effect, create_root, create_selector, create_signal, provide_context, use_context,
     IntoSignal, ReadSignal, Scope, Signal, SignalGet, SignalUpdate, WriteSignal,
 };
-use rooibos_rsx::{View, WIDGET_CACHE};
+use rooibos_rsx::cache::__WIDGET_CACHE;
+use rooibos_rsx::View;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc;
 use tokio::task::{self, JoinError, JoinHandle};
@@ -327,13 +328,13 @@ where
         let writer = self.writer.clone();
         create_effect(self.cx, move || {
             if let Some(writer) = writer.borrow_mut().as_mut() {
-                WIDGET_CACHE.with(|c| c.next_iteration());
+                __WIDGET_CACHE.with(|c| c.next_iteration());
                 writer
                     .draw(|f| {
                         view.view(f, f.size());
                     })
                     .unwrap();
-                WIDGET_CACHE.with(|c| c.evict::<B>());
+                __WIDGET_CACHE.with(|c| c.evict::<B>());
             }
         });
     }

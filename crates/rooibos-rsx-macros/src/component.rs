@@ -262,9 +262,9 @@ impl ToTokens for Model {
         };
 
         let widget_cache_impl = quote! {
-            WIDGET_CACHE.with(|c| {
+            #crate_import::cache::__WIDGET_CACHE.with(|c| {
                 let mut cache_mut = c.view_cache.borrow_mut();
-                if let Some(map) = cache_mut.get_mut::<#crate_import::KeyWrapper<#view_type>>() {
+                if let Some(map) = cache_mut.get_mut::<#crate_import::cache::KeyWrapper<#view_type>>() {
                     if let Some(cache) = map.get_mut(&(__caller_id, #scope_name.id())) {
                         c.mark(cache);
                         cache.stored_view.get_value()
@@ -277,7 +277,7 @@ impl ToTokens for Model {
                         let stored_view =
                         #crate_import::reactive::store_value(#scope_name, res.clone());
 
-                        let mut key_data = #crate_import::KeyData {
+                        let mut key_data = #crate_import::cache::KeyData {
                             cx: #scope_name,
                             stored_view,
                             iteration: 0,
@@ -288,7 +288,7 @@ impl ToTokens for Model {
                     }
                 } else {
                     let mut map = ::std::collections::HashMap::<(u64, u64),
-                    #crate_import::KeyData<#view_type>>::new();
+                    #crate_import::cache::KeyData<#view_type>>::new();
 
                     let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component))
                     as ::std::rc::Rc<::std::cell::RefCell<dyn #crate_import::View<#view_type>>>;
@@ -296,7 +296,7 @@ impl ToTokens for Model {
                     let stored_view =
                     #crate_import::reactive::store_value(#scope_name, res.clone());
 
-                    let mut key_data = #crate_import::KeyData {
+                    let mut key_data = #crate_import::cache::KeyData {
                         cx: #scope_name,
                         stored_view,
                         iteration: 0,
@@ -304,7 +304,7 @@ impl ToTokens for Model {
                     c.mark(&mut key_data);
 
                     map.insert((__caller_id, #scope_name.id()), key_data);
-                    cache_mut.insert::<#crate_import::KeyWrapper<#view_type>>(map);
+                    cache_mut.insert::<#crate_import::cache::KeyWrapper<#view_type>>(map);
                     res
                 }
             })

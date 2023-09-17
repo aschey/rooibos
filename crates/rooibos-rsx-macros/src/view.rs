@@ -362,7 +362,7 @@ impl NodeAttributes {
                                 quote!(None as Option<String>)
                             };
                             let caller_id = next_id();
-                            quote!(#crate_name::WIDGET_CACHE.with(|c|
+                            quote!(#crate_name::cache::__WIDGET_CACHE.with(|c|
                                 c.scope_cache.get_or_create(#cx_name, #caller_id, #key_param)))
                         } else {
                             cx_name.clone()
@@ -390,7 +390,7 @@ impl NodeAttributes {
                             quote!(None as Option<String>)
                         };
                         let caller_id = next_id();
-                        quote!(#crate_name::WIDGET_CACHE.with(|c|
+                        quote!(#crate_name::cache::__WIDGET_CACHE.with(|c|
                             c.scope_cache.get_or_create(#cx_name, #caller_id, #key_param)))
                     } else {
                         cx_name.clone()
