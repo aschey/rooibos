@@ -479,6 +479,7 @@ impl<T> Clone for Signal<T> {
         *self
     }
 }
+
 impl<T> Copy for Signal<T> {}
 
 impl<T> Clone for ReadSignal<T> {

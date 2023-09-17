@@ -1,11 +1,9 @@
 //! Stores: easy nested recursive data.
 
-use std::cell::RefCell;
+use crate::{store_value, Scope, StoredValue};
 
-use crate::Scope;
-
-pub struct Store<T: State> {
-    value: RefCell<T>,
+pub struct Store<T: State + 'static> {
+    value: StoredValue<T>,
     trigger: T::Trigger,
 }
 
@@ -13,12 +11,12 @@ impl<T: State> Store<T> {
     /// Internal method for implementing the `get!` macro.
     #[doc(hidden)]
     pub fn __with<U>(&self, f: impl FnOnce(&T) -> U) -> U {
-        f(&self.value.borrow())
+        self.value.with_value(f)
     }
 
     #[doc(hidden)]
-    pub fn __with_mut<U>(&self, f: impl FnOnce(&mut T) -> U) -> U {
-        f(&mut self.value.borrow_mut())
+    pub fn __update(&self, f: impl FnOnce(&T) -> T) {
+        self.value.update_value(f)
     }
 
     /// Internal method for implementing the `get!` macro.
@@ -28,19 +26,28 @@ impl<T: State> Store<T> {
     }
 }
 
+impl<T: State> Copy for Store<T> {}
+
+impl<T: State> Clone for Store<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
 pub fn create_store<T: State>(cx: Scope, value: T) -> Store<T> {
+    let stored_value = store_value(cx, value);
     Store {
-        value: RefCell::new(value),
+        value: stored_value,
         trigger: T::Trigger::new(cx),
     }
 }
 
-pub trait State {
+pub trait State: Clone {
     /// The type of the struct containing all the triggers for fine-grained reactivity.
     type Trigger: StateTrigger;
 }
 
-pub trait StateTrigger {
+pub trait StateTrigger: Copy {
     fn new(cx: Scope) -> Self;
 }
 
@@ -54,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_derive() {
-        #[derive(State)]
+        #[derive(Clone, State)]
         struct Foo {
             value: i32,
         }

@@ -83,6 +83,15 @@ fn impl_state_struct(
             }
         }
 
+
+    impl #impl_generics Copy for #trigger_ident #generics_turbofish #where_clause {}
+
+    impl #impl_generics Clone for #trigger_ident #generics_turbofish #where_clause {
+        fn clone(&self) -> Self {
+            *self
+        }
+    }
+
         impl #impl_generics #crate_import::State for #ident #generics_turbofish #where_clause {
             type Trigger = #trigger_ident #ty_generics;
         }
@@ -189,7 +198,11 @@ pub fn set(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let first = path.first;
     let crate_import = get_import();
     quote! {{
-        #crate_import::Store::__with_mut(&#first, |#first| #first #value_path = #value);
+        #crate_import::Store::__update(&#first, |#first| {
+            let mut #first = #first.clone();
+            #first #value_path = #value;
+            #first
+        });
         #crate_import::Store::__trigger(&#first) #trigger_path.set(());
     }}
     .into()
