@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use manyhow::{manyhow, Emitter};
 use proc_macro2::TokenStream;
@@ -11,8 +11,8 @@ mod component;
 mod component_children;
 mod view;
 
-static NEXT_ID: AtomicU32 = AtomicU32::new(0);
-pub(crate) fn next_id() -> u32 {
+static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+pub(crate) fn next_id() -> u64 {
     NEXT_ID.fetch_add(1, Ordering::SeqCst)
 }
 

@@ -360,10 +360,17 @@ impl NodeAttributes {
                         #props.#prop_func
                     });
                 } else {
-                    let props = build_struct(tag, &args, include_parent_id, attrs.key.clone());
+                    let props = build_struct(tag, &args);
                     if let Some(cx_name) = cx_name {
                         let scope_param = if include_parent_id {
-                            quote!(#crate_name::reactive::create_child_scope(#cx_name))
+                            let key_param = if let Some(key) = attrs.key.clone() {
+                                quote!(Some(#key as u64))
+                            } else {
+                                quote!(None)
+                            };
+                            let caller_id = next_id();
+                            quote!(#crate_name::WIDGET_CACHE.with(|c|
+                                c.scope_cache.get_or_create(#cx_name, #caller_id, #key_param)))
                         } else {
                             cx_name.clone()
                         };
@@ -381,10 +388,17 @@ impl NodeAttributes {
 
         if let Some(tag) = &tag {
             if custom_attrs.is_empty() {
-                let props = build_struct(tag, &args, include_parent_id, attrs.key.clone());
+                let props = build_struct(tag, &args);
                 if let Some(cx_name) = cx_name {
                     let scope_param = if include_parent_id {
-                        quote!(#crate_name::reactive::create_child_scope(#cx_name))
+                        let key_param = if let Some(key) = attrs.key.clone() {
+                            quote!(Some(#key as u64))
+                        } else {
+                            quote!(None)
+                        };
+                        let caller_id = next_id();
+                        quote!(#crate_name::WIDGET_CACHE.with(|c|
+                            c.scope_cache.get_or_create(#cx_name, #caller_id, #key_param)))
                     } else {
                         cx_name.clone()
                     };
@@ -433,28 +447,15 @@ impl NodeAttributes {
     }
 }
 
-fn build_struct(
-    tag_name: &Ident,
-    args: &Option<TokenStream>,
-    include_parent_id: bool,
-    key: Option<Expr>,
-) -> TokenStream {
+fn build_struct(tag_name: &Ident, args: &Option<TokenStream>) -> TokenStream {
     let caller_id = next_id();
-    let key_clause = key.map(|k| quote!(+ &#k.to_string()));
-    let caller_id_args = if include_parent_id {
-        quote!((__parent_id.to_string() + &#caller_id.to_string() #key_clause).parse().expect("invalid integer"))
-    } else if key_clause.is_some() {
-        quote!((#caller_id.to_string() #key_clause).parse().expect("invalid integer"))
-    } else {
-        quote!(#caller_id)
-    };
     if let Some(args) = args.as_ref() {
         quote! {
-            #tag_name::new(#args).__caller_id(#caller_id_args)
+            #tag_name::new(#args).__caller_id(#caller_id)
         }
     } else {
         quote! {
-            #tag_name::builder().__caller_id(#caller_id_args)
+            #tag_name::builder().__caller_id(#caller_id)
         }
     }
 }

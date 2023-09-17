@@ -4,11 +4,11 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use once_cell::sync::Lazy;
 use prelude::*;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
 use ratatui::{symbols, Frame};
+use reactive::{create_child_scope, StoredValue};
 pub use rooibos_macros::*;
 use rooibos_reactive::Scope;
 use typemap_ors::{Key, TypeMap};
@@ -98,13 +98,14 @@ where
 
 pub struct KeyData<B: Backend> {
     pub cx: Scope,
-    pub view: Rc<RefCell<dyn View<B>>>,
+    pub stored_view: StoredValue<Rc<RefCell<dyn View<B>>>>,
+    pub iteration: u32,
 }
 
 pub struct KeyWrapper<T>(PhantomData<T>);
 
 impl<B: Backend> Key for KeyWrapper<B> {
-    type Value = HashMap<u32, KeyData<B>>;
+    type Value = HashMap<(u64, u64), KeyData<B>>;
 }
 
 pub trait BuilderFacade {
@@ -113,7 +114,7 @@ pub trait BuilderFacade {
 
 pub trait BuildFacade {
     fn build(self) -> Self;
-    fn __caller_id(self, caller_id: u32) -> Self;
+    fn __caller_id(self, caller_id: u64) -> Self;
 }
 
 pub trait MakeBuilder {}
@@ -135,7 +136,7 @@ where
         self
     }
 
-    fn __caller_id(self, _caller_id: u32) -> Self {
+    fn __caller_id(self, _caller_id: u64) -> Self {
         self
     }
 }
@@ -158,6 +159,7 @@ impl_widget!(tabs, Tabs, TabsProps);
 impl_widget!(table, Table, TableProps);
 impl_widget!(gauge, Gauge, GaugeProps);
 impl_widget!(line_gauge, LineGauge, LineGaugeProps);
+impl_widget!(bar_chart, BarChart, BarChartProps);
 impl_widget_no_lifetime!(clear, Clear, ClearProps);
 impl_stateful_widget!(stateful_list, List, StatefulListProps, ListState);
 impl_stateful_widget!(stateful_table, Table, StatefulTableProps, TableState);
@@ -445,8 +447,8 @@ impl WrapExt for Wrap {
 }
 
 pub struct WidgetCache {
-    pub cache: RefCell<Lazy<TypeMap>>,
-    iteration_map: RefCell<HashMap<u32, u32>>,
+    pub view_cache: RefCell<TypeMap>,
+    pub scope_cache: ScopeCache,
     iteration: AtomicU32,
 }
 
@@ -455,37 +457,60 @@ impl WidgetCache {
         self.iteration.fetch_add(1, Ordering::SeqCst);
     }
 
-    pub fn mark(&self, widget_id: u32) {
+    pub fn mark<B: Backend>(&self, node: &mut KeyData<B>) {
         let iter = self.iteration.load(Ordering::SeqCst);
-        self.iteration_map.borrow_mut().insert(widget_id, iter);
+        node.iteration = iter;
     }
 
     pub fn evict<B: Backend>(&self) {
-        let mut cache_mut = self.cache.borrow_mut();
-        let mut iteration_mut = self.iteration_map.borrow_mut();
+        let mut cache_mut = self.view_cache.borrow_mut();
         let current_iteration = self.iteration.load(Ordering::SeqCst);
 
-        let wrapper = cache_mut.get_mut::<KeyWrapper<B>>().unwrap();
-        let keys: Vec<_> = wrapper.keys().copied().collect();
+        if let Some(wrapper) = cache_mut.get_mut::<KeyWrapper<B>>() {
+            for val in wrapper.values() {
+                if val.iteration < current_iteration && !val.cx.is_disposed() && !val.cx.is_root() {
+                    val.cx.dispose();
+                }
+            }
 
-        let wrapper = cache_mut.get_mut::<KeyWrapper<B>>().unwrap();
-
-        for k in &keys {
-            let iter_val = iteration_mut.get(k).unwrap_or(&0);
-            if *iter_val < current_iteration {
+            let keys: Vec<_> = wrapper.keys().copied().collect();
+            for k in &keys {
                 if let Some(val) = wrapper.get(k) {
-                    if !val.cx.is_disposed() && !val.cx.is_root() {
-                        val.cx.dispose();
+                    if val.cx.is_disposed() {
+                        wrapper.remove(k);
                     }
                 }
             }
-        }
 
-        for k in &keys {
-            if let Some(val) = wrapper.get(k) {
-                if val.cx.is_disposed() {
-                    wrapper.remove(k);
-                    iteration_mut.remove(k);
+            self.scope_cache.evict();
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct ScopeCache {
+    scopes: Rc<RefCell<HashMap<(u64, u64, Option<u64>), Scope>>>,
+}
+
+impl ScopeCache {
+    pub fn get_or_create(&self, cx: Scope, caller_id: u64, key: Option<u64>) -> Scope {
+        let mut scopes = self.scopes.borrow_mut();
+        if let Some(child_cx) = scopes.get(&(cx.id(), caller_id, key)) {
+            *child_cx
+        } else {
+            let child_cx = create_child_scope(cx);
+            scopes.insert((cx.id(), caller_id, key), child_cx);
+            child_cx
+        }
+    }
+
+    fn evict(&self) {
+        let mut scopes = self.scopes.borrow_mut();
+        let keys: Vec<_> = scopes.keys().copied().collect();
+        for k in keys {
+            if let Some(val) = scopes.get(&k) {
+                if val.is_disposed() {
+                    scopes.remove(&k);
                 }
             }
         }
@@ -494,8 +519,9 @@ impl WidgetCache {
 
 thread_local! {
     pub static WIDGET_CACHE: WidgetCache = WidgetCache {
-        cache: RefCell::new(Lazy::new(TypeMap::new)),
-        iteration_map: Default::default(),
+        view_cache: RefCell::new(TypeMap::new()),
+        scope_cache: ScopeCache::default(),
         iteration: AtomicU32::new(0)
-    }
+    };
+
 }

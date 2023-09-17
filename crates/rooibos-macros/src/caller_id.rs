@@ -15,7 +15,7 @@ pub(crate) fn parse(mut input: DeriveInput) -> manyhow::Result {
         vis: syn::Visibility::Inherited,
         mutability: syn::FieldMutability::None,
         ident: Some(syn::parse_quote!(__caller_id)),
-        ty: syn::parse_quote!(u32),
+        ty: syn::parse_quote!(u64),
         colon_token: Some(syn::parse_quote!(:)),
     });
 

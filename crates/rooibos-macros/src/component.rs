@@ -11,7 +11,7 @@ use syn::{
     TypePath, Visibility,
 };
 
-use crate::{get_import, next_id};
+use crate::get_import;
 
 pub struct Model {
     is_transparent: bool,
@@ -193,7 +193,7 @@ impl ToTokens for Model {
             "__{}",
             convert_to_snake_case(&body.sig.ident, Span::call_site())
         );
-        body.sig.inputs.push(syn::parse_quote!(__parent_id: u32));
+        body.sig.inputs.push(syn::parse_quote!(__parent_id: u64));
         body.sig.output = syn::parse_quote!(-> impl LazyView<#view_type>);
         #[allow(clippy::redundant_clone)] // false positive
         let body_name = body.sig.ident.clone();
@@ -261,32 +261,49 @@ impl ToTokens for Model {
             } = props;
         };
 
-        let widget_id = next_id();
         let widget_cache_impl = quote! {
             WIDGET_CACHE.with(|c| {
-                let widget_id: u32 = (__caller_id.to_string() + &#widget_id.to_string()).parse().expect("invalid integer");
-                c.mark(widget_id);
-                let mut cache_mut = c.cache.borrow_mut();
+                let mut cache_mut = c.view_cache.borrow_mut();
                 if let Some(map) = cache_mut.get_mut::<#crate_import::KeyWrapper<#view_type>>() {
-                    if let Some(cache) = map.get_mut(&widget_id) {
-                        cache.view.clone()
+                    if let Some(cache) = map.get_mut(&(__caller_id, #scope_name.id())) {
+                        c.mark(cache);
+                        cache.stored_view.get_value()
                     } else {
-                        let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component));
-                        map.insert(widget_id, #crate_import::KeyData {
+                        let res = ::std::rc::Rc::new(::std::cell::RefCell::new(
+                            #component,
+                        )) as ::std::rc::Rc<::std::cell::RefCell<
+                            dyn #crate_import::View<#view_type>>>;
+
+                        let stored_view =
+                        #crate_import::reactive::store_value(#scope_name, res.clone());
+
+                        let mut key_data = #crate_import::KeyData {
                             cx: #scope_name,
-                            view: res.clone()
-                        });
+                            stored_view,
+                            iteration: 0,
+                        };
+                        c.mark(&mut key_data);
+                        map.insert((__caller_id, #scope_name.id()), key_data);
                         res
                     }
                 } else {
-                    let mut map = ::std::collections::HashMap::<u32,
+                    let mut map = ::std::collections::HashMap::<(u64, u64),
                     #crate_import::KeyData<#view_type>>::new();
 
-                    let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component));
-                    map.insert(widget_id, #crate_import::KeyData {
+                    let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component))
+                    as ::std::rc::Rc<::std::cell::RefCell<dyn #crate_import::View<#view_type>>>;
+
+                    let stored_view =
+                    #crate_import::reactive::store_value(#scope_name, res.clone());
+
+                    let mut key_data = #crate_import::KeyData {
                         cx: #scope_name,
-                        view: res.clone()
-                    });
+                        stored_view,
+                        iteration: 0,
+                    };
+                    c.mark(&mut key_data);
+
+                    map.insert((__caller_id, #scope_name.id()), key_data);
                     cache_mut.insert::<#crate_import::KeyWrapper<#view_type>>(map);
                     res
                 }
