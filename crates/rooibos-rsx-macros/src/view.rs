@@ -4,7 +4,7 @@ use proc_macro2::{Ident, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
-use syn::{Block, Expr, ExprLit, Generics, Lit, LitInt};
+use syn::{parse_quote, Block, Expr, ExprLit, Generics, Lit, LitInt};
 
 use crate::{get_import, next_id};
 
@@ -14,6 +14,7 @@ enum Constraint {
     Max,
     Percentage,
     Length,
+    Ratio,
 }
 
 #[derive(Clone, Debug)]
@@ -39,7 +40,7 @@ enum ViewType {
 pub(crate) struct View {
     view_type: ViewType,
     constraint: Constraint,
-    constraint_val: Expr,
+    constraint_val: TokenStream,
     layout_props: Option<TokenStream>,
 }
 
@@ -52,6 +53,7 @@ impl View {
             Constraint::Max => quote! { Constraint::Max(#constraint_val) },
             Constraint::Percentage => quote! { Constraint::Percentage(#constraint_val) },
             Constraint::Length => quote! { Constraint::Length(#constraint_val) },
+            Constraint::Ratio => quote! { Constraint::Ratio(#constraint_val) },
         }
     }
 
@@ -243,7 +245,7 @@ impl ToTokens for View {
 
 struct NodeAttributes {
     constraint: Constraint,
-    expr: Expr,
+    expr: TokenStream,
     props: Option<TokenStream>,
     state: Option<TokenStream>,
     key: Option<Expr>,
@@ -272,35 +274,52 @@ impl NodeAttributes {
         )
     }
 
-    fn parse_standard_attrs(&mut self, attribute: &KeyedAttribute) -> bool {
+    fn parse_standard_attrs(&mut self, attribute: &KeyedAttribute, emitter: &mut Emitter) -> bool {
         match attribute.key.to_string().as_str() {
-            "min" => {
+            "v:min" => {
                 self.constraint = Constraint::Min;
-                self.expr = attribute.value().unwrap().clone();
+                self.expr = attribute.value().unwrap().to_token_stream();
                 true
             }
-            "max" => {
+            "v:max" => {
                 self.constraint = Constraint::Max;
-                self.expr = attribute.value().unwrap().clone();
+                self.expr = attribute.value().unwrap().to_token_stream();
                 true
             }
-            "percentage" => {
+            "v:percentage" => {
                 self.constraint = Constraint::Percentage;
-                self.expr = attribute.value().unwrap().clone();
+                self.expr = attribute.value().unwrap().to_token_stream();
                 true
             }
-            "length" => {
+            "v:length" => {
                 self.constraint = Constraint::Length;
-                self.expr = attribute.value().unwrap().clone();
+                self.expr = attribute.value().unwrap().to_token_stream();
                 true
             }
-            "state" => {
+            "v:ratio" => {
+                self.constraint = Constraint::Ratio;
+                let val = attribute.value().unwrap().clone();
+                let expr = match val {
+                    Expr::Tuple(expr) if expr.elems.len() == 2 => expr,
+                    _ => {
+                        emitter.emit(ErrorMessage::spanned(
+                            val,
+                            "value should be a tuple of length 2",
+                        ));
+                        parse_quote!((0, 0))
+                    }
+                };
+
+                self.expr = expr.elems.to_token_stream();
+                true
+            }
+            "v:state" => {
                 if let Some(val) = &attribute.value() {
                     self.state = Some(val.to_token_stream());
                 }
                 true
             }
-            "key" => {
+            "v:key" => {
                 self.key = Some(attribute.value().unwrap().clone());
                 true
             }
@@ -314,7 +333,7 @@ impl NodeAttributes {
         nodes: &[NodeAttribute],
         args: Option<TokenStream>,
         include_parent_id: bool,
-        _emitter: &mut Emitter,
+        emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         let mut attrs = Self {
             constraint: Constraint::Min,
@@ -328,7 +347,7 @@ impl NodeAttributes {
             .iter()
             .filter_map(|node| {
                 if let NodeAttribute::Attribute(attribute) = node {
-                    if !attrs.parse_standard_attrs(attribute) {
+                    if !attrs.parse_standard_attrs(attribute, emitter) {
                         return Some(attribute);
                     }
                 }
@@ -404,7 +423,7 @@ impl NodeAttributes {
         Ok(attrs)
     }
 
-    fn from_layout_nodes(nodes: &[NodeAttribute], _emitter: &mut Emitter) -> Self {
+    fn from_layout_nodes(nodes: &[NodeAttribute], emitter: &mut Emitter) -> Self {
         let mut attrs = Self {
             constraint: Constraint::Min,
             expr: get_default_constraint(),
@@ -415,7 +434,7 @@ impl NodeAttributes {
 
         for node in nodes {
             if let NodeAttribute::Attribute(attribute) = node {
-                if !attrs.parse_standard_attrs(attribute) {
+                if !attrs.parse_standard_attrs(attribute, emitter) {
                     let func_name = Ident::new(&attribute.key.to_string(), attribute.key.span());
                     let func = if let Some(val) = &attribute.value() {
                         quote!(#func_name(#val))
@@ -723,9 +742,10 @@ fn get_block_contents(block: &Block) -> TokenStream {
     block.stmts.iter().map(|s| s.to_token_stream()).collect()
 }
 
-fn get_default_constraint() -> Expr {
+fn get_default_constraint() -> TokenStream {
     Expr::Lit(ExprLit {
         lit: Lit::Int(LitInt::new("0", Span::call_site())),
         attrs: vec![],
     })
+    .to_token_stream()
 }

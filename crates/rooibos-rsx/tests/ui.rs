@@ -88,10 +88,10 @@ fn nested_layout() {
     create_root(|cx| {
         let mut view = mount! { cx,
             <Column>
-                <Row length=4>
+                <Row v:length=4>
                     <Block title="test1" borders=Borders::ALL/>
                 </Row>
-                <Row length=2>
+                <Row v:length=2>
                     <Block title="test2" borders=Borders::ALL/>
                 </Row>
             </Column>
@@ -210,7 +210,7 @@ fn stateful() {
     create_root(|cx| {
         let state = ListState::default();
         let mut view = mount! { cx,
-            <StatefulList state=state>
+            <StatefulList v:state=state>
                 <ListItem>"test1"</ListItem>
                 <ListItem>"test2"</ListItem>
             </StatefulList>
@@ -423,7 +423,7 @@ fn overlay_multiple() {
             <Overlay>
                 <Block borders=Borders::ALL title="test"/>
                 <Column margin=1>
-                    <List length=2>
+                    <List v:length=2>
                         <ListItem>{"hi"}</ListItem>
                         <ListItem>{"yo"}</ListItem>
                     </List>
@@ -457,22 +457,22 @@ fn two_overlays() {
     create_root(|cx| {
         let mut view = mount! { cx,
             <Column>
-                <Column percentage=50>
+                <Column v:percentage=50>
                     <Overlay>
                         <Block borders=Borders::ALL title="test"/>
                         <Column margin=1>
-                            <List length=2>
+                            <List v:length=2>
                                 <ListItem>{"hi"}</ListItem>
                                 <ListItem>{"yo"}</ListItem>
                             </List>
                         </Column>
                     </Overlay>
                 </Column>
-                <Column percentage=50>
+                <Column v:percentage=50>
                     <Overlay>
                         <Block borders=Borders::ALL title="test2"/>
                         <Column margin=1>
-                            <List length=2>
+                            <List v:length=2>
                                 <ListItem>{"hi2"}</ListItem>
                                 <ListItem>{"yo2"}</ListItem>
                             </List>
@@ -892,7 +892,7 @@ fn custom_component_nested_layout() {
     create_root(|cx| {
         let mut view = mount! { cx,
             <Column>
-                <Row length=1>
+                <Row v:length=1>
                     <Viewer>
                         <ChildProp> {
                             move || view! { cx,

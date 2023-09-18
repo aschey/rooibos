@@ -132,7 +132,7 @@ fn App<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
         view! { cx,
             <Column>
-                <HeaderTabs length=3 titles=vec!["Tab0", "Tab1", "Tab2"]/>
+                <HeaderTabs v:length=3 titles=vec!["Tab0", "Tab1", "Tab2"]/>
             </Column>
 
         }
@@ -183,7 +183,7 @@ fn HeaderTabs<B: Backend>(cx: Scope, titles: Vec<&'static str>) -> impl View<B> 
         view! { cx,
             <Column>
                 <Tabs
-                    length=3
+                    v:length=3
                     block=prop!(<Block borders=Borders::ALL title="Demo"/>)
                     highlight_style=prop!(<Style yellow/>)
                     select=focus_selector.get().unwrap()
@@ -229,9 +229,9 @@ fn Tab0<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
         view! {cx,
             <Column>
-                <Gauges length=9 enhanced_graphics=true/>
-                <Charts min=8 enhanced_graphics=true/>
-                <Footer length=7 />
+                <Gauges v:length=9 enhanced_graphics=true/>
+                <Charts v:min=8 enhanced_graphics=true/>
+                <Footer v:length=7 />
             </Column>
         }
     }
@@ -272,8 +272,8 @@ fn Tab1<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
         view! { cx,
             <Row>
-                <DemoTable percentage=30 servers=servers/>
-                <DemoMap percentage=70 enhanced_graphics=true servers=servers/>
+                <DemoTable v:percentage=30 servers=servers/>
+                <DemoMap v:percentage=70 enhanced_graphics=true servers=servers/>
             </Row>
         }
     }
@@ -282,7 +282,12 @@ fn Tab1<B: Backend>(cx: Scope) -> impl View<B> {
 #[component]
 fn Tab2<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
-        view! {cx,<Column></Column>}
+        view! {cx,
+            <Row>
+                <ColorsTable v:ratio=(1,2)/>
+                <Column v:ratio=(2,1)/>
+            </Row>
+        }
     }
 }
 
@@ -354,9 +359,9 @@ fn Gauges<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     move || {
         view! {cx,
             <Column>
-                <DemoGauge length=2 enhanced_graphics=enhanced_graphics progress=progress/>
-                <DemoSparkline length=3 enhanced_graphics=enhanced_graphics/>
-                <DemoLineGauge length=1 enhanced_graphics=enhanced_graphics progress=progress/>
+                <DemoGauge v:length=2 enhanced_graphics=enhanced_graphics progress=progress/>
+                <DemoSparkline v:length=3 enhanced_graphics=enhanced_graphics/>
+                <DemoLineGauge v:length=1 enhanced_graphics=enhanced_graphics progress=progress/>
             </Column>
         }
     }
@@ -455,16 +460,16 @@ fn Charts<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     move || {
         view! { cx,
             <Row>
-                <Column percentage=if show_chart.get() { 50 } else { 100 }>
-                    <Row percentage=50>
-                        <Column percentage=50>
-                            <TaskList percentage=50/>
+                <Column v:percentage=if show_chart.get() { 50 } else { 100 }>
+                    <Row v:percentage=50>
+                        <Column v:percentage=50>
+                            <TaskList v:percentage=50/>
                         </Column>
-                        <Column percentage=50>
-                            <Logs percentage=50/>
+                        <Column v:percentage=50>
+                            <Logs v:percentage=50/>
                         </Column>
                     </Row>
-                    <Row percentage=50>
+                    <Row v:percentage=50>
                         <DemoBarChart enhanced_graphics=enhanced_graphics/>
                     </Row>
                 </Column>
@@ -508,7 +513,7 @@ fn TaskList<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
         view! { cx,
             <StatefulList
-                state=prop!(<ListState with_selected=selected_task.get()/>)
+                v:state=prop!(<ListState with_selected=selected_task.get()/>)
                 block=prop!(<Block borders=Borders::ALL title="List"/>)
                 highlight_style=prop!(<Style bold/>)
                 highlight_symbol="> "
@@ -960,6 +965,59 @@ fn DemoMap<B: Backend>(
                 x_bounds=[-180.0, 180.0]
                 y_bounds=[-90.0, 90.0]
             />
+        }
+    }
+}
+
+#[component]
+fn colors_table<B: Backend>(cx: Scope) -> impl View<B> {
+    let colors = [
+        Color::Reset,
+        Color::Black,
+        Color::Red,
+        Color::Green,
+        Color::Yellow,
+        Color::Blue,
+        Color::Magenta,
+        Color::Cyan,
+        Color::Gray,
+        Color::DarkGray,
+        Color::LightRed,
+        Color::LightGreen,
+        Color::LightYellow,
+        Color::LightBlue,
+        Color::LightMagenta,
+        Color::LightCyan,
+        Color::White,
+    ];
+
+    let items = create_signal(
+        cx,
+        colors
+            .iter()
+            .map(|c| {
+                prop! {
+                    <Row>
+                        <Cell>{format!("{c:?}")}</Cell>
+                        <Cell fg=*c>"Foreground"</Cell>
+                        <Cell bg=*c>"Background"</Cell>
+                    </Row>
+                }
+            })
+            .collect::<Vec<_>>(),
+    );
+    move || {
+        view! { cx,
+            <Table
+                block=prop!(<Block title="Colors" borders=Borders::ALL/>)
+                widths=&[
+                    Constraint::Ratio(1, 3),
+                    Constraint::Ratio(1, 3),
+                    Constraint::Ratio(1, 3)
+                ]
+            >
+                {items.get()}
+            </Table>
         }
     }
 }

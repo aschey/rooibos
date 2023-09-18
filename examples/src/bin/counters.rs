@@ -65,7 +65,7 @@ fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
         view! { cx,
             <Column>
                 {(0..n_counters.get()).map(|i| {
-                    view!(cx, <Counter key=i/>).into_boxed_view()
+                    view!(cx, <Counter v:key=i/>).into_boxed_view()
                 }).collect::<Vec<_>>()}
             </Column>
         }

@@ -20,18 +20,18 @@ where
         let mut children = children.clone();
         view! { cx,
             <Column>
-                <Row percentage=inverse_y />
-                <Row percentage=percent_y>
-                    <Column percentage=inverse_x />
-                    <Column percentage=percent_x>
+                <Row v:percentage=inverse_y />
+                <Row v:percentage=percent_y>
+                    <Column v:percentage=inverse_x />
+                    <Column v:percentage=percent_x>
                         <Overlay>
                             <Clear/>
                             {children}
                         </Overlay>
                     </Column>
-                    <Column percentage=inverse_x />
+                    <Column v:percentage=inverse_x />
                 </Row>
-                <Row percentage=inverse_y />
+                <Row v:percentage=inverse_y />
             </Column>
         }
     }
