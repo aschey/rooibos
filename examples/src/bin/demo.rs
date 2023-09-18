@@ -239,7 +239,11 @@ fn Tab0<B: Backend>(cx: Scope) -> impl View<B> {
 #[component]
 fn Tab1<B: Backend>(cx: Scope) -> impl View<B> {
     move || {
-        view! {cx,<Column></Column>}
+        view! { cx,
+            <Column>
+                <DemoTable/>
+            </Column>
+        }
     }
 }
 
@@ -829,6 +833,74 @@ fn Footer<B: Backend>(cx: Scope) -> impl View<B> {
                     "One more thing is that it should display unicode characters: 10€"
                 </Line>
             </Paragraph>
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct Server<'a> {
+    pub name: &'a str,
+    pub location: &'a str,
+    pub coords: (f64, f64),
+    pub status: &'a str,
+}
+
+#[component]
+fn DemoTable<B:Backend>(cx:Scope) -> impl View<B> {
+    let servers = create_signal(cx, vec![Server {
+        name: "NorthAmerica-1",
+        location: "New York City",
+        coords: (40.71, -74.00),
+        status: "Up",
+    },
+    Server {
+        name: "Europe-1",
+        location: "Paris",
+        coords: (48.85, 2.35),
+        status: "Failure",
+    },
+    Server {
+        name: "SouthAmerica-1",
+        location: "São Paulo",
+        coords: (-23.54, -46.62),
+        status: "Up",
+    },
+    Server {
+        name: "Asia-1",
+        location: "Singapore",
+        coords: (1.35, 103.86),
+        status: "Up",
+    }]);
+
+    let rows = create_memo(cx, move || {
+        servers.get().into_iter().map(|s| {
+            let style = if s.status == "Up" {
+                prop!(<Style fg=Color::Green/>)
+            } else {
+                prop!(<Style fg=Color::Red add_modifier=Modifier::RAPID_BLINK | Modifier::CROSSED_OUT/>)
+            };
+            prop!(<Row style=style>{vec![s.name, s.location, s.status]}</Row>)
+        }).collect::<Vec<_>>()
+    });
+    move || {
+        view! { cx,
+            <Table 
+                header=prop! {
+                    <Row style=prop!(<Style fg=Color::Yellow/>) bottom_margin=1>
+                        "Server"
+                        "Location"
+                        "Status"
+                    </Row>
+                }
+                block=prop!(<Block title="Servers" borders=Borders::ALL/>)
+                widths=&[
+                    Constraint::Length(15),
+                    Constraint::Length(15),
+                    Constraint::Length(10),
+                ]
+            >
+                {rows.get()}
+            </Table>
         }
     }
 }
