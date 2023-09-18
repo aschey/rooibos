@@ -51,7 +51,7 @@ impl<'a> Widget for SparklineProps<'a> {
 }
 
 impl<'a> Styled for SparklineProps<'a> {
-    type Item = SparklineProps<'a>;
+    type Item = Self;
 
     fn style(&self) -> Style {
         Styled::style(&self.inner)

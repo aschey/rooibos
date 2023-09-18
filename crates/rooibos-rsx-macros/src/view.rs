@@ -314,7 +314,7 @@ impl NodeAttributes {
         nodes: &[NodeAttribute],
         args: Option<TokenStream>,
         include_parent_id: bool,
-        emitter: &mut Emitter,
+        _emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         let mut attrs = Self {
             constraint: Constraint::Min,
@@ -344,8 +344,7 @@ impl NodeAttributes {
                 let prop_func = if let Some(val) = &attribute.value() {
                     quote!(#func_name(#val))
                 } else {
-                    emitter.emit(ErrorMessage::new(func_name.span(), "value missing"));
-                    quote!(#func_name)
+                    quote!(#func_name())
                 };
 
                 if let Some(props) = attrs.props {
@@ -405,7 +404,7 @@ impl NodeAttributes {
         Ok(attrs)
     }
 
-    fn from_layout_nodes(nodes: &[NodeAttribute], emitter: &mut Emitter) -> Self {
+    fn from_layout_nodes(nodes: &[NodeAttribute], _emitter: &mut Emitter) -> Self {
         let mut attrs = Self {
             constraint: Constraint::Min,
             expr: get_default_constraint(),
@@ -421,8 +420,7 @@ impl NodeAttributes {
                     let func = if let Some(val) = &attribute.value() {
                         quote!(#func_name(#val))
                     } else {
-                        emitter.emit(ErrorMessage::new(func_name.span(), "value missing"));
-                        quote!(#func_name)
+                        quote!(#func_name())
                     };
 
                     if let Some(props) = attrs.props {

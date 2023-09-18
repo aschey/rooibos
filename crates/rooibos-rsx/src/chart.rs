@@ -51,14 +51,17 @@ impl<'a> DatasetOwned<'a> {
 impl<'a> MakeBuilder for DatasetOwned<'a> {}
 
 impl<'a> Styled for DatasetOwned<'a> {
-    type Item = Dataset<'a>;
+    type Item = Self;
 
     fn style(&self) -> Style {
         Styled::style(&self.inner)
     }
 
     fn set_style(self, style: Style) -> Self::Item {
-        self.inner.set_style(style)
+        Self {
+            inner: self.inner.set_style(style),
+            data: self.data,
+        }
     }
 }
 
@@ -111,7 +114,7 @@ impl<'a> ChartProps<'a> {
 }
 
 impl<'a> Styled for ChartProps<'a> {
-    type Item = ChartProps<'a>;
+    type Item = Self;
 
     fn style(&self) -> Style {
         self.style

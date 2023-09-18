@@ -172,7 +172,7 @@ fn HeaderTabs<B: Backend>(cx: Scope, titles: Vec<&'static str>) -> impl View<B> 
             .map(|t| {
                 prop! {
                     <Line>
-                        <Span style=prop!(<Style fg=Color::Green/>)>
+                        <Span green>
                             {*t}
                         </Span>
                     </Line>
@@ -184,7 +184,7 @@ fn HeaderTabs<B: Backend>(cx: Scope, titles: Vec<&'static str>) -> impl View<B> 
                 <Tabs
                     length=3
                     block=prop!(<Block borders=Borders::ALL title="Demo"/>)
-                    highlight_style=prop!(<Style fg=Color::Yellow/>)
+                    highlight_style=prop!(<Style yellow/>)
                     select=focus_selector.get().unwrap()
                 >
                     {titles}
@@ -340,13 +340,7 @@ fn DemoGauge<B: Backend>(
         view! { cx,
             <Gauge
                 block=prop!(<Block title="Gauge:"/>)
-                gauge_style=prop!{
-                    <Style
-                        fg=Color::Magenta
-                        bg=Color::Black
-                        add_modifier=Modifier::ITALIC | Modifier::BOLD
-                    />
-                }
+                gauge_style=prop!(<Style magenta on_black italic bold/>)
                 use_unicode=enhanced_graphics
                 label=format!("{:.2}%", progress.get() * 100.0)
                 ratio=progress.get()
@@ -365,7 +359,7 @@ fn DemoLineGauge<B: Backend>(
         view! { cx,
             <LineGauge
                 block=prop!(<Block title="LineGauge:"/>)
-                gauge_style=prop!(<Style fg=Color::Magenta/>)
+                gauge_style=prop!(<Style magenta/>)
                 line_set=if enhanced_graphics {
                     symbols::line::THICK
                 } else {
@@ -403,7 +397,7 @@ fn DemoSparkline<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B>
         view! { cx,
             <Sparkline
                 block=prop!(<Block title="Sparkline:"/>)
-                style=prop!(<Style fg=Color::Green/>)
+                green
                 data=sparkline_signal.get().points
                 bar_set=if enhanced_graphics {
                     symbols::bar::NINE_LEVELS
@@ -484,7 +478,7 @@ fn TaskList<B: Backend>(cx: Scope) -> impl View<B> {
             <StatefulList
                 state=prop!(<ListState with_selected=selected_task.get()/>)
                 block=prop!(<Block borders=Borders::ALL title="List"/>)
-                highlight_style=prop!(<Style add_modifier=Modifier::BOLD/>)
+                highlight_style=prop!(<Style bold/>)
                 highlight_symbol="> "
             >
                 {task_items.get()}
@@ -635,14 +629,9 @@ fn DemoBarChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> 
                 } else {
                     symbols::bar::THREE_LEVELS
                 }
-                value_style=prop!{
-                    <Style
-                        fg=Color::Black
-                        bg=Color::Green
-                        add_modifier=Modifier::ITALIC/>
-                    }
-                label_style=prop!(<Style fg=Color::Yellow/>)
-                bar_style=prop!(<Style fg=Color::Green/>)
+                value_style=prop!(<Style black on_green italic/>)
+                label_style=prop!(<Style yellow/>)
+                bar_style=prop!(<Style green/>)
             />
         }
     }
@@ -718,13 +707,9 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                 block=prop! {
                     <Block
                         title=prop! {
-                            <Span style=prop!{
-                                <Style
-                                    fg=Color::Cyan
-                                    add_modifier=Modifier::BOLD/>}
-                                >
-                                    "Chart"
-                                </Span>
+                            <Span cyan bold>
+                                "Chart"
+                            </Span>
                         }
                         borders=Borders::ALL
                     />
@@ -732,13 +717,11 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                 x_axis=prop! {
                     <Axis
                         title="X Axis"
-                        style=prop!(<Style fg=Color::Gray/>)
+                        gray
                         bounds=[window_start, window_end]
                         labels=vec![
                             prop! {
-                                <Span
-                                    style=prop!(<Style add_modifier=Modifier::BOLD/>)
-                                >
+                                <Span bold>
                                     {window_start.to_string()}
                                 </Span>
                             },
@@ -746,9 +729,7 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                                 <Span>{((window_start + window_end) / 2.0).to_string()}</Span>
                             },
                             prop! {
-                                <Span
-                                    style=prop!(<Style add_modifier=Modifier::BOLD/>)
-                                >
+                                <Span bold>
                                     {window_end.to_string()}
                                 </Span>
                             },
@@ -758,12 +739,12 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                 y_axis=prop! {
                     <Axis
                         title="Y Axis"
-                        style=prop!(<Style fg=Color::Gray/>)
+                        gray
                         bounds=[-20.0, 20.0]
                         labels=vec![
-                            prop!(<Span style=prop!(<Style add_modifier=Modifier::BOLD/>)>"-20"</Span>),
+                            prop!(<Span bold>"-20"</Span>),
                             prop!(<Span>"0"</Span>),
-                            prop!(<Span style=prop!(<Style add_modifier=Modifier::BOLD/>)>"20"</Span>)
+                            prop!(<Span bold>"20"</Span>)
                         ]
                     />
                 }
@@ -771,7 +752,7 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                 <DatasetOwned
                     name="data2"
                     marker=symbols::Marker::Dot
-                    style=prop!(<Style fg=Color::Cyan/>)
+                    cyan
                     data=sin1.get().points
                 />
                 <DatasetOwned
@@ -781,7 +762,7 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
                     } else {
                         symbols::Marker::Dot
                     }
-                    style=prop!(<Style fg=Color::Yellow/>)
+                    yellow
                     data=sin2.get().points
                 />
             </Chart>
@@ -798,7 +779,7 @@ fn Footer<B: Backend>(cx: Scope) -> impl View<B> {
                     <Block
                         borders=Borders::ALL
                         title=prop! {
-                            <Span style=prop!(<Style fg=Color::Magenta add_modifier=Modifier::BOLD/>)>
+                            <Span magenta bold>
                                 "Footer"
                             </Span>
                         }/>
@@ -811,22 +792,22 @@ fn Footer<B: Backend>(cx: Scope) -> impl View<B> {
                 <Line>""</Line>
                 <Line>
                     <Span>"For example: "</Span>
-                    <Span style=prop!(<Style fg=Color::Red/>)>"under"</Span>
+                    <Span red>"under"</Span>
                     <Span>" "</Span>
-                    <Span style=prop!(<Style fg=Color::Green/>)>"the"</Span>
+                    <Span green>"the"</Span>
                     <Span>" "</Span>
-                    <Span style=prop!(<Style fg=Color::Blue/>)>"rainbow"</Span>
+                    <Span blue>"rainbow"</Span>
                     <Span>"."</Span>
                 </Line>
                 <Line>
                     <Span>"Oh and if you didn't "</Span>
-                    <Span style=prop!(<Style add_modifier=Modifier::ITALIC/>)>"notice"</Span>
+                    <Span italic>"notice"</Span>
                     <Span>" you can "</Span>
-                    <Span style=prop!(<Style add_modifier=Modifier::BOLD/>)>"automatically"</Span>
+                    <Span bold>"automatically"</Span>
                     <Span>" "</Span>
-                    <Span style=prop!(<Style add_modifier=Modifier::REVERSED/>)>"wrap"</Span>
+                    <Span reversed>"wrap"</Span>
                     <Span>" your "</Span>
-                    <Span style=prop!(<Style add_modifier=Modifier::UNDERLINED/>)>"text"</Span>
+                    <Span underlined>"text"</Span>
                     <Span>"."</Span>
                 </Line>
                 <Line>
@@ -846,47 +827,56 @@ pub struct Server<'a> {
 }
 
 #[component]
-fn DemoTable<B:Backend>(cx:Scope) -> impl View<B> {
-    let servers = create_signal(cx, vec![Server {
-        name: "NorthAmerica-1",
-        location: "New York City",
-        coords: (40.71, -74.00),
-        status: "Up",
-    },
-    Server {
-        name: "Europe-1",
-        location: "Paris",
-        coords: (48.85, 2.35),
-        status: "Failure",
-    },
-    Server {
-        name: "SouthAmerica-1",
-        location: "São Paulo",
-        coords: (-23.54, -46.62),
-        status: "Up",
-    },
-    Server {
-        name: "Asia-1",
-        location: "Singapore",
-        coords: (1.35, 103.86),
-        status: "Up",
-    }]);
+fn DemoTable<B: Backend>(cx: Scope) -> impl View<B> {
+    let servers = create_signal(
+        cx,
+        vec![
+            Server {
+                name: "NorthAmerica-1",
+                location: "New York City",
+                coords: (40.71, -74.00),
+                status: "Up",
+            },
+            Server {
+                name: "Europe-1",
+                location: "Paris",
+                coords: (48.85, 2.35),
+                status: "Failure",
+            },
+            Server {
+                name: "SouthAmerica-1",
+                location: "São Paulo",
+                coords: (-23.54, -46.62),
+                status: "Up",
+            },
+            Server {
+                name: "Asia-1",
+                location: "Singapore",
+                coords: (1.35, 103.86),
+                status: "Up",
+            },
+        ],
+    );
 
     let rows = create_memo(cx, move || {
-        servers.get().into_iter().map(|s| {
-            let style = if s.status == "Up" {
-                prop!(<Style fg=Color::Green/>)
-            } else {
-                prop!(<Style fg=Color::Red add_modifier=Modifier::RAPID_BLINK | Modifier::CROSSED_OUT/>)
-            };
-            prop!(<Row style=style>{vec![s.name, s.location, s.status]}</Row>)
-        }).collect::<Vec<_>>()
+        servers
+            .get()
+            .into_iter()
+            .map(|s| {
+                let style = if s.status == "Up" {
+                    prop!(<Style green/>)
+                } else {
+                    prop!(<Style red rapid_blink crossed_out/>)
+                };
+                prop!(<Row style=style>{vec![s.name, s.location, s.status]}</Row>)
+            })
+            .collect::<Vec<_>>()
     });
     move || {
         view! { cx,
-            <Table 
+            <Table
                 header=prop! {
-                    <Row style=prop!(<Style fg=Color::Yellow/>) bottom_margin=1>
+                    <Row yellow bottom_margin=1>
                         "Server"
                         "Location"
                         "Status"
