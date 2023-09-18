@@ -1,3 +1,4 @@
+pub use chart::*;
 use prelude::*;
 pub use rooibos_rsx_macros::*;
 pub use sparkline::*;
@@ -12,7 +13,6 @@ mod sparkline;
 mod view;
 mod widgets;
 pub mod prelude {
-    pub use chart::*;
     pub use components::*;
     pub use ratatui::layout::*;
     pub use ratatui::style::*;

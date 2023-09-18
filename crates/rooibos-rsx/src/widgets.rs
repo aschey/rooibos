@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use ratatui::prelude::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::canvas::{Canvas, Context};
 use ratatui::widgets::{StatefulWidget, *};
 use ratatui::Frame;
 use rooibos_reactive::Scope;
@@ -193,4 +194,15 @@ impl WrapExt for Wrap {
     fn trim(self, trim: bool) -> Self {
         Self { trim }
     }
+}
+
+pub type CanvasProps<'a, F> = Canvas<'a, F>;
+
+impl<F> MakeBuilder for CanvasProps<'_, F> where F: Fn(&mut Context) {}
+
+pub fn canvas<B: Backend, F>(_cx: Scope, props: CanvasProps<'static, F>) -> impl View<B>
+where
+    F: Fn(&mut Context) + Clone + 'static,
+{
+    move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
 }

@@ -13,6 +13,7 @@ use rand::prelude::*;
 use rand::rngs::ThreadRng;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
+use ratatui::widgets::canvas::{self, Circle, Context, Map, MapResolution, Rectangle};
 use ratatui::{Frame, Terminal};
 use rooibos::reactive::{
     create_effect, create_memo, create_selector, create_signal, Scope, Signal, SignalGet,
@@ -238,11 +239,42 @@ fn Tab0<B: Backend>(cx: Scope) -> impl View<B> {
 
 #[component]
 fn Tab1<B: Backend>(cx: Scope) -> impl View<B> {
+    let servers = create_signal(
+        cx,
+        vec![
+            Server {
+                name: "NorthAmerica-1",
+                location: "New York City",
+                coords: (40.71, -74.00),
+                status: "Up",
+            },
+            Server {
+                name: "Europe-1",
+                location: "Paris",
+                coords: (48.85, 2.35),
+                status: "Failure",
+            },
+            Server {
+                name: "SouthAmerica-1",
+                location: "São Paulo",
+                coords: (-23.54, -46.62),
+                status: "Up",
+            },
+            Server {
+                name: "Asia-1",
+                location: "Singapore",
+                coords: (1.35, 103.86),
+                status: "Up",
+            },
+        ],
+    );
+
     move || {
         view! { cx,
-            <Column>
-                <DemoTable/>
-            </Column>
+            <Row>
+                <DemoTable percentage=30 servers=servers/>
+                <DemoMap percentage=70 enhanced_graphics=true servers=servers/>
+            </Row>
         }
     }
 }
@@ -827,37 +859,7 @@ pub struct Server<'a> {
 }
 
 #[component]
-fn DemoTable<B: Backend>(cx: Scope) -> impl View<B> {
-    let servers = create_signal(
-        cx,
-        vec![
-            Server {
-                name: "NorthAmerica-1",
-                location: "New York City",
-                coords: (40.71, -74.00),
-                status: "Up",
-            },
-            Server {
-                name: "Europe-1",
-                location: "Paris",
-                coords: (48.85, 2.35),
-                status: "Failure",
-            },
-            Server {
-                name: "SouthAmerica-1",
-                location: "São Paulo",
-                coords: (-23.54, -46.62),
-                status: "Up",
-            },
-            Server {
-                name: "Asia-1",
-                location: "Singapore",
-                coords: (1.35, 103.86),
-                status: "Up",
-            },
-        ],
-    );
-
+fn DemoTable<B: Backend>(cx: Scope, servers: Signal<Vec<Server<'static>>>) -> impl View<B> {
     let rows = create_memo(cx, move || {
         servers
             .get()
@@ -891,6 +893,73 @@ fn DemoTable<B: Backend>(cx: Scope) -> impl View<B> {
             >
                 {rows.get()}
             </Table>
+        }
+    }
+}
+
+#[component]
+fn DemoMap<B: Backend>(
+    cx: Scope,
+    servers: Signal<Vec<Server<'static>>>,
+    enhanced_graphics: bool,
+) -> impl View<B> {
+    let paint_map = move |ctx: &mut Context<'_>| {
+        let servers = servers.get();
+        ctx.draw(&Map {
+            color: Color::White,
+            resolution: MapResolution::High,
+        });
+        ctx.layer();
+        ctx.draw(&Rectangle {
+            x: 0.0,
+            y: 30.0,
+            width: 10.0,
+            height: 10.0,
+            color: Color::Yellow,
+        });
+        ctx.draw(&Circle {
+            x: servers[2].coords.1,
+            y: servers[2].coords.0,
+            radius: 10.0,
+            color: Color::Green,
+        });
+        for (i, s1) in servers.iter().enumerate() {
+            for s2 in &servers[i + 1..] {
+                ctx.draw(&canvas::Line {
+                    x1: s1.coords.1,
+                    y1: s1.coords.0,
+                    y2: s2.coords.0,
+                    x2: s2.coords.1,
+                    color: Color::Yellow,
+                });
+            }
+        }
+        for server in &servers {
+            let color = if server.status == "Up" {
+                Color::Green
+            } else {
+                Color::Red
+            };
+            ctx.print(
+                server.coords.1,
+                server.coords.0,
+                Span::styled("X", Style::default().fg(color)),
+            );
+        }
+    };
+    move || {
+        view! {cx,
+            <Canvas
+                block=prop!(<Block title="world" borders=Borders::ALL/>)
+                paint=paint_map
+                marker=if enhanced_graphics {
+                    symbols::Marker::Braille
+                } else {
+                    symbols::Marker::Dot
+                }
+                x_bounds=[-180.0, 180.0]
+                y_bounds=[-90.0, 90.0]
+            />
         }
     }
 }
