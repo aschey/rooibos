@@ -6,15 +6,14 @@ use quote::{format_ident, quote, quote_spanned, ToTokens, TokenStreamExt};
 use syn::parse::Parse;
 use syn::spanned::Spanned;
 use syn::{
-    parse_quote, AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, Item, ItemFn,
-    LitStr, Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Stmt, Type, TypeParamBound,
-    TypePath, Visibility,
+    parse_quote, AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, ItemFn, LitStr,
+    Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Type, TypeParamBound, TypePath,
+    Visibility,
 };
 
 use crate::get_import;
 
-pub struct Model {
-    is_transparent: bool,
+pub(crate) struct Model {
     docs: Docs,
     vis: Visibility,
     name: Ident,
@@ -84,7 +83,6 @@ impl Parse for Model {
         let view_type = get_view_generics(&item.sig.output)?;
 
         Ok(Self {
-            is_transparent: false,
             docs,
             vis: item.vis.clone(),
             // create component functions with snake case names to prevent clashes with Ratatui's
@@ -154,7 +152,6 @@ pub fn convert_to_snake_case(name: &Ident, span: Span) -> Ident {
 impl ToTokens for Model {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let Self {
-            is_transparent,
             docs,
             vis,
             name,
@@ -168,26 +165,6 @@ impl ToTokens for Model {
 
         let mut body = body.to_owned();
         let mut props = props.to_owned();
-
-        // check for components that end ;
-        if !is_transparent {
-            let ends_semi = body.block.stmts.iter().last().and_then(|stmt| match stmt {
-                Stmt::Item(Item::Macro(mac)) => mac.semi_token.as_ref(),
-                _ => None,
-            });
-            if let Some(semi) = ends_semi {
-                panic!(
-                    "{}",
-                    error_message!(
-                        semi.span(),
-                        "A component that ends with a `view!` macro followed by a semicolon will \
-                         return (), an empty view. This is usually an accident, not intentional, \
-                         so we prevent it. If you'd like to return (), you can do it it \
-                         explicitly by returning () as the last item from the component."
-                    )
-                );
-            }
-        }
 
         body.sig.ident = format_ident!(
             "__{}",
@@ -264,7 +241,8 @@ impl ToTokens for Model {
         let widget_cache_impl = quote! {
             #crate_import::cache::__WIDGET_CACHE.with(|c| {
                 let mut cache_mut = c.view_cache.borrow_mut();
-                if let Some(map) = cache_mut.get_mut::<#crate_import::cache::KeyWrapper<#view_type>>() {
+                if let Some(map) = cache_mut
+                .get_mut::<#crate_import::cache::KeyWrapper<#view_type>>() {
                     if let Some(cache) = map.get_mut(&(__caller_id, #scope_name.id())) {
                         c.mark(cache);
                         cache.stored_view.get_value()

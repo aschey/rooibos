@@ -197,10 +197,10 @@ where
 /// assert_eq!(state.get(), 0);
 /// # });
 /// ```
-pub fn create_reducer<T, Msg>(
+pub fn create_reducer<T: Clone, Msg: Clone>(
     cx: Scope,
     initial: T,
-    reduce: impl FnMut(&T, Msg) -> T,
+    reduce: impl FnMut(T, Msg) -> T,
 ) -> (Memo<T>, impl Fn(Msg)) {
     let reduce = RefCell::new(reduce);
     let signal = create_signal(cx, initial);

@@ -10,6 +10,7 @@ mod caller_id;
 mod component;
 mod component_children;
 mod view;
+mod widget;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 pub(crate) fn next_id() -> u64 {
@@ -53,6 +54,35 @@ pub fn caller_id(_attr: TokenStream, tokens: TokenStream) -> manyhow::Result {
 pub fn component_children(tokens: TokenStream) -> manyhow::Result {
     let input: DeriveInput = syn::parse2(tokens)?;
     component_children::parse(input)
+}
+
+#[manyhow]
+#[proc_macro]
+pub fn impl_widget(tokens: TokenStream) -> manyhow::Result {
+    let input: widget::Model = syn::parse2(tokens)?;
+    Ok(input.into_token_stream())
+}
+
+#[manyhow]
+#[proc_macro]
+pub fn impl_stateful_widget(tokens: TokenStream) -> manyhow::Result {
+    let mut input: widget::Model = syn::parse2(tokens)?;
+    input.stateful = true;
+    Ok(input.into_token_stream())
+}
+
+#[manyhow]
+#[proc_macro_derive(Widget)]
+pub fn widget(tokens: TokenStream) -> manyhow::Result {
+    let input: DeriveInput = syn::parse2(tokens)?;
+    Ok(widget::derive_widget(input))
+}
+
+#[manyhow]
+#[proc_macro_derive(StatefulWidget)]
+pub fn stateful_widget(tokens: TokenStream) -> manyhow::Result {
+    let input: DeriveInput = syn::parse2(tokens)?;
+    Ok(widget::derive_stateful_widget(input))
 }
 
 fn get_import() -> proc_macro2::TokenStream {

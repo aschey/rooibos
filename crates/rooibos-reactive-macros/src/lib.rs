@@ -73,7 +73,8 @@ fn impl_state_struct(
             #phantom
         }
 
-        impl #impl_generics #crate_import::StateTrigger for #trigger_ident #generics_turbofish #where_clause {
+        impl #impl_generics #crate_import::StateTrigger for #trigger_ident
+        #generics_turbofish #where_clause {
             fn new(cx: #crate_import::Scope) -> Self {
                 Self {
                     #(#leaf_idents: #crate_import::create_signal(cx, ()),)*

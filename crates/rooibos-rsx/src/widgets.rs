@@ -7,66 +7,9 @@ use ratatui::widgets::canvas::{Canvas, Context};
 use ratatui::widgets::{StatefulWidget, *};
 use ratatui::Frame;
 use rooibos_reactive::Scope;
+use rooibos_rsx_macros::{impl_stateful_widget, impl_widget};
 
 use crate::View;
-
-macro_rules! impl_widget {
-    ($name:ident, $widget:ident, $props:ident) => {
-        pub type $props<'a> = $widget<'a>;
-
-        impl MakeBuilder for $props<'_> {}
-
-        pub fn $name<B: Backend>(_cx: Scope, props: $props<'static>) -> impl View<B> {
-            move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
-        }
-    };
-}
-
-macro_rules! impl_widget_no_lifetime {
-    ($name:ident, $widget:ident, $props:ident) => {
-        pub type $props = $widget;
-
-        impl MakeBuilder for $props {}
-
-        pub fn $name<B: Backend>(_cx: Scope, props: $props) -> impl View<B> {
-            move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
-        }
-    };
-}
-
-macro_rules! impl_stateful_widget {
-    ($name:ident, $widget:ident, $props:ident, $state:ident) => {
-        impl<'a, B> StatefulRender<B, $props<'a>> for RefCell<$state>
-        where
-            B: Backend,
-        {
-            fn render_with_state(&mut self, widget: $props, frame: &mut Frame<B>, rect: Rect) {
-                frame.render_stateful_widget(widget, rect, &mut self.borrow_mut())
-            }
-        }
-
-        impl<'a, B> StatefulRender<B, $props<'a>> for $state
-        where
-            B: Backend,
-        {
-            fn render_with_state(&mut self, widget: $props, frame: &mut Frame<B>, rect: Rect) {
-                frame.render_stateful_widget(widget, rect, &mut self.clone())
-            }
-        }
-
-        pub type $props<'a> = $widget<'a>;
-
-        pub fn $name<'a, B: Backend>(
-            _cx: Scope,
-            props: $props<'static>,
-            mut state: impl StatefulRender<B, $widget<'a>> + 'static,
-        ) -> impl View<B> {
-            move |frame: &mut Frame<B>, rect: Rect| {
-                state.render_with_state(props.clone(), frame, rect);
-            }
-        }
-    };
-}
 
 pub trait Backend: ratatui::backend::Backend + 'static {}
 
@@ -168,23 +111,19 @@ impl MakeBuilder for ListState {}
 impl MakeBuilder for TableState {}
 impl MakeBuilder for Wrap {}
 
-impl_widget!(block, Block, BlockProps);
-impl_widget!(paragraph, Paragraph, ParagraphProps);
-impl_widget!(list, List, ListProps);
-impl_widget!(tabs, Tabs, TabsProps);
-impl_widget!(table, Table, TableProps);
-impl_widget!(gauge, Gauge, GaugeProps);
-impl_widget!(line_gauge, LineGauge, LineGaugeProps);
-impl_widget!(bar_chart, BarChart, BarChartProps);
-impl_widget_no_lifetime!(clear, Clear, ClearProps);
-impl_stateful_widget!(stateful_list, List, StatefulListProps, ListState);
-impl_stateful_widget!(stateful_table, Table, StatefulTableProps, TableState);
-impl_stateful_widget!(
-    stateful_scrollbar,
-    Scrollbar,
-    StatefulScrollbarProps,
-    ScrollbarState
-);
+impl_widget!(Block, visibility=pub, generics=<'a>);
+impl_widget!(Paragraph, visibility=pub, generics=<'a>);
+impl_widget!(List, visibility=pub,generics=<'a>);
+impl_widget!(Tabs, visibility=pub, generics=<'a>);
+impl_widget!(Table, visibility=pub, generics=<'a>);
+impl_widget!(Gauge, visibility=pub, generics=<'a>);
+impl_widget!(LineGauge, visibility=pub, generics=<'a>);
+impl_widget!(BarChart, visibility=pub, generics=<'a>);
+impl_widget!(Clear, visibility=pub);
+impl_widget!(Canvas, visibility=pub, generics=<'a, F>, where_clause=where F: Fn(&mut Context) + Clone + 'static);
+impl_stateful_widget!(List, visibility=pub, generics=<'a>);
+impl_stateful_widget!(Table, visibility=pub, generics=<'a>);
+impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>);
 
 pub trait WrapExt {
     fn trim(self, trim: bool) -> Self;
@@ -194,15 +133,4 @@ impl WrapExt for Wrap {
     fn trim(self, trim: bool) -> Self {
         Self { trim }
     }
-}
-
-pub type CanvasProps<'a, F> = Canvas<'a, F>;
-
-impl<F> MakeBuilder for CanvasProps<'_, F> where F: Fn(&mut Context) {}
-
-pub fn canvas<B: Backend, F>(_cx: Scope, props: CanvasProps<'static, F>) -> impl View<B>
-where
-    F: Fn(&mut Context) + Clone + 'static,
-{
-    move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
 }

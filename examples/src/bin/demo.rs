@@ -3,7 +3,7 @@ use std::error::Error;
 use std::io::stdout;
 use std::time::Duration;
 
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEventKind};
+use crossterm::event::{DisableMouseCapture, KeyCode, KeyEventKind};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -16,13 +16,12 @@ use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::canvas::{self, Circle, Context, Map, MapResolution, Rectangle};
 use ratatui::{Frame, Terminal};
 use rooibos::reactive::{
-    create_effect, create_memo, create_selector, create_signal, Scope, Signal, SignalGet,
-    SignalToggle, SignalUpdate, State,
+    create_effect, create_memo, create_signal, Scope, Signal, SignalGet, SignalToggle, SignalUpdate,
 };
 use rooibos::rsx::prelude::*;
 use rooibos::runtime::{
-    provide_focus_context, run_system, use_event_context, use_focus_context, AnyClone, Command,
-    EventHandler, Request,
+    provide_focus_context, run_system, use_event_context, use_focus_context, Command, EventHandler,
+    Request,
 };
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
@@ -329,12 +328,11 @@ where
     S: Iterator + Clone,
     S::Item: Clone,
 {
-    fn on_tick(&self) -> Self {
-        let mut this = self.clone();
-        this.points = this.points[this.tick_rate..].to_vec();
-        this.points
-            .extend(this.source.by_ref().take(this.tick_rate));
-        this
+    fn on_tick(mut self) -> Self {
+        self.points = self.points[self.tick_rate..].to_vec();
+        self.points
+            .extend(self.source.by_ref().take(self.tick_rate));
+        self
     }
 }
 
@@ -347,8 +345,8 @@ fn Gauges<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     create_effect(cx, move || {
         if tick_event.get().is_some() {
             progress.update(|p| {
-                if *p < 1.0 {
-                    (*p + 0.001f64).min(1.0)
+                if p < 1.0 {
+                    (p + 0.001f64).min(1.0)
                 } else {
                     0.0
                 }
@@ -426,7 +424,7 @@ fn DemoSparkline<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B>
 
     create_effect(cx, move || {
         if tick_event.get().is_some() {
-            sparkline_signal.update(|s| s.on_tick());
+            sparkline_signal.update(|s| s.clone().on_tick());
         }
     });
 
@@ -732,8 +730,8 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
     create_effect(cx, move || {
         if tick_event.get().is_some() {
             window.update(|[start, end]| [start + 1.0, end + 1.0]);
-            sin1.update(|s| s.clone().on_tick());
-            sin2.update(|s| s.clone().on_tick());
+            sin1.update(|s| s.on_tick());
+            sin2.update(|s| s.on_tick());
         }
     });
 

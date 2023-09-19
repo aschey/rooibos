@@ -31,7 +31,7 @@ pub trait SignalUpdate<T> {
     /// **Note:** `update()` does not auto-memoize, i.e., it will notify subscribers
     /// even if the value has not actually changed.
     #[track_caller]
-    fn update(self, f: impl FnOnce(&T) -> T);
+    fn update(self, f: impl FnOnce(T) -> T);
 
     fn set(self, new: T);
 }
@@ -374,20 +374,20 @@ impl<T: Clone> SignalGet<T> for Signal<T> {
     }
 }
 
-impl<T> BaseSignal<T> {
+impl<T: Clone> BaseSignal<T> {
     /// Update the value of the signal silently. This will not trigger any updates in dependent
     /// signals. As such, this is generally not recommended as it can easily lead to state
     /// inconsistencies.
     #[cfg_attr(debug_assertions, track_caller)]
-    pub(crate) fn update_silent(self, f: impl FnOnce(&T) -> T) {
+    pub(crate) fn update_silent(self, f: impl FnOnce(T) -> T) {
         self.get_data(|signal| {
             let mut val = signal.value.borrow_mut();
-            let inner = val
+            let inner: &mut T = val
                 .as_mut()
                 .expect("cannot update while updating")
                 .downcast_mut()
                 .expect("wrong signal type in slotmap");
-            *inner = f(inner);
+            *inner = f(inner.clone());
         });
     }
 
@@ -402,7 +402,7 @@ impl<T> BaseSignal<T> {
 
     /// Update the value of the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn update(self, f: impl FnOnce(&T) -> T) {
+    fn update(self, f: impl FnOnce(T) -> T) {
         self.update_silent(f);
         self.root.propagate_updates(self.id);
     }
@@ -414,10 +414,10 @@ impl<T> BaseSignal<T> {
     }
 }
 
-impl<T> SignalUpdate<T> for WriteSignal<T> {
+impl<T: Clone> SignalUpdate<T> for WriteSignal<T> {
     /// Update the value of the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn update(self, f: impl FnOnce(&T) -> T) {
+    fn update(self, f: impl FnOnce(T) -> T) {
         self.0.update(f)
     }
 
@@ -428,10 +428,10 @@ impl<T> SignalUpdate<T> for WriteSignal<T> {
     }
 }
 
-impl<T> SignalUpdate<T> for Signal<T> {
+impl<T: Clone> SignalUpdate<T> for Signal<T> {
     /// Update the value of the signal and automatically update any dependents.
     #[cfg_attr(debug_assertions, track_caller)]
-    fn update(self, f: impl FnOnce(&T) -> T) {
+    fn update(self, f: impl FnOnce(T) -> T) {
         self.0.update(f)
     }
 
