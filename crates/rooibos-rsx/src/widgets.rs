@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use ratatui::prelude::Rect;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
@@ -7,7 +5,7 @@ use ratatui::widgets::canvas::{Canvas, Context};
 use ratatui::widgets::{StatefulWidget, *};
 use ratatui::Frame;
 use rooibos_reactive::Scope;
-use rooibos_rsx_macros::{impl_stateful_widget, impl_widget};
+use rooibos_rsx_macros::{impl_stateful_render, impl_stateful_widget, impl_widget, make_builder};
 
 use crate::View;
 
@@ -15,46 +13,10 @@ pub trait Backend: ratatui::backend::Backend + 'static {}
 
 impl<B> Backend for B where B: ratatui::backend::Backend + 'static {}
 
-pub trait StatefulRender<B, W>
-where
-    B: Backend,
-    W: StatefulWidget,
-{
-    fn render_with_state(&mut self, widget: W, frame: &mut Frame<B>, rect: Rect);
-}
-
+#[make_builder]
 pub trait MakeBuilder {}
 
-pub trait BuilderFacade {
-    fn builder() -> Self;
-}
-
-pub trait BuildFacade {
-    fn build(self) -> Self;
-    fn __caller_id(self, caller_id: u64) -> Self;
-}
-
-impl<T> BuilderFacade for T
-where
-    T: MakeBuilder + Default,
-{
-    fn builder() -> Self {
-        Self::default()
-    }
-}
-
-impl<T> BuildFacade for T
-where
-    T: MakeBuilder,
-{
-    fn build(self) -> Self {
-        self
-    }
-
-    fn __caller_id(self, _caller_id: u64) -> Self {
-        self
-    }
-}
+impl_stateful_render!(StatefulRender, visibility=pub);
 
 pub trait NewExt<'a, T>
 where
@@ -111,19 +73,19 @@ impl MakeBuilder for ListState {}
 impl MakeBuilder for TableState {}
 impl MakeBuilder for Wrap {}
 
-impl_widget!(Block, visibility=pub, generics=<'a>);
-impl_widget!(Paragraph, visibility=pub, generics=<'a>);
-impl_widget!(List, visibility=pub,generics=<'a>);
-impl_widget!(Tabs, visibility=pub, generics=<'a>);
-impl_widget!(Table, visibility=pub, generics=<'a>);
-impl_widget!(Gauge, visibility=pub, generics=<'a>);
-impl_widget!(LineGauge, visibility=pub, generics=<'a>);
-impl_widget!(BarChart, visibility=pub, generics=<'a>);
-impl_widget!(Clear, visibility=pub);
-impl_widget!(Canvas, visibility=pub, generics=<'a, F>, where_clause=where F: Fn(&mut Context) + Clone + 'static);
-impl_stateful_widget!(List, visibility=pub, generics=<'a>);
-impl_stateful_widget!(Table, visibility=pub, generics=<'a>);
-impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>);
+impl_widget!(Block, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(Paragraph, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(List, visibility=pub,generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(Tabs, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(Table, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(Gauge, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(LineGauge, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(BarChart, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(Clear, visibility=pub, make_builder=MakeBuilder);
+impl_widget!(Canvas, visibility=pub, generics=<'a, F>, make_builder=MakeBuilder, where_clause=where F: Fn(&mut Context) + Clone + 'static);
+impl_stateful_widget!(List, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
+impl_stateful_widget!(Table, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
+impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
 
 pub trait WrapExt {
     fn trim(self, trim: bool) -> Self;

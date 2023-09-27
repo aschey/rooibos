@@ -20,3 +20,4 @@ tracing-subscriber = { version = "0.3.17", features = [
 ] }
 rand = "0.8.5"
 ratatui-textarea = "0.3.2"
+tui-tree-widget = "0.13.0"

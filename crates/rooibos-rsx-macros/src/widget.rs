@@ -1,20 +1,25 @@
+use attribute_derive::Attribute;
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_quote, DeriveInput, Generics, Token, Visibility, WhereClause};
 
-pub struct Model {
+pub(crate) struct Model {
     name: Ident,
+    make_builder: Ident,
     vis: Visibility,
     generics: Generics,
+    stateful_render: Ident,
     pub(crate) stateful: bool,
 }
 
 impl Parse for Model {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let name: syn::Ident = input.parse()?;
+        let name: Ident = input.parse()?;
 
+        let mut make_builder = Ident::new("_", Span::call_site());
+        let mut stateful_render = Ident::new("_", Span::call_site());
         let mut vis = Visibility::Inherited;
         let mut generics = Generics::default();
         let mut where_clause: Option<WhereClause> = None;
@@ -32,6 +37,12 @@ impl Parse for Model {
                 "where_clause" => {
                     where_clause = Some(input.parse()?);
                 }
+                "make_builder" => {
+                    make_builder = input.parse()?;
+                }
+                "stateful_render" => {
+                    stateful_render = input.parse()?;
+                }
                 prop => {
                     return Err(syn::Error::new_spanned(
                         ident,
@@ -45,6 +56,8 @@ impl Parse for Model {
             name,
             vis,
             generics,
+            make_builder,
+            stateful_render,
             stateful: false,
         })
     }
@@ -54,22 +67,62 @@ impl ToTokens for Model {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.append_all(get_tokens(
             self.name.clone(),
+            self.make_builder.clone(),
             self.vis.clone(),
             self.generics.clone(),
+            self.stateful_render.clone(),
             self.stateful,
         ));
     }
 }
 
+#[derive(Clone, Debug, Attribute)]
+#[attribute(ident = make_builder_trait)]
+struct MakeBuilder {
+    name: Ident,
+}
+
+#[derive(Clone, Debug, Attribute)]
+#[attribute(ident = stateful_render_trait)]
+struct StatefulRender {
+    name: Ident,
+}
+
+
 pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
-    get_tokens(input.ident, input.vis, input.generics, false)
+    let make_builder = MakeBuilder::from_attributes(&input.attrs).unwrap();
+
+    get_tokens(
+        input.ident,
+        make_builder.name,
+        input.vis,
+        input.generics,
+        Ident::new("_", Span::call_site()),
+        false,
+    )
 }
 
 pub(crate) fn derive_stateful_widget(input: DeriveInput) -> TokenStream {
-    get_tokens(input.ident, input.vis, input.generics, true)
+    let stateful_render = StatefulRender::from_attributes(&input.attrs).unwrap();
+
+    get_tokens(
+        input.ident,
+        Ident::new("_", Span::call_site()),
+        input.vis,
+        input.generics,
+        stateful_render.name,
+        true,
+    )
 }
 
-fn get_tokens(name: Ident, vis: Visibility, generics: Generics, stateful: bool) -> TokenStream {
+fn get_tokens(
+    name: Ident,
+    make_builder: Ident,
+    vis: Visibility,
+    generics: Generics,
+    stateful_render:Ident,
+    stateful: bool,
+) -> TokenStream {
     let snake_name = if stateful {
         format!("Stateful{name}")
     } else {
@@ -98,10 +151,9 @@ fn get_tokens(name: Ident, vis: Visibility, generics: Generics, stateful: bool) 
 
     if stateful {
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
-
         quote! {
-            impl #impl_generics_backend StatefulRender<B, #props_name #ty_generics>
-            for RefCell<#state_name> #where_clause_backend
+            impl #impl_generics_backend #stateful_render<B, #props_name #ty_generics>
+            for ::std::cell::RefCell<#state_name> #where_clause_backend
             {
                 fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame<B>,
                     rect: Rect) {
@@ -109,7 +161,7 @@ fn get_tokens(name: Ident, vis: Visibility, generics: Generics, stateful: bool) 
                 }
             }
 
-            impl #impl_generics_backend StatefulRender<B, #props_name #ty_generics> for #state_name
+            impl #impl_generics_backend #stateful_render<B, #props_name #ty_generics> for #state_name
             {
                 fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame<B>,
                     rect: Rect) {
@@ -122,7 +174,7 @@ fn get_tokens(name: Ident, vis: Visibility, generics: Generics, stateful: bool) 
             #vis fn #fn_name #impl_generics_backend (
                 _cx: Scope,
                 props: #props_name #ty_generics_static,
-                mut state: impl StatefulRender<B, #name #ty_generics> + 'static,
+                mut state: impl #stateful_render<B, #name #ty_generics> + 'static,
             ) -> impl View<B> {
                 move |frame: &mut Frame<B>, rect: Rect| {
                     state.render_with_state(props.clone(), frame, rect);
@@ -133,7 +185,7 @@ fn get_tokens(name: Ident, vis: Visibility, generics: Generics, stateful: bool) 
         quote! {
             #vis type #props_name #ty_generics = #name #ty_generics;
 
-            impl #impl_generics MakeBuilder for #props_name #ty_generics #where_clause {}
+            impl #impl_generics #make_builder for #props_name #ty_generics #where_clause {}
 
             #vis fn #fn_name #impl_generics_backend (_cx: Scope, props: #props_name
                 #ty_generics_static)

@@ -6,10 +6,13 @@ use proc_macro_crate::{crate_name, FoundCrate};
 use quote::ToTokens;
 use syn::DeriveInput;
 
+use crate::view_traits::attr_make_builder;
+
 mod caller_id;
 mod component;
 mod component_children;
 mod view;
+mod view_traits;
 mod widget;
 
 static NEXT_ID: AtomicU64 = AtomicU64::new(0);
@@ -72,7 +75,7 @@ pub fn impl_stateful_widget(tokens: TokenStream) -> manyhow::Result {
 }
 
 #[manyhow]
-#[proc_macro_derive(Widget)]
+#[proc_macro_derive(Widget, attributes(make_builder_trait))]
 pub fn widget(tokens: TokenStream) -> manyhow::Result {
     let input: DeriveInput = syn::parse2(tokens)?;
     Ok(widget::derive_widget(input))
@@ -83,6 +86,19 @@ pub fn widget(tokens: TokenStream) -> manyhow::Result {
 pub fn stateful_widget(tokens: TokenStream) -> manyhow::Result {
     let input: DeriveInput = syn::parse2(tokens)?;
     Ok(widget::derive_stateful_widget(input))
+}
+
+#[manyhow]
+#[proc_macro_attribute]
+pub fn make_builder(attr: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    Ok(attr_make_builder(attr, tokens))
+}
+
+#[manyhow]
+#[proc_macro]
+pub fn impl_stateful_render(tokens: TokenStream) -> manyhow::Result {
+    let input: view_traits::StatefulModel = syn::parse2(tokens)?;
+    Ok(input.into_token_stream())
 }
 
 fn get_import() -> proc_macro2::TokenStream {

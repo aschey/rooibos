@@ -55,6 +55,7 @@ fn App<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[derive(Default, Clone, Widget)]
+#[make_builder_trait(name=MakeBuilder)]
 struct MyCustomWidget<'a> {
     block: Option<Block<'a>>,
     text: Text<'a>,
