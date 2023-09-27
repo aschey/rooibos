@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use ratatui::backend::TestBackend;
 use ratatui::buffer::Buffer;
 use ratatui::style::{Color, Style};
@@ -527,7 +525,7 @@ fn array_as_variable() {
 #[test]
 fn simple_custom_component() {
     #[component]
-    fn Viewer<B: Backend>(cx: Scope, #[prop(into)] text: String, flag: bool) -> impl View<B> {
+    fn Viewer(cx: Scope, #[prop(into)] text: String, flag: bool) -> impl View {
         move || {
             view! { cx,
                 <List>
@@ -560,44 +558,9 @@ fn simple_custom_component() {
 }
 
 #[test]
-fn static_backend_component() {
-    #[component]
-    fn Viewer(cx: Scope, #[prop(into)] text: String) -> impl View<TestBackend> {
-        move || {
-            view! { cx,
-                <List>
-                    <>
-                        <ListItem>{text.clone()}</ListItem>
-                    </>
-                </List>
-            }
-        }
-    }
-
-    let backend = TestBackend::new(2, 1);
-    let mut terminal = Terminal::new(backend).unwrap();
-
-    create_root(|cx| {
-        let mut view = mount! { cx,
-            <Column>
-                <Viewer text="hi"/>
-            </Column>
-        };
-        terminal
-            .draw(|f| {
-                view.view(f, f.size());
-            })
-            .unwrap();
-        terminal
-            .backend()
-            .assert_buffer(&Buffer::with_lines(vec!["hi"]));
-    });
-}
-
-#[test]
 fn custom_component_children() {
     #[component]
-    fn Viewer<B: Backend>(cx: Scope, #[prop(into, children)] text: String) -> impl View<B> {
+    fn Viewer(cx: Scope, #[prop(into, children)] text: String) -> impl View {
         move || {
             view! { cx,
                 <List>
@@ -634,11 +597,7 @@ fn custom_component_children() {
 #[test]
 fn generic_component() {
     #[component]
-    fn Viewer<T: 'static, B: Backend>(
-        cx: Scope,
-        #[prop(into)] text: String,
-        flag: bool,
-    ) -> impl View<B> {
+    fn Viewer<T: 'static>(cx: Scope, #[prop(into)] text: String, flag: bool) -> impl View {
         let _ = std::any::type_name::<T>();
         move || {
             view! { cx,
@@ -657,7 +616,7 @@ fn generic_component() {
     create_root(|cx| {
         let mut view = mount! { cx,
             <Column>
-                <Viewer<usize, _> text="hi" flag=true/>
+                <Viewer<usize> text="hi" flag=true/>
             </Column>
         };
         terminal
@@ -674,12 +633,12 @@ fn generic_component() {
 #[test]
 fn custom_component_children_second() {
     #[component]
-    fn Viewer<B: Backend>(
+    fn Viewer(
         cx: Scope,
         #[prop(default = 0)] _something: usize,
         #[prop(into, children)] text: String,
         #[prop(default = 0)] _something_else: usize,
-    ) -> impl View<B> {
+    ) -> impl View {
         move || {
             view! { cx,
                 <List>
@@ -724,7 +683,7 @@ fn custom_child_prop() {
     }
 
     #[component]
-    fn Viewer<B: Backend>(cx: Scope, #[prop(into, children)] children: ChildProp) -> impl View<B> {
+    fn Viewer(cx: Scope, #[prop(into, children)] children: ChildProp) -> impl View {
         move || {
             view! { cx,
                 <List>
@@ -761,10 +720,7 @@ fn custom_child_prop() {
 #[test]
 fn component_child() {
     #[component]
-    fn Viewer<B: Backend, V: LazyView<B> + Clone>(
-        _cx: Scope,
-        #[prop(children)] children: V,
-    ) -> impl View<B> {
+    fn Viewer<V: LazyView + Clone>(_cx: Scope, #[prop(children)] children: V) -> impl View {
         move || {
             let mut children = children.clone();
             view! { cx,
@@ -808,18 +764,16 @@ fn component_child() {
 fn component_child_nested() {
     #[caller_id]
     #[derive(TypedBuilder, ComponentChildren)]
-    struct ChildProp<B: Backend, V: LazyView<B> + Clone> {
+    struct ChildProp<V: LazyView + Clone> {
         #[children]
         views: V,
-        #[builder(default)]
-        _phantom: PhantomData<B>,
     }
 
     #[component]
-    fn Viewer<B: Backend, V: LazyView<B> + Clone>(
+    fn Viewer<V: LazyView + Clone>(
         _cx: Scope,
-        #[prop(children)] children: ChildProp<B, V>,
-    ) -> impl View<B> {
+        #[prop(children)] children: ChildProp<V>,
+    ) -> impl View {
         move || {
             let mut children = children.views.clone();
             view! { cx,
@@ -865,18 +819,16 @@ fn component_child_nested() {
 fn custom_component_nested_layout() {
     #[caller_id]
     #[derive(TypedBuilder, ComponentChildren)]
-    struct ChildProp<B: Backend, V: LazyView<B> + Clone> {
+    struct ChildProp<V: LazyView + Clone> {
         #[children]
         views: V,
-        #[builder(default)]
-        _phantom: PhantomData<B>,
     }
 
     #[component]
-    fn Viewer<B: Backend, V: LazyView<B> + Clone>(
+    fn Viewer<V: LazyView + Clone>(
         _cx: Scope,
-        #[prop(children)] children: ChildProp<B, V>,
-    ) -> impl View<B> {
+        #[prop(children)] children: ChildProp<V>,
+    ) -> impl View {
         move || {
             let mut children = children.views.clone();
             view! { cx,

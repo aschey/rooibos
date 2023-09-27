@@ -4,15 +4,14 @@ use typed_builder::TypedBuilder;
 use crate::prelude::*;
 
 #[component]
-pub fn Popup<B, V>(
+pub fn Popup<V>(
     cx: Scope,
     #[prop(children)] children: V,
     percent_x: u16,
     percent_y: u16,
-) -> impl View<B>
+) -> impl View
 where
-    B: Backend,
-    V: LazyView<B> + Clone,
+    V: LazyView + Clone,
 {
     let inverse_y = (100 - percent_y) / 2;
     let inverse_x = (100 - percent_x) / 2;
@@ -38,20 +37,19 @@ where
 }
 
 #[component]
-pub fn Show<B, F1, F2, V1, V2, W>(
+pub fn Show<F1, F2, V1, V2, W>(
     _cx: Scope,
     #[prop(children)] children: F1,
     when: W,
     fallback: F2,
     #[prop(default = false)] eager: bool,
-) -> impl View<B>
+) -> impl View
 where
-    B: Backend,
     W: Fn() -> bool + 'static,
     F1: Fn() -> V1 + 'static,
     F2: Fn() -> V2 + 'static,
-    V1: View<B>,
-    V2: View<B>,
+    V1: View,
+    V2: View,
 {
     move || match (when(), eager) {
         (true, true) => {
@@ -69,26 +67,20 @@ where
 
 #[caller_id]
 #[derive(TypedBuilder, ComponentChildren)]
-pub struct Case<B>
-where
-    B: Backend,
-{
+pub struct Case {
     #[builder(setter(transform = |f: impl IntoBoxed<dyn Fn() -> bool>| f.into_boxed()))]
     when: Box<dyn Fn() -> bool>,
     #[children]
-    #[builder(setter(transform = |f: impl IntoBoxedLazyView<B>| f.into_boxed_lazy_view()))]
-    children: Box<dyn Fn() -> Box<dyn View<B>>>,
+    #[builder(setter(transform = |f: impl IntoBoxedLazyView| f.into_boxed_lazy_view()))]
+    children: Box<dyn Fn() -> Box<dyn View>>,
 }
 
 #[component]
-pub fn Switch<B>(
+pub fn Switch(
     _cx: Scope,
-    #[prop(children)] children: Vec<Case<B>>,
+    #[prop(children)] children: Vec<Case>,
     #[prop(default = true)] lazy: bool,
-) -> impl View<B>
-where
-    B: Backend,
-{
+) -> impl View {
     move || {
         let mut res = None;
         for child in &children {

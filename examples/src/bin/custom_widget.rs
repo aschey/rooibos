@@ -43,7 +43,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 }
 
 #[component]
-fn App<B: Backend>(cx: Scope) -> impl View<B> {
+fn App(cx: Scope) -> impl View {
     move || {
         view! { cx,
             <MyCustomWidget

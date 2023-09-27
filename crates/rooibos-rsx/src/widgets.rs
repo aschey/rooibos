@@ -9,10 +9,6 @@ use rooibos_rsx_macros::{impl_stateful_render, impl_stateful_widget, impl_widget
 
 use crate::View;
 
-pub trait Backend: ratatui::backend::Backend + 'static {}
-
-impl<B> Backend for B where B: ratatui::backend::Backend + 'static {}
-
 #[make_builder]
 pub trait MakeBuilder {}
 

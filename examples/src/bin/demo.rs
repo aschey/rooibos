@@ -107,7 +107,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 struct Tick;
 
 #[component]
-fn App<B: Backend>(cx: Scope) -> impl View<B> {
+fn App(cx: Scope) -> impl View {
     provide_focus_context::<usize>(cx, Some(0));
     let event_context = use_event_context(cx);
     event_context.dispatch(Command::new_async(|tx, cancellation_token| async move {
@@ -139,7 +139,7 @@ fn App<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[component]
-fn HeaderTabs<B: Backend>(cx: Scope, titles: Vec<&'static str>) -> impl View<B> {
+fn HeaderTabs(cx: Scope, titles: Vec<&'static str>) -> impl View {
     let focus_context = use_focus_context::<usize>(cx);
     let focus_selector = focus_context.get_focus_selector();
 
@@ -196,7 +196,7 @@ fn HeaderTabs<B: Backend>(cx: Scope, titles: Vec<&'static str>) -> impl View<B> 
 }
 
 #[component]
-fn TabContent<B: Backend>(cx: Scope) -> impl View<B> {
+fn TabContent(cx: Scope) -> impl View {
     let focus_context = use_focus_context::<usize>(cx);
     let focus_selector = focus_context.get_focus_selector();
 
@@ -224,7 +224,7 @@ fn TabContent<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[component]
-fn Tab0<B: Backend>(cx: Scope) -> impl View<B> {
+fn Tab0(cx: Scope) -> impl View {
     move || {
         view! {cx,
             <Column>
@@ -237,7 +237,7 @@ fn Tab0<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[component]
-fn Tab1<B: Backend>(cx: Scope) -> impl View<B> {
+fn Tab1(cx: Scope) -> impl View {
     let servers = create_signal(
         cx,
         vec![
@@ -279,7 +279,7 @@ fn Tab1<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[component]
-fn Tab2<B: Backend>(cx: Scope) -> impl View<B> {
+fn Tab2(cx: Scope) -> impl View {
     move || {
         view! {cx,
             <Row>
@@ -337,7 +337,7 @@ where
 }
 
 #[component]
-fn Gauges<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
+fn Gauges(cx: Scope, enhanced_graphics: bool) -> impl View {
     let progress = create_signal(cx, 0.0);
     let event_context = use_event_context(cx);
     let tick_event = event_context.create_custom_event_signal::<Tick>(cx);
@@ -366,11 +366,7 @@ fn Gauges<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
 }
 
 #[component]
-fn DemoGauge<B: Backend>(
-    cx: Scope,
-    enhanced_graphics: bool,
-    progress: Signal<f64>,
-) -> impl View<B> {
+fn DemoGauge(cx: Scope, enhanced_graphics: bool, progress: Signal<f64>) -> impl View {
     move || {
         view! { cx,
             <Gauge
@@ -385,11 +381,7 @@ fn DemoGauge<B: Backend>(
 }
 
 #[component]
-fn DemoLineGauge<B: Backend>(
-    cx: Scope,
-    enhanced_graphics: bool,
-    progress: Signal<f64>,
-) -> impl View<B> {
+fn DemoLineGauge(cx: Scope, enhanced_graphics: bool, progress: Signal<f64>) -> impl View {
     move || {
         view! { cx,
             <LineGauge
@@ -407,7 +399,7 @@ fn DemoLineGauge<B: Backend>(
 }
 
 #[component]
-fn DemoSparkline<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
+fn DemoSparkline(cx: Scope, enhanced_graphics: bool) -> impl View {
     let mut rand_signal = RandomDistribution::new(0, 100);
     let sparkline_points = rand_signal.by_ref().take(300).collect();
     let sparkline_signal = create_signal(
@@ -445,7 +437,7 @@ fn DemoSparkline<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B>
 }
 
 #[component]
-fn Charts<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
+fn Charts(cx: Scope, enhanced_graphics: bool) -> impl View {
     let show_chart = create_signal(cx, true);
 
     let event_context = use_event_context(cx);
@@ -486,7 +478,7 @@ const TASKS: [&str; 24] = [
 ];
 
 #[component]
-fn TaskList<B: Backend>(cx: Scope) -> impl View<B> {
+fn TaskList(cx: Scope) -> impl View {
     let selected_task = create_signal::<Option<usize>>(cx, None);
     let task_data = create_signal(cx, TASKS.to_vec());
 
@@ -552,7 +544,7 @@ const LOGS: [(&str, &str); 26] = [
 ];
 
 #[component]
-fn Logs<B: Backend>(cx: Scope) -> impl View<B> {
+fn Logs(cx: Scope) -> impl View {
     let log_data = create_signal(cx, LOGS.to_vec());
 
     let event_context = use_event_context(cx);
@@ -635,7 +627,7 @@ const EVENTS: [(&str, u64); 24] = [
 ];
 
 #[component]
-fn DemoBarChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
+fn DemoBarChart(cx: Scope, enhanced_graphics: bool) -> impl View {
     let barchart_data = create_signal(cx, EVENTS.to_vec());
 
     let event_context = use_event_context(cx);
@@ -701,7 +693,7 @@ impl Iterator for SinData {
 }
 
 #[component]
-fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
+fn DemoChart(cx: Scope, enhanced_graphics: bool) -> impl View {
     let mut sin1_data = SinData::new(0.2, 3.0, 18.0);
     let sin1 = create_signal(
         cx,
@@ -806,7 +798,7 @@ fn DemoChart<B: Backend>(cx: Scope, enhanced_graphics: bool) -> impl View<B> {
 }
 
 #[component]
-fn Footer<B: Backend>(cx: Scope) -> impl View<B> {
+fn Footer(cx: Scope) -> impl View {
     move || {
         view! { cx,
             <Paragraph
@@ -862,7 +854,7 @@ pub struct Server<'a> {
 }
 
 #[component]
-fn DemoTable<B: Backend>(cx: Scope, servers: Signal<Vec<Server<'static>>>) -> impl View<B> {
+fn DemoTable(cx: Scope, servers: Signal<Vec<Server<'static>>>) -> impl View {
     let rows = create_memo(cx, move || {
         servers
             .get()
@@ -901,11 +893,7 @@ fn DemoTable<B: Backend>(cx: Scope, servers: Signal<Vec<Server<'static>>>) -> im
 }
 
 #[component]
-fn DemoMap<B: Backend>(
-    cx: Scope,
-    servers: Signal<Vec<Server<'static>>>,
-    enhanced_graphics: bool,
-) -> impl View<B> {
+fn DemoMap(cx: Scope, servers: Signal<Vec<Server<'static>>>, enhanced_graphics: bool) -> impl View {
     let paint_map = move |ctx: &mut Context<'_>| {
         let servers = servers.get();
         ctx.draw(&Map {
@@ -968,7 +956,7 @@ fn DemoMap<B: Backend>(
 }
 
 #[component]
-fn colors_table<B: Backend>(cx: Scope) -> impl View<B> {
+fn colors_table(cx: Scope) -> impl View {
     let colors = [
         Color::Reset,
         Color::Black,

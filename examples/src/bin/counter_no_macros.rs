@@ -39,7 +39,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn create_counter<B: Backend>(cx: Scope) -> impl View<B> {
+fn create_counter(cx: Scope) -> impl View {
     let count = create_signal(cx, 0);
     let context = use_event_context(cx);
 
@@ -49,7 +49,7 @@ fn create_counter<B: Backend>(cx: Scope) -> impl View<B> {
         }
     });
 
-    move |f: &mut Frame<B>, area: Rect| {
+    move |f: &mut Frame, area: Rect| {
         let block = Block::default().title(format!("count {}", count.get()));
         f.render_widget(block, area);
     }

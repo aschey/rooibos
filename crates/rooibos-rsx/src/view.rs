@@ -1,49 +1,39 @@
 use std::cell::RefCell;
-use std::marker::PhantomData;
 use std::rc::Rc;
 
 use ratatui::prelude::{Constraint, Direction, Layout, Rect};
 use ratatui::Frame;
 
-use crate::Backend;
-
-pub trait View<B: Backend>: 'static {
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect);
-    fn into_boxed_view(self) -> Box<dyn View<B>>;
+pub trait View: 'static {
+    fn view(&mut self, frame: &mut Frame, rect: Rect);
+    fn into_boxed_view(self) -> Box<dyn View>;
 }
 
-impl<B, F> View<B> for F
+impl<F> View for F
 where
-    B: Backend,
-    F: FnMut(&mut Frame<B>, Rect) + 'static,
+    F: FnMut(&mut Frame, Rect) + 'static,
 {
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         (self)(frame, rect)
     }
 
-    fn into_boxed_view(self) -> Box<dyn View<B>> {
+    fn into_boxed_view(self) -> Box<dyn View> {
         Box::new(self)
     }
 }
 
-impl<B> View<B> for Box<dyn View<B>>
-where
-    B: Backend,
-{
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+impl View for Box<dyn View> {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         (**self).view(frame, rect)
     }
 
-    fn into_boxed_view(self) -> Box<dyn View<B>> {
+    fn into_boxed_view(self) -> Box<dyn View> {
         self
     }
 }
 
-impl<B> View<B> for Vec<Box<dyn View<B>>>
-where
-    B: Backend,
-{
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+impl View for Vec<Box<dyn View>> {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         let size = rect.height / self.len() as u16;
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -54,85 +44,73 @@ where
         }
     }
 
-    fn into_boxed_view(self) -> Box<dyn View<B>> {
+    fn into_boxed_view(self) -> Box<dyn View> {
         Box::new(self)
     }
 }
 
-impl<B> View<B> for Rc<RefCell<dyn View<B>>>
-where
-    B: Backend,
-{
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+impl View for Rc<RefCell<dyn View>> {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         self.borrow_mut().view(frame, rect)
     }
 
-    fn into_boxed_view(self) -> Box<dyn View<B>> {
+    fn into_boxed_view(self) -> Box<dyn View> {
         Box::new(self)
     }
 }
 
-impl<B, V> View<B> for Rc<RefCell<V>>
+impl<V> View for Rc<RefCell<V>>
 where
-    B: Backend,
-    V: View<B>,
+    V: View,
 {
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         self.borrow_mut().view(frame, rect)
     }
 
-    fn into_boxed_view(self) -> Box<dyn View<B>> {
+    fn into_boxed_view(self) -> Box<dyn View> {
         Box::new(self)
     }
 }
 
-pub trait LazyView<B: Backend>: 'static {
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect);
+pub trait LazyView: 'static {
+    fn view(&mut self, frame: &mut Frame, rect: Rect);
 }
 
-impl<B, F, Ret> LazyView<B> for F
+impl<F, Ret> LazyView for F
 where
-    B: Backend,
     F: FnMut() -> Ret + 'static,
-    Ret: View<B>,
+    Ret: View,
 {
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         (self)().view(frame, rect)
     }
 }
 
-pub struct LazyViewWrapper<B, F>
+pub struct LazyViewWrapper<F>
 where
-    B: Backend,
-    F: LazyView<B>,
+    F: LazyView,
 {
     f: F,
-    _phantom: PhantomData<B>,
 }
 
-impl<B, F> LazyViewWrapper<B, F>
+impl<F> LazyViewWrapper<F>
 where
-    B: Backend,
-    F: LazyView<B>,
+    F: LazyView,
 {
     pub fn new(f: F) -> Self {
-        Self {
-            f,
-            _phantom: PhantomData,
-        }
+        Self { f }
     }
 }
 
-impl<B, F> View<B> for LazyViewWrapper<B, F>
+impl<F> View for LazyViewWrapper<F>
 where
-    B: Backend,
-    F: LazyView<B>,
+    F: LazyView,
 {
-    fn view(&mut self, frame: &mut Frame<B>, rect: Rect) {
+    fn view(&mut self, frame: &mut Frame, rect: Rect) {
         (self.f).view(frame, rect)
     }
 
-    fn into_boxed_view(self) -> Box<dyn View<B>> {
+    fn into_boxed_view(self) -> Box<dyn View> {
         Box::new(self)
     }
 }
@@ -150,20 +128,16 @@ where
     }
 }
 
-pub trait IntoBoxedLazyView<B>
-where
-    B: Backend,
-{
-    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View<B>>>;
+pub trait IntoBoxedLazyView {
+    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View>>;
 }
 
-impl<B, F, V> IntoBoxedLazyView<B> for F
+impl<F, V> IntoBoxedLazyView for F
 where
-    B: Backend,
     F: Fn() -> V + 'static,
-    V: View<B>,
+    V: View,
 {
-    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View<B>>> {
+    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View>> {
         (move || (self)().into_boxed_view()).into_boxed()
     }
 }

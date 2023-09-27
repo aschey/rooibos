@@ -42,7 +42,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 }
 
 #[component]
-fn Counter<B: Backend>(cx: Scope) -> impl View<B> {
+fn Counter(cx: Scope) -> impl View {
     let count = create_signal(cx, 0);
     let context = use_event_context(cx);
 

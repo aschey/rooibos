@@ -324,7 +324,7 @@ where
         }
     }
 
-    pub fn render(&self, mut view: impl View<B> + 'static) {
+    pub fn render(&self, mut view: impl View + 'static) {
         let writer = self.writer.clone();
         create_effect(self.cx, move || {
             if let Some(writer) = writer.borrow_mut().as_mut() {
@@ -334,7 +334,7 @@ where
                         view.view(f, f.size());
                     })
                     .unwrap();
-                __WIDGET_CACHE.with(|c| c.evict::<B>());
+                __WIDGET_CACHE.with(|c| c.evict());
             }
         });
     }

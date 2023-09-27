@@ -65,7 +65,7 @@ impl View {
             .map(|(i, v)| v.view_to_tokens(Some(i), true))
             .collect();
         let layout_tokens = quote! {
-            move |f: &mut Frame<_>, rect: Rect| {
+            move |f: &mut Frame, rect: Rect| {
                 #fn_clones
                 #(#child_tokens)*
             }
@@ -96,7 +96,7 @@ impl View {
         let fn_clones = self.generate_fn_clones();
 
         let layout_tokens = quote! {
-            move |f: &mut Frame<_>, rect: Rect| {
+            move |f: &mut Frame, rect: Rect| {
                 #fn_clones
                 let layout = Layout::default().direction(#direction);
                 let chunks = layout
@@ -146,7 +146,7 @@ impl View {
             ViewType::Block { fn_name, tokens } => {
                 quote! {
                     let mut #fn_name = ::std::rc::Rc::new(::std::cell::RefCell::new(
-                        move |f: &mut Frame<_>, chunks: Rect| #tokens.view(f, chunks)));
+                        move |f: &mut Frame, chunks: Rect| #tokens.view(f, chunks)));
                 }
             }
             ViewType::Element {
@@ -166,7 +166,7 @@ impl View {
                 let get_container = |inner: TokenStream| {
                     quote! {
                         ::std::rc::Rc::new(::std::cell::RefCell::new(#inner))
-                        as ::std::rc::Rc<::std::cell::RefCell<dyn View<_>>>
+                        as ::std::rc::Rc<::std::cell::RefCell<dyn View>>
                     }
                 };
                 let get_conditional = |rest: TokenStream| {

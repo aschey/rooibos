@@ -3,7 +3,7 @@ use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
-use syn::{parse_quote, DeriveInput, Generics, Token, Visibility, WhereClause};
+use syn::{DeriveInput, Generics, Token, Visibility, WhereClause};
 
 pub(crate) struct Model {
     name: Ident,
@@ -88,7 +88,6 @@ struct StatefulRender {
     name: Ident,
 }
 
-
 pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
     let make_builder = MakeBuilder::from_attributes(&input.attrs).unwrap();
 
@@ -120,7 +119,7 @@ fn get_tokens(
     make_builder: Ident,
     vis: Visibility,
     generics: Generics,
-    stateful_render:Ident,
+    stateful_render: Ident,
     stateful: bool,
 ) -> TokenStream {
     let snake_name = if stateful {
@@ -145,25 +144,21 @@ fn get_tokens(
     }
     let (_, ty_generics_static, _) = generics_static.split_for_impl();
 
-    let mut generics_backend = generics.clone();
-    generics_backend.params.push(parse_quote!(B: Backend));
-    let (impl_generics_backend, _, where_clause_backend) = generics_backend.split_for_impl();
-
     if stateful {
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
-            impl #impl_generics_backend #stateful_render<B, #props_name #ty_generics>
-            for ::std::cell::RefCell<#state_name> #where_clause_backend
+            impl #impl_generics #stateful_render<#props_name #ty_generics>
+            for ::std::cell::RefCell<#state_name> #where_clause
             {
-                fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame<B>,
+                fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame,
                     rect: Rect) {
                     frame.render_stateful_widget(widget, rect, &mut self.borrow_mut())
                 }
             }
 
-            impl #impl_generics_backend #stateful_render<B, #props_name #ty_generics> for #state_name
+            impl #impl_generics #stateful_render<#props_name #ty_generics> for #state_name
             {
-                fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame<B>,
+                fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame,
                     rect: Rect) {
                     frame.render_stateful_widget(widget, rect, &mut self.clone())
                 }
@@ -171,12 +166,12 @@ fn get_tokens(
 
             #vis type #props_name #ty_generics = #name #ty_generics;
 
-            #vis fn #fn_name #impl_generics_backend (
+            #vis fn #fn_name #impl_generics (
                 _cx: Scope,
                 props: #props_name #ty_generics_static,
-                mut state: impl #stateful_render<B, #name #ty_generics> + 'static,
-            ) -> impl View<B> {
-                move |frame: &mut Frame<B>, rect: Rect| {
+                mut state: impl #stateful_render<#name #ty_generics> + 'static,
+            ) -> impl View {
+                move |frame: &mut Frame, rect: Rect| {
                     state.render_with_state(props.clone(), frame, rect);
                 }
             }
@@ -187,10 +182,10 @@ fn get_tokens(
 
             impl #impl_generics #make_builder for #props_name #ty_generics #where_clause {}
 
-            #vis fn #fn_name #impl_generics_backend (_cx: Scope, props: #props_name
+            #vis fn #fn_name #impl_generics (_cx: Scope, props: #props_name
                 #ty_generics_static)
-            -> impl View<B> #where_clause {
-                move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
+            -> impl View #where_clause {
+                move |frame: &mut Frame, rect: Rect| frame.render_widget(props.clone(), rect)
             }
         }
     }

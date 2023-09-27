@@ -43,7 +43,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 }
 
 #[component]
-fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
+fn Counters(cx: Scope) -> impl View {
     let n_counters = create_signal(cx, 1);
     let context = use_event_context(cx);
 
@@ -73,7 +73,7 @@ fn Counters<B: Backend>(cx: Scope) -> impl View<B> {
 }
 
 #[component]
-fn Counter<B: Backend>(cx: Scope) -> impl View<B> {
+fn Counter(cx: Scope) -> impl View {
     let count = create_signal(cx, 0);
     let context = use_event_context(cx);
 

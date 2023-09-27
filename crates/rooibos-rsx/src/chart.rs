@@ -7,7 +7,7 @@ use ratatui::{symbols, Frame};
 use rooibos_reactive::Scope;
 
 use crate::widgets::MakeBuilder;
-use crate::{Backend, View};
+use crate::View;
 
 #[derive(Clone, Default)]
 pub struct DatasetOwned<'a> {
@@ -147,6 +147,6 @@ impl<'a> Widget for ChartProps<'a> {
     }
 }
 
-pub fn chart<B: Backend>(_cx: Scope, props: ChartProps<'static>) -> impl View<B> {
-    move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
+pub fn chart(_cx: Scope, props: ChartProps<'static>) -> impl View {
+    move |frame: &mut Frame, rect: Rect| frame.render_widget(props.clone(), rect)
 }

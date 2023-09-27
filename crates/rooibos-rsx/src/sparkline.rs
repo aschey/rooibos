@@ -4,7 +4,7 @@ use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget};
 use ratatui::{symbols, Frame};
 use rooibos_reactive::Scope;
 
-use crate::{Backend, MakeBuilder, View};
+use crate::{MakeBuilder, View};
 
 #[derive(Clone, Default)]
 pub struct SparklineProps<'a> {
@@ -64,6 +64,6 @@ impl<'a> Styled for SparklineProps<'a> {
 
 impl MakeBuilder for SparklineProps<'_> {}
 
-pub fn sparkline<B: Backend>(_cx: Scope, props: SparklineProps<'static>) -> impl View<B> {
-    move |frame: &mut Frame<B>, rect: Rect| frame.render_widget(props.clone(), rect)
+pub fn sparkline(_cx: Scope, props: SparklineProps<'static>) -> impl View {
+    move |frame: &mut Frame, rect: Rect| frame.render_widget(props.clone(), rect)
 }

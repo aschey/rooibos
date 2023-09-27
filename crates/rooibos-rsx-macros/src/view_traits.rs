@@ -96,12 +96,11 @@ impl ToTokens for StatefulModel {
         let vis = &self.vis;
         let name = &self.name;
         let res = quote! {
-            #vis trait #name<B, W>
+            #vis trait #name<W>
             where
-                B: Backend,
                 W: StatefulWidget,
             {
-                fn render_with_state(&mut self, widget: W, frame: &mut Frame<B>, rect: Rect);
+                fn render_with_state(&mut self, widget: W, frame: &mut Frame, rect: Rect);
             }
         };
 

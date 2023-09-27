@@ -1,29 +1,21 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use rooibos_reactive::{create_child_scope, Scope, StoredValue};
-use typemap_ors::{Key, TypeMap};
 
-use crate::{Backend, View};
+use crate::View;
 
-pub struct KeyData<B: Backend> {
+pub struct KeyData {
     pub cx: Scope,
-    pub stored_view: StoredValue<Rc<RefCell<dyn View<B>>>>,
+    pub stored_view: StoredValue<Rc<RefCell<dyn View>>>,
     pub iteration: u32,
 }
 
-pub struct KeyWrapper<T>(PhantomData<T>);
-
-impl<B: Backend> Key for KeyWrapper<B> {
-    type Value = HashMap<(u64, u64), KeyData<B>>;
-}
-
 pub struct WidgetCache {
-    pub view_cache: RefCell<TypeMap>,
+    pub view_cache: RefCell<HashMap<(u64, u64), KeyData>>,
     pub scope_cache: ScopeCache,
     iteration: AtomicU32,
 }
@@ -33,33 +25,31 @@ impl WidgetCache {
         self.iteration.fetch_add(1, Ordering::SeqCst);
     }
 
-    pub fn mark<B: Backend>(&self, node: &mut KeyData<B>) {
+    pub fn mark(&self, node: &mut KeyData) {
         let iter = self.iteration.load(Ordering::SeqCst);
         node.iteration = iter;
     }
 
-    pub fn evict<B: Backend>(&self) {
+    pub fn evict(&self) {
         let mut cache_mut = self.view_cache.borrow_mut();
         let current_iteration = self.iteration.load(Ordering::SeqCst);
 
-        if let Some(wrapper) = cache_mut.get_mut::<KeyWrapper<B>>() {
-            for val in wrapper.values() {
-                if val.iteration < current_iteration && !val.cx.is_disposed() && !val.cx.is_root() {
-                    val.cx.dispose();
-                }
+        for val in cache_mut.values() {
+            if val.iteration < current_iteration && !val.cx.is_disposed() && !val.cx.is_root() {
+                val.cx.dispose();
             }
-
-            let keys: Vec<_> = wrapper.keys().copied().collect();
-            for k in &keys {
-                if let Some(val) = wrapper.get(k) {
-                    if val.cx.is_disposed() {
-                        wrapper.remove(k);
-                    }
-                }
-            }
-
-            self.scope_cache.evict();
         }
+
+        let keys: Vec<_> = cache_mut.keys().copied().collect();
+        for k in &keys {
+            if let Some(val) = cache_mut.get(k) {
+                if val.cx.is_disposed() {
+                    cache_mut.remove(k);
+                }
+            }
+        }
+
+        self.scope_cache.evict();
     }
 }
 
@@ -100,7 +90,7 @@ impl ScopeCache {
 
 thread_local! {
     pub static __WIDGET_CACHE: WidgetCache = WidgetCache {
-        view_cache: RefCell::new(TypeMap::new()),
+        view_cache: Default::default(),
         scope_cache: ScopeCache::default(),
         iteration: AtomicU32::new(0)
     };

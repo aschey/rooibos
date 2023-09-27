@@ -7,8 +7,7 @@ use syn::parse::Parse;
 use syn::spanned::Spanned;
 use syn::{
     parse_quote, AngleBracketedGenericArguments, Attribute, FnArg, GenericArgument, ItemFn, LitStr,
-    Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Type, TypeParamBound, TypePath,
-    Visibility,
+    Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Type, TypePath, Visibility,
 };
 
 use crate::get_import;
@@ -22,7 +21,6 @@ pub(crate) struct Model {
     props: Vec<Prop>,
     body: ItemFn,
     ret: ReturnType,
-    view_type: Type,
 }
 
 impl Parse for Model {
@@ -80,7 +78,13 @@ impl Parse for Model {
             }
         });
 
-        let view_type = get_view_generics(&item.sig.output)?;
+        if !is_valid_return_type(&item.sig.output) {
+            bail!(
+                item.sig.output,
+                "return type is incorrect";
+                help = "return signature must be `-> impl View`"
+            );
+        }
 
         Ok(Self {
             docs,
@@ -93,7 +97,6 @@ impl Parse for Model {
             props,
             ret: item.sig.output.clone(),
             body: item,
-            view_type,
         })
     }
 }
@@ -110,21 +113,16 @@ fn is_valid_scope_type(ty: &Type) -> bool {
     .any(|test| ty == test)
 }
 
-fn get_view_generics(return_type: &ReturnType) -> syn::Result<Type> {
-    if let ReturnType::Type(_, return_type) = &return_type {
-        if let Type::ImplTrait(impl_trait) = return_type.as_ref() {
-            if let Some(TypeParamBound::Trait(bound_trait)) = impl_trait.bounds.first() {
-                if let Some(PathArguments::AngleBracketed(args)) =
-                    &bound_trait.path.segments.last().map(|s| &s.arguments)
-                {
-                    if let Some(GenericArgument::Type(generic_type)) = &args.args.first() {
-                        return Ok(generic_type.clone());
-                    }
-                }
-            }
-        }
-    };
-    bail!(return_type, "return type is incorrect"; help = "return signature must be `-> impl View<B>`");
+fn is_valid_return_type(return_type: &ReturnType) -> bool {
+    [
+        parse_quote!(-> impl View),
+        parse_quote!(-> impl rooibos::rsx::View),
+        parse_quote!(-> impl ::rooibos::rsx::View),
+        parse_quote!(-> impl rooibos_rsx::View),
+        parse_quote!(-> impl ::rooibos_rsx::View),
+    ]
+    .iter()
+    .any(|test| return_type == test)
 }
 
 // implemented manually because Vec::drain_filter is nightly only
@@ -160,7 +158,6 @@ impl ToTokens for Model {
             props,
             body,
             ret,
-            view_type,
         } = self;
 
         let mut body = body.to_owned();
@@ -171,8 +168,8 @@ impl ToTokens for Model {
             convert_to_snake_case(&body.sig.ident, Span::call_site())
         );
         body.sig.inputs.push(syn::parse_quote!(__parent_id: u64));
-        body.sig.output = syn::parse_quote!(-> impl LazyView<#view_type>);
-        #[allow(clippy::redundant_clone)] // false positive
+        body.sig.output = syn::parse_quote!(-> impl LazyView);
+
         let body_name = body.sig.ident.clone();
 
         let (impl_generics, generics, where_clause) = body.sig.generics.split_for_impl();
@@ -241,35 +238,14 @@ impl ToTokens for Model {
         let widget_cache_impl = quote! {
             #crate_import::cache::__WIDGET_CACHE.with(|c| {
                 let mut cache_mut = c.view_cache.borrow_mut();
-                if let Some(map) = cache_mut
-                .get_mut::<#crate_import::cache::KeyWrapper<#view_type>>() {
-                    if let Some(cache) = map.get_mut(&(__caller_id, #scope_name.id())) {
-                        c.mark(cache);
-                        cache.stored_view.get_value()
-                    } else {
-                        let res = ::std::rc::Rc::new(::std::cell::RefCell::new(
-                            #component,
-                        )) as ::std::rc::Rc<::std::cell::RefCell<
-                            dyn #crate_import::View<#view_type>>>;
-
-                        let stored_view =
-                        #crate_import::reactive::store_value(#scope_name, res.clone());
-
-                        let mut key_data = #crate_import::cache::KeyData {
-                            cx: #scope_name,
-                            stored_view,
-                            iteration: 0,
-                        };
-                        c.mark(&mut key_data);
-                        map.insert((__caller_id, #scope_name.id()), key_data);
-                        res
-                    }
+                if let Some(cache) = cache_mut.get_mut(&(__caller_id, #scope_name.id())) {
+                    c.mark(cache);
+                    cache.stored_view.get_value()
                 } else {
-                    let mut map = ::std::collections::HashMap::<(u64, u64),
-                    #crate_import::cache::KeyData<#view_type>>::new();
-
-                    let res = ::std::rc::Rc::new(::std::cell::RefCell::new(#component))
-                    as ::std::rc::Rc<::std::cell::RefCell<dyn #crate_import::View<#view_type>>>;
+                    let res = ::std::rc::Rc::new(::std::cell::RefCell::new(
+                        #component,
+                    )) as ::std::rc::Rc<::std::cell::RefCell<
+                        dyn #crate_import::View>>;
 
                     let stored_view =
                     #crate_import::reactive::store_value(#scope_name, res.clone());
@@ -280,9 +256,7 @@ impl ToTokens for Model {
                         iteration: 0,
                     };
                     c.mark(&mut key_data);
-
-                    map.insert((__caller_id, #scope_name.id()), key_data);
-                    cache_mut.insert::<#crate_import::cache::KeyWrapper<#view_type>>(map);
+                    cache_mut.insert((__caller_id, #scope_name.id()), key_data);
                     res
                 }
             })
