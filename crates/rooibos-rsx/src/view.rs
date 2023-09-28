@@ -144,6 +144,6 @@ where
 
 impl IntoBoxedViewFn for Rc<RefCell<dyn View>> {
     fn into_boxed_view_fn(self) -> Box<dyn Fn() -> Box<dyn View>> {
-        (move || self.clone().into_boxed_view()).into_boxed()
+        (move || self.clone()).into_boxed_view_fn()
     }
 }

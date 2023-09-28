@@ -138,7 +138,6 @@ pub struct FocusContext<T>
 where
     T: Eq + 'static,
 {
-    cx: Scope,
     focused_id: Signal<Option<T>>,
 }
 
@@ -157,11 +156,11 @@ impl<T> FocusContext<T>
 where
     T: Clone + Eq + 'static,
 {
-    pub fn create_focus_handler(&self, id: impl Into<T>) -> ReadSignal<bool> {
+    pub fn create_focus_handler(&self, cx: Scope, id: impl Into<T>) -> ReadSignal<bool> {
         let id = id.into();
         let focused_id = self.focused_id;
-        let selector = create_selector(self.cx, move || focused_id.get());
-        (move || selector.get() == Some(id.clone())).derive_signal(self.cx)
+        let selector = create_selector(cx, move || focused_id.get());
+        (move || selector.get() == Some(id.clone())).derive_signal(cx)
     }
 
     pub fn get_focus_selector(&self) -> Signal<Option<T>> {
@@ -241,7 +240,6 @@ where
     provide_context(
         cx,
         FocusContext::<T> {
-            cx,
             focused_id: create_signal(cx, None),
         },
     );
