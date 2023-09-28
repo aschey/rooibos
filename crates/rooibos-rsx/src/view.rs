@@ -128,16 +128,22 @@ where
     }
 }
 
-pub trait IntoBoxedLazyView {
-    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View>>;
+pub trait IntoBoxedViewFn {
+    fn into_boxed_view_fn(self) -> Box<dyn Fn() -> Box<dyn View>>;
 }
 
-impl<F, V> IntoBoxedLazyView for F
+impl<F, V> IntoBoxedViewFn for F
 where
     F: Fn() -> V + 'static,
     V: View,
 {
-    fn into_boxed_lazy_view(self) -> Box<dyn Fn() -> Box<dyn View>> {
+    fn into_boxed_view_fn(self) -> Box<dyn Fn() -> Box<dyn View>> {
         (move || (self)().into_boxed_view()).into_boxed()
+    }
+}
+
+impl IntoBoxedViewFn for Rc<RefCell<dyn View>> {
+    fn into_boxed_view_fn(self) -> Box<dyn Fn() -> Box<dyn View>> {
+        (move || self.clone().into_boxed_view()).into_boxed()
     }
 }

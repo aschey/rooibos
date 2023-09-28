@@ -204,19 +204,13 @@ fn TabContent(cx: Scope) -> impl View {
         view! { cx,
             <Switch>
                 <Case when=move || focus_selector.get() == Some(0)>
-                    {move || view! { cx,
-                        <Tab0 />
-                    }}
+                    {view! (cx, <Tab0 />)}
                 </Case>
                 <Case when=move || focus_selector.get() == Some(1)>
-                    {move || view! { cx,
-                        <Tab1 />
-                    }}
+                    {view! (cx, <Tab1 />)}
                 </Case>
                 <Case when=move || focus_selector.get() == Some(2)>
-                    {move || view! { cx,
-                        <Tab2 />
-                    }}
+                    {view! (cx, <Tab2 />)}
                 </Case>
             </Switch>
         }

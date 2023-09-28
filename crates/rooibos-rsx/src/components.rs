@@ -71,7 +71,7 @@ pub struct Case {
     #[builder(setter(transform = |f: impl IntoBoxed<dyn Fn() -> bool>| f.into_boxed()))]
     when: Box<dyn Fn() -> bool>,
     #[children]
-    #[builder(setter(transform = |f: impl IntoBoxedLazyView| f.into_boxed_lazy_view()))]
+    #[builder(setter(transform = |f: impl IntoBoxedViewFn| f.into_boxed_view_fn()))]
     children: Box<dyn Fn() -> Box<dyn View>>,
 }
 
