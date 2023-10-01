@@ -39,14 +39,20 @@ impl<T> StoredValue<T> {
         self.with_value(T::clone)
     }
 
-    pub fn update_value(self, f: impl FnOnce(&T) -> T) {
+    pub fn update_value(self, f: impl FnOnce(T) -> T)
+    where
+        T: Clone,
+    {
         let inner = self.root.stored_values.borrow();
         let mut inner_mut = inner.get(self.id).expect("value is disposed").borrow_mut();
         let val = inner_mut.downcast_mut::<T>().unwrap();
-        *val = f(val);
+        *val = f(val.clone());
     }
 
-    pub fn set_value(self, new: T) {
+    pub fn set_value(self, new: T)
+    where
+        T: Clone,
+    {
         self.update_value(|_| new)
     }
 }

@@ -15,7 +15,7 @@ impl<T: State> Store<T> {
     }
 
     #[doc(hidden)]
-    pub fn __update(&self, f: impl FnOnce(&T) -> T) {
+    pub fn __update(&self, f: impl FnOnce(T) -> T) {
         self.value.update_value(f)
     }
 

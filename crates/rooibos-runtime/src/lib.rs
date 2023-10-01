@@ -14,10 +14,12 @@ use futures_util::{Future, Stream};
 use ratatui::prelude::Backend;
 use ratatui::Terminal;
 use rooibos_reactive::{
-    create_effect, create_root, create_selector, create_signal, provide_context, use_context,
-    IntoSignal, ReadSignal, Scope, Signal, SignalGet, SignalUpdate, WriteSignal,
+    create_effect, create_root, create_selector, create_signal, provide_context,
+    provide_global_context, use_context, IntoSignal, ReadSignal, Scope, Signal, SignalGet,
+    SignalUpdate, WriteSignal,
 };
 use rooibos_rsx::cache::__WIDGET_CACHE;
+use rooibos_rsx::prelude::*;
 use rooibos_rsx::View;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc;
@@ -207,11 +209,18 @@ impl EventContext {
 
     #[cfg(feature = "crossterm")]
     pub fn create_key_effect(&self, cx: Scope, f: impl Fn(crossterm::event::KeyEvent) + 'static) {
+        use std::sync::atomic::AtomicBool;
+
         let event_signal = self.create_event_signal(cx);
+        let init = AtomicBool::new(false);
         create_effect(cx, move || {
+            let is_init = init.swap(true, Ordering::Relaxed);
             if let Some(Event::TermEvent(crossterm::event::Event::Key(event))) = event_signal.get()
             {
-                f(event);
+                // TODO: this is a hack, fix it
+                if is_init {
+                    f(event);
+                }
             }
         })
     }
@@ -280,7 +289,7 @@ where
         let (custom_event_tx, custom_event_rx) = mpsc::channel(32);
         let (event_tx, event_rx) = mpsc::channel(32);
 
-        provide_context(
+        provide_global_context(
             cx,
             EventContext {
                 event_signal,
@@ -288,6 +297,7 @@ where
                 command_sender: command_tx.clone(),
             },
         );
+        init_router(cx);
 
         let writer = Rc::new(RefCell::new(Some(writer)));
 
@@ -332,7 +342,6 @@ where
                         view.view(f, f.size());
                     })
                     .unwrap();
-                __WIDGET_CACHE.with(|c| c.evict());
             }
         });
     }
@@ -362,6 +371,8 @@ where
                             }
                         }
                         self.set_event.set(Some(Event::TermEvent(event)));
+                        self.set_event.set(None);
+
                     }
                     #[cfg(not(feature="crossterm"))]
                     {
@@ -373,6 +384,7 @@ where
                 Some(event) = self.event_rx.recv() => {
                     let quit_requested = event == Event::QuitRequested;
                     self.set_event.set(Some(event));
+                    self.set_event.set(None);
 
                     if quit_requested {
                         self.shutdown();
@@ -381,8 +393,10 @@ where
                 }
                 Some(event) = self.custom_event_rx.recv() => {
                     self.set_custom_signal.set(Some(event));
+                    self.set_custom_signal.set(None);
                 }
             }
+            __WIDGET_CACHE.with(|c| c.evict());
         }
 
         self.handler_token.cancel();
