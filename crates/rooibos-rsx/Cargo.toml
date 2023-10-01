@@ -13,3 +13,4 @@ rooibos-rsx-macros = { path = "../rooibos-rsx-macros" }
 typed-builder = "0.16"
 rooibos-reactive = { path = "../rooibos-reactive" }
 matchit = "0.7"
+url = "2"

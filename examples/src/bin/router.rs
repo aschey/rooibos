@@ -9,7 +9,7 @@ use crossterm::terminal::{
 };
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use rooibos::reactive::Scope;
+use rooibos::reactive::{create_signal, Scope, Signal, SignalGet, SignalUpdate};
 use rooibos::rsx::prelude::*;
 use rooibos::runtime::{run_system, use_event_context, EventHandler};
 
@@ -52,6 +52,7 @@ async fn run(cx: Scope) -> Result<(), Box<dyn Error>> {
 
 #[component]
 fn App(cx: Scope) -> impl View {
+    let child2_id = create_signal(cx, 0);
     move || {
         view! { cx,
             <Router initial="/">
@@ -59,9 +60,9 @@ fn App(cx: Scope) -> impl View {
                     {move || view!(cx, <Child0/>)}
                 </Route>
                 <Route path="/child1">
-                    {move || view!(cx, <Child1/>)}
+                    {move || view!(cx, <Child1 child2_id=child2_id/>)}
                 </Route>
-                <Route path="/child2">
+                <Route path="/child2/:id">
                     {move || view!(cx, <Child2/>)}
                 </Route>
             </Router>
@@ -76,7 +77,7 @@ fn Child0(cx: Scope) -> impl View {
 
     context.create_key_effect(cx, move |event| {
         if event.code == KeyCode::Enter && event.kind == KeyEventKind::Press {
-            router.push("/child1");
+            router.push("/child1?id=1");
         }
     });
     move || {
@@ -89,19 +90,22 @@ fn Child0(cx: Scope) -> impl View {
 }
 
 #[component]
-fn Child1(cx: Scope) -> impl View {
+fn Child1(cx: Scope, child2_id: Signal<i32>) -> impl View {
     let router = use_router(cx);
+    let id = router.use_query(cx, "id");
     let context = use_event_context(cx);
 
     context.create_key_effect(cx, move |event| {
         if event.code == KeyCode::Enter && event.kind == KeyEventKind::Press {
-            router.push("/child2");
+            router.push(format!("/child2/{}", child2_id.get()));
+            child2_id.update(|id| id + 1);
         }
     });
+
     move || {
         view! { cx,
             <Paragraph>
-                "child1"
+                {format!("child1 id={}", id.get().unwrap())}
             </Paragraph>
         }
     }
@@ -110,6 +114,7 @@ fn Child1(cx: Scope) -> impl View {
 #[component]
 fn Child2(cx: Scope) -> impl View {
     let router = use_router(cx);
+    let id = router.use_param(cx, "id");
     let context = use_event_context(cx);
 
     context.create_key_effect(cx, move |event| {
@@ -117,10 +122,11 @@ fn Child2(cx: Scope) -> impl View {
             router.pop();
         }
     });
+
     move || {
         view! { cx,
             <Paragraph>
-                "child2"
+                {format!("child2 id={}", id.get().unwrap())}
             </Paragraph>
         }
     }

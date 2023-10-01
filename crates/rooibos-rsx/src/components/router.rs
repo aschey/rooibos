@@ -4,6 +4,7 @@ use reactive::{
 };
 use rooibos_reactive::Scope;
 use typed_builder::TypedBuilder;
+use url::Url;
 
 use crate::prelude::*;
 
@@ -19,15 +20,19 @@ pub struct Route {
 
 #[derive(Clone)]
 pub struct RouteContext {
-    history: Signal<Vec<String>>,
-    current_route: ReadSignal<String>,
+    history: Signal<Vec<Url>>,
+    current_route: ReadSignal<Url>,
     router: StoredValue<matchit::Router<usize>>,
 }
 
 impl RouteContext {
-    pub fn push(&self, route: impl Into<String>) {
+    pub fn push(&self, route: impl AsRef<str>) {
+        let url = Url::options()
+            .base_url(Some(&"app://".parse().unwrap()))
+            .parse(route.as_ref())
+            .unwrap();
         self.history.update(|mut h| {
-            h.push(route.into());
+            h.push(url);
             h
         });
     }
@@ -39,15 +44,36 @@ impl RouteContext {
         });
     }
 
-    pub fn current_route(&self) -> String {
+    pub fn current_route(&self) -> Url {
         self.current_route.get()
     }
 
-    pub fn get_param(&self, param: impl AsRef<str>) -> Option<String> {
+    pub fn use_param(&self, cx: Scope, param: impl Into<String>) -> ReadSignal<Option<String>> {
         let router = self.router.get_value();
+        let param = param.into();
+        let current_route = self.current_route;
+        (move || {
+            let route = current_route.get();
+
+            let params = router.at(route.path()).unwrap().params;
+            params.get(&param).map(|s| s.to_owned())
+        })
+        .derive_signal(cx)
+    }
+
+    pub fn use_query(&self, cx: Scope, query: impl Into<String>) -> ReadSignal<Option<String>> {
         let route = self.current_route.get();
-        let params = router.at(&route).unwrap().params;
-        params.get(param).map(|s| s.to_owned())
+        let query = query.into();
+        (move || {
+            route.query_pairs().find_map(|q| {
+                if q.0 == query {
+                    Some(q.1.to_string())
+                } else {
+                    None
+                }
+            })
+        })
+        .derive_signal(cx)
     }
 }
 
@@ -96,7 +122,7 @@ pub fn Router(
 
         let r = router_ctx.router.get_value();
         let cur = router_ctx.current_route();
-        let index = r.at(&cur).unwrap().value;
+        let index = r.at(cur.path()).unwrap().value;
         (children[*index].children)()
     }
 }
