@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 derive_builder = "0.12"
 once_cell = "1"
-ratatui = { git = "https://github.com/ratatui-org/ratatui", rev = "301366c4fa33524b0634bbd3dcf1abd1a1ebe7c6", default-features = false }
+ratatui = { version = "0.23.1-alpha.4", default-features = false }
 rooibos-rsx-macros = { path = "../rooibos-rsx-macros" }
 typed-builder = "0.16"
 rooibos-reactive = { path = "../rooibos-reactive" }
