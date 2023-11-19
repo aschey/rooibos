@@ -9,9 +9,11 @@ pub use {rooibos_reactive as reactive, typed_builder};
 pub mod cache;
 mod chart;
 pub mod components;
+mod dom;
 mod sparkline;
 mod view;
 mod widgets;
+
 pub mod prelude {
     pub use components::*;
     pub use ratatui::layout::*;

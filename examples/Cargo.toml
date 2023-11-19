@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ratatui = "0.23.1-alpha.4"
+ratatui = "0.24.0"
 crossterm = "0.27"
 rooibos = { path = "../crates/rooibos" }
 tokio = { version = "1.31.0", features = ["rt-multi-thread", "macros"] }

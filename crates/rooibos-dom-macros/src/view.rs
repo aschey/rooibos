@@ -6,7 +6,7 @@ use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
 use syn::{parse_quote, Block, Expr, ExprLit, Generics, Lit, LitInt};
 
-use crate::{get_import, next_id};
+use crate::get_import;
 
 #[derive(Clone, Debug)]
 enum Constraint {
@@ -15,6 +15,11 @@ enum Constraint {
     Percentage,
     Length,
     Ratio,
+}
+
+enum Direction {
+    Row,
+    Col,
 }
 
 #[derive(Clone, Debug)]
@@ -27,12 +32,10 @@ enum ViewType {
         name: Ident,
         closing_name: Ident,
         generics: Option<Generics>,
-        fn_name: Ident,
         props: Option<TokenStream>,
         state: Option<TokenStream>,
     },
     Block {
-        fn_name: Ident,
         tokens: TokenStream,
     },
 }
@@ -49,44 +52,43 @@ impl View {
     fn get_view_constraint(&self) -> TokenStream {
         let constraint_val = &self.constraint_val;
 
-        match self.constraint {
+        let constraint = match self.constraint {
             Constraint::Min => quote! { Constraint::Min(#constraint_val) },
             Constraint::Max => quote! { Constraint::Max(#constraint_val) },
             Constraint::Percentage => quote! { Constraint::Percentage(#constraint_val) },
             Constraint::Length => quote! { Constraint::Length(#constraint_val) },
             Constraint::Ratio => quote! { Constraint::Ratio(#constraint_val) },
-        }
+        };
+
+        quote!(.constraint(#constraint))
     }
 
     fn get_overlay_tokens(&self, children: &[View], is_child: bool) -> TokenStream {
-        let fn_clones = self.generate_fn_clones();
         let child_tokens: Vec<_> = children
             .iter()
             .enumerate()
             .map(|(i, v)| v.view_to_tokens(Some(i), true))
             .collect();
         let layout_tokens = quote! {
-            move |f: &mut Frame, rect: Rect| {
-                #fn_clones
-                #(#child_tokens)*
-            }
+            DomNode::overlay()
+            #(.child(#child_tokens))*
         };
 
-        if is_child {
-            quote!((#layout_tokens).view(f, rect);)
-        } else {
-            layout_tokens
-        }
+        layout_tokens
     }
 
     fn get_layout_tokens(
         &self,
-        direction: TokenStream,
+        direction: Direction,
         children: &[View],
         child_index: Option<usize>,
         parent_is_overlay: bool,
     ) -> TokenStream {
-        let constraints: Vec<_> = children.iter().map(|c| c.get_view_constraint()).collect();
+        let constraint = self.get_view_constraint();
+        let layout = match direction {
+            Direction::Row => quote!(DomNode::row()),
+            Direction::Col => quote!(DomNode::col()),
+        };
 
         let child_tokens: Vec<_> = children
             .iter()
@@ -94,73 +96,89 @@ impl View {
             .map(|(i, v)| v.view_to_tokens(Some(i), false))
             .collect();
         let layout_props = self.layout_props.clone();
-        let fn_clones = self.generate_fn_clones();
 
         let layout_tokens = quote! {
-            move |f: &mut Frame, rect: Rect| {
-                #fn_clones
-                let layout = Layout::default().direction(#direction);
-                let chunks = layout
-                    .constraints([#(#constraints),*])
-                    #layout_props
-                    .split(rect);
-                #(#child_tokens)*
-            }
+            #layout
+            #constraint
+            #layout_props
+            #(.child(#child_tokens))*
         };
 
-        if let Some(child_index) = child_index {
-            if parent_is_overlay {
-                quote!((#layout_tokens).view(f, rect);)
-            } else {
-                quote!((#layout_tokens).view(f, chunks[#child_index]);)
-            }
-        } else {
-            layout_tokens
-        }
+        layout_tokens
     }
 
-    fn generate_fn_clones(&self) -> TokenStream {
-        match &self.view_type {
-            ViewType::Row(children)
-            | ViewType::Column(children)
-            | ViewType::Overlay(children)
-            | ViewType::FocusScope(children) => {
-                let child_fns: Vec<_> = children.iter().map(|c| c.generate_fn_clones()).collect();
-                quote! { #(#child_fns)* }
-            }
-            ViewType::Block { fn_name, .. } => {
-                quote! {
-                    let mut #fn_name = #fn_name.clone();
-                }
-            }
-            ViewType::Element { fn_name, .. } => {
-                quote! {
-                    let mut #fn_name = #fn_name.clone();
-                }
-            }
-        }
-    }
+    // fn generate_fns(&self) -> TokenStream {
+    //     match &self.view_type {
+    //         ViewType::Row(children)
+    //         | ViewType::Column(children)
+    //         | ViewType::Overlay(children)
+    //         | ViewType::FocusScope(children) => {
+    //             let child_fns: Vec<_> = children.iter().map(|c| c.generate_fns()).collect();
+    //             quote! { #(#child_fns)* }
+    //         }
+    //         ViewType::Block { tokens } => {
+    //             quote! {
+    //                 move |f: &mut Frame, chunks: Rect| #tokens.view(f, chunks)
+    //             }
+    //         }
+    //         ViewType::Element {
+    //             name,
+    //             closing_name,
+    //             generics,
+    //             props,
+    //             state,
+    //         } => {
+    //             let generics = if let Some(generics) = generics {
+    //                 quote!(::#generics)
+    //             } else {
+    //                 quote!()
+    //             };
 
-    fn generate_fns(&self) -> TokenStream {
+    //             let get_conditional = |rest: TokenStream| {
+    //                 // in debug mode, add a dummy condition to associate the closing tag span
+    // with                 // the referenced function so rust analyzer can highlight it
+    //                 // correctly
+    //                 if cfg!(debug_assertions) {
+    //                     quote! {
+    //                         .child(if true {
+    //                             #name #rest
+    //                         } else {
+    //                             #closing_name #rest
+    //                         })
+    //                     }
+    //                 } else {
+    //                     quote!(#name #rest)
+    //                 }
+    //             };
+    //             match (props, state) {
+    //                 (Some(props), Some(state)) => {
+    //                     get_conditional(quote!(#generics (#props, #state)))
+    //                 }
+    //                 (Some(props), None) => get_conditional(quote!(#generics (#props))),
+    //                 (_, _) => get_conditional(quote!(#generics ())),
+    //             }
+    //         }
+    //     }
+    // }
+
+    fn view_to_tokens(&self, child_index: Option<usize>, parent_is_overlay: bool) -> TokenStream {
         match &self.view_type {
-            ViewType::Row(children)
-            | ViewType::Column(children)
-            | ViewType::Overlay(children)
-            | ViewType::FocusScope(children) => {
-                let child_fns: Vec<_> = children.iter().map(|c| c.generate_fns()).collect();
-                quote! { #(#child_fns)* }
+            ViewType::Row(children) => {
+                self.get_layout_tokens(Direction::Row, children, child_index, parent_is_overlay)
             }
-            ViewType::Block { fn_name, tokens } => {
-                quote! {
-                    let mut #fn_name = ::std::rc::Rc::new(::std::cell::RefCell::new(
-                        move |f: &mut Frame, chunks: Rect| #tokens.view(f, chunks)));
-                }
+            ViewType::Column(children) => {
+                self.get_layout_tokens(Direction::Col, children, child_index, parent_is_overlay)
             }
+            ViewType::FocusScope(children) => children
+                .iter()
+                .map(|c| c.view_to_tokens(child_index, parent_is_overlay))
+                .collect(),
+            ViewType::Overlay(children) => self.get_overlay_tokens(children, child_index.is_some()),
+            ViewType::Block { tokens } => tokens.clone(),
             ViewType::Element {
                 name,
                 closing_name,
                 generics,
-                fn_name,
                 props,
                 state,
             } => {
@@ -169,32 +187,34 @@ impl View {
                 } else {
                     quote!()
                 };
+                let constraint = self.get_view_constraint();
 
-                let get_container = |inner: TokenStream| {
-                    quote! {
-                        ::std::rc::Rc::new(::std::cell::RefCell::new(#inner))
-                        as ::std::rc::Rc<::std::cell::RefCell<dyn View>>
-                    }
-                };
                 let get_conditional = |rest: TokenStream| {
-                    let real = get_container(quote!(#name #rest));
-
-                    // in debug mode, add a dummy condition to associate the closing tag span with
+                    // in debug mode, add a dummy condition to associate the closing tag span
                     // the referenced function so rust analyzer can highlight it
                     // correctly
                     if cfg!(debug_assertions) {
-                        let fake = get_container(quote!(#closing_name #rest));
                         quote! {
-                            let mut #fn_name = if true {
-                                #real
+                            (if true {
+                                DomNode::component(#name #rest)
+                                #constraint
                             } else {
-                                #fake
-                            };
+                                DomNode::component(#closing_name #rest)
+                                #constraint
+                            })
                         }
+                    // quote! {
+                    //     .child(if true {
+                    //         #name #rest
+                    //     } else {
+                    //         #closing_name #rest
+                    //     })
+                    // }
                     } else {
-                        quote!(let mut #fn_name = #real;)
+                        quote!(DomNode::component(#name #rest) #constraint)
                     }
                 };
+
                 match (props, state) {
                     (Some(props), Some(state)) => {
                         get_conditional(quote!(#generics (#props, #state)))
@@ -205,52 +225,12 @@ impl View {
             }
         }
     }
-
-    fn view_to_tokens(&self, child_index: Option<usize>, parent_is_overlay: bool) -> TokenStream {
-        match &self.view_type {
-            ViewType::Row(children) => self.get_layout_tokens(
-                quote! {Direction::Horizontal},
-                children,
-                child_index,
-                parent_is_overlay,
-            ),
-            ViewType::Column(children) => self.get_layout_tokens(
-                quote! {Direction::Vertical},
-                children,
-                child_index,
-                parent_is_overlay,
-            ),
-            ViewType::FocusScope(children) => children
-                .iter()
-                .map(|c| c.view_to_tokens(child_index, parent_is_overlay))
-                .collect(),
-            ViewType::Overlay(children) => self.get_overlay_tokens(children, child_index.is_some()),
-            ViewType::Block { fn_name, .. } | ViewType::Element { fn_name, .. } => {
-                if let Some(child_index) = child_index {
-                    if parent_is_overlay {
-                        quote! { (#fn_name).view(f, rect); }
-                    } else {
-                        quote! { (#fn_name).view(f, chunks[#child_index]); }
-                    }
-                } else {
-                    quote! { (#fn_name) }
-                }
-            }
-        }
-    }
 }
 
 impl ToTokens for View {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let fns = self.generate_fns();
         let view = self.view_to_tokens(None, false);
-
-        tokens.append_all(quote! {
-            {
-                #fns
-                #view
-            }
-        });
+        tokens.append_all(view);
     }
 }
 
@@ -265,15 +245,12 @@ struct NodeAttributes {
 
 impl NodeAttributes {
     fn from_custom(
-        cx_name: Option<&TokenStream>,
-        tag: Ident,
+        tag: TokenStream,
         attributes: &[NodeAttribute],
         children: TokenStream,
-        include_parent_id: bool,
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         Self::from_nodes(
-            cx_name,
             Some(tag),
             attributes,
             if children.is_empty() {
@@ -281,7 +258,6 @@ impl NodeAttributes {
             } else {
                 Some(children)
             },
-            include_parent_id,
             emitter,
         )
     }
@@ -344,11 +320,9 @@ impl NodeAttributes {
     }
 
     fn from_nodes(
-        cx_name: Option<&TokenStream>,
-        tag: Option<Ident>,
+        tag: Option<TokenStream>,
         nodes: &[NodeAttribute],
         args: Option<TokenStream>,
-        include_parent_id: bool,
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         let mut attrs = Self {
@@ -389,25 +363,7 @@ impl NodeAttributes {
                     });
                 } else {
                     let props = build_struct(tag, &args);
-                    if let Some(cx_name) = cx_name {
-                        let scope_param = if include_parent_id {
-                            let key_param = if let Some(key) = attrs.key.clone() {
-                                quote!(Some(#key))
-                            } else {
-                                quote!(None as Option<String>)
-                            };
-                            let is_focusable =
-                                attrs.focusable.clone().unwrap_or(parse_quote!(false));
-                            let caller_id = next_id();
-                            quote!(#crate_name::cache::__WIDGET_CACHE.with(|c|
-                                c.get_or_create(#cx_name, #is_focusable, #caller_id, #key_param)))
-                        } else {
-                            cx_name.clone()
-                        };
-                        attrs.props = Some(quote! { #scope_param, #props.#prop_func });
-                    } else {
-                        attrs.props = Some(quote! { #props.#prop_func });
-                    }
+                    attrs.props = Some(quote! { #props.#prop_func });
                 }
             }
         }
@@ -419,24 +375,7 @@ impl NodeAttributes {
         if let Some(tag) = &tag {
             if custom_attrs.is_empty() {
                 let props = build_struct(tag, &args);
-                if let Some(cx_name) = cx_name {
-                    let scope_param = if include_parent_id {
-                        let key_param = if let Some(key) = attrs.key.clone() {
-                            quote!(Some(#key))
-                        } else {
-                            quote!(None as Option<String>)
-                        };
-                        let is_focusable = attrs.focusable.clone().unwrap_or(parse_quote!(false));
-                        let caller_id = next_id();
-                        quote!(#crate_name::cache::__WIDGET_CACHE.with(|c|
-                            c.get_or_create(#cx_name, #is_focusable, #caller_id, #key_param)))
-                    } else {
-                        cx_name.clone()
-                    };
-                    attrs.props = Some(quote! { #scope_param, #props.build() });
-                } else {
-                    attrs.props = Some(quote! { #props.build() });
-                }
+                attrs.props = Some(quote! { #props.build() });
             }
         }
 
@@ -478,42 +417,28 @@ impl NodeAttributes {
     }
 }
 
-fn build_struct(tag_name: &Ident, args: &Option<TokenStream>) -> TokenStream {
-    let caller_id = next_id();
+fn build_struct(tag_name: &TokenStream, args: &Option<TokenStream>) -> TokenStream {
     if let Some(args) = args.as_ref() {
         quote! {
-            #tag_name::new(#args).__caller_id(#caller_id)
+            #tag_name::new(#args)
         }
     } else {
         quote! {
-            #tag_name::builder().__caller_id(#caller_id)
+            #tag_name::builder()
         }
     }
 }
 
-pub(crate) fn view(
-    tokens: TokenStream,
-    include_parent_id: bool,
-    emitter: &mut Emitter,
-) -> manyhow::Result {
-    let mut tokens = tokens.into_iter();
-    let (cx, comma) = (tokens.next(), tokens.next());
-    match (cx, comma) {
-        (Some(TokenTree::Ident(cx)), Some(TokenTree::Punct(punct))) if punct.as_char() == ',' => {
-            let (nodes, errors) = parse_rstml(tokens.collect());
-            let view = parse_root_nodes(&cx.to_token_stream(), nodes, include_parent_id, emitter)?;
-
-            Ok(quote! {
-                {
-                    #(#errors;)*
-                    #view
-                }
-            })
+pub(crate) fn view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+    let (nodes, errors) = parse_rstml(tokens);
+    let view = parse_root_nodes(nodes, emitter)?;
+    // panic!("{}", quote!(#view));
+    Ok(quote! {
+        {
+            #(#errors;)*
+            #view
         }
-        _ => {
-            bail!("view! macro needs a context and RSX: e.g., view! {{ cx, <row>...</row> }}")
-        }
-    }
+    })
 }
 
 pub(crate) fn prop(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
@@ -528,7 +453,7 @@ pub(crate) fn prop(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Resul
             )
         }
 
-        let prop = parse_named_element_children(&nodes, false, emitter)?;
+        let prop = parse_named_element_children(&nodes, emitter)?;
         Ok(quote! {
             {
                 #(#errors;)*
@@ -551,52 +476,34 @@ fn parse_rstml(tokens: TokenStream) -> (Vec<Node>, Vec<TokenStream>) {
     (nodes, errors)
 }
 
-fn parse_root_nodes(
-    cx_name: &TokenStream,
-    nodes: Vec<Node>,
-    include_parent_id: bool,
-    emitter: &mut Emitter,
-) -> manyhow::Result<View> {
+fn parse_root_nodes(nodes: Vec<Node>, emitter: &mut Emitter) -> manyhow::Result<View> {
     if let [node] = &nodes[..] {
-        parse_root_node(cx_name, node, include_parent_id, emitter)
+        parse_root_node(node, emitter)
     } else {
         bail!("RSX should contain a single root node")
     }
 }
 
-fn parse_root_node(
-    cx_name: &TokenStream,
-    node: &Node,
-    include_parent_id: bool,
-    emitter: &mut Emitter,
-) -> manyhow::Result<View> {
+fn parse_root_node(node: &Node, emitter: &mut Emitter) -> manyhow::Result<View> {
     if let Node::Element(element) = node {
-        parse_element(cx_name, element, include_parent_id, emitter)
+        parse_element(element, emitter)
     } else {
         bail!(node, "RSX root node should be a named element");
     }
 }
 
-fn parse_elements(
-    cx_name: &TokenStream,
-    nodes: &[Node],
-    include_parent_id: bool,
-    emitter: &mut Emitter,
-) -> manyhow::Result<Vec<View>> {
+fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<View>> {
     let mut views = vec![];
     for node in nodes {
         match node {
             Node::Element(element) => {
-                views.push(parse_element(cx_name, element, include_parent_id, emitter)?);
+                views.push(parse_element(element, emitter)?);
             }
             Node::Block(block) => {
                 if let Some(block) = block.try_block() {
                     let content = get_block_contents(block);
                     views.push(View {
-                        view_type: ViewType::Block {
-                            tokens: content,
-                            fn_name: Ident::new(&format!("__fn{}", next_id()), Span::call_site()),
-                        },
+                        view_type: ViewType::Block { tokens: content },
                         constraint: Constraint::Min,
                         constraint_val: get_default_constraint(),
                         layout_props: None,
@@ -611,24 +518,18 @@ fn parse_elements(
     Ok(views)
 }
 
-fn parse_named_element_children(
-    nodes: &[Node],
-    include_parent_id: bool,
-    emitter: &mut Emitter,
-) -> manyhow::Result {
+fn parse_named_element_children(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result {
     let mut tokens = vec![];
     let mut force_vec = false;
     for node in nodes {
         match node {
             Node::Element(element) => {
-                let children =
-                    parse_named_element_children(&element.children, include_parent_id, emitter)?;
+                let children = parse_named_element_children(&element.children, emitter)?;
                 let attrs = NodeAttributes::from_custom(
-                    None,
-                    Ident::new(&element.name().to_string(), element.name().span()),
+                    Ident::new(&element.name().to_string(), element.name().span())
+                        .to_token_stream(),
                     element.attributes(),
                     children,
-                    include_parent_id,
                     emitter,
                 )?;
 
@@ -652,8 +553,7 @@ fn parse_named_element_children(
                 bail!(doctype, "Doctype invalid at this location");
             }
             Node::Fragment(fragment) => {
-                let children =
-                    parse_named_element_children(&fragment.children, include_parent_id, emitter)?;
+                let children = parse_named_element_children(&fragment.children, emitter)?;
                 tokens.push(children);
                 force_vec = true;
             }
@@ -669,12 +569,7 @@ fn parse_named_element_children(
     })
 }
 
-fn parse_element(
-    cx_name: &TokenStream,
-    element: &NodeElement,
-    include_parent_id: bool,
-    emitter: &mut Emitter,
-) -> manyhow::Result<View> {
+fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Result<View> {
     let element_name = element.name().to_string();
     if !element_name.is_case(Case::UpperCamel) {
         let element_name_camel = element_name.to_case(Case::UpperCamel);
@@ -686,7 +581,7 @@ fn parse_element(
     match element_name.as_str() {
         "Row" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
-            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
+            let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
                 view_type: ViewType::Row(children),
@@ -697,7 +592,7 @@ fn parse_element(
         }
         "Column" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
-            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
+            let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
                 view_type: ViewType::Column(children),
@@ -708,7 +603,7 @@ fn parse_element(
         }
         "FocusScope" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
-            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
+            let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
                 view_type: ViewType::FocusScope(children),
@@ -719,7 +614,7 @@ fn parse_element(
         }
         "Overlay" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
-            let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
+            let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
                 view_type: ViewType::Overlay(children),
@@ -729,15 +624,13 @@ fn parse_element(
             })
         }
         name => {
-            let children =
-                parse_named_element_children(&element.children, include_parent_id, emitter)?;
+            let children = parse_named_element_children(&element.children, emitter)?;
 
+            let props = Ident::new(&(name.to_owned() + "Props"), Span::call_site());
             let attrs = NodeAttributes::from_custom(
-                Some(cx_name),
-                Ident::new(&(name.to_owned() + "Props"), Span::call_site()),
+                quote!(move || #props),
                 element.attributes(),
                 children,
-                include_parent_id,
                 emitter,
             )?;
             let generics = &element.open_tag.generics;
@@ -758,7 +651,6 @@ fn parse_element(
                     } else {
                         None
                     },
-                    fn_name: Ident::new(&format!("__fn{}", next_id()), Span::call_site()),
                     props: attrs.props,
                     state: attrs.state,
                 },

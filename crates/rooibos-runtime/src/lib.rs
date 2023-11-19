@@ -232,6 +232,9 @@ where
     E: 'static,
 {
     create_root(move |cx| {
+        __WIDGET_CACHE.with(|c| {
+            c.init_root(cx);
+        });
         let out = f(cx);
         cx.dispose();
         out
