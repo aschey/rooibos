@@ -11,8 +11,12 @@ use crossterm::terminal::{
 };
 use leptos_reactive::{create_runtime, RwSignal, SignalGet, SignalUpdate};
 use ratatui::backend::CrosstermBackend;
+use ratatui::layout::Constraint;
 use ratatui::Frame;
-use rooibos_dom::{block, mount, render_dom, BlockProps, IntoView};
+use rooibos_dom::{
+    block, col, mount, render_dom, BlockProps, DocumentFragment, DomNode, Fragment, IntoView,
+    Mountable,
+};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -24,7 +28,7 @@ thread_local! {
 fn main() -> Result<()> {
     let _ = create_runtime();
     let mut terminal = setup_terminal()?;
-    mount(|| counter(0, 1));
+    mount(|| counters());
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
     })?;
@@ -82,6 +86,12 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
     });
 
     block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
+}
+
+fn counters() -> impl IntoView {
+    col()
+        .child(col().constraint(Constraint::Length(1)).child(counter(1, 1)))
+        .child(col().constraint(Constraint::Length(1)).child(counter(2, 2)))
 }
 
 #[derive(Debug, Clone)]

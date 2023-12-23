@@ -138,7 +138,7 @@ pub struct ComponentRepr {
 
 impl ComponentRepr {
     pub fn new_with_id(name: String, id: u32) -> Self {
-        let document_fragment = DocumentFragment::widget(DomWidget::new(|frame, rect| {}));
+        let document_fragment = DocumentFragment::widget(DomWidget::new(|_, _| {}));
         let markers = (
             Comment::new(format!("<{name}>"), id, false),
             Comment::new(format!("</{name}>"), id, true),
@@ -162,7 +162,7 @@ impl Mountable for ComponentRepr {
         if let Some(mounted) = self.mounted.get() {
             mounted.clone()
         } else {
-            let node = self.document_fragment.clone().to_node();
+            let node = self.document_fragment.clone().into_node();
             self.mounted.set(node.clone()).unwrap();
             node
         }
@@ -188,14 +188,14 @@ pub enum MountKind<'a> {
 }
 
 fn mount_child<M: Mountable + std::fmt::Debug>(kind: MountKind, child: &M) -> DomNodeKey {
-    let mut child = child.get_mountable_node();
+    let child = child.get_mountable_node();
 
     match kind {
         MountKind::Append(el) => {
-            el.append_child(&mut child);
+            el.append_child(&child);
         }
         MountKind::Before(closing) => {
-            closing.before(&mut child);
+            closing.before(&child);
         }
     }
     child.key
@@ -360,8 +360,8 @@ struct Comment {
 
 impl Comment {
     fn new(content: impl Into<String>, id: u32, closing: bool) -> Self {
-        let mut node = DomNode::from_fragment(DocumentFragment::widget(DomWidget::new(|_, _| {})));
-        DOM.with(|d| d.borrow().append_child(&mut node));
+        let node = DomNode::from_fragment(DocumentFragment::widget(DomWidget::new(|_, _| {})));
+        DOM.with(|d| d.borrow().append_child(&node));
         Self {
             content: content.into(),
             node,
@@ -381,7 +381,7 @@ pub struct DynChildRepr {
 
 impl DynChildRepr {
     fn new_with_id(id: u32) -> Self {
-        let document_fragment = DocumentFragment::widget(DomWidget::new(|frame, rect| {}));
+        let document_fragment = DocumentFragment::widget(DomWidget::new(|_, _| {}));
         let markers = (
             Comment::new("<DynChild>", id, false),
             Comment::new("</DynChild>", id, true),
@@ -399,7 +399,7 @@ impl DynChildRepr {
 
 impl Mountable for DynChildRepr {
     fn get_mountable_node(&self) -> DomNode {
-        self.document_fragment.clone().to_node()
+        self.document_fragment.clone().into_node()
     }
 }
 
@@ -548,8 +548,43 @@ impl DocumentFragment {
         self
     }
 
-    fn to_node(self) -> DomNode {
+    pub fn into_node(self) -> DomNode {
         DomNode::from_fragment(self)
+    }
+}
+
+pub struct Element {
+    inner: DomNode,
+}
+
+impl Element {
+    pub fn child(self, child: impl IntoView) -> Self {
+        let child = child.into_view();
+        mount_child(MountKind::Append(&self.inner), &child);
+        self
+    }
+
+    pub fn constraint(self, constraint: Constraint) -> Self {
+        DOM_NODES.with(|d| d.borrow_mut()[self.inner.key].constraint = constraint);
+        self
+    }
+}
+
+impl IntoView for Element {
+    fn into_view(self) -> View {
+        View::DomNode(self.inner)
+    }
+}
+
+pub fn row() -> Element {
+    Element {
+        inner: DocumentFragment::row().into_node(),
+    }
+}
+
+pub fn col() -> Element {
+    Element {
+        inner: DocumentFragment::col().into_node(),
     }
 }
 
@@ -558,6 +593,7 @@ struct DomNodeInner {
     node_type: NodeType,
     constraint: Constraint,
     children: Vec<DomNodeKey>,
+    parent: Option<DomNodeKey>,
 }
 
 impl DomNodeInner {
@@ -596,7 +632,7 @@ impl DomNodeInner {
 pub struct DomNode {
     // inner: Rc<RefCell<DomNodeInner>>,
     key: DomNodeKey,
-    parent: Rc<RefCell<Option<DomNodeKey>>>,
+    // parent: Rc<RefCell<Option<DomNodeKey>>>,
 }
 
 impl DomNode {
@@ -605,12 +641,13 @@ impl DomNode {
             node_type: NodeType::Root,
             constraint: Constraint::Min(0),
             children: vec![],
+            parent: None,
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self {
             // inner: Rc::new(RefCell::new(inner)),
             key,
-            parent: Rc::new(RefCell::new(None)),
+            // parent: Rc::new(RefCell::new(None)),
         }
     }
 
@@ -619,36 +656,51 @@ impl DomNode {
             node_type: fragment.node_type,
             constraint: fragment.constraint,
             children: fragment.children,
+            parent: None,
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self {
             // inner:Rc::new(RefCell::new(inner)),
             key,
-            parent: Rc::new(RefCell::new(None)),
+            // parent: Rc::new(RefCell::new(None)),
         }
     }
 
-    pub fn append_child(&self, node: &mut DomNode) {
-        *(*node.parent).borrow_mut() = Some(self.key);
-        DOM_NODES.with(|d| d.borrow_mut()[self.key].children.push(node.key));
+    pub fn append_child(&self, node: &DomNode) {
+        // *(*node.parent).borrow_mut() = Some(self.key);
+        DOM_NODES.with(|d| {
+            let mut d = d.borrow_mut();
+            d[node.key].parent = Some(self.key);
+            d[self.key].children.push(node.key);
+        });
+        // DOM_NODES.with(|d| d.borrow_mut()[self.key].children.push(node.key));
         // (*self.inner).borrow_mut().children.push(node.key);
     }
 
-    pub fn before(&self, node: &mut DomNode) {
-        if let Some(parent_id) = self.parent.borrow().as_ref() {
-            DOM_NODES.with(|d| {
-                let mut d = d.borrow_mut();
-                let parent = d.get_mut(*parent_id).unwrap();
+    pub fn before(&self, node: &DomNode) {
+        // if let Some(parent_id) = self.parent.borrow().as_ref() {
+        DOM_NODES.with(|d| {
+            let mut d = d.borrow_mut();
+            if let Some(parent_id) = d[self.key].parent {
+                let parent = d.get_mut(parent_id).unwrap();
                 let self_index = parent.children.iter().position(|c| c == &self.key).unwrap();
                 parent.children.insert(self_index, node.key);
-                node.parent = self.parent.clone();
-            });
-        }
+                d[node.key].parent = Some(parent_id);
+                // node.parent = self.parent.clone();
+            }
+        });
+        // }
     }
 
     pub fn render(&self, frame: &mut Frame, rect: Rect) {
         DOM_NODES.with(|d| d.borrow()[self.key].render(frame, rect));
         // self.inner.borrow().render(frame, rect);
+    }
+}
+
+impl IntoView for DomNode {
+    fn into_view(self) -> View {
+        View::DomNode(self)
     }
 }
 
@@ -835,8 +887,8 @@ impl DomNode {
 // }
 
 pub fn mount(v: impl IntoView) {
-    let mut node = v.into_view().get_mountable_node();
-    DOM.with(|d| d.borrow_mut().append_child(&mut node));
+    let node = v.into_view().get_mountable_node();
+    DOM.with(|d| d.borrow_mut().append_child(&node));
 }
 
 pub fn render_dom(frame: &mut Frame) {
