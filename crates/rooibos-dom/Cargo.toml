@@ -11,5 +11,6 @@ leptos_reactive = "0.5.2"
 matchit = "0.7.3"
 ratatui = "0.24.0"
 rooibos-dom-macros = { path = "../rooibos-dom-macros" }
+slotmap = "1"
 typed-builder = "0.18.0"
 url = "2.4.1"

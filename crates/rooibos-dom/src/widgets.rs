@@ -6,7 +6,7 @@ use ratatui::widgets::{StatefulWidget, *};
 use ratatui::Frame;
 use rooibos_dom_macros::{impl_stateful_render, impl_stateful_widget, impl_widget, make_builder};
 
-use crate::{DomWidget, IntoDomNode, IntoView, View};
+use crate::{DomWidget, IntoView, View};
 
 #[make_builder]
 pub trait MakeBuilder {}
