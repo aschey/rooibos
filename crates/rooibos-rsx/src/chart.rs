@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use ratatui::prelude::{Constraint, Rect};
 use ratatui::style::{Style, Styled};
+use ratatui::text::Line;
 use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType, Widget};
 use ratatui::{symbols, Frame};
 use rooibos_reactive::Scope;
@@ -18,7 +19,7 @@ pub struct DatasetOwned<'a> {
 impl<'a> DatasetOwned<'a> {
     pub fn name<S>(mut self, name: S) -> Self
     where
-        S: Into<Cow<'a, str>>,
+        S: Into<Line<'a>>,
     {
         self.inner = self.inner.name(name);
         self
@@ -57,7 +58,7 @@ impl<'a> Styled for DatasetOwned<'a> {
         Styled::style(&self.inner)
     }
 
-    fn set_style(self, style: Style) -> Self::Item {
+    fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
         Self {
             inner: self.inner.set_style(style),
             data: self.data,
@@ -120,8 +121,8 @@ impl<'a> Styled for ChartProps<'a> {
         self.style
     }
 
-    fn set_style(self, style: Style) -> Self::Item {
-        self.style(style)
+    fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
+        self.style(style.into())
     }
 }
 

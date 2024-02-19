@@ -14,7 +14,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
 use rooibos_dom::{
-    block, col, mount, render_dom, BlockProps, DocumentFragment, DomNode, Fragment, IntoView,
+    block, col, mount, render_dom, row, BlockProps, DocumentFragment, DomNode, Fragment, IntoView,
     Mountable,
 };
 
@@ -89,9 +89,15 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
 }
 
 fn counters() -> impl IntoView {
-    col()
-        .child(col().constraint(Constraint::Length(1)).child(counter(1, 1)))
-        .child(col().constraint(Constraint::Length(1)).child(counter(2, 2)))
+    // let children: Vec<_> = (1..6u32)
+    //     .map(|i| row(Constraint::Length(1)).child(counter(i as i32, i)))
+    //     .collect();
+    col(Constraint::Percentage(100))
+        // .child([row(Constraint::Length(1)).child(counter(1, 1)).into_view()])
+        .child([
+            row(Constraint::Length(1)).child(counter(1, 1)).into_view(),
+            row(Constraint::Length(1)).child(counter(2, 2)).into_view(),
+        ])
 }
 
 #[derive(Debug, Clone)]

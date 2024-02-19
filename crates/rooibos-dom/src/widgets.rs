@@ -49,10 +49,8 @@ impl<'a> StyleExt<'a> for Span<'a> {
 }
 
 impl<'a> StyleExt<'a> for Text<'a> {
-    fn style(mut self, style: Style) -> Self {
-        self.reset_style();
-        self.patch_style(style);
-        self
+    fn style(self, style: Style) -> Self {
+        self.reset_style().patch_style(style)
     }
 }
 

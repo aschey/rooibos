@@ -4,14 +4,15 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use leptos_reactive::{create_render_effect, untrack_with_diagnostics};
+use ratatui::layout::Flex;
 use ratatui::prelude::{Constraint, Direction, Layout, Rect};
 use ratatui::Frame;
 use slotmap::{new_key_type, SlotMap};
 
 thread_local! {
-   pub static DOM: RefCell<DomNode> = RefCell::new(DomNode::root());
-   static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
-    RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
+    pub static DOM: RefCell<DomNode> = RefCell::new(DomNode::root());
+    static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
+        RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
 }
 
 static NODE_ID: AtomicU32 = AtomicU32::new(1);
@@ -40,7 +41,13 @@ impl fmt::Debug for View {
 
 #[derive(Clone, PartialEq, Eq)]
 enum NodeType {
-    Layout { direction: Direction, margin: u16 },
+    Layout {
+        direction: Direction,
+        flex: Flex,
+        margin: u16,
+        spacing: u16,
+    },
+    Transparent,
     Root,
     Overlay,
     Widget(DomWidget),
@@ -77,9 +84,20 @@ impl<const N: usize> IntoView for [View; N] {
     }
 }
 
+impl<V> IntoView for Vec<V>
+where
+    V: IntoView,
+{
+    fn into_view(self) -> View {
+        self.into_iter()
+            .map(|v| v.into_view())
+            .collect::<Fragment>()
+            .into_view()
+    }
+}
+
 pub struct Fragment {
     id: u32,
-    /// The nodes contained in the fragment.
     pub nodes: Vec<View>,
     pub(crate) view_marker: Option<String>,
 }
@@ -89,7 +107,6 @@ impl Fragment {
         Self {
             id: NODE_ID.fetch_add(1, Ordering::Relaxed),
             nodes,
-            #[cfg(debug_assertions)]
             view_marker: None,
         }
     }
@@ -101,35 +118,36 @@ impl FromIterator<View> for Fragment {
     }
 }
 
-impl From<View> for Fragment {
-    fn from(view: View) -> Self {
-        Fragment::new(vec![view])
-    }
-}
+// impl From<View> for Fragment {
+//     fn from(view: View) -> Self {
+//         Fragment::new(vec![view])
+//     }
+// }
 
-impl From<Fragment> for View {
-    fn from(value: Fragment) -> Self {
-        let mut frag = ComponentRepr::new_with_id("".to_string(), value.id);
+// impl From<Fragment> for View {
+//     fn from(value: Fragment) -> Self {
+//         let mut repr = ComponentRepr::new_with_id("".to_string(), value.id, value.nodes);
 
-        frag.view_marker = value.view_marker;
-        frag.children = value.nodes;
+//         repr.view_marker = value.view_marker;
 
-        frag.into_view()
-    }
-}
+//         repr.into_view()
+//     }
+// }
 
 impl IntoView for Fragment {
     fn into_view(self) -> View {
-        self.into()
+        let mut repr = ComponentRepr::new_with_id("".to_string(), self.id, self.nodes);
+        repr.view_marker = self.view_marker;
+        repr.into_view()
     }
 }
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct ComponentRepr {
-    pub(crate) document_fragment: DocumentFragment,
+    pub(crate) document_fragment: DomNode,
     mounted: Rc<OnceCell<DomNode>>,
     pub(crate) name: String,
-    _opening: Comment,
+    opening: Comment,
     pub children: Vec<View>,
     closing: Comment,
     pub(crate) id: u32,
@@ -137,20 +155,20 @@ pub struct ComponentRepr {
 }
 
 impl ComponentRepr {
-    pub fn new_with_id(name: String, id: u32) -> Self {
-        let document_fragment = DocumentFragment::widget(DomWidget::new(|_, _| {}));
+    pub fn new_with_id(name: String, id: u32, children: Vec<View>) -> Self {
+        let document_fragment = DocumentFragment::transparent();
         let markers = (
             Comment::new(format!("<{name}>"), id, false),
             Comment::new(format!("</{name}>"), id, true),
         );
 
         Self {
-            document_fragment,
+            document_fragment: DomNode::from_fragment(document_fragment),
             mounted: Default::default(),
-            _opening: markers.0,
+            opening: markers.0,
             closing: markers.1,
             name,
-            children: vec![],
+            children,
             id,
             view_marker: None,
         }
@@ -162,7 +180,20 @@ impl Mountable for ComponentRepr {
         if let Some(mounted) = self.mounted.get() {
             mounted.clone()
         } else {
-            let node = self.document_fragment.clone().into_node();
+            mount_child(
+                MountKind::Append(&self.document_fragment),
+                &self.opening.node,
+            );
+            mount_child(
+                MountKind::Append(&self.document_fragment),
+                &self.closing.node,
+            );
+            // mount_child(MountKind::Append(&self.opening.node), &self.closing.node);
+            for child in &self.children {
+                mount_child(MountKind::Before(&self.closing.node), child);
+            }
+            let node = self.document_fragment.clone();
+            // mount_child(MountKind::Before(&self.closing.node), &node.clone());
             self.mounted.set(node.clone()).unwrap();
             node
         }
@@ -171,19 +202,12 @@ impl Mountable for ComponentRepr {
 
 impl IntoView for ComponentRepr {
     fn into_view(self) -> View {
-        for child in &self.children {
-            mount_child(MountKind::Before(&self.closing.node), child);
-        }
-
         View::Component(self)
     }
 }
 
 pub enum MountKind<'a> {
-    Before(
-        // The closing node
-        &'a DomNode,
-    ),
+    Before(&'a DomNode),
     Append(&'a DomNode),
 }
 
@@ -246,12 +270,9 @@ where
             children_fn,
         } = self;
 
-        let mut repr = ComponentRepr::new_with_id(name, id);
-
         // disposed automatically when the parent scope is disposed
         let child = untrack_with_diagnostics(|| children_fn().into_view());
-
-        repr.children.push(child);
+        let repr = ComponentRepr::new_with_id(name, id, vec![child]);
 
         repr.into_view()
     }
@@ -295,6 +316,8 @@ where
             component: DynChildRepr,
             child_fn: Box<dyn Fn() -> View>,
         ) -> DynChildRepr {
+            let document_fragment = component.document_fragment.clone();
+            let opening = component.opening.node.clone();
             let closing = component.closing.node.clone();
             let child = component.child.clone();
 
@@ -360,8 +383,10 @@ struct Comment {
 
 impl Comment {
     fn new(content: impl Into<String>, id: u32, closing: bool) -> Self {
-        let node = DomNode::from_fragment(DocumentFragment::widget(DomWidget::new(|_, _| {})));
-        DOM.with(|d| d.borrow().append_child(&node));
+        let node = DomNode::from_fragment(DocumentFragment::transparent());
+        // DOM_NODES.with(|d| d.borrow_mut().insert(node.));
+        // mount_child(MountKind::Append(parent), &node);
+        // DOM.with(|d| d.borrow().append_child(&node));
         Self {
             content: content.into(),
             node,
@@ -371,7 +396,8 @@ impl Comment {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DynChildRepr {
-    document_fragment: DocumentFragment,
+    document_fragment: DomNode,
+    mounted: Rc<OnceCell<DomNode>>,
     #[cfg(debug_assertions)]
     opening: Comment,
     pub(crate) child: Rc<RefCell<Box<Option<View>>>>,
@@ -381,25 +407,39 @@ pub struct DynChildRepr {
 
 impl DynChildRepr {
     fn new_with_id(id: u32) -> Self {
-        let document_fragment = DocumentFragment::widget(DomWidget::new(|_, _| {}));
+        let document_fragment = DocumentFragment::transparent();
         let markers = (
             Comment::new("<DynChild>", id, false),
             Comment::new("</DynChild>", id, true),
         );
 
         Self {
-            document_fragment,
+            document_fragment: DomNode::from_fragment(document_fragment),
             opening: markers.0,
             closing: markers.1,
             child: Default::default(),
             id,
+            mounted: Default::default(),
         }
     }
 }
 
 impl Mountable for DynChildRepr {
     fn get_mountable_node(&self) -> DomNode {
-        self.document_fragment.clone().into_node()
+        if let Some(mounted) = self.mounted.get() {
+            mounted.clone()
+        } else {
+            mount_child(
+                MountKind::Append(&self.document_fragment),
+                &self.opening.node,
+            );
+            mount_child(
+                MountKind::Append(&self.document_fragment),
+                &self.closing.node,
+            );
+            self.mounted.set(self.document_fragment.clone()).unwrap();
+            self.document_fragment.clone()
+        }
     }
 }
 
@@ -494,6 +534,7 @@ where
 pub struct DocumentFragment {
     node_type: NodeType,
     constraint: Constraint,
+    flex: Flex,
     children: Vec<DomNodeKey>,
 }
 
@@ -502,7 +543,8 @@ impl DocumentFragment {
         Self {
             node_type: NodeType::Widget(widget),
             children: vec![],
-            constraint: Constraint::Min(0),
+            constraint: Constraint::default(),
+            flex: Flex::default(),
         }
     }
 
@@ -510,10 +552,13 @@ impl DocumentFragment {
         Self {
             node_type: NodeType::Layout {
                 direction: Direction::Horizontal,
+                flex: Flex::default(),
                 margin: 0,
+                spacing: 0,
             },
             children: vec![],
-            constraint: Constraint::Min(0),
+            constraint: Constraint::default(),
+            flex: Flex::default(),
         }
     }
 
@@ -521,10 +566,13 @@ impl DocumentFragment {
         Self {
             node_type: NodeType::Layout {
                 direction: Direction::Vertical,
+                flex: Flex::default(),
                 margin: 0,
+                spacing: 0,
             },
             children: vec![],
-            constraint: Constraint::Min(0),
+            constraint: Constraint::default(),
+            flex: Flex::default(),
         }
     }
 
@@ -532,12 +580,27 @@ impl DocumentFragment {
         Self {
             node_type: NodeType::Overlay,
             children: vec![],
-            constraint: Constraint::Min(0),
+            constraint: Constraint::default(),
+            flex: Flex::default(),
+        }
+    }
+
+    pub fn transparent() -> Self {
+        Self {
+            node_type: NodeType::Transparent,
+            children: vec![],
+            constraint: Constraint::default(),
+            flex: Flex::default(),
         }
     }
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
         self.constraint = constraint;
+        self
+    }
+
+    pub fn flex(mut self, flex: Flex) -> Self {
+        self.flex = flex;
         self
     }
 
@@ -548,9 +611,9 @@ impl DocumentFragment {
         self
     }
 
-    pub fn into_node(self) -> DomNode {
-        DomNode::from_fragment(self)
-    }
+    // pub fn into_node(self) -> DomNode {
+    //     DomNode::from_fragment(self)
+    // }
 }
 
 pub struct Element {
@@ -561,13 +624,14 @@ impl Element {
     pub fn child(self, child: impl IntoView) -> Self {
         let child = child.into_view();
         mount_child(MountKind::Append(&self.inner), &child);
+        // DOM_NODES.with(|d| d.borrow_mut()[child_key].constraint = constraint);
         self
     }
 
-    pub fn constraint(self, constraint: Constraint) -> Self {
-        DOM_NODES.with(|d| d.borrow_mut()[self.inner.key].constraint = constraint);
-        self
-    }
+    // pub fn constraint(self, constraint: Constraint) -> Self {
+    //     DOM_NODES.with(|d| d.borrow_mut()[self.inner.key].constraint = constraint);
+    //     self
+    // }
 }
 
 impl IntoView for Element {
@@ -576,15 +640,15 @@ impl IntoView for Element {
     }
 }
 
-pub fn row() -> Element {
+pub fn row(constraint: Constraint) -> Element {
     Element {
-        inner: DocumentFragment::row().into_node(),
+        inner: DomNode::from_fragment(DocumentFragment::row().constraint(constraint)),
     }
 }
 
-pub fn col() -> Element {
+pub fn col(constraint: Constraint) -> Element {
     Element {
-        inner: DocumentFragment::col().into_node(),
+        inner: DomNode::from_fragment(DocumentFragment::col().constraint(constraint)),
     }
 }
 
@@ -594,20 +658,54 @@ struct DomNodeInner {
     constraint: Constraint,
     children: Vec<DomNodeKey>,
     parent: Option<DomNodeKey>,
+    before_pending: Vec<DomNodeKey>,
 }
 
 impl DomNodeInner {
     pub fn render(&self, frame: &mut Frame, rect: Rect) {
         DOM_NODES.with(|d| {
             let d = d.borrow();
-            let children: Vec<_> = self.children.iter().map(|c| &d[*c]).collect();
+            let children: Vec<_> = self
+                .children
+                .iter()
+                .map(|c| &d[*c])
+                // .flat_map(|c| {
+                //     let child = &d[*c];
+                //     let mut before: Vec<_> = child.before_pending.iter().map(|c|
+                // &d[*c]).collect();     before.push(child);
+                //     before
+                // })
+                // .filter(|c| c.node_type != NodeType::Transparent)
+                .collect();
+            // let mut grandchildren: Vec<_> = children
+            //     .iter()
+            //     .filter_map(|c| {
+            //         if c.node_type == NodeType::Transparent {
+            //             Some(c.children.iter().map(|c| &d[*c]).collect::<Vec<_>>())
+            //         } else {
+            //             None
+            //         }
+            //     })
+            //     .flatten()
+            //     .collect();
+            // children.append(&mut grandchildren);
+            let constraints = children.iter().map(|c| c.constraint);
+            // dbg!(&constraints);
             match &self.node_type {
-                NodeType::Layout { direction, margin } => {
-                    let layout = Layout::default().direction(*direction).margin(*margin);
-                    let constraints = children.iter().map(|c| c.constraint);
-                    let chunks = layout
-                        .constraints(constraints.collect::<Vec<_>>())
-                        .split(rect);
+                NodeType::Layout {
+                    direction,
+                    margin,
+                    flex,
+                    spacing,
+                } => {
+                    let layout = Layout::default()
+                        .direction(*direction)
+                        .flex(*flex)
+                        .margin(*margin)
+                        .spacing(*spacing)
+                        .constraints(constraints);
+
+                    let chunks = layout.split(rect);
                     children
                         .iter()
                         .zip(chunks.iter())
@@ -615,7 +713,8 @@ impl DomNodeInner {
                             child.render(frame, *chunk);
                         });
                 }
-                NodeType::Overlay | NodeType::Root => {
+                // NodeType::Transparent => {}
+                NodeType::Overlay | NodeType::Transparent | NodeType::Root => {
                     children.iter().for_each(|child| {
                         child.render(frame, rect);
                     });
@@ -642,6 +741,7 @@ impl DomNode {
             constraint: Constraint::Min(0),
             children: vec![],
             parent: None,
+            before_pending: vec![],
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self {
@@ -657,6 +757,7 @@ impl DomNode {
             constraint: fragment.constraint,
             children: fragment.children,
             parent: None,
+            before_pending: vec![],
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self {
@@ -670,8 +771,23 @@ impl DomNode {
         // *(*node.parent).borrow_mut() = Some(self.key);
         DOM_NODES.with(|d| {
             let mut d = d.borrow_mut();
+            // let dn = &d[node.key];
+            // dbg!(&dn.before_pending);
+            // let ds = &d[self.key];
+            // dbg!(&ds.before_pending);
             d[node.key].parent = Some(self.key);
             d[self.key].children.push(node.key);
+
+            let pending: Vec<_> = d[node.key].before_pending.drain(..).collect();
+            for p in pending {
+                let self_index = d[self.key]
+                    .children
+                    .iter()
+                    .position(|c| c == &node.key)
+                    .unwrap();
+                d[self.key].children.insert(self_index, p);
+                d[node.key].parent = Some(self.key);
+            }
         });
         // DOM_NODES.with(|d| d.borrow_mut()[self.key].children.push(node.key));
         // (*self.inner).borrow_mut().children.push(node.key);
@@ -681,12 +797,19 @@ impl DomNode {
         // if let Some(parent_id) = self.parent.borrow().as_ref() {
         DOM_NODES.with(|d| {
             let mut d = d.borrow_mut();
+            // let dn = &d[node.key];
+            // dbg!(&dn.before_pending);
+            // let ds = &d[self.key];
+            // dbg!(&ds.before_pending);
             if let Some(parent_id) = d[self.key].parent {
                 let parent = d.get_mut(parent_id).unwrap();
                 let self_index = parent.children.iter().position(|c| c == &self.key).unwrap();
                 parent.children.insert(self_index, node.key);
                 d[node.key].parent = Some(parent_id);
+                // let pending = d[self.key].before_pending.drain(..);
                 // node.parent = self.parent.clone();
+            } else {
+                d[self.key].before_pending.push(node.key);
             }
         });
         // }
@@ -701,6 +824,12 @@ impl DomNode {
 impl IntoView for DomNode {
     fn into_view(self) -> View {
         View::DomNode(self)
+    }
+}
+
+impl Mountable for DomNode {
+    fn get_mountable_node(&self) -> DomNode {
+        self.clone()
     }
 }
 

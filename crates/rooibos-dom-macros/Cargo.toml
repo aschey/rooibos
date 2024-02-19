@@ -16,5 +16,5 @@ regex = "1"
 rstml = "0.11"
 syn = { version = "2", features = ["full"] }
 once_cell = "1"
-proc-macro-crate = "2"
-manyhow = "0.9"
+proc-macro-crate = "3"
+manyhow = "0.11"

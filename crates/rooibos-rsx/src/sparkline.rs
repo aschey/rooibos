@@ -57,8 +57,8 @@ impl<'a> Styled for SparklineProps<'a> {
         Styled::style(&self.inner)
     }
 
-    fn set_style(self, style: Style) -> Self::Item {
-        self.style(style)
+    fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
+        self.style(style.into())
     }
 }
 

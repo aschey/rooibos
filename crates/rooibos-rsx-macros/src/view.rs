@@ -15,6 +15,35 @@ enum Constraint {
     Percentage,
     Length,
     Ratio,
+    Fill,
+}
+
+#[derive(Clone)]
+enum VarArgTokenStream {
+    Single(TokenStream),
+    Multi(Vec<TokenStream>),
+}
+
+impl VarArgTokenStream {
+    fn is_empty(&self) -> bool {
+        match self {
+            Self::Single(s) => s.is_empty(),
+            Self::Multi(s) => s.iter().all(|s| s.is_empty()),
+        }
+    }
+}
+
+impl ToTokens for VarArgTokenStream {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Self::Single(s) => {
+                s.to_tokens(tokens);
+            }
+            Self::Multi(s) => {
+                tokens.append_all(quote!(#(#s),*));
+            }
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -55,6 +84,7 @@ impl View {
             Constraint::Percentage => quote! { Constraint::Percentage(#constraint_val) },
             Constraint::Length => quote! { Constraint::Length(#constraint_val) },
             Constraint::Ratio => quote! { Constraint::Ratio(#constraint_val) },
+            Constraint::Fill => quote! { Constraint::Fill(#constraint_val) },
         }
     }
 
@@ -96,12 +126,18 @@ impl View {
         let layout_props = self.layout_props.clone();
         let fn_clones = self.generate_fn_clones();
 
+        // If no constraints, auto type inference won't work here
+        let constraints_type = if constraints.is_empty() {
+            quote!(::<[Constraint; 0]>)
+        } else {
+            quote!()
+        };
         let layout_tokens = quote! {
             move |f: &mut Frame, rect: Rect| {
                 #fn_clones
                 let layout = Layout::default().direction(#direction);
                 let chunks = layout
-                    .constraints([#(#constraints),*])
+                    .constraints #constraints_type ([#(#constraints),*])
                     #layout_props
                     .split(rect);
                 #(#child_tokens)*
@@ -268,7 +304,7 @@ impl NodeAttributes {
         cx_name: Option<&TokenStream>,
         tag: Ident,
         attributes: &[NodeAttribute],
-        children: TokenStream,
+        children: VarArgTokenStream,
         include_parent_id: bool,
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
@@ -325,6 +361,11 @@ impl NodeAttributes {
                 self.expr = expr.elems.to_token_stream();
                 true
             }
+            "v:fill" => {
+                self.constraint = Constraint::Fill;
+                self.expr = attribute.value().unwrap().to_token_stream();
+                true
+            }
             "v:state" => {
                 if let Some(val) = &attribute.value() {
                     self.state = Some(val.to_token_stream());
@@ -347,7 +388,7 @@ impl NodeAttributes {
         cx_name: Option<&TokenStream>,
         tag: Option<Ident>,
         nodes: &[NodeAttribute],
-        args: Option<TokenStream>,
+        args: Option<VarArgTokenStream>,
         include_parent_id: bool,
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
@@ -478,7 +519,7 @@ impl NodeAttributes {
     }
 }
 
-fn build_struct(tag_name: &Ident, args: &Option<TokenStream>) -> TokenStream {
+fn build_struct(tag_name: &Ident, args: &Option<VarArgTokenStream>) -> TokenStream {
     let caller_id = next_id();
     if let Some(args) = args.as_ref() {
         quote! {
@@ -615,9 +656,10 @@ fn parse_named_element_children(
     nodes: &[Node],
     include_parent_id: bool,
     emitter: &mut Emitter,
-) -> manyhow::Result {
+) -> manyhow::Result<VarArgTokenStream> {
     let mut tokens = vec![];
     let mut force_vec = false;
+    let mut block_count = 0;
     for node in nodes {
         match node {
             Node::Element(element) => {
@@ -633,19 +675,20 @@ fn parse_named_element_children(
                 )?;
 
                 if let Some(props) = attrs.props {
-                    tokens.push(quote! { #props });
+                    tokens.push(VarArgTokenStream::Single(quote! { #props }));
                 }
             }
             Node::Text(text) => {
-                tokens.push(text.value.to_token_stream());
+                tokens.push(VarArgTokenStream::Single(text.value.to_token_stream()));
             }
             Node::Block(block) => {
                 if let Some(block) = block.try_block() {
                     // Get content without braces
                     let content: TokenStream =
                         block.stmts.iter().map(|s| s.to_token_stream()).collect();
+                    tokens.push(VarArgTokenStream::Single(quote! { #content }));
 
-                    tokens.push(quote! { #content });
+                    block_count += 1;
                 }
             }
             Node::Doctype(doctype) => {
@@ -661,11 +704,14 @@ fn parse_named_element_children(
         }
     }
     Ok(if tokens.is_empty() {
-        TokenStream::default()
+        VarArgTokenStream::Single(TokenStream::default())
     } else if tokens.len() == 1 && !force_vec {
         tokens[0].clone()
+    } else if block_count > 1 {
+        // Use multiple blocks to pass multiple args to the child
+        VarArgTokenStream::Multi(tokens.into_iter().map(|t| quote!(#t)).collect())
     } else {
-        quote! { vec![#(#tokens),*] }
+        VarArgTokenStream::Single(quote! { vec![#(#tokens),*] })
     })
 }
 

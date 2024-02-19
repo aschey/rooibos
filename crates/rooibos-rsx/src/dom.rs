@@ -44,9 +44,7 @@ impl DomNode {
             NodeType::Layout(direction) => {
                 let layout = Layout::default().direction(*direction);
                 let constraints = self.children.iter().map(|c| c.constraint);
-                let chunks = layout
-                    .constraints(constraints.collect::<Vec<_>>())
-                    .split(rect);
+                let chunks = layout.constraints(constraints).split(rect);
                 self.children
                     .iter_mut()
                     .zip(chunks.iter())

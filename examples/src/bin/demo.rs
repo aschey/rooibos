@@ -167,18 +167,15 @@ fn HeaderTabs(cx: Scope, titles: Vec<&'static str>) -> impl View {
     });
 
     move || {
-        let titles = titles
-            .iter()
-            .map(|t| {
-                prop! {
-                    <Line>
-                        <Span green>
-                            {*t}
-                        </Span>
-                    </Line>
-                }
-            })
-            .collect();
+        let titles = titles.iter().map(|t| {
+            prop! {
+                <Line>
+                    <Span green>
+                        {*t}
+                    </Span>
+                </Line>
+            }
+        });
         view! { cx,
             <Column>
                 <Tabs
@@ -874,13 +871,13 @@ fn DemoTable(cx: Scope, servers: Signal<Vec<Server<'static>>>) -> impl View {
                     </Row>
                 }
                 block=prop!(<Block title="Servers" borders=Borders::ALL/>)
-                widths=&[
+            >
+                {rows.get()}
+                {[
                     Constraint::Length(15),
                     Constraint::Length(15),
                     Constraint::Length(10),
-                ]
-            >
-                {rows.get()}
+                ]}
             </Table>
         }
     }
@@ -990,13 +987,13 @@ fn colors_table(cx: Scope) -> impl View {
         view! { cx,
             <Table
                 block=prop!(<Block title="Colors" borders=Borders::ALL/>)
-                widths=&[
+            >
+                {items.get()}
+                {[
                     Constraint::Ratio(1, 3),
                     Constraint::Ratio(1, 3),
                     Constraint::Ratio(1, 3)
-                ]
-            >
-                {items.get()}
+                ]}
             </Table>
         }
     }
