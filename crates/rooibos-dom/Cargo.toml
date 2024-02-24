@@ -9,6 +9,7 @@ edition = "2021"
 crossterm = "0.27.0"
 leptos_reactive = "0.6.5"
 matchit = "0.7.3"
+paste = "1.0.14"
 ratatui = "0.26.1"
 rooibos-dom-macros = { path = "../rooibos-dom-macros" }
 slotmap = "1"
