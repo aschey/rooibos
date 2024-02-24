@@ -1,9 +1,9 @@
 use attribute_derive::Attribute;
 use convert_case::{Case, Casing};
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
-use syn::{DeriveInput, Generics, Token, Visibility, WhereClause};
+use syn::{DeriveInput, Generics, Lit, Token, Visibility, WhereClause};
 
 pub(crate) struct Model {
     name: Ident,
@@ -143,7 +143,7 @@ fn get_tokens(
         lifetime.lifetime.ident = Ident::new("static", lifetime.lifetime.ident.span());
     }
     let (_, ty_generics_static, _) = generics_static.split_for_impl();
-
+    let type_name = Literal::string(&name.to_string());
     if stateful {
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
@@ -170,7 +170,7 @@ fn get_tokens(
                 props: impl Fn() -> #props_name #ty_generics_static + 'static,
                 mut state: impl #stateful_render<#name #ty_generics> + 'static,
             ) -> impl IntoView {
-                DomWidget::new(move |frame: &mut Frame, rect: Rect| {
+                DomWidget::new(#type_name, move |frame: &mut Frame, rect: Rect| {
                     state.render_with_state(props(), frame, rect);
                 })
             }
@@ -183,7 +183,7 @@ fn get_tokens(
 
             #vis fn #fn_name #impl_generics (props: impl Fn() -> #props_name #ty_generics_static + 'static)
             -> impl IntoView #where_clause {
-                DomWidget::new(move |frame: &mut Frame, rect: Rect| {
+                DomWidget::new(#type_name, move |frame: &mut Frame, rect: Rect| {
                     let prev = leptos_reactive::SpecialNonReactiveZone::enter();
                     frame.render_widget(props(), rect);
                     leptos_reactive::SpecialNonReactiveZone::exit(prev);

@@ -14,8 +14,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
 use rooibos_dom::{
-    block, col, mount, render_dom, row, BlockProps, DocumentFragment, DomNode, Fragment, IntoView,
-    Mountable,
+    block, col, mount, print_dom, render_dom, row, BlockProps, DocumentFragment, DomNode, Fragment,
+    IntoView, Mountable,
 };
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
@@ -29,6 +29,7 @@ fn main() -> Result<()> {
     let _ = create_runtime();
     let mut terminal = setup_terminal()?;
     mount(|| counters());
+    // print_dom(&mut std::io::stdout());
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
     })?;
@@ -44,6 +45,7 @@ fn main() -> Result<()> {
             })?;
         }
     }
+    Ok(())
 }
 
 fn handle_events() -> Result<usize> {
@@ -93,11 +95,11 @@ fn counters() -> impl IntoView {
     //     .map(|i| row(Constraint::Length(1)).child(counter(i as i32, i)))
     //     .collect();
     col(Constraint::Percentage(100))
-        // .child([row(Constraint::Length(1)).child(counter(1, 1)).into_view()])
-        .child([
-            row(Constraint::Length(1)).child(counter(1, 1)).into_view(),
-            row(Constraint::Length(1)).child(counter(2, 2)).into_view(),
-        ])
+        .child(col(Constraint::Percentage(50)).child([
+            row(Constraint::Length(1)).child(counter(2, 2)),
+            row(Constraint::Length(1)).child(counter(3, 3)),
+        ]))
+        .child(col(Constraint::Percentage(50)).child((counter(2, 2), counter(3, 3))))
 }
 
 #[derive(Debug, Clone)]

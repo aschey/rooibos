@@ -1,5 +1,6 @@
-use std::cell::{OnceCell, RefCell};
-use std::fmt;
+use std::cell::{OnceCell, Ref, RefCell};
+use std::fmt::{self, Debug};
+use std::io;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -39,6 +40,11 @@ impl fmt::Debug for View {
     }
 }
 
+struct NodeTypeStructure {
+    name: &'static str,
+    attrs: Option<String>,
+    children: Option<String>,
+}
 #[derive(Clone, PartialEq, Eq)]
 enum NodeType {
     Layout {
@@ -48,9 +54,69 @@ enum NodeType {
         spacing: u16,
     },
     Transparent,
-    Root,
     Overlay,
     Widget(DomWidget),
+}
+
+impl NodeType {
+    fn structure(&self) -> NodeTypeStructure {
+        match self {
+            NodeType::Layout {
+                direction,
+                flex,
+                margin,
+                spacing,
+            } => NodeTypeStructure {
+                name: "Layout",
+                attrs: Some(format!(
+                    "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}"
+                )),
+                children: None,
+            },
+
+            NodeType::Transparent => NodeTypeStructure {
+                name: "Transparent",
+                attrs: None,
+                children: None,
+            },
+            // NodeType::Root => NodeTypeStructure {
+            //     name: "Root",
+            //     attrs: None,
+            //     children: None,
+            // },
+            NodeType::Overlay => NodeTypeStructure {
+                name: "Overlay",
+                attrs: None,
+                children: None,
+            },
+            NodeType::Widget(widget) => NodeTypeStructure {
+                name: "Widget",
+                attrs: None,
+                children: Some(format!("{widget:?}")),
+            },
+        }
+    }
+}
+
+impl Debug for NodeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NodeType::Layout {
+                direction,
+                flex,
+                margin,
+                spacing,
+            } => write!(
+                f,
+                "Layout(direction={direction}, flex={flex}, margin={margin}, spacing={spacing})"
+            ),
+
+            NodeType::Transparent => write!(f, "Transparent"),
+            // NodeType::Root => write!(f, "Root"),
+            NodeType::Overlay => write!(f, "Overlay"),
+            NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
+        }
+    }
 }
 
 new_key_type! {struct DomNodeKey; }
@@ -78,9 +144,9 @@ impl IntoView for &View {
     }
 }
 
-impl<const N: usize> IntoView for [View; N] {
+impl<const N: usize, IV: IntoView> IntoView for [IV; N] {
     fn into_view(self) -> View {
-        Fragment::new(self.into_iter().collect()).into_view()
+        Fragment::new(self.into_iter().map(|v| v.into_view()).collect()).into_view()
     }
 }
 
@@ -98,22 +164,21 @@ where
 
 macro_rules! impl_into_view_for_tuples {
     ($($ty:ident),* $(,)?) => {
-      impl<$($ty),*> IntoView for ($($ty,)*)
-      where
-        $($ty: IntoView),*
-      {
-        #[inline]
-        fn into_view(self) -> View {
-          paste::paste! {
-            let ($([<$ty:lower>],)*) = self;
-            [
-              $([<$ty:lower>].into_view()),*
-            ].into_view()
-          }
+        impl<$($ty),*> IntoView for ($($ty,)*)
+        where $($ty: IntoView),*
+        {
+            #[inline]
+            fn into_view(self) -> View {
+                paste::paste! {
+                    let ($([<$ty:lower>],)*) = self;
+                    [
+                    $([<$ty:lower>].into_view()),*
+                    ].into_view()
+                }
+            }
         }
-      }
     };
-  }
+}
 
 impl_into_view_for_tuples!(A);
 impl_into_view_for_tuples!(A, B);
@@ -374,8 +439,8 @@ where
             component: DynChildRepr,
             child_fn: Box<dyn Fn() -> View>,
         ) -> DynChildRepr {
-            let document_fragment = component.document_fragment.clone();
-            let opening = component.opening.node.clone();
+            // let document_fragment = component.document_fragment.clone();
+            // let opening = component.opening.node.clone();
             let closing = component.closing.node.clone();
             let child = component.child.clone();
 
@@ -544,17 +609,29 @@ impl Mountable for DynChildRepr {
 #[derive(Clone)]
 pub struct DomWidget {
     f: Rc<RefCell<dyn FnMut(&mut Frame, Rect)>>,
+    widget_type: String,
+}
+
+impl Debug for DomWidget {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "<{}/>", self.widget_type)
+    }
 }
 
 impl DomWidget {
-    pub fn new<F: FnMut(&mut Frame, Rect) + 'static>(f: F) -> Self {
+    pub fn new<F: FnMut(&mut Frame, Rect) + 'static>(widget_type: impl Into<String>, f: F) -> Self {
         Self {
+            widget_type: widget_type.into(),
             f: Rc::new(RefCell::new(f)),
         }
     }
 
     pub fn render(&self, frame: &mut Frame, rect: Rect) {
         (*self.f).borrow_mut()(frame, rect)
+    }
+
+    pub fn widget_type(&self) -> &str {
+        &self.widget_type
     }
 }
 
@@ -710,6 +787,63 @@ pub fn col(constraint: Constraint) -> Element {
     }
 }
 
+pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
+    DOM.with(|dom| {
+        DOM_NODES.with(|d| {
+            let dom = dom.borrow();
+            let d = d.borrow();
+            print_dom_inner(writer, &d, &d[dom.key], "")?;
+            Ok(())
+        })
+
+        // for node in d.keys() {
+        //     print_dom_inner(writer, &d, &d[node], "")?;
+        // }
+    })
+}
+
+fn print_dom_inner<W: io::Write>(
+    writer: &mut W,
+    dom_ref: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    node: &DomNodeInner,
+    indent: &str,
+) -> io::Result<()> {
+    // if matches!(node.node_type, NodeType::Transparent) {
+    //     for child in &node.children {
+    //         print_dom_inner(writer, dom_ref, &dom_ref[*child], indent)?;
+    //     }
+    // } else {
+    let NodeTypeStructure {
+        name,
+        attrs,
+        children,
+    } = node.node_type.structure();
+    write!(writer, "{indent}<{name}")?;
+    if let Some(attrs) = attrs {
+        write!(writer, " {attrs}")?;
+    }
+    write!(writer, " constraint={}", node.constraint)?;
+    if let Some(parent) = node.parent {
+        let parent_node = &dom_ref[parent];
+        if matches!(parent_node.node_type, NodeType::Layout { .. }) {
+            // write!(writer, " constraint={}", node.constraint)?;
+            write!(writer, " used")?;
+        }
+    }
+    writeln!(writer, ">")?;
+    if let Some(children) = children {
+        writeln!(writer, "{indent}  {children}")?;
+    }
+    let child_indent = format!("{indent}  ");
+    for child in &node.resolve_children(dom_ref) {
+        print_dom_inner(writer, dom_ref, child, &child_indent)?;
+    }
+    writeln!(writer, "{indent}</{name}>")?;
+    // }
+
+    Ok(())
+}
+
 #[derive(Clone, PartialEq, Eq)]
 struct DomNodeInner {
     node_type: NodeType,
@@ -720,21 +854,50 @@ struct DomNodeInner {
 }
 
 impl DomNodeInner {
+    fn resolve_children(
+        &self,
+        dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    ) -> Vec<DomNodeInner> {
+        let children: Vec<_> = self
+            .children
+            .iter()
+            .flat_map(|c| {
+                let child = &dom_nodes[*c];
+                if child.node_type == NodeType::Transparent {
+                    return child.resolve_children(dom_nodes);
+                }
+                vec![child.to_owned()]
+            })
+            // .flat_map(|c| {
+            //     let child = &d[*c];
+            //     let mut before: Vec<_> = child.before_pending.iter().map(|c|
+            // &d[*c]).collect();     before.push(child);
+            //     before
+            // })
+            // .filter(|c| c.node_type != NodeType::Transparent)
+            .collect();
+        children
+    }
     pub fn render(&self, frame: &mut Frame, rect: Rect) {
         DOM_NODES.with(|d| {
             let d = d.borrow();
-            let children: Vec<_> = self
-                .children
-                .iter()
-                .map(|c| &d[*c])
-                // .flat_map(|c| {
-                //     let child = &d[*c];
-                //     let mut before: Vec<_> = child.before_pending.iter().map(|c|
-                // &d[*c]).collect();     before.push(child);
-                //     before
-                // })
-                // .filter(|c| c.node_type != NodeType::Transparent)
-                .collect();
+            let children: Vec<_> = self.resolve_children(&d);
+            // .children
+            // .iter()
+            // .map(|c| {
+            //     let child = &d[*c];
+            //     if child.node_type = NodeType::Transparent {
+            //         child.children
+            //     }
+            // })
+            // .flat_map(|c| {
+            //     let child = &d[*c];
+            //     let mut before: Vec<_> = child.before_pending.iter().map(|c|
+            // &d[*c]).collect();     before.push(child);
+            //     before
+            // })
+            // .filter(|c| c.node_type != NodeType::Transparent)
+            // .collect();
             // let mut grandchildren: Vec<_> = children
             //     .iter()
             //     .filter_map(|c| {
@@ -772,13 +935,16 @@ impl DomNodeInner {
                         });
                 }
                 // NodeType::Transparent => {}
-                NodeType::Overlay | NodeType::Transparent | NodeType::Root => {
+                NodeType::Overlay => {
                     children.iter().for_each(|child| {
                         child.render(frame, rect);
                     });
                 }
                 NodeType::Widget(widget) => {
                     widget.render(frame, rect);
+                }
+                NodeType::Transparent => {
+                    unreachable!()
                 }
             }
         });
@@ -795,8 +961,13 @@ pub struct DomNode {
 impl DomNode {
     pub fn root() -> Self {
         let inner = DomNodeInner {
-            node_type: NodeType::Root,
-            constraint: Constraint::Min(0),
+            node_type: NodeType::Layout {
+                direction: Direction::Vertical,
+                flex: Flex::default(),
+                margin: 0,
+                spacing: 0,
+            },
+            constraint: Constraint::Percentage(100),
             children: vec![],
             parent: None,
             before_pending: vec![],
