@@ -34,6 +34,25 @@ pub enum View {
     DomWidget(DomWidget),
 }
 
+impl View {
+    fn set_name(&mut self, name: impl Into<String>) {
+        match self {
+            View::DynChild(repr) => {
+                repr.set_name(name);
+            }
+            View::Component(repr) => {
+                repr.set_name(name);
+            }
+            View::DomNode(node) => {
+                node.set_name(name);
+            }
+            View::DomWidget(widget) => {
+                widget.widget_type = name.into();
+            }
+        }
+    }
+}
+
 impl fmt::Debug for View {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         todo!()
@@ -79,11 +98,6 @@ impl NodeType {
                 attrs: None,
                 children: None,
             },
-            // NodeType::Root => NodeTypeStructure {
-            //     name: "Root",
-            //     attrs: None,
-            //     children: None,
-            // },
             NodeType::Overlay => NodeTypeStructure {
                 name: "Overlay",
                 attrs: None,
@@ -150,15 +164,26 @@ impl<const N: usize, IV: IntoView> IntoView for [IV; N] {
     }
 }
 
-impl<V> IntoView for Vec<V>
+impl<IV> IntoView for Vec<IV>
 where
-    V: IntoView,
+    IV: IntoView,
 {
     fn into_view(self) -> View {
         self.into_iter()
             .map(|v| v.into_view())
             .collect::<Fragment>()
             .into_view()
+    }
+}
+
+impl<IV> IntoView for (&'static str, IV)
+where
+    IV: IntoView,
+{
+    fn into_view(self) -> View {
+        let mut view = self.1.into_view();
+        view.set_name(self.0);
+        view
     }
 }
 
@@ -221,7 +246,7 @@ impl_into_view_for_tuples!(
 
 pub struct Fragment {
     id: u32,
-    pub nodes: Vec<View>,
+    nodes: Vec<View>,
     // pub(crate) view_marker: Option<String>,
 }
 
@@ -259,7 +284,7 @@ impl FromIterator<View> for Fragment {
 
 impl IntoView for Fragment {
     fn into_view(self) -> View {
-        let repr = ComponentRepr::new_with_id("".to_string(), self.id, self.nodes);
+        let repr = ComponentRepr::new_with_id("fragment", self.id, self.nodes);
         // repr.view_marker = self.view_marker;
         repr.into_view()
     }
@@ -269,7 +294,7 @@ impl IntoView for Fragment {
 pub struct ComponentRepr {
     pub(crate) document_fragment: DomNode,
     mounted: Rc<OnceCell<DomNode>>,
-    pub(crate) name: String,
+    // pub(crate) name: String,
     opening: Comment,
     pub children: Vec<View>,
     closing: Comment,
@@ -278,11 +303,12 @@ pub struct ComponentRepr {
 }
 
 impl ComponentRepr {
-    pub fn new_with_id(name: String, id: u32, children: Vec<View>) -> Self {
-        let document_fragment = DocumentFragment::transparent();
+    pub fn new_with_id(name: impl Into<String>, id: u32, children: Vec<View>) -> Self {
+        let name = name.into();
+        let document_fragment = DocumentFragment::transparent(name.clone());
         let markers = (
-            Comment::new(format!("<{name}>"), id, false),
-            Comment::new(format!("</{name}>"), id, true),
+            Comment::new(name.clone(), id, false),
+            Comment::new(name, id, true),
         );
 
         Self {
@@ -290,11 +316,17 @@ impl ComponentRepr {
             mounted: Default::default(),
             opening: markers.0,
             closing: markers.1,
-            name,
+            // name,
             children,
             id,
             // view_marker: None,
         }
+    }
+
+    fn set_name(&mut self, name: impl Into<String>) {
+        let name = name.into();
+        self.opening.set_name(name.clone());
+        self.closing.set_name(name);
     }
 }
 
@@ -430,6 +462,7 @@ where
 {
     id: u32,
     child_fn: CF,
+    name: String,
 }
 
 impl<CF, N> DynChild<CF, N>
@@ -437,10 +470,11 @@ where
     CF: Fn() -> N + 'static,
     N: IntoView,
 {
-    pub fn new(child_fn: CF) -> Self {
+    pub fn new(name: impl Into<String>, child_fn: CF) -> Self {
         Self {
             child_fn,
             id: NODE_ID.fetch_add(1, Ordering::Relaxed),
+            name: name.into(),
         }
     }
 }
@@ -487,9 +521,9 @@ where
             component
         }
 
-        let Self { id, child_fn } = self;
+        let Self { id, child_fn, name } = self;
 
-        let component = DynChildRepr::new_with_id(id);
+        let component = DynChildRepr::new_with_id(id, name);
         let component = create_dyn_view(component, Box::new(move || child_fn().into_view()));
 
         View::DynChild(component)
@@ -520,19 +554,23 @@ where
 #[derive(Clone, PartialEq, Eq)]
 struct Comment {
     node: DomNode,
-    content: String,
+    // content: String,
 }
 
 impl Comment {
-    fn new(content: impl Into<String>, id: u32, closing: bool) -> Self {
-        let node = DomNode::from_fragment(DocumentFragment::transparent());
+    fn new(name: impl Into<String>, id: u32, closing: bool) -> Self {
+        let node = DomNode::from_fragment(DocumentFragment::transparent(name.into()));
         // DOM_NODES.with(|d| d.borrow_mut().insert(node.));
         // mount_child(MountKind::Append(parent), &node);
         // DOM.with(|d| d.borrow().append_child(&node));
         Self {
-            content: content.into(),
+            // content: content.into(),
             node,
         }
+    }
+
+    fn set_name(&mut self, name: impl Into<String>) {
+        self.node.set_name(name);
     }
 }
 
@@ -548,11 +586,11 @@ pub struct DynChildRepr {
 }
 
 impl DynChildRepr {
-    fn new_with_id(id: u32) -> Self {
-        let document_fragment = DocumentFragment::transparent();
+    fn new_with_id(id: u32, name: impl Into<String>) -> Self {
+        let document_fragment = DocumentFragment::transparent(name);
         let markers = (
-            Comment::new("<DynChild>", id, false),
-            Comment::new("</DynChild>", id, true),
+            Comment::new("DynChild", id, false),
+            Comment::new("DynChild", id, true),
         );
 
         Self {
@@ -563,6 +601,12 @@ impl DynChildRepr {
             id,
             mounted: Default::default(),
         }
+    }
+
+    fn set_name(&mut self, name: impl Into<String>) {
+        let name = name.into();
+        self.opening.set_name(name.clone());
+        self.closing.set_name(name);
     }
 }
 
@@ -584,46 +628,6 @@ impl Mountable for DynChildRepr {
         }
     }
 }
-
-// impl Eq for View {}
-
-// impl PartialEq for View {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.id == other.id
-//     }
-// }
-
-// impl<F, V> IntoView for F
-// where
-//     F: Fn() -> V + 'static,
-//     V: IntoView,
-// {
-//     fn into_view(self) -> View {
-//         DynChild::new(self).into_view()
-//     }
-// }
-
-// impl View {
-//     pub fn new(f: impl FnMut(&mut Frame, Rect) + 'static) -> Self {
-//         Self {
-//             id: 0,
-//             f: Rc::new(RefCell::new(f)),
-//         }
-//     }
-
-//     pub fn render(&self, frame: &mut Frame, rect: Rect) {
-//         (self.f.borrow_mut())(frame, rect)
-//     }
-// }
-
-// impl<F: 'static> IntoView for F
-// where
-//     F: FnMut(&mut Frame, Rect),
-// {
-//     fn into_view(self) -> View {
-//         View::new(self)
-//     }
-// }
 
 #[derive(Clone)]
 pub struct DomWidget {
@@ -686,7 +690,7 @@ where
     N: IntoView,
 {
     fn into_view(self) -> View {
-        DynChild::new(self).into_view()
+        DynChild::new("Fn", self).into_view()
     }
 }
 
@@ -696,11 +700,13 @@ pub struct DocumentFragment {
     constraint: Constraint,
     flex: Flex,
     children: Vec<DomNodeKey>,
+    name: String,
 }
 
 impl DocumentFragment {
     pub fn widget(widget: DomWidget) -> Self {
         Self {
+            name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
             children: vec![],
             constraint: Constraint::default(),
@@ -719,6 +725,7 @@ impl DocumentFragment {
             children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
+            name: "row".to_string(),
         }
     }
 
@@ -733,6 +740,7 @@ impl DocumentFragment {
             children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
+            name: "col".to_string(),
         }
     }
 
@@ -742,15 +750,17 @@ impl DocumentFragment {
             children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
+            name: "overlay".to_string(),
         }
     }
 
-    pub fn transparent() -> Self {
+    pub fn transparent(name: impl Into<String>) -> Self {
         Self {
             node_type: NodeType::Transparent,
             children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
+            name: name.into(),
         }
     }
 
@@ -859,9 +869,10 @@ fn print_dom_inner<W: io::Write>(
         attrs,
         children,
     } = node.node_type.structure();
+    let node_name = node.name.clone();
     write!(
         writer,
-        "{indent}<{name} key={key:?} parent={:?}",
+        "{indent}<{node_name} type={name} key={key:?} parent={:?}",
         node.parent
     )?;
     if let Some(attrs) = attrs {
@@ -884,7 +895,7 @@ fn print_dom_inner<W: io::Write>(
         }
     }
 
-    writeln!(writer, "{indent}</{name}>")?;
+    writeln!(writer, "{indent}</{node_name}>")?;
     // }
 
     Ok(())
@@ -893,6 +904,7 @@ fn print_dom_inner<W: io::Write>(
 #[derive(Clone, PartialEq, Eq)]
 struct DomNodeInner {
     node_type: NodeType,
+    name: String,
     constraint: Constraint,
     children: Vec<DomNodeKey>,
     parent: Option<DomNodeKey>,
@@ -962,14 +974,14 @@ impl DomNodeInner {
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DomNode {
-    // inner: Rc<RefCell<DomNodeInner>>,
     key: DomNodeKey,
-    // parent: Rc<RefCell<Option<DomNodeKey>>>,
+    // name: String,
 }
 
 impl DomNode {
     pub fn from_fragment(fragment: DocumentFragment) -> Self {
         let inner = DomNodeInner {
+            name: fragment.name.clone(),
             node_type: fragment.node_type,
             constraint: fragment.constraint,
             children: fragment.children,
@@ -980,8 +992,12 @@ impl DomNode {
         Self {
             // inner:Rc::new(RefCell::new(inner)),
             key,
-            // parent: Rc::new(RefCell::new(None)),
+            // name: fragment.name, // parent: Rc::new(RefCell::new(None)),
         }
+    }
+
+    fn set_name(&self, name: impl Into<String>) {
+        DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
     }
 
     pub fn append_child(&self, node: &DomNode) {

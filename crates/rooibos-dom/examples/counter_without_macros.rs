@@ -31,24 +31,24 @@ thread_local! {
 
 fn main() -> Result<()> {
     let _ = create_runtime();
-    let mut terminal = setup_terminal()?;
+    // let mut terminal = setup_terminal()?;
     mount(|| counters());
-    // print_dom(&mut std::io::stdout(), true);
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
-    loop {
-        let e = handle_events()?;
-        if e == 0 {
-            restore_terminal(terminal)?;
-            return Ok(());
-        }
-        if e == 1 {
-            terminal.draw(|f: &mut Frame| {
-                render_dom(f);
-            })?;
-        }
-    }
+    print_dom(&mut std::io::stdout(), false);
+    // terminal.draw(|f: &mut Frame| {
+    //     render_dom(f);
+    // })?;
+    // loop {
+    //     let e = handle_events()?;
+    //     if e == 0 {
+    //         restore_terminal(terminal)?;
+    //         return Ok(());
+    //     }
+    //     if e == 1 {
+    //         terminal.draw(|f: &mut Frame| {
+    //             render_dom(f);
+    //         })?;
+    //     }
+    // }
     Ok(())
 }
 
@@ -106,7 +106,10 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
         });
     });
 
-    block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
+    (
+        "Counter",
+        block(move || BlockProps::default().title(format!("count: {}", count.get().value()))),
+    )
 }
 
 fn counters() -> impl IntoView {
@@ -119,16 +122,22 @@ fn counters() -> impl IntoView {
                 if key == "i" {
                     count.update(Count::increase);
                 }
+                if key == "u" {
+                    count.update(Count::decrease);
+                }
             }),
         )));
     });
-    col(Constraint::Percentage(100))
-        .child(col(Constraint::Percentage(50)).child(move || {
-            (1..count.get().value())
-                .map(|i| row(Constraint::Length(1)).child(counter(i, i as u32)))
-                .collect::<Vec<_>>()
-        }))
-        .child(col(Constraint::Percentage(50)).child((counter(2, 2), counter(3, 3))))
+    (
+        "Counters",
+        col(Constraint::Percentage(100))
+            .child(col(Constraint::Percentage(50)).child(move || {
+                (1..count.get().value())
+                    .map(|i| row(Constraint::Length(1)).child(counter(i, i as u32)))
+                    .collect::<Vec<_>>()
+            }))
+            .child(col(Constraint::Percentage(50)).child((counter(2, 2), counter(3, 3)))),
+    )
 }
 
 #[derive(Debug, Clone)]
