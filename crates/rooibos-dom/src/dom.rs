@@ -1,4 +1,4 @@
-use std::cell::{OnceCell, Ref, RefCell};
+use std::cell::{OnceCell, Ref, RefCell, RefMut};
 use std::fmt::{self, Debug};
 use std::io;
 use std::rc::Rc;
@@ -11,7 +11,7 @@ use ratatui::Frame;
 use slotmap::{new_key_type, SlotMap};
 
 thread_local! {
-    pub static DOM: RefCell<DomNode> = RefCell::new(DomNode::root());
+    static DOM_ROOT: RefCell<Option<DomNode>> = RefCell::new(None);
     static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
         RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
 }
@@ -222,7 +222,7 @@ impl_into_view_for_tuples!(
 pub struct Fragment {
     id: u32,
     pub nodes: Vec<View>,
-    pub(crate) view_marker: Option<String>,
+    // pub(crate) view_marker: Option<String>,
 }
 
 impl Fragment {
@@ -230,7 +230,7 @@ impl Fragment {
         Self {
             id: NODE_ID.fetch_add(1, Ordering::Relaxed),
             nodes,
-            view_marker: None,
+            // view_marker: None,
         }
     }
 }
@@ -259,8 +259,8 @@ impl FromIterator<View> for Fragment {
 
 impl IntoView for Fragment {
     fn into_view(self) -> View {
-        let mut repr = ComponentRepr::new_with_id("".to_string(), self.id, self.nodes);
-        repr.view_marker = self.view_marker;
+        let repr = ComponentRepr::new_with_id("".to_string(), self.id, self.nodes);
+        // repr.view_marker = self.view_marker;
         repr.into_view()
     }
 }
@@ -274,7 +274,7 @@ pub struct ComponentRepr {
     pub children: Vec<View>,
     closing: Comment,
     pub(crate) id: u32,
-    pub(crate) view_marker: Option<String>,
+    // pub(crate) view_marker: Option<String>,
 }
 
 impl ComponentRepr {
@@ -293,7 +293,7 @@ impl ComponentRepr {
             name,
             children,
             id,
-            view_marker: None,
+            // view_marker: None,
         }
     }
 }
@@ -348,13 +348,29 @@ fn mount_child<M: Mountable + std::fmt::Debug>(kind: MountKind, child: &M) -> Do
     child.key
 }
 
-// #[derive(Clone, PartialEq, Eq)]
-// pub struct DomNode {
-//     id: Option<String>,
-//     node_type: NodeType,
-//     constraint: Constraint,
-//     children: Vec<DomNode>,
-// }
+fn cleanup_removed_nodes(
+    node: &DomNodeKey,
+    nodes: &mut RefMut<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+) {
+    let children = nodes[*node].children.clone();
+    for child in children {
+        cleanup_removed_nodes(&child, nodes);
+    }
+    nodes.remove(*node);
+}
+
+fn unmount_child(child: DomNodeKey) {
+    DOM_NODES.with(|d| {
+        let mut d = d.borrow_mut();
+        let child_node = &d[child];
+        if let Some(parent) = child_node.parent {
+            let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
+            d[parent].children.remove(child_pos);
+        }
+
+        cleanup_removed_nodes(&child, &mut d);
+    });
+}
 
 pub struct Component<F, V>
 where
@@ -444,26 +460,28 @@ where
             let closing = component.closing.node.clone();
             let child = component.child.clone();
 
-            create_render_effect(move |prev_run: Option<Option<DomNodeKey>>| {
+            create_render_effect(move |prev_key: Option<DomNodeKey>| {
                 let new_child = child_fn().into_view();
                 let mut child_borrow = (*child).borrow_mut();
 
                 // Is this at least the second time we are loading a child?
-                if let Some(prev_t) = prev_run {
-                    let child = child_borrow.take().unwrap();
+                if let Some(prev_key) = prev_key {
+                    let prev_child = child_borrow.take().unwrap();
 
-                    if child != new_child {
-                        let new = mount_child(MountKind::Before(&closing), &new_child);
+                    if prev_child != new_child {
+                        unmount_child(prev_key);
+
+                        let new_key = mount_child(MountKind::Before(&closing), &new_child);
 
                         **child_borrow = Some(new_child);
-                        Some(new)
+                        new_key
                     } else {
-                        prev_t
+                        prev_key
                     }
                 } else {
                     let new = mount_child(MountKind::Before(&closing), &new_child);
                     **child_borrow = Some(new_child);
-                    Some(new)
+                    new
                 }
             });
             component
@@ -794,18 +812,24 @@ pub fn col(constraint: Constraint) -> Element {
     }
 }
 
-pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
-    DOM.with(|dom| {
+pub fn print_dom<W: io::Write>(writer: &mut W, include_transparent: bool) -> io::Result<()> {
+    DOM_ROOT.with(|dom| {
         DOM_NODES.with(|nodes| {
             let dom = dom.borrow();
             let nodes = nodes.borrow();
-            let root = &nodes[dom.key];
-            if root.node_type == NodeType::Transparent {
-                for child in &root.resolve_children(&nodes) {
-                    print_dom_inner(writer, &nodes, child, "")?;
+            let root = &nodes[dom.as_ref().unwrap().key];
+            if !include_transparent && root.node_type == NodeType::Transparent {
+                for (key, _) in &root.resolve_children(&nodes) {
+                    print_dom_inner(writer, &nodes, *key, "", include_transparent)?;
                 }
             } else {
-                print_dom_inner(writer, &nodes, &nodes[dom.key], "")?;
+                print_dom_inner(
+                    writer,
+                    &nodes,
+                    dom.as_ref().unwrap().key,
+                    "",
+                    include_transparent,
+                )?;
             }
 
             Ok(())
@@ -820,20 +844,26 @@ pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
 fn print_dom_inner<W: io::Write>(
     writer: &mut W,
     dom_ref: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
-    node: &DomNodeInner,
+    key: DomNodeKey,
     indent: &str,
+    include_transparent: bool,
 ) -> io::Result<()> {
     // if matches!(node.node_type, NodeType::Transparent) {
     //     for child in &node.children {
     //         print_dom_inner(writer, dom_ref, &dom_ref[*child], indent)?;
     //     }
     // } else {
+    let node = &dom_ref[key];
     let NodeTypeStructure {
         name,
         attrs,
         children,
     } = node.node_type.structure();
-    write!(writer, "{indent}<{name}")?;
+    write!(
+        writer,
+        "{indent}<{name} key={key:?} parent={:?}",
+        node.parent
+    )?;
     if let Some(attrs) = attrs {
         write!(writer, " {attrs}")?;
     }
@@ -844,9 +874,16 @@ fn print_dom_inner<W: io::Write>(
         writeln!(writer, "{indent}  {children}")?;
     }
     let child_indent = format!("{indent}  ");
-    for child in &node.resolve_children(dom_ref) {
-        print_dom_inner(writer, dom_ref, child, &child_indent)?;
+    if include_transparent {
+        for key in &node.children {
+            print_dom_inner(writer, dom_ref, *key, &child_indent, include_transparent)?;
+        }
+    } else {
+        for (key, _) in &node.resolve_children(dom_ref) {
+            print_dom_inner(writer, dom_ref, *key, &child_indent, include_transparent)?;
+        }
     }
+
     writeln!(writer, "{indent}</{name}>")?;
     // }
 
@@ -866,7 +903,7 @@ impl DomNodeInner {
     fn resolve_children(
         &self,
         dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
-    ) -> Vec<DomNodeInner> {
+    ) -> Vec<(DomNodeKey, DomNodeInner)> {
         let children: Vec<_> = self
             .children
             .iter()
@@ -875,15 +912,8 @@ impl DomNodeInner {
                 if child.node_type == NodeType::Transparent {
                     return child.resolve_children(dom_nodes);
                 }
-                vec![child.to_owned()]
+                vec![(*c, child.to_owned())]
             })
-            // .flat_map(|c| {
-            //     let child = &d[*c];
-            //     let mut before: Vec<_> = child.before_pending.iter().map(|c|
-            // &d[*c]).collect();     before.push(child);
-            //     before
-            // })
-            // .filter(|c| c.node_type != NodeType::Transparent)
             .collect();
         children
     }
@@ -892,7 +922,7 @@ impl DomNodeInner {
             let d = d.borrow();
             let children: Vec<_> = self.resolve_children(&d);
 
-            let constraints = children.iter().map(|c| c.constraint);
+            let constraints = children.iter().map(|c| c.1.constraint);
             // dbg!(&constraints);
             match &self.node_type {
                 NodeType::Layout {
@@ -912,13 +942,13 @@ impl DomNodeInner {
                     children
                         .iter()
                         .zip(chunks.iter())
-                        .for_each(|(child, chunk)| {
+                        .for_each(|((_, child), chunk)| {
                             child.render(frame, *chunk);
                         });
                 }
 
                 NodeType::Overlay | NodeType::Transparent => {
-                    children.iter().for_each(|child| {
+                    children.iter().for_each(|(_, child)| {
                         child.render(frame, rect);
                     });
                 }
@@ -938,27 +968,6 @@ pub struct DomNode {
 }
 
 impl DomNode {
-    pub fn root() -> Self {
-        let inner = DomNodeInner {
-            node_type: NodeType::Layout {
-                direction: Direction::Vertical,
-                flex: Flex::default(),
-                margin: 0,
-                spacing: 0,
-            },
-            constraint: Constraint::Percentage(100),
-            children: vec![],
-            parent: None,
-            before_pending: vec![],
-        };
-        let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
-        Self {
-            // inner: Rc::new(RefCell::new(inner)),
-            key,
-            // parent: Rc::new(RefCell::new(None)),
-        }
-    }
-
     pub fn from_fragment(fragment: DocumentFragment) -> Self {
         let inner = DomNodeInner {
             node_type: fragment.node_type,
@@ -994,11 +1003,9 @@ impl DomNode {
                     .position(|c| c == &node.key)
                     .unwrap();
                 d[self.key].children.insert(self_index, p);
-                d[node.key].parent = Some(self.key);
+                d[p].parent = Some(self.key);
             }
         });
-        // DOM_NODES.with(|d| d.borrow_mut()[self.key].children.push(node.key));
-        // (*self.inner).borrow_mut().children.push(node.key);
     }
 
     pub fn before(&self, node: &DomNode) {
@@ -1041,11 +1048,15 @@ impl Mountable for DomNode {
     }
 }
 
-pub fn mount(v: impl IntoView) {
-    let node = v.into_view().get_mountable_node();
-    DOM.with(|d| *d.borrow_mut() = node);
+pub fn mount<F, IV>(f: F)
+where
+    F: FnOnce() -> IV + 'static,
+    IV: IntoView,
+{
+    let node = f().into_view().get_mountable_node();
+    DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
 }
 
 pub fn render_dom(frame: &mut Frame) {
-    DOM.with(|d| d.borrow().render(frame, frame.size()));
+    DOM_ROOT.with(|d| d.borrow().as_ref().unwrap().render(frame, frame.size()));
 }

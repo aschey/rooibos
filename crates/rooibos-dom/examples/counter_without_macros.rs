@@ -30,7 +30,7 @@ fn main() -> Result<()> {
     let _ = create_runtime();
     let mut terminal = setup_terminal()?;
     mount(|| counters());
-    // print_dom(&mut std::io::stdout());
+    // print_dom(&mut std::io::stdout(), true);
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
     })?;
@@ -86,7 +86,9 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
 
     KEY_HANDLERS.with(|h| {
         h.borrow_mut().push(Rc::new(move |key| {
-            count.update(Count::increase);
+            if key == "o" {
+                count.update(Count::increase);
+            }
         }))
     });
 
@@ -98,17 +100,17 @@ fn counters() -> impl IntoView {
 
     KEY_HANDLERS.with(|h| {
         h.borrow_mut().push(Rc::new(move |key| {
-            count.update(Count::increase);
+            if key == "i" {
+                count.update(Count::increase);
+            }
         }))
     });
     col(Constraint::Percentage(100))
-        .child(
-            col(Constraint::Percentage(50)).child(
-                (1..5)
-                    .map(|i| row(Constraint::Length(1)).child(counter(i, i as u32)))
-                    .collect::<Vec<_>>(),
-            ),
-        )
+        .child(col(Constraint::Percentage(50)).child(move || {
+            (1..count.get().value())
+                .map(|i| row(Constraint::Length(1)).child(counter(i, i as u32)))
+                .collect::<Vec<_>>()
+        }))
         .child(col(Constraint::Percentage(50)).child((counter(2, 2), counter(3, 3))))
 }
 
