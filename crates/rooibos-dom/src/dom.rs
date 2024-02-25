@@ -462,6 +462,7 @@ where
                     }
                 } else {
                     let new = mount_child(MountKind::Before(&closing), &new_child);
+                    **child_borrow = Some(new_child);
                     Some(new)
                 }
             });
@@ -521,7 +522,7 @@ impl Comment {
 pub struct DynChildRepr {
     document_fragment: DomNode,
     mounted: Rc<OnceCell<DomNode>>,
-    #[cfg(debug_assertions)]
+    // #[cfg(debug_assertions)]
     opening: Comment,
     pub(crate) child: Rc<RefCell<Box<Option<View>>>>,
     closing: Comment,
@@ -609,6 +610,7 @@ impl Mountable for DynChildRepr {
 #[derive(Clone)]
 pub struct DomWidget {
     f: Rc<RefCell<dyn FnMut(&mut Frame, Rect)>>,
+    id: u32,
     widget_type: String,
 }
 
@@ -619,9 +621,14 @@ impl Debug for DomWidget {
 }
 
 impl DomWidget {
-    pub fn new<F: FnMut(&mut Frame, Rect) + 'static>(widget_type: impl Into<String>, f: F) -> Self {
+    pub fn new<F: FnMut(&mut Frame, Rect) + 'static>(
+        id: u32,
+        widget_type: impl Into<String>,
+        f: F,
+    ) -> Self {
         Self {
             widget_type: widget_type.into(),
+            id,
             f: Rc::new(RefCell::new(f)),
         }
     }
@@ -649,7 +656,7 @@ impl Mountable for DomWidget {
 
 impl PartialEq for DomWidget {
     fn eq(&self, other: &Self) -> bool {
-        false
+        self.id == other.id
     }
 }
 
@@ -789,10 +796,18 @@ pub fn col(constraint: Constraint) -> Element {
 
 pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
     DOM.with(|dom| {
-        DOM_NODES.with(|d| {
+        DOM_NODES.with(|nodes| {
             let dom = dom.borrow();
-            let d = d.borrow();
-            print_dom_inner(writer, &d, &d[dom.key], "")?;
+            let nodes = nodes.borrow();
+            let root = &nodes[dom.key];
+            if root.node_type == NodeType::Transparent {
+                for child in &root.resolve_children(&nodes) {
+                    print_dom_inner(writer, &nodes, child, "")?;
+                }
+            } else {
+                print_dom_inner(writer, &nodes, &nodes[dom.key], "")?;
+            }
+
             Ok(())
         })
 
@@ -823,13 +838,7 @@ fn print_dom_inner<W: io::Write>(
         write!(writer, " {attrs}")?;
     }
     write!(writer, " constraint={}", node.constraint)?;
-    if let Some(parent) = node.parent {
-        let parent_node = &dom_ref[parent];
-        if matches!(parent_node.node_type, NodeType::Layout { .. }) {
-            // write!(writer, " constraint={}", node.constraint)?;
-            write!(writer, " used")?;
-        }
-    }
+
     writeln!(writer, ">")?;
     if let Some(children) = children {
         writeln!(writer, "{indent}  {children}")?;
@@ -882,34 +891,7 @@ impl DomNodeInner {
         DOM_NODES.with(|d| {
             let d = d.borrow();
             let children: Vec<_> = self.resolve_children(&d);
-            // .children
-            // .iter()
-            // .map(|c| {
-            //     let child = &d[*c];
-            //     if child.node_type = NodeType::Transparent {
-            //         child.children
-            //     }
-            // })
-            // .flat_map(|c| {
-            //     let child = &d[*c];
-            //     let mut before: Vec<_> = child.before_pending.iter().map(|c|
-            // &d[*c]).collect();     before.push(child);
-            //     before
-            // })
-            // .filter(|c| c.node_type != NodeType::Transparent)
-            // .collect();
-            // let mut grandchildren: Vec<_> = children
-            //     .iter()
-            //     .filter_map(|c| {
-            //         if c.node_type == NodeType::Transparent {
-            //             Some(c.children.iter().map(|c| &d[*c]).collect::<Vec<_>>())
-            //         } else {
-            //             None
-            //         }
-            //     })
-            //     .flatten()
-            //     .collect();
-            // children.append(&mut grandchildren);
+
             let constraints = children.iter().map(|c| c.constraint);
             // dbg!(&constraints);
             match &self.node_type {
@@ -934,17 +916,14 @@ impl DomNodeInner {
                             child.render(frame, *chunk);
                         });
                 }
-                // NodeType::Transparent => {}
-                NodeType::Overlay => {
+
+                NodeType::Overlay | NodeType::Transparent => {
                     children.iter().for_each(|child| {
                         child.render(frame, rect);
                     });
                 }
                 NodeType::Widget(widget) => {
                     widget.render(frame, rect);
-                }
-                NodeType::Transparent => {
-                    unreachable!()
                 }
             }
         });
@@ -1062,191 +1041,9 @@ impl Mountable for DomNode {
     }
 }
 
-// impl<F> IntoView for DomWidget<F>
-// where
-//     F: FnMut(&mut Frame, Rect) + 'static,
-// {
-//     fn into_view(self) -> View {
-//         View::new(self.inner)
-//     }
-// }
-
-// impl IntoView for View {
-//     fn into_view(self) -> View {
-//         self
-//     }
-// }
-
-// impl IntoView for DomNode {
-//     fn into_view(self) -> View {
-//         View::new(move |frame, rect| self.render(frame, rect))
-//     }
-// }
-
-// pub trait IntoDomNode {
-//     fn attach(self, children: &mut Vec<DomNode>);
-// }
-
-// impl IntoDomNode for DomNode {
-//     fn attach(self, children: &mut Vec<DomNode>) {
-//         children.push(self);
-//     }
-// }
-
-// impl IntoDomNode for View {
-//     fn attach(self, children: &mut Vec<DomNode>) {
-//         children.push(DomNode::component(self));
-//     }
-// }
-
-// impl IntoDomNode for Vec<DomNode> {
-//     fn attach(self, children: &mut Vec<DomNode>) {
-//         for node in self.into_iter() {
-//             children.push(node);
-//         }
-//     }
-// }
-
-// impl<F: 'static> IntoDomNode for DomWidget<F>
-// where
-//     F: FnMut(&mut Frame, Rect),
-// {
-//     fn attach(self, children: &mut Vec<DomNode>) {
-//         self.into_view().attach(children);
-//     }
-// }
-
-// impl DomNode {
-//     fn root() -> Self {
-//         Self {
-//             id: None,
-//             node_type: NodeType::Root,
-//             children: vec![],
-//             constraint: Constraint::Min(0),
-//         }
-//     }
-
-//     pub fn component(v: View) -> Self {
-//         Self {
-//             id: None,
-//             node_type: NodeType::Component(RefCell::new(v.into_view())),
-//             children: vec![],
-//             constraint: Constraint::Min(0),
-//         }
-//     }
-
-//     pub fn row() -> Self {
-//         Self {
-//             id: None,
-//             node_type: NodeType::Layout {
-//                 direction: Direction::Horizontal,
-//                 margin: 0,
-//             },
-//             children: vec![],
-//             constraint: Constraint::Min(0),
-//         }
-//     }
-
-//     pub fn col() -> Self {
-//         Self {
-//             id: None,
-//             node_type: NodeType::Layout {
-//                 direction: Direction::Vertical,
-//                 margin: 0,
-//             },
-//             children: vec![],
-//             constraint: Constraint::Min(0),
-//         }
-//     }
-
-//     pub fn overlay() -> Self {
-//         Self {
-//             id: None,
-//             node_type: NodeType::Overlay,
-//             children: vec![],
-//             constraint: Constraint::Min(0),
-//         }
-//     }
-
-//     pub fn constraint(mut self, constraint: Constraint) -> Self {
-//         self.constraint = constraint;
-//         self
-//     }
-
-//     pub fn render(&self, frame: &mut Frame, rect: Rect) {
-//         match &self.node_type {
-//             NodeType::Layout { direction, margin } => {
-//                 let layout = Layout::default().direction(*direction).margin(*margin);
-//                 let constraints = self.children.iter().map(|c| c.constraint);
-//                 let chunks = layout
-//                     .constraints(constraints.collect::<Vec<_>>())
-//                     .split(rect);
-//                 self.children
-//                     .iter()
-//                     .zip(chunks.iter())
-//                     .for_each(|(child, chunk)| {
-//                         child.render(frame, *chunk);
-//                     });
-//             }
-//             NodeType::Overlay | NodeType::Root => {
-//                 self.children.iter().for_each(|child| {
-//                     child.render(frame, rect);
-//                 });
-//             }
-//             NodeType::Component(component) => {
-//                 component.borrow().render(frame, rect);
-//             }
-//         }
-//     }
-
-//     pub fn margin(mut self, new_margin: u16) -> Self {
-//         if let NodeType::Layout { margin, .. } = &mut self.node_type {
-//             *margin = new_margin;
-//         }
-//         self
-//     }
-
-//     pub fn child(mut self, node: impl IntoDomNode) -> Self {
-//         node.attach(&mut self.children);
-//         self
-//     }
-
-//     fn matches_id(&self, id: u32) -> bool {
-//         if let NodeType::Component(component) = &self.node_type {
-//             return component.borrow().id == id;
-//         }
-//         false
-//     }
-
-//     fn replace_view(&self, view: View) {
-//         if let NodeType::Component(component) = &self.node_type {
-//             println!("HI");
-//             *component.borrow_mut() = view;
-//         }
-//     }
-
-//     pub fn replace(&self, id: u32, mut new: View) -> Option<View> {
-//         if self.matches_id(id) {
-//             self.replace_view(new);
-//             return None;
-//         }
-//         for child in self.children.iter() {
-//             match child.replace(id, new) {
-//                 Some(returned) => {
-//                     new = returned;
-//                 }
-//                 None => {
-//                     return None;
-//                 }
-//             }
-//         }
-//         Some(new)
-//     }
-// }
-
 pub fn mount(v: impl IntoView) {
     let node = v.into_view().get_mountable_node();
-    DOM.with(|d| d.borrow_mut().append_child(&node));
+    DOM.with(|d| *d.borrow_mut() = node);
 }
 
 pub fn render_dom(frame: &mut Frame) {

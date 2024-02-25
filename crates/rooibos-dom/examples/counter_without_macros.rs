@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::format;
 use std::io::{stdout, Stdout};
+use std::rc::Rc;
 use std::time::Duration;
 
 use crossterm::event::{self, Event, KeyCode};
@@ -22,7 +23,7 @@ type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 thread_local! {
-    static KEY_HANDLERS: RefCell<Vec<Box<dyn Fn(String)>>> = RefCell::new(vec![]);
+    static KEY_HANDLERS: RefCell<Vec<Rc<dyn Fn(String)>>> = RefCell::new(vec![]);
 }
 
 fn main() -> Result<()> {
@@ -55,7 +56,9 @@ fn handle_events() -> Result<usize> {
                 return Ok(0);
             }
             if let KeyCode::Char(c) = key.code {
-                KEY_HANDLERS.with(|h| h.borrow().iter().for_each(|h| (h)(c.to_string())));
+                let handlers = KEY_HANDLERS.with(|h| (*h.borrow()).clone());
+                handlers.iter().for_each(|h| (h)(c.to_string()));
+
                 return Ok(1);
             }
         }
@@ -82,7 +85,7 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
     let count = RwSignal::new(Count::new(initial_value, step));
 
     KEY_HANDLERS.with(|h| {
-        h.borrow_mut().push(Box::new(move |key| {
+        h.borrow_mut().push(Rc::new(move |key| {
             count.update(Count::increase);
         }))
     });
@@ -91,14 +94,21 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
 }
 
 fn counters() -> impl IntoView {
-    // let children: Vec<_> = (1..6u32)
-    //     .map(|i| row(Constraint::Length(1)).child(counter(i as i32, i)))
-    //     .collect();
+    let count = RwSignal::new(Count::new(2, 1));
+
+    KEY_HANDLERS.with(|h| {
+        h.borrow_mut().push(Rc::new(move |key| {
+            count.update(Count::increase);
+        }))
+    });
     col(Constraint::Percentage(100))
-        .child(col(Constraint::Percentage(50)).child([
-            row(Constraint::Length(1)).child(counter(2, 2)),
-            row(Constraint::Length(1)).child(counter(3, 3)),
-        ]))
+        .child(
+            col(Constraint::Percentage(50)).child(
+                (1..5)
+                    .map(|i| row(Constraint::Length(1)).child(counter(i, i as u32)))
+                    .collect::<Vec<_>>(),
+            ),
+        )
         .child(col(Constraint::Percentage(50)).child((counter(2, 2), counter(3, 3))))
 }
 
