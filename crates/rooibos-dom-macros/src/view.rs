@@ -326,7 +326,7 @@ impl NodeAttributes {
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         let mut attrs = Self {
-            constraint: Constraint::Min,
+            constraint: Constraint::Percentage,
             expr: get_default_constraint(),
             props: None,
             state: None,
@@ -384,7 +384,7 @@ impl NodeAttributes {
 
     fn from_layout_nodes(nodes: &[NodeAttribute], emitter: &mut Emitter) -> Self {
         let mut attrs = Self {
-            constraint: Constraint::Min,
+            constraint: Constraint::Percentage,
             expr: get_default_constraint(),
             props: None,
             state: None,
@@ -504,7 +504,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                     let content = get_block_contents(block);
                     views.push(View {
                         view_type: ViewType::Block { tokens: content },
-                        constraint: Constraint::Min,
+                        constraint: Constraint::Percentage,
                         constraint_val: get_default_constraint(),
                         layout_props: None,
                     })
@@ -668,7 +668,7 @@ fn get_block_contents(block: &Block) -> TokenStream {
 
 fn get_default_constraint() -> TokenStream {
     Expr::Lit(ExprLit {
-        lit: Lit::Int(LitInt::new("0", Span::call_site())),
+        lit: Lit::Int(LitInt::new("100", Span::call_site())),
         attrs: vec![],
     })
     .to_token_stream()

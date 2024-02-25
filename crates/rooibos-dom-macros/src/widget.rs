@@ -3,7 +3,7 @@ use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
-use syn::{DeriveInput, Generics, Lit, Token, Visibility, WhereClause};
+use syn::{DeriveInput, Generics, Token, Visibility, WhereClause};
 
 pub(crate) struct Model {
     name: Ident,
@@ -185,10 +185,10 @@ fn get_tokens(
             -> impl IntoView #where_clause {
                 DomWidget::new(NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
                     #[cfg(debug_assertions)]
-                    let prev = leptos_reactive::SpecialNonReactiveZone::enter();
+                    let prev = rooibos_reactive::SpecialNonReactiveZone::enter();
                     frame.render_widget(props(), rect);
                     #[cfg(debug_assertions)]
-                    leptos_reactive::SpecialNonReactiveZone::exit(prev);
+                    rooibos_reactive::SpecialNonReactiveZone::exit(prev);
                 })
             }
         }

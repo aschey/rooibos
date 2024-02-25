@@ -4,10 +4,10 @@ use std::io;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use leptos_reactive::{create_render_effect, untrack_with_diagnostics};
 use ratatui::layout::Flex;
 use ratatui::prelude::{Constraint, Direction, Layout, Rect};
 use ratatui::Frame;
+use rooibos_reactive::{create_render_effect, untrack_with_diagnostics};
 use slotmap::{new_key_type, SlotMap};
 
 thread_local! {

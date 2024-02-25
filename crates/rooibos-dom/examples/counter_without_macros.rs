@@ -11,7 +11,6 @@ use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use leptos_reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
@@ -19,6 +18,7 @@ use rooibos_dom::{
     block, col, mount, print_dom, render_dom, row, BlockProps, DocumentFragment, DomNode, Fragment,
     IntoView, Mountable,
 };
+use rooibos_reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
