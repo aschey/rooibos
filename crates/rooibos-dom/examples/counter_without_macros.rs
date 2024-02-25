@@ -31,24 +31,24 @@ thread_local! {
 
 fn main() -> Result<()> {
     let _ = create_runtime();
-    // let mut terminal = setup_terminal()?;
+    let mut terminal = setup_terminal()?;
     mount(|| counters());
-    print_dom(&mut std::io::stdout(), false);
-    // terminal.draw(|f: &mut Frame| {
-    //     render_dom(f);
-    // })?;
-    // loop {
-    //     let e = handle_events()?;
-    //     if e == 0 {
-    //         restore_terminal(terminal)?;
-    //         return Ok(());
-    //     }
-    //     if e == 1 {
-    //         terminal.draw(|f: &mut Frame| {
-    //             render_dom(f);
-    //         })?;
-    //     }
-    // }
+    // print_dom(&mut std::io::stdout(), false);
+    terminal.draw(|f: &mut Frame| {
+        render_dom(f);
+    })?;
+    loop {
+        let e = handle_events()?;
+        if e == 0 {
+            restore_terminal(terminal)?;
+            return Ok(());
+        }
+        if e == 1 {
+            terminal.draw(|f: &mut Frame| {
+                render_dom(f);
+            })?;
+        }
+    }
     Ok(())
 }
 
@@ -133,7 +133,7 @@ fn counters() -> impl IntoView {
         col(Constraint::Percentage(100))
             .child(col(Constraint::Percentage(50)).child(move || {
                 (1..count.get().value())
-                    .map(|i| row(Constraint::Length(1)).child(counter(i, i as u32)))
+                    .map(|i| row(Constraint::Length(2)).child(counter(i, i as u32)))
                     .collect::<Vec<_>>()
             }))
             .child(col(Constraint::Percentage(50)).child((counter(2, 2), counter(3, 3)))),

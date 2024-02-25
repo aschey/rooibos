@@ -1,0 +1,11 @@
+[package]
+name = "rooibos-old"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rooibos-reactive-old = { path = "../rooibos-reactive-old" }
+rooibos-rsx-old = { path = "../rooibos-rsx-old" }
+rooibos-runtime-old = { path = "../rooibos-runtime-old" }
