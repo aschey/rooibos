@@ -266,22 +266,6 @@ impl FromIterator<View> for Fragment {
     }
 }
 
-// impl From<View> for Fragment {
-//     fn from(view: View) -> Self {
-//         Fragment::new(vec![view])
-//     }
-// }
-
-// impl From<Fragment> for View {
-//     fn from(value: Fragment) -> Self {
-//         let mut repr = ComponentRepr::new_with_id("".to_string(), value.id, value.nodes);
-
-//         repr.view_marker = value.view_marker;
-
-//         repr.into_view()
-//     }
-// }
-
 impl IntoView for Fragment {
     fn into_view(self) -> View {
         let repr = ComponentRepr::new_with_id("fragment", self.id, self.nodes);
@@ -292,14 +276,12 @@ impl IntoView for Fragment {
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct ComponentRepr {
-    pub(crate) document_fragment: DomNode,
+    document_fragment: DomNode,
     mounted: Rc<OnceCell<DomNode>>,
-    // pub(crate) name: String,
     opening: Comment,
-    pub children: Vec<View>,
+    children: Vec<View>,
     closing: Comment,
-    pub(crate) id: u32,
-    // pub(crate) view_marker: Option<String>,
+    id: u32,
 }
 
 impl ComponentRepr {
@@ -316,10 +298,8 @@ impl ComponentRepr {
             mounted: Default::default(),
             opening: markers.0,
             closing: markers.1,
-            // name,
             children,
             id,
-            // view_marker: None,
         }
     }
 
@@ -343,12 +323,11 @@ impl Mountable for ComponentRepr {
                 MountKind::Append(&self.document_fragment),
                 &self.closing.node,
             );
-            // mount_child(MountKind::Append(&self.opening.node), &self.closing.node);
+
             for child in &self.children {
                 mount_child(MountKind::Before(&self.closing.node), child);
             }
             let node = self.document_fragment.clone();
-            // mount_child(MountKind::Before(&self.closing.node), &node.clone());
             self.mounted.set(node.clone()).unwrap();
             node
         }
@@ -449,12 +428,6 @@ where
     }
 }
 
-// #[derive(Clone)]
-// pub struct View {
-//     id: u32,
-//     f: Rc<RefCell<dyn FnMut(&mut Frame, Rect)>>,
-// }
-
 pub struct DynChild<CF, V>
 where
     CF: Fn() -> V + 'static,
@@ -489,8 +462,6 @@ where
             component: DynChildRepr,
             child_fn: Box<dyn Fn() -> View>,
         ) -> DynChildRepr {
-            // let document_fragment = component.document_fragment.clone();
-            // let opening = component.opening.node.clone();
             let closing = component.closing.node.clone();
             let child = component.child.clone();
 
@@ -528,45 +499,18 @@ where
 
         View::DynChild(component)
     }
-    // fn into_view(self) -> View {
-    //     let child_fn = self.child_fn;
-    //     let prev = leptos_reactive::SpecialNonReactiveZone::enter();
-    //     let view = child_fn().into_view();
-    //     leptos_reactive::SpecialNonReactiveZone::exit(prev);
-
-    //     create_render_effect(move |prev_id: Option<u32>| {
-    //         let new_view = child_fn().into_view();
-    //         let new_id = new_view.id;
-    //         if let Some(prev_id) = prev_id {
-    //             // if prev_id != new_id {
-    //             DOM.with(|d| {
-    //                 let res = d.borrow().replace(prev_id, new_view);
-    //                 // dbg!(res.is_none());
-    //             })
-    //             // }
-    //         }
-
-    //         new_id
-    //     });
-    // }
 }
 
 #[derive(Clone, PartialEq, Eq)]
 struct Comment {
     node: DomNode,
-    // content: String,
 }
 
 impl Comment {
     fn new(name: impl Into<String>, id: u32, closing: bool) -> Self {
         let node = DomNode::from_fragment(DocumentFragment::transparent(name.into()));
-        // DOM_NODES.with(|d| d.borrow_mut().insert(node.));
-        // mount_child(MountKind::Append(parent), &node);
-        // DOM.with(|d| d.borrow().append_child(&node));
-        Self {
-            // content: content.into(),
-            node,
-        }
+
+        Self { node }
     }
 
     fn set_name(&mut self, name: impl Into<String>) {
@@ -794,14 +738,8 @@ impl Element {
     pub fn child(self, child: impl IntoView) -> Self {
         let child = child.into_view();
         mount_child(MountKind::Append(&self.inner), &child);
-        // DOM_NODES.with(|d| d.borrow_mut()[child_key].constraint = constraint);
         self
     }
-
-    // pub fn constraint(self, constraint: Constraint) -> Self {
-    //     DOM_NODES.with(|d| d.borrow_mut()[self.inner.key].constraint = constraint);
-    //     self
-    // }
 }
 
 impl IntoView for Element {
@@ -929,46 +867,49 @@ impl DomNodeInner {
             .collect();
         children
     }
-    pub fn render(&self, frame: &mut Frame, rect: Rect) {
-        DOM_NODES.with(|d| {
-            let d = d.borrow();
-            let children: Vec<_> = self.resolve_children(&d);
 
-            let constraints = children.iter().map(|c| c.1.constraint);
-            // dbg!(&constraints);
-            match &self.node_type {
-                NodeType::Layout {
-                    direction,
-                    margin,
-                    flex,
-                    spacing,
-                } => {
-                    let layout = Layout::default()
-                        .direction(*direction)
-                        .flex(*flex)
-                        .margin(*margin)
-                        .spacing(*spacing)
-                        .constraints(constraints);
+    fn render(
+        &self,
+        frame: &mut Frame,
+        rect: Rect,
+        dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    ) {
+        let children: Vec<_> = self.resolve_children(dom_nodes);
 
-                    let chunks = layout.split(rect);
-                    children
-                        .iter()
-                        .zip(chunks.iter())
-                        .for_each(|((_, child), chunk)| {
-                            child.render(frame, *chunk);
-                        });
-                }
+        let constraints = children.iter().map(|c| c.1.constraint);
+        // dbg!(&constraints);
+        match &self.node_type {
+            NodeType::Layout {
+                direction,
+                margin,
+                flex,
+                spacing,
+            } => {
+                let layout = Layout::default()
+                    .direction(*direction)
+                    .flex(*flex)
+                    .margin(*margin)
+                    .spacing(*spacing)
+                    .constraints(constraints);
 
-                NodeType::Overlay | NodeType::Transparent => {
-                    children.iter().for_each(|(_, child)| {
-                        child.render(frame, rect);
+                let chunks = layout.split(rect);
+                children
+                    .iter()
+                    .zip(chunks.iter())
+                    .for_each(|((_, child), chunk)| {
+                        child.render(frame, *chunk, dom_nodes);
                     });
-                }
-                NodeType::Widget(widget) => {
-                    widget.render(frame, rect);
-                }
             }
-        });
+
+            NodeType::Overlay | NodeType::Transparent => {
+                children.iter().for_each(|(_, child)| {
+                    child.render(frame, rect, dom_nodes);
+                });
+            }
+            NodeType::Widget(widget) => {
+                widget.render(frame, rect);
+            }
+        }
     }
 }
 
@@ -1000,14 +941,11 @@ impl DomNode {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
     }
 
-    pub fn append_child(&self, node: &DomNode) {
+    fn append_child(&self, node: &DomNode) {
         // *(*node.parent).borrow_mut() = Some(self.key);
         DOM_NODES.with(|d| {
             let mut d = d.borrow_mut();
-            // let dn = &d[node.key];
-            // dbg!(&dn.before_pending);
-            // let ds = &d[self.key];
-            // dbg!(&ds.before_pending);
+
             d[node.key].parent = Some(self.key);
             d[self.key].children.push(node.key);
 
@@ -1024,31 +962,26 @@ impl DomNode {
         });
     }
 
-    pub fn before(&self, node: &DomNode) {
-        // if let Some(parent_id) = self.parent.borrow().as_ref() {
+    fn before(&self, node: &DomNode) {
         DOM_NODES.with(|d| {
             let mut d = d.borrow_mut();
-            // let dn = &d[node.key];
-            // dbg!(&dn.before_pending);
-            // let ds = &d[self.key];
-            // dbg!(&ds.before_pending);
+
             if let Some(parent_id) = d[self.key].parent {
                 let parent = d.get_mut(parent_id).unwrap();
                 let self_index = parent.children.iter().position(|c| c == &self.key).unwrap();
                 parent.children.insert(self_index, node.key);
                 d[node.key].parent = Some(parent_id);
-                // let pending = d[self.key].before_pending.drain(..);
-                // node.parent = self.parent.clone();
             } else {
                 d[self.key].before_pending.push(node.key);
             }
         });
-        // }
     }
 
-    pub fn render(&self, frame: &mut Frame, rect: Rect) {
-        DOM_NODES.with(|d| d.borrow()[self.key].render(frame, rect));
-        // self.inner.borrow().render(frame, rect);
+    fn render(&self, frame: &mut Frame, rect: Rect) {
+        DOM_NODES.with(|d| {
+            let d = d.borrow();
+            d[self.key].render(frame, rect, &d);
+        });
     }
 }
 
