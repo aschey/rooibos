@@ -4,9 +4,7 @@ use std::hash::Hash;
 use std::rc::Rc;
 
 use crate::runtime::with_owner;
-use crate::{
-    create_isomorphic_effect, create_rw_signal, Owner, RwSignal, SignalUpdate, SignalWith,
-};
+use crate::{create_effect, create_rw_signal, Owner, RwSignal, SignalUpdate, SignalWith};
 
 /// Creates a conditional signal that only notifies subscribers when a change
 /// in the source signal's value changes whether it is equal to the key value
@@ -73,7 +71,7 @@ where
     let owner = Owner::current().expect("create_selector called outside the reactive system");
     let f = Rc::new(f) as Rc<dyn Fn(&T, &T) -> bool>;
 
-    create_isomorphic_effect({
+    create_effect({
         let subs = Rc::clone(&subs);
         let f = Rc::clone(&f);
         let v = Rc::clone(&v);

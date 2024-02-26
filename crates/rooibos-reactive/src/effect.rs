@@ -3,10 +3,8 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use cfg_if::cfg_if;
-
 use crate::node::NodeId;
-use crate::{with_runtime, Disposer, Runtime, SignalDispose};
+use crate::{with_owner, with_runtime, Disposer, Owner, Runtime, SignalDispose};
 
 /// Effects run a certain chunk of code whenever the signals they depend on change.
 /// `create_effect` queues the given function to run once, tracks its dependence
@@ -74,28 +72,19 @@ pub fn create_effect<T>(f: impl Fn(Option<T>) -> T + 'static) -> Effect<T>
 where
     T: 'static,
 {
-    cfg_if! {
-        if #[cfg(not(feature = "ssr"))] {
-            use crate::{Owner, queue_microtask, with_owner};
+    let runtime = Runtime::current();
+    let owner = Owner::current();
+    let id = runtime.create_effect(f);
 
-            let runtime = Runtime::current();
-            let owner = Owner::current();
-            let id = runtime.create_effect(f);
+    with_owner(owner.unwrap(), move || {
+        _ = with_runtime(|runtime| {
+            runtime.update_if_necessary(id);
+        });
+    });
 
-            queue_microtask(move || {
-                with_owner(owner.unwrap(), move || {
-                    _ = with_runtime( |runtime| {
-                        runtime.update_if_necessary(id);
-                    });
-                });
-            });
-
-            Effect { id, ty: PhantomData }
-        } else {
-            // clear warnings
-            _ = f;
-            Effect { id: Default::default(), ty: PhantomData }
-        }
+    Effect {
+        id,
+        ty: PhantomData,
     }
 }
 
@@ -152,38 +141,6 @@ where
         create_effect(f)
     }
 
-    /// Creates an effect; unlike effects created by [`create_effect`], isomorphic effects will run
-    /// on the server as well as the client.
-    /// ```
-    /// # use leptos_reactive::*;
-    /// # use log::*;
-    /// # let runtime = create_runtime();
-    /// let a = RwSignal::new(0);
-    /// let b = RwSignal::new(0);
-    ///
-    /// // ✅ use effects to interact between reactive state and the outside world
-    /// Effect::new_isomorphic(move |_| {
-    ///   // immediately prints "Value: 0" and subscribes to `a`
-    ///   log::debug!("Value: {}", a.get());
-    /// });
-    ///
-    /// a.set(1);
-    /// // ✅ because it's subscribed to `a`, the effect reruns and prints "Value: 1"
-    ///
-    /// // ❌ don't use effects to synchronize state within the reactive system
-    /// Effect::new_isomorphic(move |_| {
-    ///   // this technically works but can cause unnecessary re-renders
-    ///   // and easily lead to problems like infinite loops
-    ///   b.set(a.get() + 1);
-    /// });
-    /// # assert_eq!(b.get(), 2);
-    /// # runtime.dispose();
-    #[track_caller]
-    #[inline(always)]
-    pub fn new_isomorphic(f: impl Fn(Option<T>) -> T + 'static) -> Self {
-        create_isomorphic_effect(f)
-    }
-
     /// Applies the given closure to the most recent value of the effect.
     ///
     /// Because effect functions can return values, each time an effect runs it
@@ -208,60 +165,6 @@ where
     }
 }
 
-/// Creates an effect; unlike effects created by [`create_effect`], isomorphic effects will run on
-/// the server as well as the client.
-/// ```
-/// # use leptos_reactive::*;
-/// # use log::*;
-/// # let runtime = create_runtime();
-/// let (a, set_a) = create_signal(0);
-/// let (b, set_b) = create_signal(0);
-///
-/// // ✅ use effects to interact between reactive state and the outside world
-/// create_isomorphic_effect(move |_| {
-///   // immediately prints "Value: 0" and subscribes to `a`
-///   log::debug!("Value: {}", a.get());
-/// });
-///
-/// set_a.set(1);
-/// // ✅ because it's subscribed to `a`, the effect reruns and prints "Value: 1"
-///
-/// // ❌ don't use effects to synchronize state within the reactive system
-/// create_isomorphic_effect(move |_| {
-///   // this technically works but can cause unnecessary re-renders
-///   // and easily lead to problems like infinite loops
-///   set_b.set(a.get() + 1);
-/// });
-/// # assert_eq!(b.get(), 2);
-/// # runtime.dispose();
-#[cfg_attr(
-    any(debug_assertions, feature="ssr"),
-    instrument(
-        level = "trace",
-        skip_all,
-        fields(
-            ty = %std::any::type_name::<T>()
-        )
-    )
-)]
-#[track_caller]
-#[inline(always)]
-pub fn create_isomorphic_effect<T>(f: impl Fn(Option<T>) -> T + 'static) -> Effect<T>
-where
-    T: 'static,
-{
-    let runtime = Runtime::current();
-    let id = runtime.create_effect(f);
-    //crate::macros::debug_warn!("creating effect {e:?}");
-    _ = with_runtime(|runtime| {
-        runtime.update_if_necessary(id);
-    });
-    Effect {
-        id,
-        ty: PhantomData,
-    }
-}
-
 /// Creates an effect exactly like [`create_effect`], but runs immediately rather
 /// than being queued until the end of the current microtask. This is mostly used
 /// inside the renderer but is available for use cases in which scheduling the effect
@@ -281,19 +184,14 @@ pub fn create_render_effect<T>(f: impl Fn(Option<T>) -> T + 'static) -> Effect<T
 where
     T: 'static,
 {
-    cfg_if! {
-        if #[cfg(not(feature = "ssr"))] {
-            let runtime = Runtime::current();
-            let id = runtime.create_effect(f);
-            _ = with_runtime( |runtime| {
-                runtime.update_if_necessary(id);
-            });
-            Effect { id, ty: PhantomData }
-        } else {
-            // clear warnings
-            _ = f;
-            Effect { id: Default::default(), ty: PhantomData }
-        }
+    let runtime = Runtime::current();
+    let id = runtime.create_effect(f);
+    _ = with_runtime(|runtime| {
+        runtime.update_if_necessary(id);
+    });
+    Effect {
+        id,
+        ty: PhantomData,
     }
 }
 
@@ -323,7 +221,7 @@ where
 {
     pub(crate) f: F,
     pub(crate) ty: PhantomData<T>,
-    #[cfg(any(debug_assertions, feature = "ssr"))]
+    #[cfg(debug_assertions)]
     pub(crate) defined_at: &'static std::panic::Location<'static>,
 }
 
@@ -337,7 +235,7 @@ where
     F: Fn(Option<T>) -> T,
 {
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             name = "Effect::run()",
             level = "trace",

@@ -1,5 +1,6 @@
-use cfg_if::cfg_if;
 use std::rc::Rc;
+
+use cfg_if::cfg_if;
 use thiserror::Error;
 
 /// Describes errors that can occur while serializing and deserializing data,

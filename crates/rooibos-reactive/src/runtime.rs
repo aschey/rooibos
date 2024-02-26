@@ -1,35 +1,27 @@
-#[cfg(debug_assertions)]
-use crate::SpecialNonReactiveZone;
-use crate::{
-    hydration::SharedContext,
-    node::{
-        Disposer, NodeId, ReactiveNode, ReactiveNodeState, ReactiveNodeType,
-    },
-    AnyComputation, AnyResource, EffectState, Memo, MemoState, ReadSignal,
-    ResourceId, ResourceState, RwSignal, SerializableResource, StoredValueId,
-    Trigger, UnserializableResource, WriteSignal,
-};
-use cfg_if::cfg_if;
 use core::hash::BuildHasherDefault;
-use futures::stream::FuturesUnordered;
+use std::any::{Any, TypeId};
+use std::cell::{Cell, RefCell};
+use std::fmt::Debug;
+use std::future::Future;
+use std::marker::PhantomData;
+use std::pin::Pin;
+use std::rc::Rc;
+use std::task::Poll;
+
 use indexmap::IndexSet;
 use pin_project::pin_project;
 use rustc_hash::{FxHashMap, FxHasher};
 use slotmap::{SecondaryMap, SlotMap, SparseSecondaryMap};
-use std::{
-    any::{Any, TypeId},
-    cell::{Cell, RefCell},
-    fmt::Debug,
-    future::Future,
-    marker::PhantomData,
-    pin::Pin,
-    rc::Rc,
-    task::Poll,
-};
 use thiserror::Error;
 
-pub(crate) type PinnedFuture<T> = Pin<Box<dyn Future<Output = T>>>;
-
+use crate::node::{Disposer, NodeId, ReactiveNode, ReactiveNodeState, ReactiveNodeType};
+#[cfg(debug_assertions)]
+use crate::SpecialNonReactiveZone;
+use crate::{
+    spawn_local, AnyComputation, AnyResource, EffectState, Memo, MemoState, ReadSignal, ResourceId,
+    ResourceState, RwSignal, SerializableResource, StoredValueId, Trigger, UnserializableResource,
+    WriteSignal,
+};
 
 thread_local! {
     pub(crate) static RUNTIMES: RefCell<SlotMap<RuntimeId, Runtime>> = Default::default();
@@ -37,9 +29,6 @@ thread_local! {
     pub(crate) static CURRENT_RUNTIME: Cell<Option<RuntimeId>> = Default::default();
 }
 
-
-// Stores the reactive runtime associated with the current Tokio task
-#[cfg(feature = "ssr")]
 tokio::task_local! {
     pub(crate) static TASK_RUNTIME: Option<RuntimeId>;
 }
@@ -50,24 +39,18 @@ type FxIndexSet<T> = IndexSet<T, BuildHasherDefault<FxHasher>>;
 // and other data included in the reactive system.
 #[derive(Default)]
 pub(crate) struct Runtime {
-    pub shared_context: RefCell<SharedContext>,
     pub owner: Cell<Option<NodeId>>,
     pub observer: Cell<Option<NodeId>>,
     #[allow(clippy::type_complexity)]
-    pub on_cleanups:
-        RefCell<SparseSecondaryMap<NodeId, Vec<Box<dyn FnOnce()>>>>,
+    pub on_cleanups: RefCell<SparseSecondaryMap<NodeId, Vec<Box<dyn FnOnce()>>>>,
     pub stored_values: RefCell<SlotMap<StoredValueId, Rc<RefCell<dyn Any>>>>,
     pub nodes: RefCell<SlotMap<NodeId, ReactiveNode>>,
-    pub node_subscribers:
-        RefCell<SecondaryMap<NodeId, RefCell<FxIndexSet<NodeId>>>>,
-    pub node_sources:
-        RefCell<SecondaryMap<NodeId, RefCell<FxIndexSet<NodeId>>>>,
+    pub node_subscribers: RefCell<SecondaryMap<NodeId, RefCell<FxIndexSet<NodeId>>>>,
+    pub node_sources: RefCell<SecondaryMap<NodeId, RefCell<FxIndexSet<NodeId>>>>,
     pub node_owners: RefCell<SecondaryMap<NodeId, NodeId>>,
-    pub node_properties:
-        RefCell<SparseSecondaryMap<NodeId, Vec<ScopeProperty>>>,
+    pub node_properties: RefCell<SparseSecondaryMap<NodeId, Vec<ScopeProperty>>>,
     #[allow(clippy::type_complexity)]
-    pub contexts:
-        RefCell<SparseSecondaryMap<NodeId, FxHashMap<TypeId, Box<dyn Any>>>>,
+    pub contexts: RefCell<SparseSecondaryMap<NodeId, FxHashMap<TypeId, Box<dyn Any>>>>,
     pub pending_effects: RefCell<Vec<NodeId>>,
     pub resources: RefCell<SlotMap<ResourceId, AnyResource>>,
     pub batching: Cell<bool>,
@@ -124,7 +107,11 @@ impl Owner {
 impl Runtime {
     #[inline(always)]
     pub fn current() -> RuntimeId {
-        CURRENT_RUNTIME.with(|id| id.get()).unwrap_or_default()
+        TASK_RUNTIME
+            .try_with(|trt| *trt)
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| CURRENT_RUNTIME.with(|id| id.get()).unwrap_or_default())
     }
 
     #[inline(always)]
@@ -201,8 +188,7 @@ impl Runtime {
             // signals simply have their value
             let changed = match node.node_type {
                 ReactiveNodeType::Signal | ReactiveNodeType::Trigger => true,
-                ReactiveNodeType::Memo { ref f }
-                | ReactiveNodeType::Effect { ref f } => {
+                ReactiveNodeType::Memo { ref f } | ReactiveNodeType::Effect { ref f } => {
                     let value = node.value();
                     // set this node as the observer
                     self.with_observer(node_id, move || {
@@ -246,8 +232,7 @@ impl Runtime {
                 }
 
                 // clean up all children
-                let properties =
-                    { self.node_properties.borrow_mut().remove(node) };
+                let properties = { self.node_properties.borrow_mut().remove(node) };
                 for property in properties.into_iter().flatten() {
                     self.cleanup_property(property);
                 }
@@ -296,8 +281,9 @@ impl Runtime {
                     // order can be inverted (by using .swap_remove() here), the unwrap will
                     // run first on a subsequent run.
                     //
-                    // Maintaining execution order is the intention of using an IndexSet here anyway,
-                    // but using .swap_remove() would undermine that goal.
+                    // Maintaining execution order is the intention of using an IndexSet here
+                    // anyway, but using .swap_remove() would undermine that
+                    // goal.
                     source.borrow_mut().shift_remove(&node_id);
                 }
             }
@@ -387,9 +373,7 @@ impl Runtime {
             let mut stack = Vec::new();
 
             if let Some(children) = subscribers.get(node) {
-                stack.push(RefIter::new(children.borrow(), |children| {
-                    children.iter()
-                }));
+                stack.push(RefIter::new(children.borrow(), |children| children.iter()));
             }
 
             while let Some(iter) = stack.last_mut() {
@@ -417,16 +401,16 @@ impl Runtime {
                             let children = children.borrow();
 
                             if !children.is_empty() {
-                                // avoid going through an iterator in the simple psuedo-recursive case
+                                // avoid going through an iterator in the simple psuedo-recursive
+                                // case
                                 if children.len() == 1 {
                                     child = children[0];
                                     continue;
                                 }
 
-                                return IterResult::NewIter(RefIter::new(
-                                    children,
-                                    |children| children.iter(),
-                                ));
+                                return IterResult::NewIter(RefIter::new(children, |children| {
+                                    children.iter()
+                                }));
                             }
                         }
 
@@ -489,9 +473,7 @@ impl Runtime {
     pub(crate) fn register_property(
         &self,
         property: ScopeProperty,
-        #[cfg(debug_assertions)] defined_at: &'static std::panic::Location<
-            'static,
-        >,
+        #[cfg(debug_assertions)] defined_at: &'static std::panic::Location<'static>,
     ) {
         let mut properties = self.node_properties.borrow_mut();
         if let Some(owner) = self.owner.get() {
@@ -506,17 +488,12 @@ impl Runtime {
             }
         } else {
             crate::macros::debug_warn!(
-                "At {defined_at}, you are creating a reactive value outside \
-                 the reactive root.",
+                "At {defined_at}, you are creating a reactive value outside the reactive root.",
             );
         }
     }
 
-    pub(crate) fn get_context<T: Clone + 'static>(
-        &self,
-        node: NodeId,
-        ty: TypeId,
-    ) -> Option<T> {
+    pub(crate) fn get_context<T: Clone + 'static>(&self, node: NodeId, ty: TypeId) -> Option<T> {
         let contexts = self.contexts.borrow();
 
         let context = contexts.get(node);
@@ -528,19 +505,15 @@ impl Runtime {
         });
         match local_value {
             Some(val) => Some(val),
-            None => {
-                self.node_owners
-                        .borrow()
-                        .get(node)
-                        .and_then(|parent| self.get_context(*parent, ty))
-            }
+            None => self
+                .node_owners
+                .borrow()
+                .get(node)
+                .and_then(|parent| self.get_context(*parent, ty)),
         }
     }
 
-    #[cfg_attr(
-        any(debug_assertions, features = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[track_caller]
     pub(crate) fn push_scope_property(&self, prop: ScopeProperty) {
         #[cfg(debug_assertions)]
@@ -552,21 +525,13 @@ impl Runtime {
         );
     }
 
-    #[cfg_attr(
-        any(debug_assertions, features = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[track_caller]
-    pub(crate) fn remove_scope_property(
-        &self,
-        owner: NodeId,
-        property: ScopeProperty,
-    ) {
+    pub(crate) fn remove_scope_property(&self, owner: NodeId, property: ScopeProperty) {
         let mut properties = self.node_properties.borrow_mut();
         if let Some(properties) = properties.get_mut(owner) {
             // remove this property from the list, if found
-            if let Some(index) = properties.iter().position(|p| p == &property)
-            {
+            if let Some(index) = properties.iter().position(|p| p == &property) {
                 // order of properties doesn't matter so swap_remove
                 // is the most efficient way to remove
                 properties.swap_remove(index);
@@ -588,24 +553,17 @@ impl Debug for Runtime {
 
 /// Get the selected runtime from the thread-local set of runtimes. On the server,
 /// this will return the correct runtime. In the browser, there should only be one runtime.
-#[cfg_attr(
-    any(debug_assertions, feature = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 #[inline(always)] // it monomorphizes anyway
-pub(crate) fn with_runtime<T>(
-    f: impl FnOnce(&Runtime) -> T,
-) -> Result<T, ReactiveSystemError> {
-    
+pub(crate) fn with_runtime<T>(f: impl FnOnce(&Runtime) -> T) -> Result<T, ReactiveSystemError> {
     RUNTIMES.with(|runtimes| {
         let runtimes = runtimes.borrow();
         let rt = Runtime::current();
         match runtimes.get(rt) {
             None => Err(ReactiveSystemError::RuntimeDisposed(rt)),
-            Some(runtime) => Ok(f(runtime))
+            Some(runtime) => Ok(f(runtime)),
         }
     })
-    
 }
 
 #[must_use = "Runtime will leak memory if Runtime::dispose() is never called."]
@@ -639,14 +597,12 @@ slotmap::new_key_type! {
 ///
 /// ## Panics
 /// Panics if there is no current reactive runtime.
-pub fn as_child_of_current_owner<T, U>(
-    f: impl Fn(T) -> U,
-) -> impl Fn(T) -> (U, Disposer)
+pub fn as_child_of_current_owner<T, U>(f: impl Fn(T) -> U) -> impl Fn(T) -> (U, Disposer)
 where
     T: 'static,
 {
-    let owner = with_runtime(|runtime| runtime.owner.get())
-        .expect("runtime should be alive when created");
+    let owner =
+        with_runtime(|runtime| runtime.owner.get()).expect("runtime should be alive when created");
     move |t| {
         with_runtime(|runtime| {
             let prev_observer = runtime.observer.take();
@@ -687,8 +643,8 @@ pub fn with_current_owner<T, U>(f: impl Fn(T) -> U + 'static) -> impl Fn(T) -> U
 where
     T: 'static,
 {
-    let owner = with_runtime(|runtime| runtime.owner.get())
-        .expect("runtime should be alive when created");
+    let owner =
+        with_runtime(|runtime| runtime.owner.get()).expect("runtime should be alive when created");
     move |t| {
         with_runtime(|runtime| {
             let prev_observer = runtime.observer.take();
@@ -727,10 +683,7 @@ pub enum ReactiveSystemError {
 }
 
 /// Runs the given code with the given reactive owner.
-pub fn try_with_owner<T>(
-    owner: Owner,
-    f: impl FnOnce() -> T,
-) -> Result<T, ReactiveSystemError> {
+pub fn try_with_owner<T>(owner: Owner, f: impl FnOnce() -> T) -> Result<T, ReactiveSystemError> {
     with_runtime(|runtime| {
         let scope_exists = {
             let nodes = runtime
@@ -760,8 +713,8 @@ pub fn try_with_owner<T>(
 
 /// Runs the given function as a child of the current Owner, once.
 pub fn run_as_child<T>(f: impl FnOnce() -> T + 'static) -> T {
-    let owner = with_runtime(|runtime| runtime.owner.get())
-        .expect("runtime should be alive when created");
+    let owner =
+        with_runtime(|runtime| runtime.owner.get()).expect("runtime should be alive when created");
     let (value, disposer) = with_runtime(|runtime| {
         let prev_observer = runtime.observer.take();
         let prev_owner = runtime.owner.take();
@@ -801,8 +754,8 @@ impl RuntimeId {
     /// that it was created in a different thread; panicking here indicates a
     /// memory leak.
     pub fn dispose(self) {
-         // remove this from the set of runtimes
-         let runtime = RUNTIMES.with(move |runtimes| runtimes.borrow_mut().remove(self))
+        // remove this from the set of runtimes
+        let runtime = RUNTIMES.with(move |runtimes| runtimes.borrow_mut().remove(self))
          .expect("Attempted to dispose of a reactive runtime that was not found. This suggests \
          a possible memory leak. Please open an issue with details at https://github.com/leptos-rs/leptos");
 
@@ -816,16 +769,9 @@ impl RuntimeId {
         drop(runtime);
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[inline(always)]
-    pub(crate) fn untrack<T>(
-        self,
-        f: impl FnOnce() -> T,
-        #[allow(unused)] diagnostics: bool,
-    ) -> T {
+    pub(crate) fn untrack<T>(self, f: impl FnOnce() -> T, #[allow(unused)] diagnostics: bool) -> T {
         with_runtime(|runtime| {
             let untracked_result;
 
@@ -850,10 +796,7 @@ impl RuntimeId {
 
             untracked_result
         })
-        .expect(
-            "tried to run untracked function in a runtime that has been \
-             disposed",
-        )
+        .expect("tried to run untracked function in a runtime that has been disposed")
     }
 
     #[track_caller]
@@ -868,9 +811,7 @@ impl RuntimeId {
             runtime.push_scope_property(ScopeProperty::Trigger(id));
             id
         })
-        .expect(
-            "tried to create a trigger in a runtime that has been disposed",
-        );
+        .expect("tried to create a trigger in a runtime that has been disposed");
 
         Trigger {
             id,
@@ -879,10 +820,7 @@ impl RuntimeId {
         }
     }
 
-    pub(crate) fn create_concrete_signal(
-        self,
-        value: Rc<RefCell<dyn Any>>,
-    ) -> NodeId {
+    pub(crate) fn create_concrete_signal(self, value: Rc<RefCell<dyn Any>>) -> NodeId {
         with_runtime(|runtime| {
             let id = runtime.nodes.borrow_mut().insert(ReactiveNode {
                 value: Some(value),
@@ -897,28 +835,23 @@ impl RuntimeId {
 
     #[track_caller]
     #[inline(always)]
-    pub(crate) fn create_signal<T>(
-        self,
-        value: T,
-    ) -> (ReadSignal<T>, WriteSignal<T>)
+    pub(crate) fn create_signal<T>(self, value: T) -> (ReadSignal<T>, WriteSignal<T>)
     where
         T: Any + 'static,
     {
-        let id = self.create_concrete_signal(
-            Rc::new(RefCell::new(value)) as Rc<RefCell<dyn Any>>
-        );
+        let id = self.create_concrete_signal(Rc::new(RefCell::new(value)) as Rc<RefCell<dyn Any>>);
 
         (
             ReadSignal {
                 id,
                 ty: PhantomData,
-                #[cfg(any(debug_assertions, feature = "ssr"))]
+                #[cfg(debug_assertions)]
                 defined_at: std::panic::Location::caller(),
             },
             WriteSignal {
                 id,
                 ty: PhantomData,
-                #[cfg(any(debug_assertions, feature = "ssr"))]
+                #[cfg(debug_assertions)]
                 defined_at: std::panic::Location::caller(),
             },
         )
@@ -930,13 +863,11 @@ impl RuntimeId {
     where
         T: Any + 'static,
     {
-        let id = self.create_concrete_signal(
-            Rc::new(RefCell::new(value)) as Rc<RefCell<dyn Any>>
-        );
+        let id = self.create_concrete_signal(Rc::new(RefCell::new(value)) as Rc<RefCell<dyn Any>>);
         RwSignal {
             id,
             ty: PhantomData,
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -981,10 +912,7 @@ impl RuntimeId {
 
     #[track_caller]
     #[inline(always)]
-    pub(crate) fn create_effect<T>(
-        self,
-        f: impl Fn(Option<T>) -> T + 'static,
-    ) -> NodeId
+    pub(crate) fn create_effect<T>(self, f: impl Fn(Option<T>) -> T + 'static) -> NodeId
     where
         T: Any + 'static,
     {
@@ -993,7 +921,7 @@ impl RuntimeId {
             Rc::new(EffectState {
                 f,
                 ty: PhantomData,
-                #[cfg(any(debug_assertions, feature = "ssr"))]
+                #[cfg(debug_assertions)]
                 defined_at: std::panic::Location::caller(),
             }),
         )
@@ -1020,9 +948,10 @@ impl RuntimeId {
 
             move || {
                 callback(
-                    cur_deps_value.borrow().as_ref().expect(
-                        "this will not be called before there is deps value",
-                    ),
+                    cur_deps_value
+                        .borrow()
+                        .as_ref()
+                        .expect("this will not be called before there is deps value"),
                     prev_deps_value.borrow().as_ref(),
                     prev_callback_value.take(),
                 )
@@ -1043,8 +972,7 @@ impl RuntimeId {
 
                 cur_deps_value.replace(Some(deps_value.clone()));
 
-                let callback_value =
-                    Some(self.untrack(wrapped_callback.clone(), false));
+                let callback_value = Some(self.untrack(wrapped_callback.clone(), false));
 
                 prev_callback_value.replace(callback_value);
 
@@ -1057,7 +985,7 @@ impl RuntimeId {
             Rc::new(EffectState {
                 f: effect_fn,
                 ty: PhantomData,
-                #[cfg(any(debug_assertions, feature = "ssr"))]
+                #[cfg(debug_assertions)]
                 defined_at: std::panic::Location::caller(),
             }),
         );
@@ -1067,9 +995,7 @@ impl RuntimeId {
                 runtime.nodes.borrow_mut().remove(id);
                 runtime.node_sources.borrow_mut().remove(id);
             })
-            .expect(
-                "tried to stop a watch in a runtime that has been disposed",
-            );
+            .expect("tried to stop a watch in a runtime that has been disposed");
         })
     }
 
@@ -1088,12 +1014,12 @@ impl RuntimeId {
                 Rc::new(MemoState {
                     f,
                     t: PhantomData,
-                    #[cfg(any(debug_assertions, feature = "ssr"))]
+                    #[cfg(debug_assertions)]
                     defined_at: std::panic::Location::caller(),
                 }),
             ),
             ty: PhantomData,
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -1134,10 +1060,7 @@ impl Runtime {
             .insert(AnyResource::Serializable(state))
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[track_caller]
     pub(crate) fn resource<S, T, U>(
         &self,
@@ -1156,10 +1079,7 @@ impl Runtime {
         })
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[track_caller]
     pub(crate) fn try_resource<S, T, U>(
         &self,
@@ -1191,51 +1111,8 @@ impl Runtime {
         })
     }
 
-    /// Returns IDs for all [`Resource`](crate::Resource)s found on any scope.
-    pub(crate) fn all_resources(&self) -> Vec<ResourceId> {
-        self.resources
-            .borrow()
-            .iter()
-            .map(|(resource_id, _)| resource_id)
-            .collect()
-    }
-
-    /// Returns IDs for all [`Resource`](crate::Resource)s found on any
-    /// scope, pending from the server.
-    pub(crate) fn pending_resources(&self) -> Vec<ResourceId> {
-        self.resources
-            .borrow()
-            .iter()
-            .filter_map(|(resource_id, res)| {
-                if let AnyResource::Serializable(res) = res {
-                    res.should_send_to_client().then_some(resource_id)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    }
-
-    pub(crate) fn serialization_resolvers(
-        &self,
-    ) -> FuturesUnordered<PinnedFuture<(ResourceId, String)>> {
-        let f = FuturesUnordered::new();
-        let resources = { self.resources.borrow().clone() };
-        for (id, resource) in resources.iter() {
-            if let AnyResource::Serializable(resource) = resource {
-                if resource.should_send_to_client() {
-                    f.push(resource.to_serialization_resolver(id));
-                }
-            }
-        }
-        f
-    }
-
     /// Do not call on triggers
-    pub(crate) fn get_value(
-        &self,
-        node_id: NodeId,
-    ) -> Option<Rc<RefCell<dyn Any>>> {
+    pub(crate) fn get_value(&self, node_id: NodeId) -> Option<Rc<RefCell<dyn Any>>> {
         let signals = self.nodes.borrow();
         signals.get(node_id).map(|node| node.value())
     }
@@ -1273,15 +1150,10 @@ impl Drop for SetObserverOnDrop {
 /// Panics if the runtime has already been disposed.
 ///
 /// To avoid panicking under any circumstances, use [`try_batch`].
-#[cfg_attr(
-    any(debug_assertions, features = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 #[inline(always)]
 pub fn batch<T>(f: impl FnOnce() -> T) -> T {
-    try_batch(f).expect(
-        "tried to run a batched update in a runtime that has been disposed",
-    )
+    try_batch(f).expect("tried to run a batched update in a runtime that has been disposed")
 }
 
 /// Attempts to batch any reactive updates, preventing effects from running until the whole
@@ -1289,10 +1161,7 @@ pub fn batch<T>(f: impl FnOnce() -> T) -> T {
 /// signal updates might cause the same effect to run.
 ///
 /// Unlike [`batch`], this will not panic if the runtime has been disposed.
-#[cfg_attr(
-    any(debug_assertions, features = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 #[inline(always)]
 pub fn try_batch<T>(f: impl FnOnce() -> T) -> Result<T, ReactiveSystemError> {
     with_runtime(move |runtime| {
@@ -1338,10 +1207,7 @@ pub fn on_cleanup(cleanup_fn: impl FnOnce() + 'static) {
     push_cleanup(Box::new(cleanup_fn))
 }
 
-#[cfg_attr(
-    any(debug_assertions, features = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 fn push_cleanup(cleanup_fn: Box<dyn FnOnce()>) {
     _ = with_runtime(|runtime| {
         if let Some(owner) = runtime.owner.get() {
@@ -1367,9 +1233,7 @@ pub(crate) enum ScopeProperty {
 impl ScopeProperty {
     pub fn to_node_id(self) -> Option<NodeId> {
         match self {
-            Self::Trigger(node) | Self::Signal(node) | Self::Effect(node) => {
-                Some(node)
-            }
+            Self::Trigger(node) | Self::Signal(node) | Self::Effect(node) => Some(node),
             _ => None,
         }
     }
@@ -1400,20 +1264,14 @@ impl ScopeProperty {
 ///
 /// # runtime.dispose();
 /// ```
-#[cfg_attr(
-    any(debug_assertions, features = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 #[inline(always)]
 pub fn untrack<T>(f: impl FnOnce() -> T) -> T {
     Runtime::current().untrack(f, false)
 }
 
 #[doc(hidden)]
-#[cfg_attr(
-    any(debug_assertions, features = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 #[inline(always)]
 pub fn untrack_with_diagnostics<T>(f: impl FnOnce() -> T) -> T {
     Runtime::current().untrack(f, true)
@@ -1430,19 +1288,14 @@ pub struct ScopedFuture<Fut: Future> {
 /// Errors that can occur when trying to spawn a [`ScopedFuture`].
 #[derive(Error, Debug, Clone)]
 pub enum ScopedFutureError {
-    #[error(
-        "Tried to spawn a scoped Future without a current reactive Owner."
-    )]
+    #[error("Tried to spawn a scoped Future without a current reactive Owner.")]
     NoCurrentOwner,
 }
 
 impl<Fut: Future + 'static> Future for ScopedFuture<Fut> {
     type Output = Option<Fut::Output>;
 
-    fn poll(
-        self: Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         let this = self.project();
 
         if let Ok(poll) = try_with_owner(*this.owner, || this.future.poll(cx)) {
@@ -1475,19 +1328,16 @@ impl<Fut: Future> ScopedFuture<Fut> {
 /// Runs a future that has access to the provided [`Owner`]'s
 /// scope context.
 #[track_caller]
-pub fn spawn_local_with_owner(
-    owner: Owner,
-    fut: impl Future<Output = ()> + 'static,
-) {
+pub fn spawn_local_with_owner(owner: Owner, fut: impl Future<Output = ()> + 'static) {
     let scoped_future = ScopedFuture::new(owner, fut);
     #[cfg(debug_assertions)]
     let loc = std::panic::Location::caller();
 
-    crate::spawn_local(async move {
+    spawn_local(async move {
         if scoped_future.await.is_none() {
             crate::macros::debug_warn!(
-                "`spawn_local_with_owner` called at {loc} returned `None`, \
-                 i.e., its Owner was disposed before the `Future` resolved."
+                "`spawn_local_with_owner` called at {loc} returned `None`, i.e., its Owner was \
+                 disposed before the `Future` resolved."
             );
         }
     });
@@ -1506,11 +1356,11 @@ pub fn spawn_local_with_current_owner(
     #[cfg(debug_assertions)]
     let loc = std::panic::Location::caller();
 
-    crate::spawn_local(async move {
+    spawn_local(async move {
         if scoped_future.await.is_none() {
             crate::macros::debug_warn!(
-                "`spawn_local_with_owner` called at {loc} returned `None`, \
-                 i.e., its Owner was disposed before the `Future` resolved."
+                "`spawn_local_with_owner` called at {loc} returned `None`, i.e., its Owner was \
+                 disposed before the `Future` resolved."
             );
         }
     });
@@ -1534,7 +1384,7 @@ pub fn try_spawn_local_with_owner(
 ) {
     let scoped_future = ScopedFuture::new(owner, fut);
 
-    crate::spawn_local(async move {
+    spawn_local(async move {
         if scoped_future.await.is_none() {
             on_cancelled();
         }
@@ -1560,7 +1410,7 @@ pub fn try_spawn_local_with_current_owner(
 ) -> Result<(), ScopedFutureError> {
     let scoped_future = ScopedFuture::new_current(fut)?;
 
-    crate::spawn_local(async move {
+    spawn_local(async move {
         if scoped_future.await.is_none() {
             on_cancelled();
         }

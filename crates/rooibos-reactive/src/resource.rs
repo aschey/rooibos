@@ -11,17 +11,14 @@ use std::rc::Rc;
 use crate::runtime::with_runtime;
 use crate::serialization::Serializable;
 use crate::signal_prelude::format_signal_warning;
-use crate::spawn::spawn_local;
 use crate::suspense::LocalStatus;
-#[cfg(feature = "experimental-islands")]
-use crate::SharedContext;
 #[cfg(debug_assertions)]
 use crate::SpecialNonReactiveZone;
 use crate::{
-    create_isomorphic_effect, create_memo, create_render_effect, create_signal, queue_microtask,
-    use_context, GlobalSuspenseContext, Memo, ReadSignal, ScopeProperty, Signal, SignalDispose,
-    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked,
-    SuspenseContext, WriteSignal,
+    create_effect, create_memo, create_render_effect, create_signal, spawn_local, use_context,
+    GlobalSuspenseContext, Memo, ReadSignal, ScopeProperty, Signal, SignalDispose, SignalGet,
+    SignalGetUntracked, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked, SuspenseContext,
+    WriteSignal,
 };
 
 /// Creates a [`Resource`](crate::Resource), which is a signal that reflects the
@@ -148,7 +145,7 @@ where
     )
 }
 
-/// Creates a "blocking” [`Resource`](crate::Resource). When server-side rendering is used,
+/// Creates a "blocking" [`Resource`](crate::Resource). When server-side rendering is used,
 /// this resource will cause any `<Suspense/>` you read it under to block the initial
 /// chunk of HTML from being sent to the client. This means that if you set things like
 /// HTTP headers or `<head>` metadata in that `<Suspense/>`, that header material will
@@ -160,7 +157,7 @@ where
 /// might use a blocking resource to load blog post metadata, which will prevent the page from
 /// returning until that data has loaded.
 ///
-/// **Note**: This is not "blocking” in the sense that it blocks the current thread. Rather,
+/// **Note**: This is not "blocking" in the sense that it blocks the current thread. Rather,
 /// it is blocking in the sense that it blocks the server from sending a response.
 ///
 /// When used with the leptos_router and `SsrMode::PartiallyBlocked`, a
@@ -235,7 +232,7 @@ where
     })
     .expect("tried to create a Resource in a Runtime that has been disposed.");
 
-    create_isomorphic_effect({
+    create_effect({
         let r = Rc::clone(&r);
         move |_| {
             source.track();
@@ -247,7 +244,7 @@ where
         id,
         source_ty: PhantomData,
         out_ty: PhantomData,
-        #[cfg(any(debug_assertions, feature = "ssr"))]
+        #[cfg(debug_assertions)]
         defined_at: std::panic::Location::caller(),
     }
 }
@@ -386,7 +383,7 @@ where
         id,
         source_ty: PhantomData,
         out_ty: PhantomData,
-        #[cfg(any(debug_assertions, feature = "ssr"))]
+        #[cfg(debug_assertions)]
         defined_at: std::panic::Location::caller(),
     }
 }
@@ -414,10 +411,7 @@ where
     ///
     /// If you want to get the value without cloning it, use [`Resource::with`].
     /// (`value.read()` is equivalent to `value.with(T::clone)`.)
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[track_caller]
     #[deprecated = "You can now use .get() on resources."]
     pub fn read(&self) -> Option<T>
@@ -434,10 +428,7 @@ where
     ///
     /// If you want to get the value by cloning it, you can use
     /// [`Resource::read`].
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[track_caller]
     pub fn map<U>(&self, f: impl FnOnce(&T) -> U) -> Option<U> {
         let location = std::panic::Location::caller();
@@ -451,10 +442,7 @@ where
     }
 
     /// Returns a signal that indicates whether the resource is currently loading.
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     pub fn loading(&self) -> Signal<bool> {
         #[allow(unused_variables)]
         let (loading, is_from_server) = with_runtime(|runtime| {
@@ -470,10 +458,7 @@ where
     }
 
     /// Re-runs the async function with the current source data.
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     pub fn refetch(&self) {
         _ = with_runtime(|runtime| {
             runtime.resource(self.id, |resource: &ResourceState<S, T>| {
@@ -490,11 +475,8 @@ where
 
     /// Returns a [`Future`] that will resolve when the resource has loaded,
     /// yield its [`ResourceId`] and a JSON string.
-    #[cfg(any(feature = "ssr", doc))]
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg(doc)]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     pub async fn to_serialization_resolver(&self) -> (ResourceId, String)
     where
         T: Serializable,
@@ -634,7 +616,7 @@ where
                 "{}",
                 format_signal_warning(
                     "Attempted to read a resource after it was disposed.",
-                    #[cfg(any(debug_assertions, feature = "ssr"))]
+                    #[cfg(debug_assertions)]
                     location,
                 )
             ),
@@ -829,7 +811,7 @@ where
     pub(crate) id: ResourceId,
     pub(crate) source_ty: PhantomData<S>,
     pub(crate) out_ty: PhantomData<T>,
-    #[cfg(any(debug_assertions, feature = "ssr"))]
+    #[cfg(debug_assertions)]
     pub(crate) defined_at: &'static std::panic::Location<'static>,
 }
 
@@ -1161,22 +1143,16 @@ where
             }
         };
 
-        create_isomorphic_effect(increment);
+        create_effect(increment);
         v
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     pub fn refetch(&self, id: ResourceId) {
         self.load(true, id);
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     fn load(&self, refetching: bool, id: ResourceId) {
         // doesn't refetch if already refetching
         if refetching && self.scheduled.get() {
@@ -1192,12 +1168,8 @@ where
 
             // `scheduled` is true for the rest of this code only
             self.scheduled.set(true);
-            queue_microtask({
-                let scheduled = Rc::clone(&self.scheduled);
-                move || {
-                    scheduled.set(false);
-                }
-            });
+            let scheduled = Rc::clone(&self.scheduled);
+            scheduled.set(false);
 
             self.set_loading.update(|n| *n = true);
 
@@ -1238,10 +1210,7 @@ where
             })
         });
     }
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     pub fn resource_to_serialization_resolver(
         &self,
         id: ResourceId,
@@ -1253,7 +1222,7 @@ where
 
         let (tx, mut rx) = futures::channel::mpsc::channel(1);
         let value = self.value;
-        create_isomorphic_effect(move |_| {
+        create_effect(move |_| {
             value.with({
                 let mut tx = tx.clone();
                 move |value| {
@@ -1298,10 +1267,7 @@ where
         self
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[inline(always)]
     fn to_serialization_resolver(
         &self,
@@ -1311,10 +1277,7 @@ where
         Box::pin(fut)
     }
 
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all,)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
     #[inline(always)]
     fn should_send_to_client(&self) -> bool {
         #[cfg(feature = "experimental-islands")]

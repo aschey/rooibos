@@ -107,7 +107,6 @@ impl<In: 'static, Out: 'static> Callable<In, Out> for Callback<In, Out> {
 
 macro_rules! impl_from_fn {
     ($ty:ident) => {
-        #[cfg(not(feature = "nightly"))]
         impl<F, In, T, Out> From<F> for $ty<In, Out>
         where
             F: Fn(In) -> T + 'static,
@@ -117,52 +116,10 @@ macro_rules! impl_from_fn {
                 Self::new(move |x| f(x).into())
             }
         }
-
-        paste::paste! {
-            #[cfg(feature = "nightly")]
-            auto trait [<NotRaw $ty>] {}
-
-            #[cfg(feature = "nightly")]
-            impl<A, B> ![<NotRaw $ty>] for $ty<A, B> {}
-
-            #[cfg(feature = "nightly")]
-            impl<F, In, T, Out> From<F> for $ty<In, Out>
-            where
-                F: Fn(In) -> T + [<NotRaw $ty>] + 'static,
-                T: Into<Out> + 'static,
-            {
-                fn from(f: F) -> Self {
-                    Self::new(move |x| f(x).into())
-                }
-            }
-        }
     };
 }
 
 impl_from_fn!(Callback);
-
-#[cfg(feature = "nightly")]
-impl<In, Out> FnOnce<(In,)> for Callback<In, Out> {
-    type Output = Out;
-
-    extern "rust-call" fn call_once(self, args: (In,)) -> Self::Output {
-        Callable::call(&self, args.0)
-    }
-}
-
-#[cfg(feature = "nightly")]
-impl<In, Out> FnMut<(In,)> for Callback<In, Out> {
-    extern "rust-call" fn call_mut(&mut self, args: (In,)) -> Self::Output {
-        Callable::call(&*self, args.0)
-    }
-}
-
-#[cfg(feature = "nightly")]
-impl<In, Out> Fn<(In,)> for Callback<In, Out> {
-    extern "rust-call" fn call(&self, args: (In,)) -> Self::Output {
-        Callable::call(self, args.0)
-    }
-}
 
 /// A callback type that is `Send` and `Sync` if its input type is `Send` and `Sync`.
 /// Otherwise, you can use exactly the way you use [`Callback`].
@@ -198,29 +155,6 @@ impl<In: 'static, Out: 'static> SyncCallback<In, Out> {
 
 impl_from_fn!(SyncCallback);
 
-#[cfg(feature = "nightly")]
-impl<In, Out> FnOnce<(In,)> for SyncCallback<In, Out> {
-    type Output = Out;
-
-    extern "rust-call" fn call_once(self, args: (In,)) -> Self::Output {
-        Callable::call(&self, args.0)
-    }
-}
-
-#[cfg(feature = "nightly")]
-impl<In, Out> FnMut<(In,)> for SyncCallback<In, Out> {
-    extern "rust-call" fn call_mut(&mut self, args: (In,)) -> Self::Output {
-        Callable::call(&*self, args.0)
-    }
-}
-
-#[cfg(feature = "nightly")]
-impl<In, Out> Fn<(In,)> for SyncCallback<In, Out> {
-    extern "rust-call" fn call(&self, args: (In,)) -> Self::Output {
-        Callable::call(self, args.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::callback::{Callback, SyncCallback};
@@ -232,7 +166,7 @@ mod tests {
     fn clone_callback() {
         let rt = create_runtime();
         let callback = Callback::new(move |_no_clone: NoClone| NoClone {});
-        let _cloned = callback.clone();
+        let _cloned = callback;
         rt.dispose();
     }
 

@@ -7,8 +7,8 @@ use std::rc::Rc;
 use crate::diagnostics::AccessDiagnostics;
 use crate::node::NodeId;
 use crate::{
-    create_isomorphic_effect, on_cleanup, with_runtime, AnyComputation, Runtime, SignalDispose,
-    SignalGet, SignalGetUntracked, SignalStream, SignalWith, SignalWithUntracked,
+    create_effect, on_cleanup, with_runtime, AnyComputation, Runtime, SignalDispose, SignalGet,
+    SignalGetUntracked, SignalStream, SignalWith, SignalWithUntracked,
 };
 
 // IMPLEMENTATION NOTE:
@@ -249,7 +249,7 @@ where
 {
     pub(crate) id: NodeId,
     pub(crate) ty: PhantomData<T>,
-    #[cfg(any(debug_assertions, feature = "ssr"))]
+    #[cfg(debug_assertions)]
     pub(crate) defined_at: &'static std::panic::Location<'static>,
 }
 
@@ -378,7 +378,7 @@ impl<T> fmt::Debug for Memo<T> {
         let mut s = f.debug_struct("Memo");
         s.field("id", &self.id);
         s.field("ty", &self.ty);
-        #[cfg(any(debug_assertions, feature = "ssr"))]
+        #[cfg(debug_assertions)]
         s.field("defined_at", &self.defined_at);
         s.finish()
     }
@@ -405,7 +405,7 @@ impl<T: Clone> SignalGetUntracked for Memo<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::get_untracked()",
@@ -427,7 +427,7 @@ impl<T: Clone> SignalGetUntracked for Memo<T> {
             match self.id.try_with_no_subscription(runtime, f) {
                 Ok(t) => t,
                 Err(_) => panic_getting_dead_memo(
-                    #[cfg(any(debug_assertions, feature = "ssr"))]
+                    #[cfg(debug_assertions)]
                     self.defined_at,
                 ),
             }
@@ -436,7 +436,7 @@ impl<T: Clone> SignalGetUntracked for Memo<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::try_get_untracked()",
@@ -458,7 +458,7 @@ impl<T> SignalWithUntracked for Memo<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::with_untracked()",
@@ -475,7 +475,7 @@ impl<T> SignalWithUntracked for Memo<T> {
             |runtime| match self.id.try_with_no_subscription(runtime, forward_ref_to(f)) {
                 Ok(t) => t,
                 Err(_) => panic_getting_dead_memo(
-                    #[cfg(any(debug_assertions, feature = "ssr"))]
+                    #[cfg(debug_assertions)]
                     self.defined_at,
                 ),
             },
@@ -484,7 +484,7 @@ impl<T> SignalWithUntracked for Memo<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::try_with_untracked()",
@@ -530,7 +530,7 @@ impl<T: Clone> SignalGet for Memo<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             name = "Memo::get()",
             level = "trace",
@@ -549,7 +549,7 @@ impl<T: Clone> SignalGet for Memo<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::try_get()",
@@ -572,7 +572,7 @@ impl<T> SignalWith for Memo<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::with()",
@@ -589,14 +589,14 @@ impl<T> SignalWith for Memo<T> {
         match self.try_with(f) {
             Some(t) => t,
             None => panic_getting_dead_memo(
-                #[cfg(any(debug_assertions, feature = "ssr"))]
+                #[cfg(debug_assertions)]
                 self.defined_at,
             ),
         }
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::try_with()",
@@ -625,7 +625,7 @@ impl<T> SignalWith for Memo<T> {
 
 impl<T: Clone> SignalStream<T> for Memo<T> {
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Memo::to_stream()",
@@ -646,7 +646,7 @@ impl<T: Clone> SignalStream<T> for Memo<T> {
 
         let this = *self;
 
-        create_isomorphic_effect(move |_| {
+        create_effect(move |_| {
             let _ = tx.unbounded_send(this.get());
         });
 
@@ -669,7 +669,7 @@ where
 {
     pub f: F,
     pub t: PhantomData<T>,
-    #[cfg(any(debug_assertions, feature = "ssr"))]
+    #[cfg(debug_assertions)]
     pub(crate) defined_at: &'static std::panic::Location<'static>,
 }
 
@@ -679,7 +679,7 @@ where
     F: Fn(Option<T>) -> (T, bool),
 {
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             name = "Memo::run()",
             level = "trace",
@@ -711,19 +711,17 @@ where
 #[track_caller]
 fn format_memo_warning(
     msg: &str,
-    #[cfg(any(debug_assertions, feature = "ssr"))] defined_at: &'static std::panic::Location<
-        'static,
-    >,
+    #[cfg(debug_assertions)] defined_at: &'static std::panic::Location<'static>,
 ) -> String {
     let location = std::panic::Location::caller();
 
     let defined_at_msg = {
-        #[cfg(any(debug_assertions, feature = "ssr"))]
+        #[cfg(debug_assertions)]
         {
             format!("signal created here: {defined_at}\n")
         }
 
-        #[cfg(not(any(debug_assertions, feature = "ssr")))]
+        #[cfg(not(debug_assertions))]
         {
             String::default()
         }
@@ -736,15 +734,13 @@ fn format_memo_warning(
 #[inline(never)]
 #[track_caller]
 pub(crate) fn panic_getting_dead_memo(
-    #[cfg(any(debug_assertions, feature = "ssr"))] defined_at: &'static std::panic::Location<
-        'static,
-    >,
+    #[cfg(debug_assertions)] defined_at: &'static std::panic::Location<'static>,
 ) -> ! {
     panic!(
         "{}",
         format_memo_warning(
             "Attempted to get a memo after it was disposed.",
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at,
         )
     )

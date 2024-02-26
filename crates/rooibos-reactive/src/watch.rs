@@ -28,7 +28,7 @@ use crate::{with_runtime, Runtime, ScopeProperty};
 /// stop(); // stop watching
 ///
 /// set_num.set(2); // (nothing happens)
-///     
+///
 /// # runtime.dispose();
 /// ```
 ///
@@ -54,7 +54,7 @@ use crate::{with_runtime, Runtime, ScopeProperty};
 /// set_cb_num.set(1); // (nothing happens)
 ///
 /// set_num.set(2); // > "Number: 2; Cb: 1"
-///     
+///
 /// # runtime.dispose();
 /// ```
 ///
@@ -79,7 +79,7 @@ use crate::{with_runtime, Runtime, ScopeProperty};
 /// ); // > "Number: 0; Prev: None"
 ///
 /// set_num.set(1); // > "Number: 1; Prev: Some(0)"
-///     
+///
 /// # runtime.dispose();
 /// ```
 #[cfg_attr(

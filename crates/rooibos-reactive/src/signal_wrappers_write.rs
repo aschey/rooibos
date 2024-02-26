@@ -63,7 +63,7 @@ where
     T: 'static,
 {
     inner: SignalSetterTypes<T>,
-    #[cfg(any(debug_assertions, feature = "ssr"))]
+    #[cfg(debug_assertions)]
     defined_at: &'static std::panic::Location<'static>,
 }
 
@@ -78,7 +78,7 @@ impl<T: Default + 'static> Default for SignalSetter<T> {
     fn default() -> Self {
         Self {
             inner: SignalSetterTypes::Default,
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -138,14 +138,11 @@ where
     /// # runtime.dispose();
     /// ```
     #[track_caller]
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all))]
     pub fn map(mapped_setter: impl Fn(T) + 'static) -> Self {
         Self {
             inner: SignalSetterTypes::Mapped(store_value(Box::new(mapped_setter))),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -171,7 +168,7 @@ where
     /// assert_eq!(count.get(), 8);
     /// # runtime.dispose();
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             skip_all,
@@ -195,7 +192,7 @@ impl<T> From<WriteSignal<T>> for SignalSetter<T> {
     fn from(value: WriteSignal<T>) -> Self {
         Self {
             inner: SignalSetterTypes::Write(value),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -206,7 +203,7 @@ impl<T> From<RwSignal<T>> for SignalSetter<T> {
     fn from(value: RwSignal<T>) -> Self {
         Self {
             inner: SignalSetterTypes::Write(value.write_only()),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }

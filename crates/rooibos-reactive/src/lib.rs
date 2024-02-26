@@ -13,7 +13,7 @@
 //! ## Fine-Grained Reactivity
 //!
 //! Leptos is built on a fine-grained reactive system, which means that individual reactive values
-//! ("signals,” sometimes known as observables) trigger the code that reacts to them ("effects,”
+//! ("signals," sometimes known as observables) trigger the code that reacts to them ("effects,"
 //! sometimes known as observers) to re-run. These two halves of the reactive system are
 //! inter-dependent. Without effects, signals can change within the reactive system but never be
 //! observed in a way that interacts with the outside world. Without signals, effects run once but
@@ -78,7 +78,7 @@
 //! runtime.dispose();
 //! ```
 
-#[cfg_attr(any(debug_assertions, feature = "ssr"), macro_use)]
+#[cfg_attr(debug_assertions, macro_use)]
 extern crate tracing;
 
 #[macro_use]
@@ -88,7 +88,6 @@ mod context;
 #[macro_use]
 mod diagnostics;
 mod effect;
-mod hydration;
 // contains "private" implementation details right now.
 // could make this unhidden in the future if needed.
 // macro_export makes it public from the crate root anyways
@@ -107,7 +106,6 @@ mod signal_wrappers_read;
 mod signal_wrappers_write;
 mod slice;
 mod spawn;
-mod spawn_microtask;
 mod stored_value;
 pub mod suspense;
 mod trigger;
@@ -117,7 +115,6 @@ pub use callback::*;
 pub use context::*;
 pub use diagnostics::SpecialNonReactiveZone;
 pub use effect::*;
-pub use hydration::{FragmentData, SharedContext};
 pub use memo::*;
 pub use node::Disposer;
 pub use oco::*;
@@ -136,7 +133,6 @@ pub use signal_wrappers_read::*;
 pub use signal_wrappers_write::*;
 pub use slice::*;
 pub use spawn::*;
-pub use spawn_microtask::*;
 pub use stored_value::*;
 pub use suspense::{GlobalSuspenseContext, SuspenseContext};
 pub use tracing::warn;

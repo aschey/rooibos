@@ -3,9 +3,8 @@ use std::rc::Rc;
 
 use crate::runtime::untrack;
 use crate::{
-    create_isomorphic_effect, on_cleanup, store_value, Memo, Oco, ReadSignal, RwSignal,
-    SignalDispose, SignalGet, SignalGetUntracked, SignalStream, SignalWith, SignalWithUntracked,
-    StoredValue,
+    create_effect, on_cleanup, store_value, Memo, Oco, ReadSignal, RwSignal, SignalDispose,
+    SignalGet, SignalGetUntracked, SignalStream, SignalWith, SignalWithUntracked, StoredValue,
 };
 
 /// Helper trait for converting `Fn() -> T` closures into
@@ -85,7 +84,7 @@ where
     T: 'static,
 {
     inner: SignalTypes<T>,
-    #[cfg(any(debug_assertions, feature = "ssr"))]
+    #[cfg(debug_assertions)]
     defined_at: &'static std::panic::Location<'static>,
 }
 
@@ -101,7 +100,7 @@ impl<T> core::fmt::Debug for Signal<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let mut s = f.debug_struct("Signal");
         s.field("inner", &self.inner);
-        #[cfg(any(debug_assertions, feature = "ssr"))]
+        #[cfg(debug_assertions)]
         s.field("defined_at", &self.defined_at);
         s.finish()
     }
@@ -122,7 +121,7 @@ impl<T: Clone> SignalGetUntracked for Signal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Signal::get_untracked()",
@@ -142,7 +141,7 @@ impl<T: Clone> SignalGetUntracked for Signal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Signal::try_get_untracked()",
@@ -166,7 +165,7 @@ impl<T> SignalWithUntracked for Signal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Signal::with_untracked()",
@@ -192,7 +191,7 @@ impl<T> SignalWithUntracked for Signal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Signal::try_with_untracked()",
@@ -245,7 +244,7 @@ impl<T> SignalWith for Signal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Signal::with()",
@@ -265,7 +264,7 @@ impl<T> SignalWith for Signal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "Signal::try_with()",
@@ -347,7 +346,7 @@ impl<T: Clone> SignalStream<T> for Signal<T> {
 
                 on_cleanup(move || close_channel.close_channel());
 
-                create_isomorphic_effect(move |_| {
+                create_effect(move |_| {
                     let _ = s.try_with_value(|t| tx.unbounded_send(t()));
                 });
 
@@ -379,10 +378,7 @@ where
     /// # runtime.dispose();
     /// ```
     #[track_caller]
-    #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
-        instrument(level = "trace", skip_all)
-    )]
+    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all))]
     pub fn derive(derived_signal: impl Fn() -> T + 'static) -> Self {
         let span = ::tracing::Span::current();
 
@@ -393,7 +389,7 @@ where
 
         Self {
             inner: SignalTypes::DerivedSignal(store_value(Box::new(derived_signal))),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -413,7 +409,7 @@ impl<T> From<ReadSignal<T>> for Signal<T> {
     fn from(value: ReadSignal<T>) -> Self {
         Self {
             inner: SignalTypes::ReadSignal(value),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -424,7 +420,7 @@ impl<T> From<RwSignal<T>> for Signal<T> {
     fn from(value: RwSignal<T>) -> Self {
         Self {
             inner: SignalTypes::ReadSignal(value.read_only()),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -435,7 +431,7 @@ impl<T> From<Memo<T>> for Signal<T> {
     fn from(value: Memo<T>) -> Self {
         Self {
             inner: SignalTypes::Memo(value),
-            #[cfg(any(debug_assertions, feature = "ssr"))]
+            #[cfg(debug_assertions)]
             defined_at: std::panic::Location::caller(),
         }
     }
@@ -576,7 +572,7 @@ impl<T: Clone> SignalGet for MaybeSignal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::get()",
@@ -592,7 +588,7 @@ impl<T: Clone> SignalGet for MaybeSignal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::try_get()",
@@ -644,7 +640,7 @@ impl<T> SignalWith for MaybeSignal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::with()",
@@ -660,7 +656,7 @@ impl<T> SignalWith for MaybeSignal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::try_with()",
@@ -680,7 +676,7 @@ impl<T> SignalWithUntracked for MaybeSignal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::with_untracked()",
@@ -696,7 +692,7 @@ impl<T> SignalWithUntracked for MaybeSignal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::try_with_untracked()",
@@ -716,7 +712,7 @@ impl<T: Clone> SignalGetUntracked for MaybeSignal<T> {
     type Value = T;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::get_untracked()",
@@ -732,7 +728,7 @@ impl<T: Clone> SignalGetUntracked for MaybeSignal<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::try_get_untracked()",
@@ -750,7 +746,7 @@ impl<T: Clone> SignalGetUntracked for MaybeSignal<T> {
 
 impl<T: Clone> SignalStream<T> for MaybeSignal<T> {
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::to_stream()",
@@ -795,7 +791,7 @@ where
     /// # runtime.dispose();
     /// ```
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeSignal::derive()",
@@ -846,27 +842,6 @@ impl From<&str> for MaybeSignal<String> {
     }
 }
 
-#[cfg(feature = "nightly")]
-mod from_fn_for_signals {
-    use super::{MaybeSignal, Memo, ReadSignal, RwSignal, Signal};
-    auto trait NotSignalMarker {}
-
-    impl<T> !NotSignalMarker for Signal<T> {}
-    impl<T> !NotSignalMarker for ReadSignal<T> {}
-    impl<T> !NotSignalMarker for Memo<T> {}
-    impl<T> !NotSignalMarker for RwSignal<T> {}
-    impl<T> !NotSignalMarker for MaybeSignal<T> {}
-
-    impl<F, T> From<F> for Signal<T>
-    where
-        F: Fn() -> T + NotSignalMarker + 'static,
-    {
-        fn from(value: F) -> Self {
-            Signal::derive(value)
-        }
-    }
-}
-#[cfg(not(feature = "nightly"))]
 impl<F, T> From<F> for Signal<T>
 where
     F: Fn() -> T + 'static,
@@ -961,7 +936,7 @@ impl<T: Clone> SignalGet for MaybeProp<T> {
     type Value = Option<T>;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::get()",
@@ -974,7 +949,7 @@ impl<T: Clone> SignalGet for MaybeProp<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::try_get()",
@@ -1027,7 +1002,7 @@ impl<T: Clone> SignalGet for MaybeProp<T> {
 impl<T> MaybeProp<T> {
     /// Applies a function to the current value, returning the result.
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::with()",
@@ -1044,7 +1019,7 @@ impl<T> MaybeProp<T> {
     /// Applies a function to the current value, returning the result. Returns `None`
     /// if the value has already been disposed.
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::try_with()",
@@ -1062,7 +1037,7 @@ impl<T> MaybeProp<T> {
     /// Applies a function to the current value, returning the result, without
     /// causing the current reactive scope to track changes.
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::with_untracked()",
@@ -1080,7 +1055,7 @@ impl<T> MaybeProp<T> {
     /// causing the current reactive scope to track changes. Returns `None` if
     /// the value has already been disposed.
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::try_with_untracked()",
@@ -1100,7 +1075,7 @@ impl<T: Clone> SignalGetUntracked for MaybeProp<T> {
     type Value = Option<T>;
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::get_untracked()",
@@ -1113,7 +1088,7 @@ impl<T: Clone> SignalGetUntracked for MaybeProp<T> {
     }
 
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::try_get_untracked()",
@@ -1128,7 +1103,7 @@ impl<T: Clone> SignalGetUntracked for MaybeProp<T> {
 
 impl<T: Clone> SignalStream<Option<T>> for MaybeProp<T> {
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::to_stream()",
@@ -1174,7 +1149,7 @@ where
     /// # runtime.dispose();
     /// ```
     #[cfg_attr(
-        any(debug_assertions, feature = "ssr"),
+        debug_assertions,
         instrument(
             level = "trace",
             name = "MaybeProp::derive()",

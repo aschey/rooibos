@@ -10,9 +10,9 @@ use rustc_hash::FxHashSet;
 
 use crate::oco::Oco;
 use crate::{
-    batch, create_isomorphic_effect, create_memo, create_rw_signal, create_signal, queue_microtask,
-    store_value, Memo, ReadSignal, ResourceId, RwSignal, SignalSet, SignalUpdate, SignalWith,
-    StoredValue, WriteSignal,
+    batch, create_effect, create_memo, create_rw_signal, create_signal, store_value, Memo,
+    ReadSignal, ResourceId, RwSignal, SignalSet, SignalUpdate, SignalWith, StoredValue,
+    WriteSignal,
 };
 
 /// Tracks [`Resource`](crate::Resource)s that are read under a suspense context,
@@ -39,7 +39,7 @@ pub(crate) enum LocalStatus {
 }
 
 /// A single, global suspense context that will be checked when resources
-/// are read. This won't be "blocked” by lower suspense components. This is
+/// are read. This won't be "blocked" by lower suspense components. This is
 /// useful for e.g., holding route transitions.
 #[derive(Clone, Debug)]
 pub struct GlobalSuspenseContext(Rc<RefCell<SuspenseContext>>);
@@ -96,12 +96,10 @@ impl SuspenseContext {
         let pending = self.pending;
         let (tx, mut rx) = futures::channel::mpsc::channel(1);
         let tx = RefCell::new(tx);
-        queue_microtask(move || {
-            create_isomorphic_effect(move |_| {
-                if pending.with(|p| p.is_empty()) {
-                    _ = tx.borrow_mut().try_send(());
-                }
-            });
+        create_effect(move |_| {
+            if pending.with(|p| p.is_empty()) {
+                _ = tx.borrow_mut().try_send(());
+            }
         });
         async move {
             rx.next().await;

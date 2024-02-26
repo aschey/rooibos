@@ -6,7 +6,7 @@ use crate::runtime::with_runtime;
 /// and all of its descendants. This can be consumed using [`use_context`](crate::use_context).
 ///
 /// This is useful for passing values down to components or functions lower in a
-/// hierarchy without needs to "prop drill” by passing them through each layer as
+/// hierarchy without needs to "prop drill" by passing them through each layer as
 /// arguments to a function or properties of a component.
 ///
 /// Context works similarly to variable scope: a context that is provided higher in
@@ -54,7 +54,7 @@ use crate::runtime::with_runtime;
 /// reactive scope.
 ///
 /// This can have unexpected effects on context: namely, children can sometimes override
-/// contexts provided by their parents, including for their siblings, if they "shadow” context
+/// contexts provided by their parents, including for their siblings, if they "shadow" context
 /// by providing another context of the same kind.
 /// ```rust
 /// use leptos::*;
@@ -155,10 +155,7 @@ use crate::runtime::with_runtime;
 ///     let context = "child_context";
 /// }
 /// ```
-#[cfg_attr(
-    any(debug_assertions, feature = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 #[track_caller]
 pub fn provide_context<T>(value: T)
 where
@@ -189,7 +186,7 @@ where
 /// using [`provide_context`](crate::provide_context).
 ///
 /// This is useful for passing values down to components or functions lower in a
-/// hierarchy without needs to "prop drill” by passing them through each layer as
+/// hierarchy without needs to "prop drill" by passing them through each layer as
 /// arguments to a function or properties of a component.
 ///
 /// Context works similarly to variable scope: a context that is provided higher in
@@ -227,10 +224,7 @@ where
 ///     let set_value = use_context::<ValueSetter>().unwrap().0;
 /// }
 /// ```
-#[cfg_attr(
-    any(debug_assertions, feature = "ssr"),
-    instrument(level = "trace", skip_all,)
-)]
+#[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
 pub fn use_context<T>() -> Option<T>
 where
     T: Clone + 'static,
@@ -259,7 +253,7 @@ where
 /// using [provide_context](crate::provide_context).
 ///
 /// This is useful for passing values down to components or functions lower in a
-/// hierarchy without needs to "prop drill” by passing them through each layer as
+/// hierarchy without needs to "prop drill" by passing them through each layer as
 /// arguments to a function or properties of a component.
 ///
 /// Context works similarly to variable scope: a context that is provided higher in
