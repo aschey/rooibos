@@ -52,15 +52,13 @@ impl View {
     fn get_view_constraint(&self) -> TokenStream {
         let constraint_val = &self.constraint_val;
 
-        let constraint = match self.constraint {
+        match self.constraint {
             Constraint::Min => quote! { Constraint::Min(#constraint_val) },
             Constraint::Max => quote! { Constraint::Max(#constraint_val) },
             Constraint::Percentage => quote! { Constraint::Percentage(#constraint_val) },
             Constraint::Length => quote! { Constraint::Length(#constraint_val) },
             Constraint::Ratio => quote! { Constraint::Ratio(#constraint_val) },
-        };
-
-        quote!(.constraint(#constraint))
+        }
     }
 
     fn get_overlay_tokens(&self, children: &[View], is_child: bool) -> TokenStream {
@@ -194,10 +192,12 @@ impl View {
                     // correctly
                     if cfg!(debug_assertions) {
                         quote! {
-                            if false {
-                                #closing_name #rest;
+                            {
+                                if false {
+                                    #closing_name #rest;
+                                }
+                                #name #rest
                             }
-                            #name #rest
                         }
                     } else {
                         quote!(#name #rest)

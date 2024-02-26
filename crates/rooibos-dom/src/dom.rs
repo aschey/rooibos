@@ -760,6 +760,12 @@ pub fn col(constraint: Constraint) -> Element {
     }
 }
 
+pub fn widget(widget: DomWidget, constraint: Constraint) -> Element {
+    Element {
+        inner: DomNode::from_fragment(DocumentFragment::widget(widget).constraint(constraint)),
+    }
+}
+
 pub fn print_dom<W: io::Write>(writer: &mut W, include_transparent: bool) -> io::Result<()> {
     DOM_ROOT.with(|dom| {
         DOM_NODES.with(|nodes| {
@@ -876,8 +882,8 @@ impl DomNodeInner {
     ) {
         let children: Vec<_> = self.resolve_children(dom_nodes);
 
-        let constraints = children.iter().map(|c| c.1.constraint);
-        // dbg!(&constraints);
+        let constraints = children.iter().map(|(_, c)| c.constraint);
+
         match &self.node_type {
             NodeType::Layout {
                 direction,
