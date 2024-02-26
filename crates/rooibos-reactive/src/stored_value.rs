@@ -365,5 +365,3 @@ impl<T> StoredValue<T> {
         store_value(value)
     }
 }
-
-impl_get_fn_traits!(StoredValue(get_value));

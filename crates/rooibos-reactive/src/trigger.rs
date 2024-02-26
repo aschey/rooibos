@@ -271,29 +271,3 @@ impl SignalSet for Trigger {
         self.try_notify().then_some(())
     }
 }
-
-#[cfg(feature = "nightly")]
-impl FnOnce<()> for Trigger {
-    type Output = ();
-
-    #[inline(always)]
-    extern "rust-call" fn call_once(self, _args: ()) -> Self::Output {
-        self.track()
-    }
-}
-
-#[cfg(feature = "nightly")]
-impl FnMut<()> for Trigger {
-    #[inline(always)]
-    extern "rust-call" fn call_mut(&mut self, _args: ()) -> Self::Output {
-        self.track()
-    }
-}
-
-#[cfg(feature = "nightly")]
-impl Fn<()> for Trigger {
-    #[inline(always)]
-    extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
-        self.track()
-    }
-}

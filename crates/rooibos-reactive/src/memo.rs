@@ -660,8 +660,6 @@ impl<T> SignalDispose for Memo<T> {
     }
 }
 
-impl_get_fn_traits![Memo];
-
 pub(crate) struct MemoState<T, F>
 where
     T: 'static,

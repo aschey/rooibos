@@ -253,5 +253,3 @@ where
 }
 
 impl<T> Eq for SignalSetterTypes<T> where T: PartialEq {}
-
-impl_set_fn_traits![SignalSetter];
