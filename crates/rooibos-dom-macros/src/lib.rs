@@ -83,10 +83,10 @@ pub fn impl_stateful_render(tokens: TokenStream) -> manyhow::Result {
 fn get_import() -> proc_macro2::TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {
-            FoundCrate::Itself => quote::quote!(crate::rsx),
+            FoundCrate::Itself => quote::quote!(crate::dom),
             FoundCrate::Name(name) => {
                 let ident = proc_macro2::Ident::new(&name, proc_macro2::Span::call_site());
-                quote::quote!(#ident::rsx)
+                quote::quote!(#ident::dom)
             }
         }
     } else {

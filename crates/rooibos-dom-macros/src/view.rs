@@ -86,8 +86,8 @@ impl View {
     ) -> TokenStream {
         let constraint = self.get_view_constraint();
         let layout = match direction {
-            Direction::Row => quote!(DomNode::row()),
-            Direction::Col => quote!(DomNode::col()),
+            Direction::Row => quote!(row(#constraint)),
+            Direction::Col => quote!(col(#constraint)),
         };
 
         let child_tokens: Vec<_> = children
@@ -99,7 +99,6 @@ impl View {
 
         let layout_tokens = quote! {
             #layout
-            #constraint
             #layout_props
             #(.child(#child_tokens))*
         };
@@ -195,23 +194,13 @@ impl View {
                     // correctly
                     if cfg!(debug_assertions) {
                         quote! {
-                            (if true {
-                                DomNode::component(#name #rest)
-                                #constraint
-                            } else {
-                                DomNode::component(#closing_name #rest)
-                                #constraint
-                            })
+                            if false {
+                                #closing_name #rest;
+                            }
+                            #name #rest
                         }
-                    // quote! {
-                    //     .child(if true {
-                    //         #name #rest
-                    //     } else {
-                    //         #closing_name #rest
-                    //     })
-                    // }
                     } else {
-                        quote!(DomNode::component(#name #rest) #constraint)
+                        quote!(#name #rest)
                     }
                 };
 

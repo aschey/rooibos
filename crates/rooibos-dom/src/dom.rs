@@ -920,7 +920,7 @@ pub struct DomNode {
 }
 
 impl DomNode {
-    pub fn from_fragment(fragment: DocumentFragment) -> Self {
+    fn from_fragment(fragment: DocumentFragment) -> Self {
         let inner = DomNodeInner {
             name: fragment.name.clone(),
             node_type: fragment.node_type,

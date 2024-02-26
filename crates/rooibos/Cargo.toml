@@ -1,0 +1,8 @@
+[package]
+name = "rooibos"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rooibos-dom = { path = "../rooibos-dom" }
+rooibos-reactive = { path = "../rooibos-reactive" }

@@ -185,7 +185,10 @@ impl ToTokens for Model {
         }
 
         let component = quote! {
-                #body_name #interior_generics (#used_prop_names)
+                Component::new(
+                    ::std::stringify!(#name),
+                    move || { #body_name #interior_generics (#used_prop_names) }
+                )
         };
 
         let props_arg = quote! {
