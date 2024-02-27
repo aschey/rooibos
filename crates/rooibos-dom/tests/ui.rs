@@ -7,9 +7,9 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, ListItem, ListState};
 use ratatui::Terminal;
 use rooibos_dom::{
-    block, col, component, list, mount, paragraph, prop, render_dom, row, stateful_list, tabs,
-    view, BlockProps, BuildFacade, BuilderFacade, Component, ComponentChildren, DomNode, IntoView,
-    ListProps, NewExt, ParagraphProps, StatefulListProps, TabsProps, View,
+    block, col, component, list, mount, overlay, paragraph, prop, render_dom, row, stateful_list,
+    tabs, view, BlockProps, BuildFacade, BuilderFacade, Component, ComponentChildren, DomNode,
+    IntoView, ListProps, NewExt, ParagraphProps, StatefulListProps, TabsProps, View,
 };
 use rooibos_reactive::{create_runtime, store_value};
 use typed_builder::TypedBuilder;
@@ -406,116 +406,119 @@ fn macro_as_prop() {
     ]));
 }
 
-// #[test]
-// fn simple_overlay() {
-//     let backend = TestBackend::new(10, 3);
-//     let mut terminal = Terminal::new(backend).unwrap();
+#[test]
+fn simple_overlay() {
+    let backend = TestBackend::new(10, 3);
+    let mut terminal = Terminal::new(backend).unwrap();
 
-//     let view = view! {
-//         <Overlay>
-//             <Block borders=Borders::ALL/>
-//             <Paragraph>
-//                 "test"
-//             </Paragraph>
-//         </Overlay>
-//     };
-//     terminal
-//         .draw(|f| {
-//             view.render(f, f.size());
-//         })
-//         .unwrap();
-//  clear_style(terminal.backend_mut().buffer_mut());
-//     terminal.backend().assert_buffer(&Buffer::with_lines(vec![
-//         "test─────┐",
-//         "│        │",
-//         "└────────┘",
-//     ]));
-// }
+    let view = view! {
+        <Overlay>
+            <Block borders=Borders::ALL/>
+            <Paragraph>
+                "test"
+            </Paragraph>
+        </Overlay>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal.backend().assert_buffer(&Buffer::with_lines(vec![
+        "test─────┐",
+        "│        │",
+        "└────────┘",
+    ]));
+}
 
-// #[test]
-// fn overlay_multiple() {
-//     let backend = TestBackend::new(10, 6);
-//     let mut terminal = Terminal::new(backend).unwrap();
+#[test]
+fn overlay_multiple() {
+    let backend = TestBackend::new(10, 6);
+    let mut terminal = Terminal::new(backend).unwrap();
 
-//     let view = view! {
-//         <Overlay>
-//             <Block borders=Borders::ALL title="test"/>
-//             <Column margin=1>
-//                 <List v:length=2>
-//                     <ListItem>{"hi"}</ListItem>
-//                     <ListItem>{"yo"}</ListItem>
-//                 </List>
-//                 <List>
-//                     <ListItem>{"hi2"}</ListItem>
-//                     <ListItem>{"yo2"}</ListItem>
-//                 </List>
-//             </Column>
-//         </Overlay>
-//     };
-//     terminal
-//         .draw(|f| {
-//             view.render(f, f.size());
-//         })
-//         .unwrap();
-//  clear_style(terminal.backend_mut().buffer_mut());
-//     terminal.backend().assert_buffer(&Buffer::with_lines(vec![
-//         "┌test────┐",
-//         "│hi      │",
-//         "│yo      │",
-//         "│hi2     │",
-//         "│yo2     │",
-//         "└────────┘",
-//     ]));
-// }
+    let view = view! {
+        <Overlay>
+            <Block borders=Borders::ALL title="test"/>
+            <Column margin=1>
+                <List v:length=2>
+                    <ListItem>{"hi"}</ListItem>
+                    <ListItem>{"yo"}</ListItem>
+                </List>
+                <List>
+                    <ListItem>{"hi2"}</ListItem>
+                    <ListItem>{"yo2"}</ListItem>
+                </List>
+            </Column>
+        </Overlay>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal.backend().assert_buffer(&Buffer::with_lines(vec![
+        "┌test────┐",
+        "│hi      │",
+        "│yo      │",
+        "│hi2     │",
+        "│yo2     │",
+        "└────────┘",
+    ]));
+}
 
-// #[test]
-// fn two_overlays() {
-//     let backend = TestBackend::new(10, 8);
-//     let mut terminal = Terminal::new(backend).unwrap();
+#[test]
+fn two_overlays() {
+    let backend = TestBackend::new(10, 8);
+    let mut terminal = Terminal::new(backend).unwrap();
 
-//     let view = view! {
-//         <Column>
-//             <Column v:percentage=50>
-//                 <Overlay>
-//                     <Block borders=Borders::ALL title="test"/>
-//                     <Column margin=1>
-//                         <List v:length=2>
-//                             <ListItem>{"hi"}</ListItem>
-//                             <ListItem>{"yo"}</ListItem>
-//                         </List>
-//                     </Column>
-//                 </Overlay>
-//             </Column>
-//             <Column v:percentage=50>
-//                 <Overlay>
-//                     <Block borders=Borders::ALL title="test2"/>
-//                     <Column margin=1>
-//                         <List v:length=2>
-//                             <ListItem>{"hi2"}</ListItem>
-//                             <ListItem>{"yo2"}</ListItem>
-//                         </List>
-//                     </Column>
-//                 </Overlay>
-//             </Column>
-//         </Column>
-//     };
-//     terminal
-//         .draw(|f| {
-//             view.render(f, f.size());
-//         })
-//         .unwrap();
-//  clear_style(terminal.backend_mut().buffer_mut());
-//     terminal.backend().assert_buffer(&Buffer::with_lines(vec![
-//         "┌test────┐",
-//         "│hi      │",
-//         "│yo      │",
-//         "└────────┘",
-//         "┌test2───┐",
-//         "│hi2     │",
-//         "│yo2     │",
-//         "└────────┘",
-//     ]));
-// }
+    let view = view! {
+        <Column>
+            <Column v:percentage=50>
+                <Overlay>
+                    <Block borders=Borders::ALL title="test"/>
+                    <Column margin=1>
+                        <List v:length=2>
+                            <ListItem>{"hi"}</ListItem>
+                            <ListItem>{"yo"}</ListItem>
+                        </List>
+                    </Column>
+                </Overlay>
+            </Column>
+            <Column v:percentage=50>
+                <Overlay>
+                    <Block borders=Borders::ALL title="test2"/>
+                    <Column margin=1>
+                        <List v:length=2>
+                            <ListItem>{"hi2"}</ListItem>
+                            <ListItem>{"yo2"}</ListItem>
+                        </List>
+                    </Column>
+                </Overlay>
+            </Column>
+        </Column>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal.backend().assert_buffer(&Buffer::with_lines(vec![
+        "┌test────┐",
+        "│hi      │",
+        "│yo      │",
+        "└────────┘",
+        "┌test2───┐",
+        "│hi2     │",
+        "│yo2     │",
+        "└────────┘",
+    ]));
+}
 
 #[test]
 fn array_as_variable() {

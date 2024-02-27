@@ -6,8 +6,6 @@ use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
 use syn::{parse_quote, Block, Expr, ExprLit, Generics, Lit, LitInt};
 
-use crate::get_import;
-
 #[derive(Clone, Debug)]
 enum Constraint {
     Min,
@@ -55,7 +53,7 @@ impl View {
             .map(|(i, v)| v.view_to_tokens(Some(i), true))
             .collect();
         let layout_tokens = quote! {
-            DomNode::overlay()
+            overlay()
             #(.child(#child_tokens))*
         };
 

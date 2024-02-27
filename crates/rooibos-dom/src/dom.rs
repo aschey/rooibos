@@ -700,7 +700,7 @@ impl DocumentFragment {
         }
     }
 
-    pub fn overlay() -> Self {
+    fn overlay() -> Self {
         Self {
             node_type: NodeType::Overlay,
             constraint: Constraint::default(),
@@ -709,7 +709,7 @@ impl DocumentFragment {
         }
     }
 
-    pub fn transparent(name: impl Into<String>) -> Self {
+    fn transparent(name: impl Into<String>) -> Self {
         Self {
             node_type: NodeType::Transparent,
             constraint: Constraint::default(),
@@ -718,31 +718,10 @@ impl DocumentFragment {
         }
     }
 
-    pub fn name(mut self, name: impl Into<String>) -> Self {
-        self.name = name.into();
-        self
-    }
-
-    pub fn constraint(mut self, constraint: Constraint) -> Self {
+    fn constraint(mut self, constraint: Constraint) -> Self {
         self.constraint = constraint;
         self
     }
-
-    pub fn flex(mut self, flex: Flex) -> Self {
-        self.flex = flex;
-        self
-    }
-
-    pub fn margin(mut self, new_margin: u16) -> Self {
-        if let NodeType::Layout { margin, .. } = &mut self.node_type {
-            *margin = new_margin;
-        }
-        self
-    }
-
-    // pub fn into_node(self) -> DomNode {
-    //     DomNode::from_fragment(self)
-    // }
 }
 
 pub struct Element {
@@ -758,6 +737,11 @@ impl Element {
 
     pub fn constraint(self, constraint: Constraint) -> Self {
         self.inner.set_constraint(constraint);
+        self
+    }
+
+    pub fn margin(self, margin: u16) -> Self {
+        self.inner.set_margin(margin);
         self
     }
 }
@@ -777,6 +761,12 @@ pub fn row() -> Element {
 pub fn col() -> Element {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::col()),
+    }
+}
+
+pub fn overlay() -> Element {
+    Element {
+        inner: DomNode::from_fragment(DocumentFragment::overlay()),
     }
 }
 
@@ -958,6 +948,14 @@ impl DomNode {
 
     fn set_constraint(&self, constraint: Constraint) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].constraint = constraint);
+    }
+
+    fn set_margin(&self, new_margin: u16) {
+        DOM_NODES.with(|n| {
+            if let NodeType::Layout { margin, .. } = &mut n.borrow_mut()[self.key].node_type {
+                *margin = new_margin;
+            }
+        });
     }
 
     fn append_child(&self, node: &DomNode) {
