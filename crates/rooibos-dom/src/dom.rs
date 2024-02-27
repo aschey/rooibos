@@ -164,6 +164,19 @@ impl<const N: usize, IV: IntoView> IntoView for [IV; N] {
     }
 }
 
+pub trait CollectView {
+    fn collect_view(self) -> View;
+}
+
+impl<I: IntoIterator<Item = T>, T: IntoView> CollectView for I {
+    fn collect_view(self) -> View {
+        self.into_iter()
+            .map(|v| v.into_view())
+            .collect::<Fragment>()
+            .into_view()
+    }
+}
+
 impl<IV> IntoView for Vec<IV>
 where
     IV: IntoView,
@@ -508,7 +521,7 @@ struct Comment {
 
 impl Comment {
     fn new(name: impl Into<String>, id: u32, closing: bool) -> Self {
-        let node = DomNode::from_fragment(DocumentFragment::transparent(name.into()));
+        let node = DomNode::from_fragment(DocumentFragment::transparent(name));
 
         Self { node }
     }
@@ -578,6 +591,7 @@ pub struct DomWidget {
     f: Rc<RefCell<dyn FnMut(&mut Frame, Rect)>>,
     id: u32,
     widget_type: String,
+    constraint: Constraint,
 }
 
 impl Debug for DomWidget {
@@ -596,15 +610,17 @@ impl DomWidget {
             widget_type: widget_type.into(),
             id,
             f: Rc::new(RefCell::new(f)),
+            constraint: Constraint::default(),
         }
     }
 
-    pub fn render(&self, frame: &mut Frame, rect: Rect) {
+    fn render(&self, frame: &mut Frame, rect: Rect) {
         (*self.f).borrow_mut()(frame, rect)
     }
 
-    pub fn widget_type(&self) -> &str {
-        &self.widget_type
+    pub fn constraint(mut self, constraint: Constraint) -> Self {
+        self.constraint = constraint;
+        self
     }
 }
 
@@ -616,7 +632,7 @@ impl IntoView for DomWidget {
 
 impl Mountable for DomWidget {
     fn get_mountable_node(&self) -> DomNode {
-        DomNode::from_fragment(DocumentFragment::widget(self.clone()))
+        DomNode::from_fragment(DocumentFragment::widget(self.clone()).constraint(self.constraint))
     }
 }
 
@@ -643,22 +659,20 @@ pub struct DocumentFragment {
     node_type: NodeType,
     constraint: Constraint,
     flex: Flex,
-    children: Vec<DomNodeKey>,
     name: String,
 }
 
 impl DocumentFragment {
-    pub fn widget(widget: DomWidget) -> Self {
+    fn widget(widget: DomWidget) -> Self {
         Self {
             name: widget.widget_type.clone(),
+            constraint: widget.constraint,
             node_type: NodeType::Widget(widget),
-            children: vec![],
-            constraint: Constraint::default(),
             flex: Flex::default(),
         }
     }
 
-    pub fn row() -> Self {
+    fn row() -> Self {
         Self {
             node_type: NodeType::Layout {
                 direction: Direction::Horizontal,
@@ -666,14 +680,13 @@ impl DocumentFragment {
                 margin: 0,
                 spacing: 0,
             },
-            children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "row".to_string(),
         }
     }
 
-    pub fn col() -> Self {
+    fn col() -> Self {
         Self {
             node_type: NodeType::Layout {
                 direction: Direction::Vertical,
@@ -681,7 +694,6 @@ impl DocumentFragment {
                 margin: 0,
                 spacing: 0,
             },
-            children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "col".to_string(),
@@ -691,7 +703,6 @@ impl DocumentFragment {
     pub fn overlay() -> Self {
         Self {
             node_type: NodeType::Overlay,
-            children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "overlay".to_string(),
@@ -701,11 +712,15 @@ impl DocumentFragment {
     pub fn transparent(name: impl Into<String>) -> Self {
         Self {
             node_type: NodeType::Transparent,
-            children: vec![],
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: name.into(),
         }
+    }
+
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
     }
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
@@ -740,6 +755,11 @@ impl Element {
         mount_child(MountKind::Append(&self.inner), &child);
         self
     }
+
+    pub fn constraint(self, constraint: Constraint) -> Self {
+        self.inner.set_constraint(constraint);
+        self
+    }
 }
 
 impl IntoView for Element {
@@ -748,21 +768,15 @@ impl IntoView for Element {
     }
 }
 
-pub fn row(constraint: Constraint) -> Element {
+pub fn row() -> Element {
     Element {
-        inner: DomNode::from_fragment(DocumentFragment::row().constraint(constraint)),
+        inner: DomNode::from_fragment(DocumentFragment::row()),
     }
 }
 
-pub fn col(constraint: Constraint) -> Element {
+pub fn col() -> Element {
     Element {
-        inner: DomNode::from_fragment(DocumentFragment::col().constraint(constraint)),
-    }
-}
-
-pub fn widget(widget: DomWidget, constraint: Constraint) -> Element {
-    Element {
-        inner: DomNode::from_fragment(DocumentFragment::widget(widget).constraint(constraint)),
+        inner: DomNode::from_fragment(DocumentFragment::col()),
     }
 }
 
@@ -922,7 +936,6 @@ impl DomNodeInner {
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct DomNode {
     key: DomNodeKey,
-    // name: String,
 }
 
 impl DomNode {
@@ -931,20 +944,20 @@ impl DomNode {
             name: fragment.name.clone(),
             node_type: fragment.node_type,
             constraint: fragment.constraint,
-            children: fragment.children,
+            children: vec![],
             parent: None,
             before_pending: vec![],
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
-        Self {
-            // inner:Rc::new(RefCell::new(inner)),
-            key,
-            // name: fragment.name, // parent: Rc::new(RefCell::new(None)),
-        }
+        Self { key }
     }
 
     fn set_name(&self, name: impl Into<String>) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
+    }
+
+    fn set_constraint(&self, constraint: Constraint) {
+        DOM_NODES.with(|n| n.borrow_mut()[self.key].constraint = constraint);
     }
 
     fn append_child(&self, node: &DomNode) {

@@ -169,7 +169,7 @@ fn get_tokens(
             #vis fn #fn_name #impl_generics (
                 props: impl Fn() -> #props_name #ty_generics_static + 'static,
                 mut state: impl #stateful_render<#name #ty_generics> + 'static,
-            ) -> impl IntoView {
+            ) -> DomWidget {
                 DomWidget::new(NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
                     state.render_with_state(props(), frame, rect);
                 })
@@ -182,7 +182,7 @@ fn get_tokens(
             impl #impl_generics #make_builder for #props_name #ty_generics #where_clause {}
 
             #vis fn #fn_name #impl_generics (props: impl Fn() -> #props_name #ty_generics_static + 'static)
-            -> impl IntoView #where_clause {
+            -> DomWidget #where_clause {
                 DomWidget::new(NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
                     #[cfg(debug_assertions)]
                     let prev = rooibos_reactive::SpecialNonReactiveZone::enter();

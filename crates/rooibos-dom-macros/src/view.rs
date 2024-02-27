@@ -43,24 +43,11 @@ enum ViewType {
 #[derive(Clone, Debug)]
 pub(crate) struct View {
     view_type: ViewType,
-    constraint: Constraint,
-    constraint_val: TokenStream,
+    constraint: Option<ConstraintTokens>,
     layout_props: Option<TokenStream>,
 }
 
 impl View {
-    fn get_view_constraint(&self) -> TokenStream {
-        let constraint_val = &self.constraint_val;
-
-        match self.constraint {
-            Constraint::Min => quote! { Constraint::Min(#constraint_val) },
-            Constraint::Max => quote! { Constraint::Max(#constraint_val) },
-            Constraint::Percentage => quote! { Constraint::Percentage(#constraint_val) },
-            Constraint::Length => quote! { Constraint::Length(#constraint_val) },
-            Constraint::Ratio => quote! { Constraint::Ratio(#constraint_val) },
-        }
-    }
-
     fn get_overlay_tokens(&self, children: &[View], is_child: bool) -> TokenStream {
         let child_tokens: Vec<_> = children
             .iter()
@@ -82,10 +69,10 @@ impl View {
         child_index: Option<usize>,
         parent_is_overlay: bool,
     ) -> TokenStream {
-        let constraint = self.get_view_constraint();
+        let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
         let layout = match direction {
-            Direction::Row => quote!(row(#constraint)),
-            Direction::Col => quote!(col(#constraint)),
+            Direction::Row => quote!(row()),
+            Direction::Col => quote!(col()),
         };
 
         let child_tokens: Vec<_> = children
@@ -97,6 +84,7 @@ impl View {
 
         let layout_tokens = quote! {
             #layout
+            #constraint
             #layout_props
             #(.child(#child_tokens))*
         };
@@ -184,7 +172,7 @@ impl View {
                 } else {
                     quote!()
                 };
-                let constraint = self.get_view_constraint();
+                let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
 
                 let get_conditional = |rest: TokenStream| {
                     // in debug mode, add a dummy condition to associate the closing tag span
@@ -197,6 +185,7 @@ impl View {
                                     #closing_name #rest;
                                 }
                                 #name #rest
+                                #constraint
                             }
                         }
                     } else {
@@ -223,9 +212,33 @@ impl ToTokens for View {
     }
 }
 
+#[derive(Clone, Debug)]
+enum ConstraintTokens {
+    Static {
+        constraint: Constraint,
+        expr: TokenStream,
+    },
+    Dynamic(TokenStream),
+}
+
+impl ToTokens for ConstraintTokens {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let new_tokens = match self {
+            Self::Static { constraint, expr } => match constraint {
+                Constraint::Min => quote! { Constraint::Min(#expr) },
+                Constraint::Max => quote! { Constraint::Max(#expr) },
+                Constraint::Percentage => quote! { Constraint::Percentage(#expr) },
+                Constraint::Length => quote! { Constraint::Length(#expr) },
+                Constraint::Ratio => quote! { Constraint::Ratio(#expr) },
+            },
+            Self::Dynamic(expr) => expr.clone(),
+        };
+        tokens.append_all(new_tokens);
+    }
+}
+
 struct NodeAttributes {
-    constraint: Constraint,
-    expr: TokenStream,
+    constraint: Option<ConstraintTokens>,
     props: Option<TokenStream>,
     state: Option<TokenStream>,
     key: Option<Expr>,
@@ -254,27 +267,34 @@ impl NodeAttributes {
     fn parse_standard_attrs(&mut self, attribute: &KeyedAttribute, emitter: &mut Emitter) -> bool {
         match attribute.key.to_string().as_str() {
             "v:min" => {
-                self.constraint = Constraint::Min;
-                self.expr = attribute.value().unwrap().to_token_stream();
+                self.constraint = Some(ConstraintTokens::Static {
+                    constraint: Constraint::Min,
+                    expr: attribute.value().unwrap().to_token_stream(),
+                });
                 true
             }
             "v:max" => {
-                self.constraint = Constraint::Max;
-                self.expr = attribute.value().unwrap().to_token_stream();
+                self.constraint = Some(ConstraintTokens::Static {
+                    constraint: Constraint::Max,
+                    expr: attribute.value().unwrap().to_token_stream(),
+                });
                 true
             }
             "v:percentage" => {
-                self.constraint = Constraint::Percentage;
-                self.expr = attribute.value().unwrap().to_token_stream();
+                self.constraint = Some(ConstraintTokens::Static {
+                    constraint: Constraint::Percentage,
+                    expr: attribute.value().unwrap().to_token_stream(),
+                });
                 true
             }
             "v:length" => {
-                self.constraint = Constraint::Length;
-                self.expr = attribute.value().unwrap().to_token_stream();
+                self.constraint = Some(ConstraintTokens::Static {
+                    constraint: Constraint::Length,
+                    expr: attribute.value().unwrap().to_token_stream(),
+                });
                 true
             }
             "v:ratio" => {
-                self.constraint = Constraint::Ratio;
                 let val = attribute.value().unwrap().clone();
                 let expr = match val {
                     Expr::Tuple(expr) if expr.elems.len() == 2 => expr,
@@ -287,7 +307,16 @@ impl NodeAttributes {
                     }
                 };
 
-                self.expr = expr.elems.to_token_stream();
+                self.constraint = Some(ConstraintTokens::Static {
+                    constraint: Constraint::Ratio,
+                    expr: expr.into_token_stream(),
+                });
+                true
+            }
+            "v:constraint" => {
+                self.constraint = Some(ConstraintTokens::Dynamic(
+                    attribute.value().unwrap().into_token_stream(),
+                ));
                 true
             }
             "v:state" => {
@@ -315,8 +344,7 @@ impl NodeAttributes {
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         let mut attrs = Self {
-            constraint: Constraint::Percentage,
-            expr: get_default_constraint(),
+            constraint: None,
             props: None,
             state: None,
             key: None,
@@ -334,8 +362,6 @@ impl NodeAttributes {
                 None
             })
             .collect();
-
-        let crate_name = get_import();
 
         for attribute in &custom_attrs {
             let func_name = Ident::new(&attribute.key.to_string(), attribute.key.span());
@@ -373,8 +399,7 @@ impl NodeAttributes {
 
     fn from_layout_nodes(nodes: &[NodeAttribute], emitter: &mut Emitter) -> Self {
         let mut attrs = Self {
-            constraint: Constraint::Percentage,
-            expr: get_default_constraint(),
+            constraint: None,
             props: None,
             state: None,
             key: None,
@@ -493,8 +518,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                     let content = get_block_contents(block);
                     views.push(View {
                         view_type: ViewType::Block { tokens: content },
-                        constraint: Constraint::Percentage,
-                        constraint_val: get_default_constraint(),
+                        constraint: None,
                         layout_props: None,
                     })
                 }
@@ -575,7 +599,6 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             Ok(View {
                 view_type: ViewType::Row(children),
                 constraint: attrs.constraint,
-                constraint_val: attrs.expr,
                 layout_props: attrs.props,
             })
         }
@@ -586,7 +609,6 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             Ok(View {
                 view_type: ViewType::Column(children),
                 constraint: attrs.constraint,
-                constraint_val: attrs.expr,
                 layout_props: attrs.props,
             })
         }
@@ -597,7 +619,6 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             Ok(View {
                 view_type: ViewType::FocusScope(children),
                 constraint: attrs.constraint,
-                constraint_val: attrs.expr,
                 layout_props: attrs.props,
             })
         }
@@ -608,7 +629,6 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             Ok(View {
                 view_type: ViewType::Overlay(children),
                 constraint: attrs.constraint,
-                constraint_val: attrs.expr,
                 layout_props: attrs.props,
             })
         }
@@ -644,7 +664,6 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                     state: attrs.state,
                 },
                 constraint: attrs.constraint,
-                constraint_val: attrs.expr,
                 layout_props: None,
             })
         }
@@ -653,12 +672,4 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
 
 fn get_block_contents(block: &Block) -> TokenStream {
     block.stmts.iter().map(|s| s.to_token_stream()).collect()
-}
-
-fn get_default_constraint() -> TokenStream {
-    Expr::Lit(ExprLit {
-        lit: Lit::Int(LitInt::new("100", Span::call_site())),
-        attrs: vec![],
-    })
-    .to_token_stream()
 }

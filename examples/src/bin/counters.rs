@@ -78,7 +78,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[component]
-fn Counter() -> impl IntoView {
+fn Counter(constraint: Constraint) -> impl IntoView {
     let (count, set_count) = create_signal(0);
     KEY_HANDLERS.with(|h| {
         h.borrow_mut().push(Box::new(move |key| {
@@ -89,7 +89,7 @@ fn Counter() -> impl IntoView {
     });
 
     view! {
-        <Block title=format!("count {}", count.get())/>
+        <Block title=format!("count {}", count.get()) v:constraint=constraint/>
     }
 }
 
@@ -99,7 +99,7 @@ fn Counters() -> impl IntoView {
 
     view! {
         <Column>
-            {(0..n_counters).map(|_| view!(<Counter v:length=2/>)).collect::<Vec<_>>()}
+            {(0..n_counters).map(|_| view!(<Counter constraint=Constraint::Length(2)/>)).collect_view()}
         </Column>
     }
 }

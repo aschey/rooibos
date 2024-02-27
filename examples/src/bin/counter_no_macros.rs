@@ -15,8 +15,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
 use rooibos::dom::{
-    block, col, mount, print_dom, render_dom, row, BlockProps, CollectView, Component,
-    DocumentFragment, DomNode, Fragment, IntoView, Mountable,
+    block, col, mount, print_dom, render_dom, row, BlockProps, Component, DocumentFragment,
+    DomNode, Fragment, IntoView, Mountable,
 };
 use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
 
@@ -32,7 +32,7 @@ thread_local! {
 fn main() -> Result<()> {
     let _ = create_runtime();
     let mut terminal = setup_terminal()?;
-    mount(|| counters());
+    mount(|| counter(0, 1));
     // print_dom(&mut std::io::stdout(), false);
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
@@ -106,33 +106,7 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
         });
     });
 
-    Component::new("counter", move || {
-        block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
-    })
-}
-
-fn counters() -> impl IntoView {
-    let count = RwSignal::new(Count::new(1, 1));
-    let cur_id = NODE_ID.fetch_add(1, Ordering::Relaxed);
-    KEY_HANDLERS.with(|h| {
-        h.borrow_mut().push(Rc::new((
-            cur_id,
-            Box::new(move |key| {
-                if key == "i" {
-                    count.update(Count::increase);
-                }
-                if key == "u" {
-                    count.update(Count::decrease);
-                }
-            }),
-        )));
-    });
-    let n_counters = 5;
-    col().child(
-        (0..n_counters)
-            .map(|_| row().constraint(Constraint::Length(1)).child(counter(1, 1)))
-            .collect_view(),
-    )
+    block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
 }
 
 #[derive(Debug, Clone)]
