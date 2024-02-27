@@ -5,6 +5,8 @@ use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
 use syn::{DeriveInput, Generics, Token, Visibility, WhereClause};
 
+use crate::{get_dom_import, get_reactive_import};
+
 pub(crate) struct Model {
     name: Ident,
     make_builder: Ident,
@@ -144,6 +146,8 @@ fn get_tokens(
     }
     let (_, ty_generics_static, _) = generics_static.split_for_impl();
     let type_name = Literal::string(&name.to_string());
+    let crate_name = get_dom_import();
+    let reactive = get_reactive_import();
     if stateful {
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
@@ -170,7 +174,7 @@ fn get_tokens(
                 props: impl Fn() -> #props_name #ty_generics_static + 'static,
                 mut state: impl #stateful_render<#name #ty_generics> + 'static,
             ) -> DomWidget {
-                DomWidget::new(NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
+                DomWidget::new(#crate_name::__NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
                     state.render_with_state(props(), frame, rect);
                 })
             }
@@ -183,12 +187,12 @@ fn get_tokens(
 
             #vis fn #fn_name #impl_generics (props: impl Fn() -> #props_name #ty_generics_static + 'static)
             -> DomWidget #where_clause {
-                DomWidget::new(NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
+                DomWidget::new(#crate_name::__NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move |frame: &mut Frame, rect: Rect| {
                     #[cfg(debug_assertions)]
-                    let prev = rooibos_reactive::SpecialNonReactiveZone::enter();
+                    let prev = #reactive::SpecialNonReactiveZone::enter();
                     frame.render_widget(props(), rect);
                     #[cfg(debug_assertions)]
-                    rooibos_reactive::SpecialNonReactiveZone::exit(prev);
+                    #reactive::SpecialNonReactiveZone::exit(prev);
                 })
             }
         }

@@ -127,12 +127,16 @@ fn counters() -> impl IntoView {
             }),
         )));
     });
-    let n_counters = 5;
-    col().child(
-        (0..n_counters)
-            .map(|_| row().constraint(Constraint::Length(1)).child(counter(1, 1)))
-            .collect_view(),
-    )
+
+    col().child(move || {
+        (1..count.get().value() + 1)
+            .map(|i| {
+                row()
+                    .constraint(Constraint::Length(1))
+                    .child(counter(i, i as u32))
+            })
+            .collect_view()
+    })
 }
 
 #[derive(Debug, Clone)]

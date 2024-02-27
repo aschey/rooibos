@@ -10,7 +10,7 @@ use rooibos_dom_macros::{impl_stateful_render, impl_stateful_widget, impl_widget
 
 use crate::{DomWidget, IntoView};
 
-static NODE_ID: AtomicU32 = AtomicU32::new(1);
+pub static __NODE_ID: AtomicU32 = AtomicU32::new(1);
 
 #[make_builder]
 pub trait MakeBuilder {}

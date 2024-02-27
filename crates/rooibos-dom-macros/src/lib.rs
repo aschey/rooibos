@@ -80,7 +80,7 @@ pub fn impl_stateful_render(tokens: TokenStream) -> manyhow::Result {
     Ok(input.into_token_stream())
 }
 
-fn get_import() -> proc_macro2::TokenStream {
+fn get_dom_import() -> proc_macro2::TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {
             FoundCrate::Itself => quote::quote!(crate::dom),
@@ -93,6 +93,27 @@ fn get_import() -> proc_macro2::TokenStream {
         let found_crate = crate_name("rooibos-dom").expect("rooibos-dom not found");
         match found_crate {
             FoundCrate::Itself => quote::quote!(::rooibos_dom),
+            FoundCrate::Name(name) => {
+                let ident = proc_macro2::Ident::new(&name, proc_macro2::Span::call_site());
+                quote::quote!(#ident)
+            }
+        }
+    }
+}
+
+fn get_reactive_import() -> proc_macro2::TokenStream {
+    if let Ok(found_crate) = crate_name("rooibos") {
+        match found_crate {
+            FoundCrate::Itself => quote::quote!(crate::reactive),
+            FoundCrate::Name(name) => {
+                let ident = proc_macro2::Ident::new(&name, proc_macro2::Span::call_site());
+                quote::quote!(#ident::reactive)
+            }
+        }
+    } else {
+        let found_crate = crate_name("rooibos-reactive").expect("rooibos-reactive not found");
+        match found_crate {
+            FoundCrate::Itself => quote::quote!(::rooibos_reactive),
             FoundCrate::Name(name) => {
                 let ident = proc_macro2::Ident::new(&name, proc_macro2::Span::call_site());
                 quote::quote!(#ident)

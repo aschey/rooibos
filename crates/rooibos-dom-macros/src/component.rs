@@ -10,7 +10,7 @@ use syn::{
     Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Type, TypePath, Visibility,
 };
 
-use crate::get_import;
+use crate::get_dom_import;
 
 pub(crate) struct Model {
     docs: Docs,
@@ -177,7 +177,7 @@ impl ToTokens for Model {
 
         let component_fn_prop_docs = generate_component_fn_prop_docs(&props).unwrap();
 
-        let crate_import = get_import();
+        let crate_import = get_dom_import();
 
         let mut interior_generics = generics.to_token_stream();
         if !interior_generics.is_empty() {
