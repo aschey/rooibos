@@ -16,7 +16,7 @@ use ratatui::layout::Constraint;
 use ratatui::Frame;
 use rooibos::dom::{
     block, col, mount, print_dom, render_dom, row, BlockProps, Component, DocumentFragment,
-    DomNode, Fragment, IntoView, Mountable,
+    DomNode, IntoView, Mountable, ViewFragment,
 };
 use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};

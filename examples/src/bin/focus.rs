@@ -17,7 +17,7 @@ use ratatui::Frame;
 use rooibos::dom::prelude::*;
 use rooibos::dom::{
     block, col, component, mount, print_dom, render_dom, row, view, BlockProps, Component,
-    DocumentFragment, DomNode, Fragment, IntoView, Mountable,
+    DocumentFragment, DomNode, IntoView, Mountable, ViewFragment,
 };
 use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
 use rooibos::runtime::{create_key_effect, use_focus, Runtime, TickResult};
@@ -76,19 +76,24 @@ fn App() -> impl IntoView {
     });
 
     view! {
-        <FocusScope>
-            <Column>
-                <Row v:percentage=33>
+        <Row>
+            <Column v:percentage=50>
+                <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 1"/>
                 </Row>
-                <Row v:percentage=33>
+                <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 2"/>
                 </Row>
-                <Row v:percentage=33>
+            </Column>
+            <Column v:percentage=50>
+                <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 3"/>
                 </Row>
+                <Row v:percentage=50>
+                    <FocusBlock v:focusable=true title="item 4"/>
+                </Row>
             </Column>
-        </FocusScope>
+        </Row>
     }
 }
 
