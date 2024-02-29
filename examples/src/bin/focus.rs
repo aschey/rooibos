@@ -67,7 +67,10 @@ fn App() -> impl IntoView {
     // let focus_manager = use_focus_manager();
 
     create_key_effect(move |event| {
-        if event.code == KeyCode::Enter {
+        if event.code == KeyCode::Up {
+            focus_prev();
+        }
+        if event.code == KeyCode::Down {
             focus_next();
         }
     });
@@ -75,11 +78,14 @@ fn App() -> impl IntoView {
     view! {
         <FocusScope>
             <Column>
-                <Row v:percentage=50>
+                <Row v:percentage=33>
                     <FocusBlock v:focusable=true title="item 1"/>
                 </Row>
-                <Row v:percentage=50>
+                <Row v:percentage=33>
                     <FocusBlock v:focusable=true title="item 2"/>
+                </Row>
+                <Row v:percentage=33>
+                    <FocusBlock v:focusable=true title="item 3"/>
                 </Row>
             </Column>
         </FocusScope>

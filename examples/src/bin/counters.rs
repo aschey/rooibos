@@ -78,7 +78,9 @@ fn Counters() -> impl IntoView {
 
     view! {
         <Column>
-            {(0..n_counters).map(|_| view!(<Counter constraint=Constraint::Length(2)/>)).collect_view()}
+            {(0..n_counters).map(|_| view! {
+                <Counter constraint=Constraint::Length(2)/>
+            }).collect_view()}
         </Column>
     }
 }

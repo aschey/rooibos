@@ -1196,6 +1196,54 @@ fn dfs_inner(
         }
         return dfs_inner(nodes, parent, search_fn, visited);
     }
+
+    None
+}
+
+fn dfs_rev(
+    nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    key: DomNodeKey,
+    search_fn: &impl Fn(&DomNodeInner, DomNodeKey) -> bool,
+) -> Option<DomNodeKey> {
+    let mut visited = HashSet::new();
+    dfs_inner_rev(nodes, key, search_fn, &mut visited)
+}
+
+fn dfs_inner_rev(
+    nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    key: DomNodeKey,
+    search_fn: &impl Fn(&DomNodeInner, DomNodeKey) -> bool,
+    visited: &mut HashSet<DomNodeKey>,
+) -> Option<DomNodeKey> {
+    visited.insert(key);
+    let node = &nodes[key];
+    if search_fn(node, key) {
+        return Some(key);
+    }
+    for child in node.children.iter().rev() {
+        if !visited.contains(child) {
+            if let Some(key) = dfs_inner_rev(nodes, *child, search_fn, visited) {
+                return Some(key);
+            }
+        }
+    }
+    if let Some(parent) = node.parent {
+        let child_index = nodes[parent]
+            .children
+            .iter()
+            .position(|n| n == &key)
+            .unwrap();
+        for i in (0..child_index).rev() {
+            let child = nodes[parent].children[i];
+            if !visited.contains(&child) {
+                if let Some(key) = dfs_inner_rev(nodes, child, search_fn, visited) {
+                    return Some(key);
+                }
+            }
+        }
+        return dfs_inner_rev(nodes, parent, search_fn, visited);
+    }
+
     None
 }
 
@@ -1245,6 +1293,50 @@ pub fn focus_next() {
             // Nothing found, start from the top
             let root = DOM_ROOT.with(|r| r.borrow().as_ref().cloned()).unwrap();
             let new_focusable = dfs(&nodes, root.key, &|node, _| node.focusable);
+            if let Some(focusable) = new_focusable {
+                DOM_STATE.with(|d| {
+                    d.borrow_mut()
+                        .set_focused(Some(focusable), &nodes[focusable]);
+                });
+            }
+        }
+    });
+}
+
+fn get_last_node(
+    node: DomNodeKey,
+    nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+) -> DomNodeKey {
+    let cur = &nodes[node];
+    if let Some(last) = cur.children.last() {
+        return get_last_node(*last, nodes);
+    }
+    node
+}
+
+pub fn focus_prev() {
+    DOM_NODES.with(|nodes| {
+        let nodes = nodes.borrow();
+
+        let focused = DOM_STATE
+            .with(|d| d.borrow().focused_key)
+            .unwrap_or_else(|| {
+                DOM_ROOT.with(|r| get_last_node(r.borrow().as_ref().unwrap().key, &nodes))
+            });
+
+        let new_focusable = dfs_rev(&nodes, focused, &|node, key| {
+            key != focused && node.focusable
+        });
+        if let Some(focusable) = new_focusable {
+            DOM_STATE.with(|state| {
+                state
+                    .borrow_mut()
+                    .set_focused(Some(focusable), &nodes[focusable]);
+            })
+        } else {
+            // Nothing found, start from the end
+            let last = DOM_ROOT.with(|r| get_last_node(r.borrow().as_ref().unwrap().key, &nodes));
+            let new_focusable = dfs_rev(&nodes, last, &|node, _| node.focusable);
             if let Some(focusable) = new_focusable {
                 DOM_STATE.with(|d| {
                     d.borrow_mut()
