@@ -19,113 +19,68 @@ use rooibos::dom::{
     DocumentFragment, DomNode, Fragment, IntoView, Mountable,
 };
 use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
+use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-static NODE_ID: AtomicU32 = AtomicU32::new(1);
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut rt = Runtime::initialize();
 
-thread_local! {
-    static KEY_HANDLERS: RefCell<Vec<Rc<(u32,Box<dyn Fn(String)>)>>> = RefCell::new(vec![]);
-}
-
-fn main() -> Result<()> {
-    let _ = create_runtime();
     let mut terminal = setup_terminal()?;
-    mount(|| counters());
+    mount(counters);
     // print_dom(&mut std::io::stdout(), false);
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
     })?;
+
     loop {
-        let e = handle_events()?;
-        if e == 0 {
+        if rt.tick().await == TickResult::Exit {
             restore_terminal(terminal)?;
             return Ok(());
         }
-        if e == 1 {
-            terminal.draw(|f: &mut Frame| {
-                render_dom(f);
-            })?;
-        }
+        terminal.draw(|f: &mut Frame| {
+            render_dom(f);
+        })?;
     }
-    Ok(())
-}
-
-fn handle_events() -> Result<usize> {
-    if event::poll(Duration::from_millis(100))? {
-        if let Event::Key(key) = event::read()? {
-            if let KeyCode::Char('q') = key.code {
-                return Ok(0);
-            }
-            if let KeyCode::Char(c) = key.code {
-                let handlers = KEY_HANDLERS.with(|h| (*h.borrow()).clone());
-                handlers.iter().for_each(|h| (h.1)(c.to_string()));
-
-                return Ok(1);
-            }
-        }
-    }
-    Ok(2)
 }
 
 fn setup_terminal() -> Result<Terminal> {
+    execute!(stdout(), EnterAlternateScreen)?;
     enable_raw_mode()?;
-    let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
-    let terminal = Terminal::new(backend)?;
+    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     Ok(terminal)
 }
 
 fn restore_terminal(mut terminal: Terminal) -> Result<()> {
-    disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    disable_raw_mode()?;
     Ok(())
 }
 
 fn counter(initial_value: i32, step: u32) -> impl IntoView {
     let count = RwSignal::new(Count::new(initial_value, step));
-    let cur_id = NODE_ID.fetch_add(1, Ordering::Relaxed);
-    KEY_HANDLERS.with(|h| {
-        h.borrow_mut().push(Rc::new((
-            cur_id,
-            Box::new(move |key| {
-                if key == "o" {
-                    count.update(Count::increase);
-                }
-            }),
-        )));
+
+    create_key_effect(move |event| {
+        if event.code == KeyCode::Enter {
+            count.update(Count::increase);
+        }
     });
 
-    on_cleanup(move || {
-        KEY_HANDLERS.with(|h| {
-            let mut h = h.borrow_mut();
-            let handler_pos = h.iter().position(|r| r.0 == cur_id).unwrap();
-            h.remove(handler_pos);
-        });
-    });
-
-    Component::new("counter", move || {
-        block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
-    })
+    block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
 }
 
 fn counters() -> impl IntoView {
     let count = RwSignal::new(Count::new(1, 1));
-    let cur_id = NODE_ID.fetch_add(1, Ordering::Relaxed);
-    KEY_HANDLERS.with(|h| {
-        h.borrow_mut().push(Rc::new((
-            cur_id,
-            Box::new(move |key| {
-                if key == "i" {
-                    count.update(Count::increase);
-                }
-                if key == "u" {
-                    count.update(Count::decrease);
-                }
-            }),
-        )));
+
+    create_key_effect(move |event| {
+        if event.code == KeyCode::Char('i') {
+            count.update(Count::increase);
+        }
+        if event.code == KeyCode::Char('d') {
+            count.update(Count::decrease);
+        }
     });
 
     col().child(move || {

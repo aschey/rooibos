@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEventKind};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
@@ -14,22 +14,23 @@ use crossterm::terminal::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
+use rooibos::dom::prelude::*;
 use rooibos::dom::{
-    block, col, mount, print_dom, render_dom, row, BlockProps, Component, DocumentFragment,
-    DomNode, Fragment, IntoView, Mountable,
+    block, col, component, mount, print_dom, render_dom, row, view, BlockProps, Component,
+    DocumentFragment, DomNode, Fragment, IntoView, Mountable,
 };
 use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
-use rooibos::runtime::{create_key_effect, Runtime, TickResult};
+use rooibos::runtime::{create_key_effect, use_focus, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let _ = create_runtime();
     let mut rt = Runtime::initialize();
-
     let mut terminal = setup_terminal()?;
-    mount(|| counter(0, 1));
+    mount(|| view!(<App/>));
     // print_dom(&mut std::io::stdout(), false);
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
@@ -47,57 +48,51 @@ async fn main() -> Result<()> {
 }
 
 fn setup_terminal() -> Result<Terminal> {
-    execute!(stdout(), EnterAlternateScreen)?;
     enable_raw_mode()?;
-    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    let mut stdout = stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    let terminal = Terminal::new(backend)?;
     Ok(terminal)
 }
 
 fn restore_terminal(mut terminal: Terminal) -> Result<()> {
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(())
 }
 
-fn counter(initial_value: i32, step: u32) -> impl IntoView {
-    let count = RwSignal::new(Count::new(initial_value, step));
+#[component]
+fn App() -> impl IntoView {
+    // let focus_manager = use_focus_manager();
 
     create_key_effect(move |event| {
         if event.code == KeyCode::Enter {
-            count.update(Count::increase);
+            focus_next();
         }
     });
 
-    block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
+    view! {
+        <FocusScope>
+            <Column>
+                <Row v:percentage=50>
+                    <FocusBlock v:focusable=true title="item 1"/>
+                </Row>
+                <Row v:percentage=50>
+                    <FocusBlock v:focusable=true title="item 2"/>
+                </Row>
+            </Column>
+        </FocusScope>
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct Count {
-    value: i32,
-    step: i32,
-}
+#[component]
+fn FocusBlock(#[prop(into)] title: &'static str) -> impl IntoView {
+    let (id, focused) = use_focus();
 
-impl Count {
-    pub fn new(value: i32, step: u32) -> Self {
-        Count {
-            value,
-            step: step as i32,
-        }
-    }
-
-    pub fn value(&self) -> i32 {
-        self.value
-    }
-
-    pub fn increase(&mut self) {
-        self.value += self.step;
-    }
-
-    pub fn decrease(&mut self) {
-        self.value += -self.step;
-    }
-
-    pub fn clear(&mut self) {
-        self.value = 0;
+    view! {
+        <Paragraph v:id=id block=prop!(<Block/>)>
+            {format!("{title} - focused: {}", focused.get())}
+        </Paragraph>
     }
 }

@@ -18,74 +18,53 @@ use rooibos::dom::prelude::*;
 use rooibos::reactive::{
     create_runtime, create_signal, ReadSignal, Signal, SignalGet, SignalSet, SignalUpdate,
 };
+use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-thread_local! {
-    static KEY_HANDLERS: RefCell<Vec<Box<dyn Fn(String)>>> = RefCell::new(vec![]);
-}
+#[tokio::main]
+async fn main() -> Result<()> {
+    let mut rt = Runtime::initialize();
 
-fn main() -> Result<()> {
-    let _ = create_runtime();
     let mut terminal = setup_terminal()?;
     mount(|| view!(<Counters/>));
+    // print_dom(&mut std::io::stdout(), false);
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
     })?;
+
     loop {
-        let e = handle_events()?;
-        if e == 0 {
+        if rt.tick().await == TickResult::Exit {
             restore_terminal(terminal)?;
             return Ok(());
         }
-        if e == 1 {
-            terminal.draw(|f: &mut Frame| {
-                render_dom(f);
-            })?;
-        }
+        terminal.draw(|f: &mut Frame| {
+            render_dom(f);
+        })?;
     }
-}
-
-fn handle_events() -> Result<usize> {
-    if event::poll(Duration::from_millis(100))? {
-        if let Event::Key(key) = event::read()? {
-            if let KeyCode::Char('q') = key.code {
-                return Ok(0);
-            }
-            if let KeyCode::Char(c) = key.code {
-                KEY_HANDLERS.with(|h| h.borrow().iter().for_each(|h| (h)(c.to_string())));
-                return Ok(1);
-            }
-        }
-    }
-    Ok(2)
 }
 
 fn setup_terminal() -> Result<Terminal> {
+    execute!(stdout(), EnterAlternateScreen)?;
     enable_raw_mode()?;
-    let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
-    let terminal = Terminal::new(backend)?;
+    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     Ok(terminal)
 }
 
 fn restore_terminal(mut terminal: Terminal) -> Result<()> {
-    disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    disable_raw_mode()?;
     Ok(())
 }
 
 #[component]
 fn Counter(constraint: Constraint) -> impl IntoView {
     let (count, set_count) = create_signal(0);
-    KEY_HANDLERS.with(|h| {
-        h.borrow_mut().push(Box::new(move |key| {
-            set_count.update(|c| {
-                *c += 1;
-            })
-        }))
+    create_key_effect(move |event| {
+        if event.code == KeyCode::Enter {
+            set_count.update(|c| *c += 1);
+        }
     });
 
     view! {

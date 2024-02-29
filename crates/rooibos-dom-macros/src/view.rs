@@ -42,6 +42,7 @@ enum ViewType {
 pub(crate) struct View {
     view_type: ViewType,
     constraint: Option<ConstraintTokens>,
+    id: Option<Expr>,
     layout_props: Option<TokenStream>,
 }
 
@@ -68,6 +69,7 @@ impl View {
         parent_is_overlay: bool,
     ) -> TokenStream {
         let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
+        let id = self.id.as_ref().map(|id| quote!(.id(#id)));
         let layout = match direction {
             Direction::Row => quote!(row()),
             Direction::Col => quote!(col()),
@@ -83,66 +85,13 @@ impl View {
         let layout_tokens = quote! {
             #layout
             #constraint
+            #id
             #layout_props
             #(.child(#child_tokens))*
         };
 
         layout_tokens
     }
-
-    // fn generate_fns(&self) -> TokenStream {
-    //     match &self.view_type {
-    //         ViewType::Row(children)
-    //         | ViewType::Column(children)
-    //         | ViewType::Overlay(children)
-    //         | ViewType::FocusScope(children) => {
-    //             let child_fns: Vec<_> = children.iter().map(|c| c.generate_fns()).collect();
-    //             quote! { #(#child_fns)* }
-    //         }
-    //         ViewType::Block { tokens } => {
-    //             quote! {
-    //                 move |f: &mut Frame, chunks: Rect| #tokens.view(f, chunks)
-    //             }
-    //         }
-    //         ViewType::Element {
-    //             name,
-    //             closing_name,
-    //             generics,
-    //             props,
-    //             state,
-    //         } => {
-    //             let generics = if let Some(generics) = generics {
-    //                 quote!(::#generics)
-    //             } else {
-    //                 quote!()
-    //             };
-
-    //             let get_conditional = |rest: TokenStream| {
-    //                 // in debug mode, add a dummy condition to associate the closing tag span
-    // with                 // the referenced function so rust analyzer can highlight it
-    //                 // correctly
-    //                 if cfg!(debug_assertions) {
-    //                     quote! {
-    //                         .child(if true {
-    //                             #name #rest
-    //                         } else {
-    //                             #closing_name #rest
-    //                         })
-    //                     }
-    //                 } else {
-    //                     quote!(#name #rest)
-    //                 }
-    //             };
-    //             match (props, state) {
-    //                 (Some(props), Some(state)) => {
-    //                     get_conditional(quote!(#generics (#props, #state)))
-    //                 }
-    //                 (Some(props), None) => get_conditional(quote!(#generics (#props))),
-    //                 (_, _) => get_conditional(quote!(#generics ())),
-    //             }
-    //         }
-    //     }
-    // }
 
     fn view_to_tokens(&self, child_index: Option<usize>, parent_is_overlay: bool) -> TokenStream {
         match &self.view_type {
@@ -171,7 +120,7 @@ impl View {
                     quote!()
                 };
                 let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
-
+                let id = self.id.as_ref().map(|id| quote!(.id(#id)));
                 let get_conditional = |rest: TokenStream| {
                     // in debug mode, add a dummy condition to associate the closing tag span
                     // the referenced function so rust analyzer can highlight it
@@ -184,6 +133,7 @@ impl View {
                                 }
                                 #name #rest
                                 #constraint
+                                #id
                             }
                         }
                     } else {
@@ -241,6 +191,7 @@ struct NodeAttributes {
     state: Option<TokenStream>,
     key: Option<Expr>,
     focusable: Option<Expr>,
+    id: Option<Expr>,
 }
 
 impl NodeAttributes {
@@ -331,6 +282,10 @@ impl NodeAttributes {
                 self.focusable = attribute.value().cloned();
                 true
             }
+            "v:id" => {
+                self.id = attribute.value().cloned();
+                true
+            }
             _ => false,
         }
     }
@@ -347,6 +302,7 @@ impl NodeAttributes {
             state: None,
             key: None,
             focusable: None,
+            id: None,
         };
 
         let custom_attrs: Vec<_> = nodes
@@ -402,6 +358,7 @@ impl NodeAttributes {
             state: None,
             key: None,
             focusable: None,
+            id: None,
         };
 
         for node in nodes {
@@ -444,7 +401,7 @@ fn build_struct(tag_name: &TokenStream, args: &Option<TokenStream>) -> TokenStre
 pub(crate) fn view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
     let (nodes, errors) = parse_rstml(tokens);
     let view = parse_root_nodes(nodes, emitter)?;
-    // panic!("{}", quote!(#view));
+
     Ok(quote! {
         {
             #(#errors;)*
@@ -518,6 +475,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                         view_type: ViewType::Block { tokens: content },
                         constraint: None,
                         layout_props: None,
+                        id: None,
                     })
                 }
             }
@@ -598,6 +556,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 view_type: ViewType::Row(children),
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
+                id: attrs.id,
             })
         }
         "Column" => {
@@ -608,6 +567,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 view_type: ViewType::Column(children),
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
+                id: attrs.id,
             })
         }
         "FocusScope" => {
@@ -618,6 +578,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 view_type: ViewType::FocusScope(children),
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
+                id: attrs.id,
             })
         }
         "Overlay" => {
@@ -628,6 +589,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 view_type: ViewType::Overlay(children),
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
+                id: attrs.id,
             })
         }
         name => {
@@ -663,6 +625,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 },
                 constraint: attrs.constraint,
                 layout_props: None,
+                id: attrs.id,
             })
         }
     }

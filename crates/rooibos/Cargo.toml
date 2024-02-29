@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
+rooibos-runtime = { path = "../rooibos-runtime" }

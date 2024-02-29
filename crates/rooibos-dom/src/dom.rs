@@ -1,4 +1,6 @@
+use std::borrow::Borrow;
 use std::cell::{OnceCell, Ref, RefCell, RefMut};
+use std::collections::HashSet;
 use std::fmt::{self, Debug};
 use std::io;
 use std::rc::Rc;
@@ -7,16 +9,79 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use ratatui::layout::Flex;
 use ratatui::prelude::{Constraint, Direction, Layout, Rect};
 use ratatui::Frame;
-use rooibos_reactive::{create_render_effect, untrack_with_diagnostics};
+use rooibos_reactive::{
+    create_render_effect, create_signal, untrack_with_diagnostics, ReadSignal, SignalSet,
+    SignalUpdate, WriteSignal,
+};
 use slotmap::{new_key_type, SlotMap};
+
+// Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
 thread_local! {
     static DOM_ROOT: RefCell<Option<DomNode>> = RefCell::new(None);
     static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
         RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
+    static DOM_STATE: RefCell<DomState> = RefCell::new(Default::default());
 }
 
 static NODE_ID: AtomicU32 = AtomicU32::new(1);
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum NodeIdInner {
+    Auto(u32),
+    Manual(String),
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct NodeId(NodeIdInner);
+
+impl NodeId {
+    pub fn new_auto() -> Self {
+        Self(NodeIdInner::Auto(NODE_ID.fetch_add(1, Ordering::Relaxed)))
+    }
+
+    pub fn new(id: impl Into<String>) -> Self {
+        Self(NodeIdInner::Manual(id.into()))
+    }
+}
+
+impl From<String> for NodeId {
+    fn from(val: String) -> Self {
+        NodeId(NodeIdInner::Manual(val))
+    }
+}
+
+impl From<&str> for NodeId {
+    fn from(val: &str) -> Self {
+        NodeId(NodeIdInner::Manual(val.to_string()))
+    }
+}
+
+new_key_type! {pub struct FocusHandlerKey; }
+
+struct DomState {
+    focused: ReadSignal<Option<NodeId>>,
+    set_focused: WriteSignal<Option<NodeId>>,
+    focused_key: Option<DomNodeKey>,
+}
+
+impl Default for DomState {
+    fn default() -> Self {
+        let (focused, set_focused) = create_signal(None);
+        Self {
+            focused,
+            set_focused,
+            focused_key: None,
+        }
+    }
+}
+
+impl DomState {
+    fn set_focused(&mut self, node_key: Option<DomNodeKey>, node: &DomNodeInner) {
+        self.focused_key = node_key;
+        self.set_focused.set(node.id.to_owned());
+    }
+}
 
 pub trait IntoView {
     fn into_view(self) -> View;
@@ -592,6 +657,7 @@ pub struct DomWidget {
     id: u32,
     widget_type: String,
     constraint: Constraint,
+    dom_id: Option<NodeId>,
 }
 
 impl Debug for DomWidget {
@@ -611,6 +677,7 @@ impl DomWidget {
             id,
             f: Rc::new(RefCell::new(f)),
             constraint: Constraint::default(),
+            dom_id: None,
         }
     }
 
@@ -620,6 +687,11 @@ impl DomWidget {
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
         self.constraint = constraint;
+        self
+    }
+
+    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
+        self.dom_id = Some(id.into());
         self
     }
 }
@@ -632,7 +704,11 @@ impl IntoView for DomWidget {
 
 impl Mountable for DomWidget {
     fn get_mountable_node(&self) -> DomNode {
-        DomNode::from_fragment(DocumentFragment::widget(self.clone()).constraint(self.constraint))
+        DomNode::from_fragment(
+            DocumentFragment::widget(self.clone())
+                .constraint(self.constraint)
+                .id(self.dom_id.clone()),
+        )
     }
 }
 
@@ -658,6 +734,7 @@ where
 pub struct DocumentFragment {
     node_type: NodeType,
     constraint: Constraint,
+    id: Option<NodeId>,
     flex: Flex,
     name: String,
 }
@@ -669,6 +746,7 @@ impl DocumentFragment {
             constraint: widget.constraint,
             node_type: NodeType::Widget(widget),
             flex: Flex::default(),
+            id: None,
         }
     }
 
@@ -683,6 +761,7 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "row".to_string(),
+            id: None,
         }
     }
 
@@ -697,6 +776,7 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "col".to_string(),
+            id: None,
         }
     }
 
@@ -706,6 +786,7 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "overlay".to_string(),
+            id: None,
         }
     }
 
@@ -715,11 +796,17 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: name.into(),
+            id: None,
         }
     }
 
     fn constraint(mut self, constraint: Constraint) -> Self {
         self.constraint = constraint;
+        self
+    }
+
+    fn id(mut self, id: Option<NodeId>) -> Self {
+        self.id = id;
         self
     }
 }
@@ -737,6 +824,11 @@ impl Element {
 
     pub fn constraint(self, constraint: Constraint) -> Self {
         self.inner.set_constraint(constraint);
+        self
+    }
+
+    pub fn id(self, id: impl Into<NodeId>) -> Self {
+        self.inner.set_id(id);
         self
     }
 
@@ -857,6 +949,8 @@ struct DomNodeInner {
     children: Vec<DomNodeKey>,
     parent: Option<DomNodeKey>,
     before_pending: Vec<DomNodeKey>,
+    id: Option<NodeId>,
+    focusable: bool,
 }
 
 impl DomNodeInner {
@@ -937,6 +1031,8 @@ impl DomNode {
             children: vec![],
             parent: None,
             before_pending: vec![],
+            focusable: fragment.id.is_some(),
+            id: fragment.id,
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self { key }
@@ -948,6 +1044,14 @@ impl DomNode {
 
     fn set_constraint(&self, constraint: Constraint) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].constraint = constraint);
+    }
+
+    fn set_id(&self, id: impl Into<NodeId>) {
+        DOM_NODES.with(|n| {
+            let mut n = n.borrow_mut();
+            n[self.key].id = Some(id.into());
+            n[self.key].focusable = true;
+        });
     }
 
     fn set_margin(&self, new_margin: u16) {
@@ -1025,4 +1129,128 @@ where
 
 pub fn render_dom(frame: &mut Frame) {
     DOM_ROOT.with(|d| d.borrow().as_ref().unwrap().render(frame, frame.size()));
+}
+
+pub fn focus(id: impl Into<NodeId>) {
+    let id = id.into();
+    let node = DOM_NODES.with(|d| {
+        d.borrow().iter().find_map(|(k, v)| {
+            if v.id.as_ref() == Some(&id) {
+                Some(k)
+            } else {
+                None
+            }
+        })
+    });
+    if let Some(node) = node {
+        DOM_STATE.with(|state| {
+            DOM_NODES.with(|nodes| {
+                state
+                    .borrow_mut()
+                    .set_focused(Some(node), &nodes.borrow()[node]);
+            });
+        });
+    }
+}
+
+fn dfs(
+    nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    key: DomNodeKey,
+    search_fn: &impl Fn(&DomNodeInner, DomNodeKey) -> bool,
+) -> Option<DomNodeKey> {
+    let mut visited = HashSet::new();
+    dfs_inner(nodes, key, search_fn, &mut visited)
+}
+
+fn dfs_inner(
+    nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    key: DomNodeKey,
+    search_fn: &impl Fn(&DomNodeInner, DomNodeKey) -> bool,
+    visited: &mut HashSet<DomNodeKey>,
+) -> Option<DomNodeKey> {
+    visited.insert(key);
+    let node = &nodes[key];
+    if search_fn(node, key) {
+        return Some(key);
+    }
+    for child in &node.children {
+        if !visited.contains(child) {
+            if let Some(key) = dfs_inner(nodes, *child, search_fn, visited) {
+                return Some(key);
+            }
+        }
+    }
+    if let Some(parent) = node.parent {
+        let child_index = nodes[parent]
+            .children
+            .iter()
+            .position(|n| n == &key)
+            .unwrap();
+        for i in (child_index + 1)..nodes[parent].children.len() {
+            let child = nodes[parent].children[i];
+            if !visited.contains(&child) {
+                if let Some(key) = dfs_inner(nodes, child, search_fn, visited) {
+                    return Some(key);
+                }
+            }
+        }
+        return dfs_inner(nodes, parent, search_fn, visited);
+    }
+    None
+}
+
+pub fn focused_node() -> ReadSignal<Option<NodeId>> {
+    DOM_STATE.with(|d| d.borrow().focused)
+}
+
+pub fn focus_id(id: impl Into<NodeId>) {
+    let id = id.into();
+    DOM_NODES.with(|nodes| {
+        let nodes = nodes.borrow();
+        let found_node = nodes.iter().find_map(|(key, node)| {
+            if let Some(current_id) = &node.id {
+                if &id == current_id {
+                    return Some(key);
+                }
+            }
+            None
+        });
+        if let Some(found_node) = found_node {
+            DOM_STATE.with(|state| {
+                state
+                    .borrow_mut()
+                    .set_focused(Some(found_node), &nodes[found_node]);
+            });
+        }
+    });
+}
+
+pub fn focus_next() {
+    let focused = DOM_STATE
+        .with(|d| d.borrow().focused_key)
+        .unwrap_or_else(|| DOM_ROOT.with(|d| d.borrow().as_ref().cloned().unwrap().key));
+
+    DOM_NODES.with(|nodes| {
+        let nodes = nodes.borrow();
+        let new_focusable = dfs(&nodes, focused, &|node, key| {
+            key != focused && node.focusable
+        });
+        if let Some(focusable) = new_focusable {
+            DOM_STATE.with(|state| {
+                state
+                    .borrow_mut()
+                    .set_focused(Some(focusable), &nodes[focusable]);
+            })
+        } else {
+            // Nothing found, start from the top
+            let root = DOM_ROOT.with(|r| r.borrow().as_ref().cloned()).unwrap();
+            let new_focusable = dfs(&nodes, root.key, &|node, _| node.focusable);
+            if let Some(focusable) = new_focusable {
+                DOM_STATE.with(|d| {
+                    d.borrow_mut()
+                        .set_focused(Some(focusable), &nodes[focusable]);
+                });
+            }
+        }
+    });
 }

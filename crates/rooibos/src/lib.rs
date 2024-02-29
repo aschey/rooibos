@@ -4,10 +4,10 @@ pub mod reactive {
 pub mod dom {
     pub use rooibos_dom::*;
 }
-// pub mod runtime {
-//     pub use rooibos_runtime_old::*;
-// }
+pub mod runtime {
+    pub use rooibos_runtime::*;
+}
 
-// pub mod prelude {
-//     pub use rooibos_rsx_old::prelude::*;
-// }
+pub mod prelude {
+    pub use rooibos_dom::prelude::*;
+}
