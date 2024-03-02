@@ -1,9 +1,11 @@
 use std::fmt;
+use std::rc::Rc;
 
 use super::component::ComponentRepr;
 use super::dom_node::DomNode;
 use super::dom_widget::DomWidget;
 use super::dyn_child::DynChildRepr;
+use super::unit::UnitRepr;
 use crate::next_node_id;
 
 pub trait IntoView {
@@ -18,6 +20,7 @@ pub trait Mountable {
 pub enum View {
     DynChild(DynChildRepr),
     Component(ComponentRepr),
+    Unit(UnitRepr),
     DomNode(DomNode),
     DomWidget(DomWidget),
 }
@@ -37,6 +40,7 @@ impl View {
             View::DomWidget(widget) => {
                 widget.widget_type = name.into();
             }
+            View::Unit(_) => {}
         }
     }
 }
@@ -135,7 +139,33 @@ impl Mountable for View {
             Self::DynChild(dyn_child) => dyn_child.get_mountable_node(),
             Self::Component(component) => component.get_mountable_node(),
             Self::DomWidget(widget) => widget.get_mountable_node(),
+            Self::Unit(unit) => unit.get_mountable_node(),
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct ViewFn(Rc<dyn Fn() -> View>);
+
+impl Default for ViewFn {
+    fn default() -> Self {
+        Self(Rc::new(|| ().into_view()))
+    }
+}
+
+impl<F, IV> From<F> for ViewFn
+where
+    F: Fn() -> IV + 'static,
+    IV: IntoView,
+{
+    fn from(value: F) -> Self {
+        Self(Rc::new(move || value().into_view()))
+    }
+}
+
+impl ViewFn {
+    pub fn run(&self) -> View {
+        (self.0)()
     }
 }
 

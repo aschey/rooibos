@@ -15,6 +15,7 @@ mod dom_state;
 mod dom_widget;
 mod dyn_child;
 mod element;
+mod unit;
 mod view;
 
 pub use component::*;

@@ -1,7 +1,6 @@
 use core::fmt::Debug;
 use std::cell::{Ref, RefMut};
 use std::fmt;
-use std::sync::atomic::Ordering;
 
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::Frame;
@@ -160,6 +159,7 @@ impl DomNodeInner {
         key: DomNodeKey,
         dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
         dom_state: &mut RefMut<'_, DomState>,
+        parent_layout: Layout,
     ) {
         if self.focusable {
             dom_state.add_focusable(key);
@@ -187,17 +187,42 @@ impl DomNodeInner {
                     .iter()
                     .zip(chunks.iter())
                     .for_each(|((key, child), chunk)| {
-                        child.render(frame, *chunk, *key, dom_nodes, dom_state);
+                        child.render(frame, *chunk, *key, dom_nodes, dom_state, layout.clone());
                     });
             }
 
-            NodeType::Overlay | NodeType::Transparent => {
+            NodeType::Overlay => {
+                let parent_layout = parent_layout.constraints([self.constraint]);
+                let chunks = parent_layout.split(rect);
                 children.iter().for_each(|(key, child)| {
-                    child.render(frame, rect, *key, dom_nodes, dom_state);
+                    child.render(
+                        frame,
+                        chunks[0],
+                        *key,
+                        dom_nodes,
+                        dom_state,
+                        parent_layout.clone(),
+                    );
+                });
+            }
+            NodeType::Transparent => {
+                let parent_layout = parent_layout.constraints([self.constraint]);
+                let chunks = parent_layout.split(rect);
+                children.iter().for_each(|(key, child)| {
+                    child.render(
+                        frame,
+                        chunks[0],
+                        *key,
+                        dom_nodes,
+                        dom_state,
+                        parent_layout.clone(),
+                    );
                 });
             }
             NodeType::Widget(widget) => {
-                widget.render(frame, rect);
+                let parent_layout = parent_layout.constraints([self.constraint]);
+                let chunks = parent_layout.split(rect);
+                widget.render(frame, chunks[0]);
             }
         }
     }
@@ -297,7 +322,28 @@ impl DomNode {
             DOM_STATE.with(|state| {
                 let mut state = state.borrow_mut();
                 state.clear_focused();
-                d[self.key].render(frame, rect, self.key, &d, &mut state);
+                let constraint = d[self.key].constraint;
+                let layout = match &d[self.key].node_type {
+                    NodeType::Layout {
+                        direction,
+                        flex,
+                        margin,
+                        spacing,
+                    } => Layout::default()
+                        .direction(*direction)
+                        .flex(*flex)
+                        .margin(*margin)
+                        .spacing(*spacing),
+                    _ => Layout::default(),
+                };
+                d[self.key].render(
+                    frame,
+                    rect,
+                    self.key,
+                    &d,
+                    &mut state,
+                    layout.constraints([constraint]),
+                );
             });
         });
     }

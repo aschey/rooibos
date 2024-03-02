@@ -53,8 +53,12 @@ impl View {
             .enumerate()
             .map(|(i, v)| v.view_to_tokens(Some(i), true))
             .collect();
+        let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
+        let id = self.id.as_ref().map(|id| quote!(.id(#id)));
         let layout_tokens = quote! {
             overlay()
+            #constraint
+            #id
             #(.child(#child_tokens))*
         };
 
