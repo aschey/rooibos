@@ -99,8 +99,8 @@ fn main() {}
 //     let n_counters = 5;
 
 //     view! {
-//         <Column>
+//         <Col>
 //             {(0..n_counters).map(|_| view!(<Counter v:length=2/>)).collect::<Vec<_>>()}
-//         </Column>
+//         </Col>
 //     }
 // }

@@ -130,9 +130,9 @@ fn App(cx: Scope) -> impl View {
 
     move || {
         view! { cx,
-            <Column>
+            <Col>
                 <HeaderTabs v:length=3 titles=vec!["Tab0", "Tab1", "Tab2"]/>
-            </Column>
+            </Col>
 
         }
     }
@@ -177,7 +177,7 @@ fn HeaderTabs(cx: Scope, titles: Vec<&'static str>) -> impl View {
             }
         });
         view! { cx,
-            <Column>
+            <Col>
                 <Tabs
                     v:length=3
                     block=prop!(<Block borders=Borders::ALL title="Demo"/>)
@@ -187,7 +187,7 @@ fn HeaderTabs(cx: Scope, titles: Vec<&'static str>) -> impl View {
                     {titles}
                 </Tabs>
                 <TabContent/>
-            </Column>
+            </Col>
         }
     }
 }
@@ -218,11 +218,11 @@ fn TabContent(cx: Scope) -> impl View {
 fn Tab0(cx: Scope) -> impl View {
     move || {
         view! {cx,
-            <Column>
+            <Col>
                 <Gauges v:length=9 enhanced_graphics=true/>
                 <Charts v:min=8 enhanced_graphics=true/>
                 <Footer v:length=7 />
-            </Column>
+            </Col>
         }
     }
 }
@@ -275,7 +275,7 @@ fn Tab2(cx: Scope) -> impl View {
         view! {cx,
             <Row>
                 <ColorsTable v:ratio=(1,2)/>
-                <Column v:ratio=(2,1)/>
+                <Col v:ratio=(2,1)/>
             </Row>
         }
     }
@@ -347,11 +347,11 @@ fn Gauges(cx: Scope, enhanced_graphics: bool) -> impl View {
 
     move || {
         view! {cx,
-            <Column>
+            <Col>
                 <DemoGauge v:length=2 enhanced_graphics=enhanced_graphics progress=progress/>
                 <DemoSparkline v:length=3 enhanced_graphics=enhanced_graphics/>
                 <DemoLineGauge v:length=1 enhanced_graphics=enhanced_graphics progress=progress/>
-            </Column>
+            </Col>
         }
     }
 }
@@ -441,22 +441,22 @@ fn Charts(cx: Scope, enhanced_graphics: bool) -> impl View {
     move || {
         view! { cx,
             <Row>
-                <Column v:percentage=if show_chart.get() { 50 } else { 100 }>
+                <Col v:percentage=if show_chart.get() { 50 } else { 100 }>
                     <Row v:percentage=50>
-                        <Column v:percentage=50>
+                        <Col v:percentage=50>
                             <TaskList v:percentage=50/>
-                        </Column>
-                        <Column v:percentage=50>
+                        </Col>
+                        <Col v:percentage=50>
                             <Logs v:percentage=50/>
-                        </Column>
+                        </Col>
                     </Row>
                     <Row v:percentage=50>
                         <DemoBarChart enhanced_graphics=enhanced_graphics/>
                     </Row>
-                </Column>
-                <Column>
+                </Col>
+                <Col>
                     <DemoChart enhanced_graphics=enhanced_graphics/>
-                </Column>
+                </Col>
             </Row>
         }
     }

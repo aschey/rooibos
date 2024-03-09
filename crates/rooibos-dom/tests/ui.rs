@@ -51,9 +51,9 @@ fn widget_no_props() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Block/>
-        </Column>
+        </Col>
     };
 
     mount(|| view);
@@ -78,9 +78,9 @@ fn simple_column() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Block title="test" borders=Borders::ALL/>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -104,9 +104,9 @@ fn str_only() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             "test"
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -128,9 +128,9 @@ fn str_block() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             {"test"}
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -152,9 +152,9 @@ fn string_block() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             {"test".to_string()}
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -176,14 +176,14 @@ fn nested_layout() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Row v:length=4>
                 <Block title="test1" borders=Borders::ALL/>
             </Row>
             <Row v:length=2>
                 <Block title="test2" borders=Borders::ALL/>
             </Row>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -211,14 +211,14 @@ fn conditional() {
     let a = 1;
 
     let view = view! {
-        <Column>
+        <Col>
             {
                 match a {
                     1 => view!(<Block title="test" borders=Borders::ALL/>),
                     _ => view!(<Block title="test2" borders=Borders::ALL/>)
                 }
             }
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -242,12 +242,12 @@ fn list_basic() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <List>
                 <ListItem>"test1"</ListItem>
                 <ListItem>"test2"</ListItem>
             </List>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -271,14 +271,14 @@ fn prop_iteration() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <List>
                 {
                     (0..5).map(|i| prop!(<ListItem>{format!("test{i}")}</ListItem>))
                         .collect::<Vec<_>>()
                 }
             </List>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -334,12 +334,12 @@ fn list_styled() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <List>
                 <ListItem style=prop!(<Style fg=Color::Black/>)>"test1"</ListItem>
                 <ListItem>"test2"</ListItem>
             </List>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -368,12 +368,12 @@ fn block_children() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Tabs>
                 "tab1"
                 "tab2"
             </Tabs>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -395,11 +395,11 @@ fn single_child_as_vec() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Tabs>
                 <>{"tab1"}</>
             </Tabs>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -421,7 +421,7 @@ fn single_nested_child_as_vec() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Tabs>
                 <>
                     <Line>
@@ -429,7 +429,7 @@ fn single_nested_child_as_vec() {
                     </Line>
                 </>
             </Tabs>
-        </Column>
+        </Col>
     };
 
     mount(|| view);
@@ -452,12 +452,12 @@ fn complex_block_children() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Tabs select=0>
                 <Line>"tab1"</Line>
                 <Line>{vec![Span::from("tab2")]}</Line>
             </Tabs>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -479,11 +479,11 @@ fn macro_as_prop() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Paragraph block=prop!{<Block borders=Borders::ALL/>}>
                 "test"
             </Paragraph>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -538,7 +538,7 @@ fn overlay_multiple() {
     let view = view! {
         <Overlay>
             <Block borders=Borders::ALL title="test"/>
-            <Column margin=1>
+            <Col margin=1>
                 <List>
                     <ListItem>{"hi"}</ListItem>
                     <ListItem>{"yo"}</ListItem>
@@ -547,7 +547,7 @@ fn overlay_multiple() {
                     <ListItem>{"hi2"}</ListItem>
                     <ListItem>{"yo2"}</ListItem>
                 </List>
-            </Column>
+            </Col>
         </Overlay>
     };
     mount(|| view);
@@ -575,30 +575,30 @@ fn two_overlays() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
-            <Column v:percentage=50>
+        <Col>
+            <Col v:percentage=50>
                 <Overlay>
                     <Block borders=Borders::ALL title="test"/>
-                    <Column margin=1>
+                    <Col margin=1>
                         <List v:length=2>
                             <ListItem>{"hi"}</ListItem>
                             <ListItem>{"yo"}</ListItem>
                         </List>
-                    </Column>
+                    </Col>
                 </Overlay>
-            </Column>
-            <Column v:percentage=50>
+            </Col>
+            <Col v:percentage=50>
                 <Overlay>
                     <Block borders=Borders::ALL title="test2"/>
-                    <Column margin=1>
+                    <Col margin=1>
                         <List v:length=2>
                             <ListItem>{"hi2"}</ListItem>
                             <ListItem>{"yo2"}</ListItem>
                         </List>
-                    </Column>
+                    </Col>
                 </Overlay>
-            </Column>
-        </Column>
+            </Col>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -628,11 +628,11 @@ fn array_as_variable() {
 
     let tab_items = store_value(vec!["tab1", "tab2"]);
     let view = view! {
-        <Column>
+        <Col>
             <Tabs>
                 {tab_items.get_value()}
             </Tabs>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -666,9 +666,9 @@ fn simple_custom_component() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer text="hi" flag=true/>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -702,11 +702,11 @@ fn custom_component_children() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer>
                 "hi"
             </Viewer>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -741,9 +741,9 @@ fn generic_component() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer<usize> text="hi" flag=true/>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -781,11 +781,11 @@ fn custom_component_children_second() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer>
                 "hi"
             </Viewer>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -827,11 +827,11 @@ fn custom_child_prop() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer>
                 <ChildProp>{"hi"}</ChildProp>
             </Viewer>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -850,9 +850,9 @@ fn component_child() {
     #[component]
     fn Viewer<V: IntoView>(#[prop(children)] children: V) -> impl IntoView {
         view! {
-            <Column>
+            <Col>
                 {children}
-            </Column>
+            </Col>
         }
     }
 
@@ -862,7 +862,7 @@ fn component_child() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer>
                 {view! {
                     <List>
@@ -872,7 +872,7 @@ fn component_child() {
                     </List>
                 }}
             </Viewer>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -897,9 +897,9 @@ fn component_child_nested() {
     #[component]
     fn Viewer<V: IntoView>(#[prop(children)] children: ChildProp<V>) -> impl IntoView {
         view! {
-            <Column>
+            <Col>
                 {children.views}
-            </Column>
+            </Col>
         }
     }
 
@@ -909,7 +909,7 @@ fn component_child_nested() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Viewer>
                 <ChildProp> {
                     view! {
@@ -921,7 +921,7 @@ fn component_child_nested() {
                 }
                 </ChildProp>
             </Viewer>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal
@@ -946,9 +946,9 @@ fn custom_component_nested_layout() {
     #[component]
     fn Viewer<V: IntoView>(#[prop(children)] children: ChildProp<V>) -> impl IntoView {
         view! {
-            <Column>
+            <Col>
                 {children.views}
-            </Column>
+            </Col>
         }
     }
 
@@ -958,7 +958,7 @@ fn custom_component_nested_layout() {
     let mut terminal = Terminal::new(backend).unwrap();
 
     let view = view! {
-        <Column>
+        <Col>
             <Row v:length=1>
                 <Viewer>
                     <ChildProp> {
@@ -973,7 +973,7 @@ fn custom_component_nested_layout() {
                     </ChildProp>
                 </Viewer>
             </Row>
-        </Column>
+        </Col>
     };
     mount(|| view);
     terminal

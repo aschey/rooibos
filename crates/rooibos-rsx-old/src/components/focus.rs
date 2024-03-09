@@ -36,6 +36,6 @@ where
 {
     move || {
         let mut children = children.clone();
-        view!(cx, <Column>{children}</Column>)
+        view!(cx, <Col>{children}</Col>)
     }
 }

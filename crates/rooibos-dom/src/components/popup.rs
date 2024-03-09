@@ -14,19 +14,19 @@ where
     let inverse_x = (100 - percent_x) / 2;
 
     view! {
-        <Column v:constraint=constraint.unwrap_or_default()>
+        <Col v:constraint=constraint.unwrap_or_default()>
             <Row v:percentage=inverse_y />
             <Row v:percentage=percent_y>
-                <Column v:percentage=inverse_x />
-                <Column v:percentage=percent_x>
+                <Col v:percentage=inverse_x />
+                <Col v:percentage=percent_x>
                     <Overlay>
                         <Clear/>
                         {children}
                     </Overlay>
-                </Column>
-                <Column v:percentage=inverse_x />
+                </Col>
+                <Col v:percentage=inverse_x />
             </Row>
             <Row v:percentage=inverse_y />
-        </Column>
+        </Col>
     }
 }

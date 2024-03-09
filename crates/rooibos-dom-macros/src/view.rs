@@ -1,6 +1,6 @@
 use convert_case::{Case, Casing};
 use manyhow::{bail, Emitter, ErrorMessage};
-use proc_macro2::{Ident, Span, TokenStream, TokenTree};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
@@ -22,9 +22,22 @@ enum Direction {
 
 #[derive(Clone, Debug)]
 enum ViewType {
-    Row(Vec<View>),
-    Column(Vec<View>),
-    Overlay(Vec<View>),
+    Row {
+        span: Span,
+        closing_span: Span,
+        children: Vec<View>,
+    },
+    Column {
+        span: Span,
+        closing_span: Span,
+        children: Vec<View>,
+    },
+    Overlay {
+        span: Span,
+        closing_span: Span,
+        children: Vec<View>,
+    },
+
     FocusScope(Vec<View>),
     Element {
         name: Ident,
@@ -47,16 +60,27 @@ pub(crate) struct View {
 }
 
 impl View {
-    fn get_overlay_tokens(&self, children: &[View], is_child: bool) -> TokenStream {
-        let child_tokens: Vec<_> = children
-            .iter()
-            .enumerate()
-            .map(|(i, v)| v.view_to_tokens(Some(i), true))
-            .collect();
+    fn get_overlay_tokens(&self, span: Span, closing_span: Span, children: &[View]) -> TokenStream {
+        let overlay = Ident::new("overlay", span);
+        let closing = Ident::new("overlay", closing_span);
+        let child_tokens: Vec<_> = children.iter().map(|v| v.view_to_tokens()).collect();
         let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
         let id = self.id.as_ref().map(|id| quote!(.id(#id)));
+        let overlay_fn = if cfg!(debug_assertions) {
+            quote! {
+                {
+                    if false {
+                        #closing()
+                    } else {
+                        #overlay()
+                    }
+                }
+            }
+        } else {
+            quote!(#overlay())
+        };
         let layout_tokens = quote! {
-            overlay()
+            #overlay_fn
             #constraint
             #id
             #(.child(#child_tokens))*
@@ -68,26 +92,37 @@ impl View {
     fn get_layout_tokens(
         &self,
         direction: Direction,
+        span: Span,
+        closing_span: Span,
         children: &[View],
-        child_index: Option<usize>,
-        parent_is_overlay: bool,
     ) -> TokenStream {
         let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
         let id = self.id.as_ref().map(|id| quote!(.id(#id)));
         let layout = match direction {
-            Direction::Row => quote!(row()),
-            Direction::Col => quote!(col()),
+            Direction::Row => Ident::new("row", span),
+            Direction::Col => Ident::new("col", span),
         };
 
-        let child_tokens: Vec<_> = children
-            .iter()
-            .enumerate()
-            .map(|(i, v)| v.view_to_tokens(Some(i), false))
-            .collect();
+        let closing = match direction {
+            Direction::Row => Ident::new("row", closing_span),
+            Direction::Col => Ident::new("col", closing_span),
+        };
+        let child_tokens: Vec<_> = children.iter().map(|v| v.view_to_tokens()).collect();
         let layout_props = self.layout_props.clone();
 
+        let layout_fn = if cfg!(debug_assertions) {
+            quote! {
+                if false {
+                    #closing()
+                } else {
+                    #layout()
+                }
+            }
+        } else {
+            quote!(#layout())
+        };
         let layout_tokens = quote! {
-            #layout
+            #layout_fn
             #constraint
             #id
             #layout_props
@@ -97,19 +132,24 @@ impl View {
         layout_tokens
     }
 
-    fn view_to_tokens(&self, child_index: Option<usize>, parent_is_overlay: bool) -> TokenStream {
+    fn view_to_tokens(&self) -> TokenStream {
         match &self.view_type {
-            ViewType::Row(children) => {
-                self.get_layout_tokens(Direction::Row, children, child_index, parent_is_overlay)
-            }
-            ViewType::Column(children) => {
-                self.get_layout_tokens(Direction::Col, children, child_index, parent_is_overlay)
-            }
-            ViewType::FocusScope(children) => children
-                .iter()
-                .map(|c| c.view_to_tokens(child_index, parent_is_overlay))
-                .collect(),
-            ViewType::Overlay(children) => self.get_overlay_tokens(children, child_index.is_some()),
+            ViewType::Row {
+                span,
+                closing_span,
+                children,
+            } => self.get_layout_tokens(Direction::Row, *span, *closing_span, children),
+            ViewType::Column {
+                span,
+                closing_span,
+                children,
+            } => self.get_layout_tokens(Direction::Col, *span, *closing_span, children),
+            ViewType::FocusScope(children) => children.iter().map(|c| c.view_to_tokens()).collect(),
+            ViewType::Overlay {
+                span,
+                closing_span,
+                children,
+            } => self.get_overlay_tokens(*span, *closing_span, children),
             ViewType::Block { tokens } => tokens.clone(),
             ViewType::Element {
                 name,
@@ -159,7 +199,7 @@ impl View {
 
 impl ToTokens for View {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let view = self.view_to_tokens(None, false);
+        let view = self.view_to_tokens();
         tokens.append_all(view);
     }
 }
@@ -567,18 +607,34 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
-                view_type: ViewType::Row(children),
+                view_type: ViewType::Row {
+                    span: element.name().span(),
+                    closing_span: element
+                        .close_tag
+                        .clone()
+                        .map(|t| t.name.span())
+                        .unwrap_or(Span::call_site()),
+                    children,
+                },
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,
             })
         }
-        "Column" => {
+        "Col" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
             let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
-                view_type: ViewType::Column(children),
+                view_type: ViewType::Column {
+                    span: element.name().span(),
+                    closing_span: element
+                        .close_tag
+                        .clone()
+                        .map(|t| t.name.span())
+                        .unwrap_or(Span::call_site()),
+                    children,
+                },
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,
@@ -600,7 +656,15 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             let children = parse_elements(&element.children, emitter)?;
 
             Ok(View {
-                view_type: ViewType::Overlay(children),
+                view_type: ViewType::Overlay {
+                    span: element.name().span(),
+                    closing_span: element
+                        .close_tag
+                        .clone()
+                        .map(|t| t.name.span())
+                        .unwrap_or(Span::call_site()),
+                    children,
+                },
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,

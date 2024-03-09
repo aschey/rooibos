@@ -86,7 +86,7 @@ fn Counters() -> impl IntoView {
     });
 
     view! {
-        <Column>
+        <Col>
             <ForEach
                 each=move|| (0..n_counters.get())
                 key=|i| *i
@@ -96,6 +96,6 @@ fn Counters() -> impl IntoView {
                     }
                 }
             />
-        </Column>
+        </Col>
     }
 }

@@ -741,7 +741,7 @@ fn parse_element(
                 layout_props: attrs.props,
             })
         }
-        "Column" => {
+        "Col" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
             let children = parse_elements(cx_name, &element.children, include_parent_id, emitter)?;
 

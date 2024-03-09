@@ -13,7 +13,7 @@
 fn main() {}
 // fn main() {
 //     let mut view = view! {
-//         <Column>
+//         <Col>
 //             <Viewer>
 //             {
 //                 view! {
@@ -25,7 +25,7 @@ fn main() {}
 //                 }
 //             }
 //             </Viewer>
-//         </Column>
+//         </Col>
 //     };
 // }
 

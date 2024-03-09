@@ -63,11 +63,11 @@ fn Counters(cx: Scope) -> impl View {
 
     move || {
         view! { cx,
-            <Column>
+            <Col>
                 {(0..n_counters.get()).map(|i| {
                     view!(cx, <Counter v:key=i/>).into_boxed_view()
                 }).collect::<Vec<_>>()}
-            </Column>
+            </Col>
         }
     }
 }

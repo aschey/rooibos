@@ -56,10 +56,10 @@ fn App(cx: Scope) -> impl View {
     move || {
         view! { cx,
             <FocusScope>
-                <Column>
+                <Col>
                     <FocusBlock v:percentage=50 v:focusable=true title="item 1"/>
                     <FocusBlock v:percentage=50 v:focusable=true title="item 2"/>
-                </Column>
+                </Col>
             </FocusScope>
         }
     }

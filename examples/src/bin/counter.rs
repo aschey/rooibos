@@ -68,8 +68,8 @@ fn counter() -> impl IntoView {
     });
 
     view! {
-        <Column>
+        <Col>
             {move || format!("count {}", count.get())}
-        </Column>
+        </Col>
     }
 }

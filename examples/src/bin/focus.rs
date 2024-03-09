@@ -77,22 +77,22 @@ fn App() -> impl IntoView {
 
     view! {
         <Row>
-            <Column v:percentage=50>
+            <Col v:percentage=50>
                 <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 1"/>
                 </Row>
                 <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 2"/>
                 </Row>
-            </Column>
-            <Column v:percentage=50>
+            </Col>
+            <Col v:percentage=50>
                 <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 3"/>
                 </Row>
                 <Row v:percentage=50>
                     <FocusBlock v:focusable=true title="item 4"/>
                 </Row>
-            </Column>
+            </Col>
         </Row>
     }
 }
