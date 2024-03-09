@@ -187,7 +187,7 @@ impl DomNodeInner {
                     .iter()
                     .zip(chunks.iter())
                     .for_each(|((key, child), chunk)| {
-                        child.render(frame, *chunk, *key, dom_nodes, dom_state, layout.clone());
+                        child.render(frame, *chunk, *key, dom_nodes, dom_state, Layout::default());
                     });
             }
 
@@ -324,26 +324,14 @@ impl DomNode {
                 let mut state = state.borrow_mut();
                 state.clear_focused();
                 let constraint = d[self.key].constraint;
-                let layout = match &d[self.key].node_type {
-                    NodeType::Layout {
-                        direction,
-                        flex,
-                        margin,
-                        spacing,
-                    } => Layout::default()
-                        .direction(*direction)
-                        .flex(*flex)
-                        .margin(*margin)
-                        .spacing(*spacing),
-                    _ => Layout::default(),
-                };
+
                 d[self.key].render(
                     frame,
                     rect,
                     self.key,
                     &d,
                     &mut state,
-                    layout.constraints([constraint]),
+                    Layout::default().constraints([constraint]),
                 );
             });
         });

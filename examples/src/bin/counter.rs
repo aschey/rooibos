@@ -68,6 +68,8 @@ fn counter() -> impl IntoView {
     });
 
     view! {
-        <Block title=format!("count {}", count.get())/>
+        <Column>
+            {move || format!("count {}", count.get())}
+        </Column>
     }
 }

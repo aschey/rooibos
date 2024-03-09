@@ -92,17 +92,6 @@ where
     }
 }
 
-impl<IV> IntoView for (&'static str, IV)
-where
-    IV: IntoView,
-{
-    fn into_view(self) -> View {
-        let mut view = self.1.into_view();
-        view.set_name(self.0);
-        view
-    }
-}
-
 impl IntoView for View {
     fn into_view(self) -> View {
         self
@@ -179,12 +168,11 @@ macro_rules! impl_into_view_for_tuples {
         impl<$($ty),*> IntoView for ($($ty,)*)
         where $($ty: IntoView),*
         {
-            #[inline]
             fn into_view(self) -> View {
                 paste::paste! {
                     let ($([<$ty:lower>],)*) = self;
                     [
-                    $([<$ty:lower>].into_view()),*
+                        $([<$ty:lower>].into_view()),*
                     ].into_view()
                 }
             }

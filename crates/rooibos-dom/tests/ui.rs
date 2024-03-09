@@ -1,5 +1,3 @@
-use std::borrow::BorrowMut;
-
 use ratatui::backend::TestBackend;
 use ratatui::prelude::{Buffer, Constraint, *};
 use ratatui::style::{Color, Style};
@@ -23,13 +21,13 @@ fn clear_style(buffer: &mut Buffer) {
 
 #[test]
 fn standalone_widget() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
     let view = view! {
         <Block title="test" borders=Borders::ALL/>
     };
-
-    let _ = create_runtime();
 
     mount(|| view);
     terminal
@@ -47,6 +45,8 @@ fn standalone_widget() {
 
 #[test]
 fn widget_no_props() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -72,6 +72,8 @@ fn widget_no_props() {
 
 #[test]
 fn simple_column() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -95,7 +97,81 @@ fn simple_column() {
 }
 
 #[test]
+fn str_only() {
+    let _ = create_runtime();
+
+    let backend = TestBackend::new(4, 1);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    let view = view! {
+        <Column>
+            "test"
+        </Column>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal
+        .backend()
+        .assert_buffer(&Buffer::with_lines(vec!["test"]));
+}
+
+#[test]
+fn str_block() {
+    let _ = create_runtime();
+
+    let backend = TestBackend::new(4, 1);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    let view = view! {
+        <Column>
+            {"test"}
+        </Column>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal
+        .backend()
+        .assert_buffer(&Buffer::with_lines(vec!["test"]));
+}
+
+#[test]
+fn string_block() {
+    let _ = create_runtime();
+
+    let backend = TestBackend::new(4, 1);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    let view = view! {
+        <Column>
+            {"test".to_string()}
+        </Column>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal
+        .backend()
+        .assert_buffer(&Buffer::with_lines(vec!["test"]));
+}
+
+#[test]
 fn nested_layout() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 6);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -128,6 +204,8 @@ fn nested_layout() {
 
 #[test]
 fn conditional() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
     let a = 1;
@@ -158,6 +236,8 @@ fn conditional() {
 
 #[test]
 fn list_basic() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -185,6 +265,8 @@ fn list_basic() {
 
 #[test]
 fn prop_iteration() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 6);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -246,6 +328,8 @@ fn stateful() {
 
 #[test]
 fn list_styled() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(15, 3);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -279,6 +363,7 @@ fn list_styled() {
 
 #[test]
 fn block_children() {
+    let _ = create_runtime();
     let backend = TestBackend::new(15, 1);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -304,6 +389,8 @@ fn block_children() {
 
 #[test]
 fn single_child_as_vec() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(15, 1);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -328,6 +415,8 @@ fn single_child_as_vec() {
 
 #[test]
 fn single_nested_child_as_vec() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(15, 1);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -357,6 +446,8 @@ fn single_nested_child_as_vec() {
 
 #[test]
 fn complex_block_children() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(15, 1);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -382,6 +473,8 @@ fn complex_block_children() {
 
 #[test]
 fn macro_as_prop() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -408,6 +501,8 @@ fn macro_as_prop() {
 
 #[test]
 fn simple_overlay() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 3);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -435,6 +530,8 @@ fn simple_overlay() {
 
 #[test]
 fn overlay_multiple() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 6);
     let mut terminal = Terminal::new(backend).unwrap();
 
@@ -442,7 +539,7 @@ fn overlay_multiple() {
         <Overlay>
             <Block borders=Borders::ALL title="test"/>
             <Column margin=1>
-                <List v:length=2>
+                <List>
                     <ListItem>{"hi"}</ListItem>
                     <ListItem>{"yo"}</ListItem>
                 </List>
@@ -472,6 +569,8 @@ fn overlay_multiple() {
 
 #[test]
 fn two_overlays() {
+    let _ = create_runtime();
+
     let backend = TestBackend::new(10, 8);
     let mut terminal = Terminal::new(backend).unwrap();
 

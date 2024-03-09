@@ -472,6 +472,16 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
             Node::Element(element) => {
                 views.push(parse_element(element, emitter)?);
             }
+            Node::Text(text) => {
+                views.push(View {
+                    view_type: ViewType::Block {
+                        tokens: text.to_token_stream(),
+                    },
+                    constraint: None,
+                    layout_props: None,
+                    id: None,
+                });
+            }
             Node::Block(block) => {
                 if let Some(block) = block.try_block() {
                     let content = get_block_contents(block);

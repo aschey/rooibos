@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::prelude::Rect;
@@ -8,7 +9,7 @@ use ratatui::widgets::{StatefulWidget, *};
 use ratatui::Frame;
 use rooibos_dom_macros::{impl_stateful_render, impl_stateful_widget, impl_widget, make_builder};
 
-use crate::{DomWidget, IntoView};
+use crate::{DomWidget, IntoView, View};
 
 pub static __NODE_ID: AtomicU32 = AtomicU32::new(1);
 
@@ -83,6 +84,41 @@ impl_widget!(Canvas, visibility=pub, generics=<'a, F>, make_builder=MakeBuilder,
 impl_stateful_widget!(List, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
 impl_stateful_widget!(Table, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
 impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
+
+pub fn make_dom_widget<W: Widget + Clone + 'static>(
+    name: impl Into<String>,
+    widget: W,
+) -> DomWidget {
+    DomWidget::new(
+        __NODE_ID.fetch_add(1, Ordering::Relaxed),
+        name,
+        move |frame, rect| {
+            #[cfg(debug_assertions)]
+            let prev = rooibos_reactive::SpecialNonReactiveZone::enter();
+            frame.render_widget(widget.clone(), rect);
+            #[cfg(debug_assertions)]
+            rooibos_reactive::SpecialNonReactiveZone::exit(prev);
+        },
+    )
+}
+
+impl IntoView for String {
+    fn into_view(self) -> View {
+        make_dom_widget("String", self).into_view()
+    }
+}
+
+impl IntoView for &'static str {
+    fn into_view(self) -> View {
+        make_dom_widget("String", self).into_view().into_view()
+    }
+}
+
+impl<'a> IntoView for Cow<'a, str> {
+    fn into_view(self) -> View {
+        make_dom_widget("String", self.to_string()).into_view()
+    }
+}
 
 pub trait WrapExt {
     fn trim(self, trim: bool) -> Self;
