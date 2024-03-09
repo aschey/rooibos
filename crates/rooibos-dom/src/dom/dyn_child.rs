@@ -86,7 +86,6 @@ where
 pub struct DynChildRepr {
     document_fragment: DomNode,
     mounted: Rc<OnceCell<DomNode>>,
-    // #[cfg(debug_assertions)]
     opening: DomNode,
     pub(crate) child: Rc<RefCell<Box<Option<View>>>>,
     closing: DomNode,

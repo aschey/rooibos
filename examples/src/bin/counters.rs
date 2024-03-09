@@ -29,7 +29,8 @@ async fn main() -> Result<()> {
 
     let mut terminal = setup_terminal()?;
     mount(|| view!(<Counters/>));
-    // print_dom(&mut std::io::stdout(), false);
+    // print_dom(&mut std::io::stdout(), true);
+    // Ok(())
     terminal.draw(|f: &mut Frame| {
         render_dom(f);
     })?;
@@ -59,28 +60,42 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[component]
-fn Counter(constraint: Constraint) -> impl IntoView {
-    let (count, set_count) = create_signal(0);
+fn Counter(id: u32, constraint: Constraint) -> impl IntoView {
+    let (count, set_count) = create_signal(id);
     create_key_effect(move |event| {
-        if event.code == KeyCode::Enter {
+        if event.code == KeyCode::Up {
             set_count.update(|c| *c += 1);
+        }
+        if event.code == KeyCode::Down {
+            set_count.update(|c| *c -= 1);
         }
     });
 
     view! {
-        <Block title=format!("count {}", count.get()) v:constraint=constraint/>
+        <Block v:id=id.to_string() title=format!("count {}", count.get()) v:constraint=constraint/>
     }
 }
 
 #[component]
 fn Counters() -> impl IntoView {
-    let n_counters = 5;
+    let (n_counters, set_n_counters) = create_signal(1);
+    create_key_effect(move |event| {
+        if event.code == KeyCode::Enter {
+            set_n_counters.update(|c| *c += 1);
+        }
+    });
 
     view! {
         <Column>
-            {(0..n_counters).map(|_| view! {
-                <Counter constraint=Constraint::Length(2)/>
-            }).collect_view()}
+            <ForEach
+                each=move|| (0..n_counters.get())
+                key=|i| *i
+                children=move|i| {
+                    view! {
+                        <Counter id=i constraint=Constraint::Length(2)/>
+                    }
+                }
+            />
         </Column>
     }
 }

@@ -3,7 +3,7 @@ use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::Frame;
-use rooibos_reactive::ReadSignal;
+use rooibos_reactive::{Disposer, ReadSignal};
 use slotmap::SlotMap;
 
 use self::dom_state::DomState;
@@ -15,6 +15,7 @@ mod dom_state;
 mod dom_widget;
 mod dyn_child;
 mod element;
+mod for_each;
 mod unit;
 mod view;
 
@@ -23,6 +24,7 @@ pub use document_fragment::*;
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use element::*;
+pub use for_each::*;
 pub use view::*;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files

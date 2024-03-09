@@ -13,8 +13,11 @@ where
 {
     let memoized_when = create_memo(move |_| when());
 
-    move || match memoized_when.get() {
-        true => children.run().into_view(),
-        false => fallback.run(),
+    move || {
+        if memoized_when.get() {
+            children.run()
+        } else {
+            fallback.run()
+        }
     }
 }

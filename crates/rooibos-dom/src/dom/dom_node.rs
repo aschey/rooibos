@@ -271,7 +271,8 @@ impl DomNode {
 
     pub(crate) fn set_margin(&self, new_margin: u16) {
         DOM_NODES.with(|n| {
-            if let NodeType::Layout { margin, .. } = &mut n.borrow_mut()[self.key].node_type {
+            let mut n = n.borrow_mut();
+            if let NodeType::Layout { margin, .. } = &mut n[self.key].node_type {
                 *margin = new_margin;
             }
         });

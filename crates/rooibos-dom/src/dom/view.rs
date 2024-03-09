@@ -6,7 +6,7 @@ use super::dom_node::DomNode;
 use super::dom_widget::DomWidget;
 use super::dyn_child::DynChildRepr;
 use super::unit::UnitRepr;
-use crate::next_node_id;
+use crate::{next_node_id, EachRepr};
 
 pub trait IntoView {
     fn into_view(self) -> View;
@@ -20,6 +20,7 @@ pub trait Mountable {
 pub enum View {
     DynChild(DynChildRepr),
     Component(ComponentRepr),
+    Each(EachRepr),
     Unit(UnitRepr),
     DomNode(DomNode),
     DomWidget(DomWidget),
@@ -32,6 +33,9 @@ impl View {
                 repr.set_name(name);
             }
             View::Component(repr) => {
+                repr.set_name(name);
+            }
+            View::Each(repr) => {
                 repr.set_name(name);
             }
             View::DomNode(node) => {
@@ -137,6 +141,7 @@ impl Mountable for View {
         match self {
             Self::DomNode(dom_node) => dom_node.clone(),
             Self::DynChild(dyn_child) => dyn_child.get_mountable_node(),
+            Self::Each(each) => each.get_mountable_node(),
             Self::Component(component) => component.get_mountable_node(),
             Self::DomWidget(widget) => widget.get_mountable_node(),
             Self::Unit(unit) => unit.get_mountable_node(),
