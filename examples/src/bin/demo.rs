@@ -607,14 +607,14 @@ const EVENTS: [(&str, u64); 24] = [
 
 #[component]
 fn DemoBarChart(enhanced_graphics: bool) -> impl IntoView {
-    let barchart_data = create_rw_signal(EVENTS.to_vec());
+    let bar_chart_data = create_rw_signal(EVENTS.to_vec());
 
     let event_context = use_event_context();
     let tick_event = event_context.create_custom_event_signal::<Tick>();
 
     create_effect(move |_| {
         if tick_event.get().is_some() {
-            barchart_data.update(|data| {
+            bar_chart_data.update(|data| {
                 let mut data = data.clone();
                 let event = data.pop().unwrap();
                 data.insert(0, event);
@@ -626,7 +626,7 @@ fn DemoBarChart(enhanced_graphics: bool) -> impl IntoView {
     view! {
         <BarChart
             block=prop!(<Block borders=Borders::ALL title="Bar chart"/>)
-            data=&barchart_data.get()
+            data=&bar_chart_data.get()
             bar_width=3
             bar_gap=2
             bar_set=if enhanced_graphics {

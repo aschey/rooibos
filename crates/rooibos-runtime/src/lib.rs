@@ -1,4 +1,7 @@
+use std::any::Any;
+
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use dyn_clonable::clonable;
 use futures_util::StreamExt;
 use rooibos_dom::{focused_node, NodeId};
 use rooibos_reactive::{
@@ -39,8 +42,24 @@ pub enum TickResult {
     Exit,
 }
 
+#[clonable]
+pub trait AnyClone: Any + Clone {
+    fn as_any(&self) -> &dyn Any;
+}
+
+impl<T> AnyClone for T
+where
+    T: Any + Clone,
+{
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+}
+
 pub struct Runtime {
     event_rx: mpsc::Receiver<Event>,
+    custom_event_tx: mpsc::Sender<Box<dyn AnyClone + Send>>,
+    custom_event_rx: mpsc::Receiver<Box<dyn AnyClone + Send>>,
     set_last_term_event: WriteSignal<Option<crossterm::event::Event>>,
     runtime_id: RuntimeId,
 }
@@ -49,26 +68,42 @@ impl Runtime {
     pub fn initialize() -> Self {
         let runtime_id = create_runtime();
         let (event_tx, event_rx) = mpsc::channel(32);
+        let (custom_event_tx, custom_event_rx) = mpsc::channel(32);
         let (last_term_event, set_last_term_event) = create_signal(None);
         provide_context(TermSignal(last_term_event));
         tokio::spawn(async move { read_input(event_tx).await });
         Self {
             runtime_id,
             event_rx,
+            custom_event_tx,
+            custom_event_rx,
             set_last_term_event,
         }
     }
 
+    pub fn handle(&self) -> RuntimeHandle {
+        RuntimeHandle {
+            custom_event_tx: self.custom_event_tx.clone(),
+        }
+    }
+
     pub async fn tick(&mut self) -> TickResult {
-        match self.event_rx.recv().await {
-            Some(Event::TermEvent(e)) => {
-                self.set_last_term_event.set(Some(e));
-                self.set_last_term_event.set_untracked(None);
+        tokio::select! {
+            event = self.event_rx.recv() => {
+                match event {
+                    Some(Event::TermEvent(e)) => {
+                        self.set_last_term_event.set(Some(e));
+                        self.set_last_term_event.set_untracked(None);
+                    }
+                    Some(Event::QuitRequested) => {
+                        return TickResult::Exit;
+                    }
+                    _ => {}
+                }
             }
-            Some(Event::QuitRequested) => {
-                return TickResult::Exit;
+            custom_event = self.custom_event_rx.recv() => {
+
             }
-            _ => {}
         }
 
         TickResult::Continue
@@ -78,6 +113,17 @@ impl Runtime {
 impl Drop for Runtime {
     fn drop(&mut self) {
         self.runtime_id.dispose();
+    }
+}
+
+#[derive(Clone)]
+pub struct RuntimeHandle {
+    custom_event_tx: mpsc::Sender<Box<dyn AnyClone + Send>>,
+}
+
+impl RuntimeHandle {
+    pub async fn send_message<T: AnyClone + Send + Sync + 'static>(&self, message: T) {
+        self.custom_event_tx.send(Box::new(message)).await.unwrap();
     }
 }
 
