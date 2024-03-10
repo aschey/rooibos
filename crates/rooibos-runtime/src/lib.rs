@@ -42,18 +42,18 @@ pub enum TickResult {
 pub struct Runtime {
     event_rx: mpsc::Receiver<Event>,
     set_last_term_event: WriteSignal<Option<crossterm::event::Event>>,
-    _runtime_id: RuntimeId,
+    runtime_id: RuntimeId,
 }
 
 impl Runtime {
     pub fn initialize() -> Self {
-        let _runtime_id = create_runtime();
+        let runtime_id = create_runtime();
         let (event_tx, event_rx) = mpsc::channel(32);
         let (last_term_event, set_last_term_event) = create_signal(None);
         provide_context(TermSignal(last_term_event));
         tokio::spawn(async move { read_input(event_tx).await });
         Self {
-            _runtime_id,
+            runtime_id,
             event_rx,
             set_last_term_event,
         }
@@ -72,6 +72,12 @@ impl Runtime {
         }
 
         TickResult::Continue
+    }
+}
+
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        self.runtime_id.dispose();
     }
 }
 

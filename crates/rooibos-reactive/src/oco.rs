@@ -46,7 +46,7 @@ impl<'a, T: ?Sized + ToOwned> Oco<'a, T> {
     /// # Examples
     /// ```
     /// # use std::rc::Rc;
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// assert!(Oco::<str>::Borrowed("Hello").is_borrowed());
     /// assert!(!Oco::<str>::Counted(Rc::from("Hello")).is_borrowed());
     /// assert!(!Oco::<str>::Owned("Hello".to_string()).is_borrowed());
@@ -59,7 +59,7 @@ impl<'a, T: ?Sized + ToOwned> Oco<'a, T> {
     /// # Examples
     /// ```
     /// # use std::rc::Rc;
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// assert!(Oco::<str>::Counted(Rc::from("Hello")).is_counted());
     /// assert!(!Oco::<str>::Borrowed("Hello").is_counted());
     /// assert!(!Oco::<str>::Owned("Hello".to_string()).is_counted());
@@ -72,7 +72,7 @@ impl<'a, T: ?Sized + ToOwned> Oco<'a, T> {
     /// # Examples
     /// ```
     /// # use std::rc::Rc;
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// assert!(Oco::<str>::Owned("Hello".to_string()).is_owned());
     /// assert!(!Oco::<str>::Borrowed("Hello").is_owned());
     /// assert!(!Oco::<str>::Counted(Rc::from("Hello")).is_owned());
@@ -130,7 +130,7 @@ impl Oco<'_, str> {
     /// Returns a `&str` slice of this [`Oco`].
     /// # Examples
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// let oco = Oco::<str>::Borrowed("Hello");
     /// let s: &str = oco.as_str();
     /// assert_eq!(s, "Hello");
@@ -145,7 +145,7 @@ impl Oco<'_, CStr> {
     /// Returns a `&CStr` slice of this [`Oco`].
     /// # Examples
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// use std::ffi::CStr;
     ///
     /// let oco = Oco::<CStr>::Borrowed(CStr::from_bytes_with_nul(b"Hello\0").unwrap());
@@ -162,7 +162,7 @@ impl Oco<'_, OsStr> {
     /// Returns a `&OsStr` slice of this [`Oco`].
     /// # Examples
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// use std::ffi::OsStr;
     ///
     /// let oco = Oco::<OsStr>::Borrowed(OsStr::new("Hello"));
@@ -179,7 +179,7 @@ impl Oco<'_, Path> {
     /// Returns a `&Path` slice of this [`Oco`].
     /// # Examples
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// use std::path::Path;
     ///
     /// let oco = Oco::<Path>::Borrowed(Path::new("Hello"));
@@ -199,7 +199,7 @@ where
     /// Returns a `&[T]` slice of this [`Oco`].
     /// # Examples
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// let oco = Oco::<[u8]>::Borrowed(b"Hello");
     /// let s: &[u8] = oco.as_slice();
     /// assert_eq!(s, b"Hello");
@@ -221,7 +221,7 @@ where
     /// # Examples
     /// [`String`] :
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// let oco = Oco::<str>::Owned("Hello".to_string());
     /// let oco2 = oco.clone();
     /// assert_eq!(oco, oco2);
@@ -229,7 +229,7 @@ where
     /// ```
     /// [`Vec`] :
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// let oco = Oco::<[u8]>::Owned(b"Hello".to_vec());
     /// let oco2 = oco.clone();
     /// assert_eq!(oco, oco2);
@@ -253,7 +253,7 @@ where
     /// was previously [`Oco::Owned`].
     /// # Examples
     /// ```
-    /// # use leptos_reactive::oco::Oco;
+    /// # use rooibos_reactive::oco::Oco;
     /// let mut oco1 = Oco::<str>::Owned("Hello".to_string());
     /// let oco2 = oco1.clone_inplace();
     /// assert_eq!(oco1, oco2);

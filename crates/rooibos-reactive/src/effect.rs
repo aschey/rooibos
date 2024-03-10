@@ -30,7 +30,7 @@ use crate::{with_owner, with_runtime, Disposer, Owner, Runtime, SignalDispose};
 /// APIs within the effect function without causing issues. If you need an effect to run on
 /// the server, use [`create_isomorphic_effect`].
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # use log::*;
 /// # let runtime = create_runtime();
 /// let (a, set_a) = create_signal(0);
@@ -109,7 +109,7 @@ where
     /// APIs within the effect function without causing issues. If you need an effect to run on
     /// the server, use [`create_isomorphic_effect`].
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # use log::*;
     /// # let runtime = create_runtime();
     /// let a = RwSignal::new(0);

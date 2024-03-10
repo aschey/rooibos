@@ -6,7 +6,7 @@
 //! Callbacks can be created manually from any function or closure, but the easiest way
 //! to create them is to use `#[prop(into)]]` when defining a component.
 //! ```
-//! # use leptos::*;
+//! # use rooibos::*;
 //! #[component]
 //! fn MyComponent(#[prop(into)] render_number: Callback<i32, String>) -> impl IntoView {
 //!     view! {
@@ -55,8 +55,8 @@ pub trait Callable<In: 'static, Out: 'static = ()> {
 ///
 /// # Example
 /// ```
-/// # use leptos::*;
-/// # use leptos::{Callable, Callback};
+/// # use rooibos::*;
+/// # use rooibos::{Callable, Callback};
 /// #[component]
 /// fn MyComponent(#[prop(into)] render_number: Callback<i32, String>) -> impl IntoView {
 ///     view! {

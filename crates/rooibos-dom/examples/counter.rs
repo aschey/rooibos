@@ -11,7 +11,7 @@
 //     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 // };
 // use crossterm::{event, execute};
-// use leptos_reactive::{
+// use rooibos_reactive::{
 //     create_runtime, create_signal, ReadSignal, Signal, SignalGet, SignalSet, SignalUpdate,
 // };
 // use ratatui::prelude::*;

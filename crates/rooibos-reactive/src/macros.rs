@@ -33,7 +33,7 @@ pub(crate) use debug_warn;
 ///
 /// # Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (first, _) = create_signal("Bob".to_string());
 /// let (middle, _) = create_signal("J.".to_string());
@@ -107,7 +107,7 @@ macro_rules! with {
 ///
 /// # Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let first = store_value("Bob".to_string());
 /// let middle = store_value("J.".to_string());
@@ -171,7 +171,7 @@ macro_rules! with_value {
 ///
 /// # Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let a = create_rw_signal(1);
 /// let b = create_rw_signal(2);
@@ -241,7 +241,7 @@ macro_rules! update {
 ///
 /// # Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let a = store_value(1);
 /// let b = store_value(2);

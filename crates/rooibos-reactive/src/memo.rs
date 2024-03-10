@@ -39,7 +39,7 @@ use crate::{
 /// calculation.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # fn really_expensive_computation(value: i32) -> i32 { value };
 /// # let runtime = create_runtime();
 /// let (value, set_value) = create_signal(0);
@@ -111,7 +111,7 @@ where
 /// especially slices that need to allocate.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # fn really_expensive_computation(value: i32) -> i32 { value };
 /// # let runtime = create_runtime();
 /// pub struct State {
@@ -206,7 +206,7 @@ where
 ///
 /// ## Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # fn really_expensive_computation(value: i32) -> i32 { value };
 /// # let runtime = create_runtime();
 /// let (value, set_value) = create_signal(0);
@@ -258,7 +258,7 @@ impl<T> Memo<T> {
     ///
     /// This is identical to [`create_memo`].
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # fn really_expensive_computation(value: i32) -> i32 { value };
     /// # let runtime = create_runtime();
     /// let value = RwSignal::new(0);
@@ -309,7 +309,7 @@ impl<T> Memo<T> {
     /// This is identical to [`create_owning_memo`].
     ///
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # fn really_expensive_computation(value: i32) -> i32 { value };
     /// # let runtime = create_runtime();
     /// pub struct State {
@@ -512,7 +512,7 @@ impl<T> SignalWithUntracked for Memo<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 /// let double_count = create_memo(move |_| count.get() * 2);

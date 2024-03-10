@@ -9,7 +9,7 @@
 // use crossterm::terminal::{
 //     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 // };
-// use leptos_reactive::{
+// use rooibos_reactive::{
 //     create_runtime, create_rw_signal, create_signal, RwSignal, Signal, SignalGet,
 //     SignalGetUntracked, SignalUpdate,
 // };

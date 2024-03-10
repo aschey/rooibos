@@ -10,7 +10,7 @@ use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
 use super::dom_widget::DomWidget;
 use super::view::{IntoView, View};
-use super::{DOM_NODES, DOM_STATE};
+use super::{with_state_mut, DOM_NODES};
 use crate::{next_node_id, Mountable};
 
 #[derive(Clone, PartialEq, Eq)]
@@ -158,7 +158,7 @@ impl DomNodeInner {
         rect: Rect,
         key: DomNodeKey,
         dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
-        dom_state: &mut RefMut<'_, DomState>,
+        dom_state: &mut DomState,
         parent_layout: Layout,
     ) {
         if self.focusable {
@@ -320,8 +320,7 @@ impl DomNode {
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
         DOM_NODES.with(|d| {
             let d = d.borrow();
-            DOM_STATE.with(|state| {
-                let mut state = state.borrow_mut();
+            with_state_mut(|state| {
                 state.clear_focused();
                 let constraint = d[self.key].constraint;
 
@@ -330,7 +329,7 @@ impl DomNode {
                     rect,
                     self.key,
                     &d,
-                    &mut state,
+                    state,
                     Layout::default().constraints([constraint]),
                 );
             });

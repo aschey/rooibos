@@ -757,7 +757,7 @@ impl RuntimeId {
         // remove this from the set of runtimes
         let runtime = RUNTIMES.with(move |runtimes| runtimes.borrow_mut().remove(self))
          .expect("Attempted to dispose of a reactive runtime that was not found. This suggests \
-         a possible memory leak. Please open an issue with details at https://github.com/leptos-rs/leptos");
+         a possible memory leak. Please open an issue with details at https://github.com/aschey/rooibos");
 
         // remove this from being the current runtime
         CURRENT_RUNTIME.with(|runtime| {
@@ -1244,7 +1244,7 @@ impl ScopeProperty {
 /// This can be used to isolate parts of the reactive graph from one another.
 ///
 /// ```rust
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (a, set_a) = create_signal(0);
 /// let (b, set_b) = create_signal(0);

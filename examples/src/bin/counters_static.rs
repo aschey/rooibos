@@ -17,8 +17,7 @@ use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Frame;
 use rooibos::dom::prelude::*;
 use rooibos::reactive::{
-    create_runtime, create_signal, on_cleanup, ReadSignal, Signal, SignalDispose, SignalGet,
-    SignalSet, SignalUpdate,
+    create_runtime, create_signal, ReadSignal, Signal, SignalGet, SignalSet, SignalUpdate,
 };
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
@@ -48,7 +47,8 @@ async fn main() -> Result<()> {
     loop {
         if rt.tick().await == TickResult::Exit {
             restore_terminal(terminal)?;
-
+            unmount();
+            drop(rt);
             return Ok(());
         }
         terminal.draw(|f: &mut Frame| {
@@ -89,24 +89,13 @@ fn Counter(id: u32, constraint: Constraint) -> impl IntoView {
 
 #[component]
 fn Counters() -> impl IntoView {
-    let (n_counters, set_n_counters) = create_signal(2);
-    create_key_effect(move |event| {
-        if event.code == KeyCode::Enter {
-            set_n_counters.update(|c| *c += 1);
-        }
-    });
-
     view! {
         <Col>
-            <ForEach
-                each=move|| (0..n_counters.get())
-                key=|i| *i
-                children=move|i| {
-                    view! {
-                        <Counter id=i constraint=Constraint::Length(2)/>
-                    }
-                }
-            />
+        {(0..5).map(|i| {
+            view! {
+                <Counter id=i constraint=Constraint::Length(2)/>
+            }
+        }).collect_view()}
         </Col>
     }
 }

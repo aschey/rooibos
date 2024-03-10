@@ -3,11 +3,6 @@ use crate::{store_value, RwSignal, SignalSet, StoredValue, WriteSignal};
 /// Helper trait for converting `Fn(T)` into [`SignalSetter<T>`].
 pub trait IntoSignalSetter<T>: Sized {
     /// Consumes `self`, returning [`SignalSetter<T>`].
-    #[deprecated = "Will be removed in `leptos v0.6`. Please use \
-                    `IntoSignalSetter::into_signal_setter()` instead."]
-    fn mapped_signal_setter(self) -> SignalSetter<T>;
-
-    /// Consumes `self`, returning [`SignalSetter<T>`].
     fn into_signal_setter(self) -> SignalSetter<T>;
 }
 
@@ -15,10 +10,6 @@ impl<F, T> IntoSignalSetter<T> for F
 where
     F: Fn(T) + 'static,
 {
-    fn mapped_signal_setter(self) -> SignalSetter<T> {
-        self.into_signal_setter()
-    }
-
     fn into_signal_setter(self) -> SignalSetter<T> {
         SignalSetter::map(self)
     }
@@ -39,7 +30,7 @@ where
 ///
 /// ## Examples
 /// ```rust
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(2);
 /// let set_double_input = SignalSetter::map(move |n| set_count.set(n * 2));
@@ -119,7 +110,7 @@ where
     /// Wraps a signal-setting closure, i.e., any computation that sets one or more
     /// reactive signals.
     /// ```rust
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let (count, set_count) = create_signal(2);
     /// let set_double_count = SignalSetter::map(move |n| set_count.set(n * 2));
@@ -150,7 +141,7 @@ where
     /// Calls the setter function with the given value.
     ///
     /// ```rust
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let (count, set_count) = create_signal(2);
     /// let set_double_count = SignalSetter::map(move |n| set_count.set(n * 2));

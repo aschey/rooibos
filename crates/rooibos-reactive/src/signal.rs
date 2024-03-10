@@ -218,14 +218,14 @@ pub trait SignalDispose {
 ///
 /// A signal is a piece of data that may change over time,
 /// and notifies other code when it has changed. This is the
-/// core primitive of Leptos's reactive system.
+/// core primitive of rooibos's reactive system.
 ///
 /// Takes the initial value as an argument,
 /// and returns a tuple containing a [`ReadSignal`] and a [`WriteSignal`],
 /// each of which can be called as a function.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 ///
@@ -294,7 +294,7 @@ pub fn create_signal_from_stream<T>(
 ///
 /// A signal is a piece of data that may change over time,
 /// and notifies other code when it has changed. This is the
-/// core primitive of Leptos's reactive system.
+/// core primitive of rooibos's reactive system.
 ///
 /// `ReadSignal` is also [`Copy`] and `'static`, so it can very easily moved into closures
 /// or copied structs.
@@ -316,7 +316,7 @@ pub fn create_signal_from_stream<T>(
 ///
 /// # Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 ///
@@ -449,7 +449,7 @@ impl<T> SignalWithUntracked for ReadSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (name, set_name) = create_signal("Alice".to_string());
 ///
@@ -523,7 +523,7 @@ impl<T> SignalWith for ReadSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 ///
@@ -702,7 +702,7 @@ impl<T> Hash for ReadSignal<T> {
 ///
 /// A signal is a piece of data that may change over time,
 /// and notifies other code when it has changed. This is the
-/// core primitive of Leptos's reactive system.
+/// core primitive of rooibos's reactive system.
 ///
 /// Calling [`WriteSignal::update`] will mutate the signal's value in place,
 /// and notify all subscribers that the signal's value has changed.
@@ -727,7 +727,7 @@ impl<T> Hash for ReadSignal<T> {
 ///
 /// ## Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 ///
@@ -841,7 +841,7 @@ impl<T> SignalUpdateUntracked<T> for WriteSignal<T> {
 
 /// # Examples
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 ///
@@ -919,7 +919,7 @@ impl<T> SignalUpdate for WriteSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(0);
 ///
@@ -1031,7 +1031,7 @@ impl<T> Hash for WriteSignal<T> {
 /// You may prefer this style, or it may be easier to pass around in a context
 /// or as a function argument.
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let count = create_rw_signal(0);
 ///
@@ -1093,7 +1093,7 @@ pub fn create_rw_signal<T>(value: T) -> RwSignal<T> {
 ///   stream of values.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let count = create_rw_signal(0);
 ///
@@ -1385,7 +1385,7 @@ impl<T> SignalUpdateUntracked<T> for RwSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let name = create_rw_signal("Alice".to_string());
 ///
@@ -1460,7 +1460,7 @@ impl<T> SignalWith for RwSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let count = create_rw_signal(0);
 ///
@@ -1531,7 +1531,7 @@ impl<T: Clone> SignalGet for RwSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let count = create_rw_signal(0);
 ///
@@ -1609,7 +1609,7 @@ impl<T> SignalUpdate for RwSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let count = create_rw_signal(0);
 ///
@@ -1699,7 +1699,7 @@ impl<T> RwSignal<T> {
     ///
     /// This is identical to [`create_rw_signal`].
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let count = RwSignal::new(0);
     ///
@@ -1727,7 +1727,7 @@ impl<T> RwSignal<T> {
     /// Useful if you're trying to give read access to another component but ensure that it can't
     /// write to the signal and cause other parts of the DOM to update.
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let count = create_rw_signal(0);
     /// let read_count = count.read_only();
@@ -1766,7 +1766,7 @@ impl<T> RwSignal<T> {
     /// Useful if you're trying to give write access to another component, or split an
     /// [`RwSignal`] into a [`ReadSignal`] and a [`WriteSignal`].
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let count = create_rw_signal(0);
     /// let set_count = count.write_only();
@@ -1800,7 +1800,7 @@ impl<T> RwSignal<T> {
 
     /// Splits an `RwSignal` into its getter and setter.
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let count = create_rw_signal(0);
     /// let (get_count, set_count) = count.split();

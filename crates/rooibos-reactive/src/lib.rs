@@ -1,8 +1,8 @@
-//! The reactive system for the [Leptos](https://docs.rs/leptos/latest/leptos/) Web framework.
+//! The reactive system for the [rooibos](https://docs.rs/rooibos/latest/rooibos/) Web framework.
 //!
 //! ## Fine-Grained Reactivity
 //!
-//! Leptos is built on a fine-grained reactive system, which means that individual reactive values
+//! rooibos is built on a fine-grained reactive system, which means that individual reactive values
 //! ("signals," sometimes known as observables) trigger the code that reacts to them ("effects,"
 //! sometimes known as observers) to re-run. These two halves of the reactive system are
 //! inter-dependent. Without effects, signals can change within the reactive system but never be
@@ -25,12 +25,12 @@
 //! ### Effects
 //! 1. Use [`create_effect`] when you need to synchronize the reactive system with something outside
 //!    it (for example: logging to the console, writing to a file or local storage)
-//! 2. The Leptos DOM renderer wraps any [`Fn`] in your template with [`create_effect`], so
+//! 2. The rooibos DOM renderer wraps any [`Fn`] in your template with [`create_effect`], so
 //!    components you write do *not* need explicit effects to synchronize with the DOM.
 //!
 //! ### Example
 //! ```
-//! use leptos_reactive::*;
+//! use rooibos_reactive::*;
 //!
 //! // creates a new reactive runtime
 //! // this is omitted from most of the examples in the docs

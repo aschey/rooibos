@@ -1,4 +1,4 @@
-// use leptos_reactive::{create_runtime, StoredValue};
+// use rooibos_reactive::{create_runtime, StoredValue};
 // use ratatui::backend::TestBackend;
 // use ratatui::prelude::{Buffer, Constraint, *};
 // use ratatui::style::{Color, Style};

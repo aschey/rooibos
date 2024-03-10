@@ -18,7 +18,7 @@ use crate::{
 /// In the example below, setting an auth token will only trigger
 /// the token signal, but none of the other derived signals.
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 ///
 /// // some global state with independent fields
@@ -52,7 +52,7 @@ use crate::{
 /// );
 ///
 /// create_effect(move |_| {
-///     // note: in the browser, use leptos::log! instead
+///     // note: in the browser, use rooibos::log! instead
 ///     println!("name is {}", name.get());
 /// });
 /// create_effect(move |_| {

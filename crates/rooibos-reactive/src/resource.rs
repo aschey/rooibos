@@ -36,7 +36,7 @@ use crate::{
 /// [`create_local_resource()`].
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// // any old async function; maybe this is calling a REST API or something
 /// async fn fetch_cat_picture_urls(how_many: i32) -> Vec<String> {
@@ -68,7 +68,7 @@ use crate::{
 /// We can provide single, multiple or even a non-reactive signal as `source`
 ///
 /// ```rust
-/// # use leptos::*;
+/// # use rooibos::*;
 /// # let runtime = create_runtime();
 /// # if false {
 /// # let how_many_cats = RwSignal::new(0); let how_many_dogs = RwSignal::new(0);
@@ -160,7 +160,7 @@ where
 /// **Note**: This is not "blocking" in the sense that it blocks the current thread. Rather,
 /// it is blocking in the sense that it blocks the server from sending a response.
 ///
-/// When used with the leptos_router and `SsrMode::PartiallyBlocked`, a
+/// When used with the rooibos_router and `SsrMode::PartiallyBlocked`, a
 /// blocking resource will ensure `<Suspense/>` blocks depending on the resource
 /// are fully rendered on the server side, without requiring JavaScript or
 /// WebAssembly on the client.
@@ -263,7 +263,7 @@ where
 /// Local resources do not load on the server, only in the client's browser.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// #[derive(Debug, Clone)] // doesn't implement Serialize, Deserialize
 /// struct ComplicatedUnserializableStruct {
@@ -405,22 +405,6 @@ where
     S: Clone + 'static,
     T: 'static,
 {
-    /// Clones and returns the current value of the resource ([Option::None] if the
-    /// resource is still pending). Also subscribes the running effect to this
-    /// resource.
-    ///
-    /// If you want to get the value without cloning it, use [`Resource::with`].
-    /// (`value.read()` is equivalent to `value.with(T::clone)`.)
-    #[cfg_attr(debug_assertions, instrument(level = "trace", skip_all,))]
-    #[track_caller]
-    #[deprecated = "You can now use .get() on resources."]
-    pub fn read(&self) -> Option<T>
-    where
-        T: Clone,
-    {
-        self.get()
-    }
-
     /// Applies a function to the current value of the resource, and subscribes
     /// the running effect to this resource. If the resource hasn't yet
     /// resolved, the function won't be called and this will return
@@ -505,7 +489,7 @@ where
     /// left to handle the `None` and `Err(_)` states.
     ///
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # if false {
     /// # // for miniserde support
     /// # #[cfg(not(any(feature="miniserde", feature="serde-lite")))] {
@@ -757,7 +741,7 @@ impl<S, T> SignalSet for Resource<S, T> {
 /// [`create_local_resource()`].
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// // any old async function; maybe this is calling a REST API or something
 /// async fn fetch_cat_picture_urls(how_many: i32) -> Vec<String> {
@@ -789,7 +773,7 @@ impl<S, T> SignalSet for Resource<S, T> {
 /// We can provide single, multiple or even a non-reactive signal as `source`
 ///
 /// ```rust
-/// # use leptos::*;
+/// # use rooibos::*;
 /// # let runtime = create_runtime();
 /// # if false {
 /// # let how_many_cats = RwSignal::new(0); let how_many_dogs = RwSignal::new(0);
@@ -837,7 +821,7 @@ where
     /// This is identical with [`create_resource`].
     ///
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// // any old async function; maybe this is calling a REST API or something
     /// async fn fetch_cat_picture_urls(how_many: i32) -> Vec<String> {
@@ -893,7 +877,7 @@ where
     /// This is identical with [`create_local_resource`].
     ///
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// #[derive(Debug, Clone)] // doesn't implement Serialize, Deserialize
     /// struct ComplicatedUnserializableStruct {

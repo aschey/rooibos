@@ -17,7 +17,7 @@ use cfg_if::cfg_if;
 /// asynchronous work with the rendering process.
 ///
 /// ```
-/// # use leptos::*;
+/// # use rooibos::*;
 /// # #[cfg(not(any(feature = "csr", feature = "serde-lite", feature = "miniserde", feature = "rkyv")))]
 /// # {
 ///

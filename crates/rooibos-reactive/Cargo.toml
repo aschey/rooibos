@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Greg Johnston"]
 license = "MIT"
-repository = "https://github.com/leptos-rs/leptos"
-description = "Reactive system for the Leptos web framework."
+repository = "https://github.com/aschey/rooibos"
+description = "Reactive system for rooibos"
 
 [dependencies]
 slotmap = { version = "1", features = ["serde"] }
@@ -18,7 +18,7 @@ tokio = { version = "1", features = [
 futures = { version = "0.3" }
 rustc-hash = "1"
 serde_json = "1"
-base64 = "0.21"
+base64 = "0.22"
 thiserror = "1"
 tracing = "0.1"
 cfg-if = "1"

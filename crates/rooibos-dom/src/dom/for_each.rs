@@ -8,7 +8,7 @@ use indexmap::{IndexMap, IndexSet};
 use rooibos_reactive::{as_child_of_current_owner, create_render_effect, on_cleanup, Disposer};
 use rustc_hash::FxHasher;
 
-use super::unmount_child;
+use super::{disconnect_child, unmount_child};
 use crate::dom::mount_child;
 use crate::{DocumentFragment, DomNode, IntoView, MountKind, Mountable, View};
 
@@ -26,10 +26,7 @@ impl<T> fmt::Debug for HashRun<T> {
 pub struct EachRepr {
     name: String,
     document_fragment: DomNode,
-    mounted: Rc<OnceCell<DomNode>>,
-    opening: DomNode,
-    pub(crate) children: Rc<RefCell<Vec<EachItem>>>,
-    closing: DomNode,
+    children: Rc<RefCell<Vec<EachItem>>>,
 }
 
 impl EachRepr {
@@ -40,16 +37,11 @@ impl EachRepr {
 
 impl Default for EachRepr {
     fn default() -> Self {
-        let markers = (DomNode::transparent("Each"), DomNode::transparent("Each"));
-
         let document_fragment = DocumentFragment::transparent("each");
 
         Self {
             document_fragment: DomNode::from_fragment(document_fragment),
-            mounted: Default::default(),
-            opening: markers.0,
             children: Default::default(),
-            closing: markers.1,
             name: "each".to_owned(),
         }
     }
@@ -57,60 +49,25 @@ impl Default for EachRepr {
 
 impl Mountable for EachRepr {
     fn get_mountable_node(&self) -> DomNode {
-        if let Some(mounted) = self.mounted.get() {
-            mounted.clone()
-        } else {
-            mount_child(MountKind::Append(&self.document_fragment), &self.opening);
-            mount_child(MountKind::Append(&self.document_fragment), &self.closing);
-            self.mounted.set(self.document_fragment.clone()).unwrap();
-            self.document_fragment.clone()
-        }
+        self.document_fragment.clone()
     }
 }
 
 #[derive(PartialEq, Eq)]
 pub(crate) struct EachItem {
     disposer: Disposer,
-    document_fragment: DomNode,
-    opening: DomNode,
-    pub(crate) child: View,
-    closing: DomNode,
-    mounted: Rc<OnceCell<DomNode>>,
+    child: View,
 }
 
 impl EachItem {
     fn new(disposer: Disposer, child: View) -> Self {
-        let document_fragment = DocumentFragment::transparent("each");
-        let markers = (
-            DomNode::transparent("EachItem"),
-            DomNode::transparent("EachItem"),
-        );
-
-        Self {
-            document_fragment: DomNode::from_fragment(document_fragment),
-            opening: markers.0,
-            closing: markers.1,
-            child,
-            disposer,
-            mounted: Default::default(),
-        }
+        Self { child, disposer }
     }
 }
 
 impl Mountable for EachItem {
     fn get_mountable_node(&self) -> DomNode {
-        if let Some(mounted) = self.mounted.get() {
-            mounted.clone()
-        } else {
-            mount_child(MountKind::Append(&self.document_fragment), &self.opening);
-            mount_child(MountKind::Append(&self.document_fragment), &self.closing);
-            mount_child(
-                MountKind::Before(&self.closing),
-                &self.child.get_mountable_node(),
-            );
-            self.mounted.set(self.document_fragment.clone()).unwrap();
-            self.document_fragment.clone()
-        }
+        self.child.get_mountable_node()
     }
 }
 
@@ -167,20 +124,13 @@ where
 
         let component = EachRepr::default();
 
-        let opening = component.opening.clone();
         let children = component.children.clone();
-        let closing = component.closing.clone();
+        let fragment = component.document_fragment.clone();
 
         let each_fn = as_child_of_current_owner(each_fn);
 
         create_render_effect(move |prev_hash_run: Option<HashRun<FxIndexSet<K>>>| {
             let mut children_borrow = children.borrow_mut();
-
-            // let opening = if let Some(child) = children_borrow.first() {
-            //     child.get_opening_node()
-            // } else {
-            //     closing.clone()
-            // };
 
             let items_iter = items_fn().into_iter();
 
@@ -204,29 +154,24 @@ where
                 let mut current_items: Vec<_> = children_borrow.drain(..).map(Some).collect();
 
                 for current_item in current_items.iter().flatten() {
-                    unmount_child(current_item.document_fragment.key());
+                    disconnect_child(current_item.get_mountable_node().key());
                 }
 
                 for (idx, item) in items.into_iter().enumerate() {
-                    if !prev_hash_run.contains(&hashed_items[idx]) {
+                    let item = if !prev_hash_run.contains(&hashed_items[idx]) {
                         let (child, disposer) = each_fn(item);
-                        let each_item = EachItem::new(disposer, child.into_view());
-
-                        // fragment.append_child(&each_item.get_mountable_node());
-
-                        children_borrow.push(each_item);
+                        EachItem::new(disposer, child.into_view())
                     } else {
                         let prev_index = prev_hash_run.get_index_of(&hashed_items[idx]).unwrap();
-                        let new_item = current_items[prev_index].take().unwrap();
-                        mount_child(MountKind::Append(&opening), &new_item.get_mountable_node());
-                        children_borrow.push(current_items[prev_index].take().unwrap());
-                    }
+                        current_items[prev_index].take().unwrap()
+                    };
+                    mount_child(MountKind::Append(&fragment), &item.get_mountable_node());
+                    children_borrow.push(item);
                 }
 
                 return HashRun(hashed_items);
             }
             *children_borrow = Vec::with_capacity(capacity);
-            let fragment = DomNode::from_fragment(DocumentFragment::transparent("each"));
 
             for item in items_iter {
                 hashed_items.insert(key_fn(&item));
@@ -237,7 +182,6 @@ where
 
                 children_borrow.push(each_item);
             }
-            mount_child(MountKind::Before(&closing), &fragment);
 
             HashRun(hashed_items)
         });

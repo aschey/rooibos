@@ -12,9 +12,7 @@ use crate::{next_node_id, IntoView, MountKind, Mountable, View};
 pub struct ComponentRepr {
     document_fragment: DomNode,
     mounted: Rc<OnceCell<DomNode>>,
-    opening: DomNode,
     children: Vec<View>,
-    closing: DomNode,
     id: u32,
 }
 
@@ -22,16 +20,10 @@ impl ComponentRepr {
     pub fn new_with_id(name: impl Into<String>, id: u32, children: Vec<View>) -> Self {
         let name = name.into();
         let document_fragment = DocumentFragment::transparent(name.clone());
-        let markers = (
-            DomNode::transparent(name.clone()),
-            DomNode::transparent(name),
-        );
 
         Self {
             document_fragment: DomNode::from_fragment(document_fragment),
             mounted: Default::default(),
-            opening: markers.0,
-            closing: markers.1,
             children,
             id,
         }
@@ -39,8 +31,6 @@ impl ComponentRepr {
 
     pub(crate) fn set_name(&mut self, name: impl Into<String>) {
         let name = name.into();
-        self.opening.set_name(name.clone());
-        self.closing.set_name(name);
     }
 }
 
@@ -49,11 +39,8 @@ impl Mountable for ComponentRepr {
         if let Some(mounted) = self.mounted.get() {
             mounted.clone()
         } else {
-            mount_child(MountKind::Append(&self.document_fragment), &self.opening);
-            mount_child(MountKind::Append(&self.document_fragment), &self.closing);
-
             for child in &self.children {
-                mount_child(MountKind::Before(&self.closing), child);
+                mount_child(MountKind::Append(&self.document_fragment), child);
             }
             let node = self.document_fragment.clone();
             self.mounted.set(node.clone()).unwrap();

@@ -15,7 +15,7 @@ use crate::{create_effect, create_rw_signal, Owner, RwSignal, SignalUpdate, Sign
 /// because it reduces them from `O(n)` to `O(1)`.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # use std::rc::Rc;
 /// # use std::cell::RefCell;
 /// # let runtime = create_runtime();
@@ -129,7 +129,7 @@ where
     /// because it reduces them from `O(n)` to `O(1)`.
     ///
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # use std::rc::Rc;
     /// # use std::cell::RefCell;
     /// # let runtime = create_runtime();

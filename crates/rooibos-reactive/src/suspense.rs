@@ -16,7 +16,7 @@ use crate::{
 };
 
 /// Tracks [`Resource`](crate::Resource)s that are read under a suspense context,
-/// i.e., within a [`Suspense`](https://docs.rs/leptos_core/latest/leptos_core/fn.Suspense.html) component.
+/// i.e., within a [`Suspense`](https://docs.rs/rooibos_core/latest/rooibos_core/fn.Suspense.html) component.
 #[derive(Copy, Clone, Debug)]
 pub struct SuspenseContext {
     /// The number of resources that are currently pending.

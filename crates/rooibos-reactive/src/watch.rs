@@ -10,7 +10,7 @@ use crate::{with_runtime, Runtime, ScopeProperty};
 /// ## Usage
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # use log;
 /// # let runtime = create_runtime();
 /// let (num, set_num) = create_signal(0);
@@ -35,7 +35,7 @@ use crate::{with_runtime, Runtime, ScopeProperty};
 /// The callback itself doesn't track any signal that is accessed within it.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # use log;
 /// # let runtime = create_runtime();
 /// let (num, set_num) = create_signal(0);
@@ -65,7 +65,7 @@ use crate::{with_runtime, Runtime, ScopeProperty};
 /// the first change is detected of any signal that is accessed in `deps`.
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # use log;
 /// # let runtime = create_runtime();
 /// let (num, set_num) = create_signal(0);

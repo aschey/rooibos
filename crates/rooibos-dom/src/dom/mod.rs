@@ -39,7 +39,33 @@ thread_local! {
     static DOM_ROOT: RefCell<Option<DomNode>> = RefCell::new(None);
     static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
         RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
-    static DOM_STATE: RefCell<DomState> = RefCell::new(Default::default());
+    static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
+}
+
+fn with_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&DomState) -> R,
+{
+    DOM_STATE.with(|s| {
+        let s = s.borrow();
+        if let Some(s) = s.as_ref() {
+            return f(s);
+        }
+        panic!("state deallocated")
+    })
+}
+
+fn with_state_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut DomState) -> R,
+{
+    DOM_STATE.with(|s| {
+        let mut s = s.borrow_mut();
+        if let Some(s) = s.as_mut() {
+            return f(s);
+        }
+        panic!("state deallocated")
+    })
 }
 
 pub enum MountKind<'a> {
@@ -70,6 +96,18 @@ fn cleanup_removed_nodes(
         cleanup_removed_nodes(&child, nodes);
     }
     nodes.remove(*node);
+}
+
+fn disconnect_child(child: DomNodeKey) {
+    DOM_NODES.with(|d| {
+        let mut d = d.borrow_mut();
+        let child_node = &d[child];
+        if let Some(parent) = child_node.parent {
+            let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
+            d[parent].children.remove(child_pos);
+        }
+        d[child].parent = None;
+    });
 }
 
 fn unmount_child(child: DomNodeKey) {
@@ -163,6 +201,12 @@ where
     DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
 }
 
+pub fn unmount() {
+    DOM_ROOT.with(|d| *d.borrow_mut() = None);
+    DOM_STATE.with(|d| *d.borrow_mut() = None);
+    DOM_NODES.with(|d| (*d.borrow_mut()).clear());
+}
+
 pub fn render_dom(frame: &mut Frame) {
     DOM_ROOT.with(|d| d.borrow().as_ref().unwrap().render(frame, frame.size()));
 }
@@ -179,18 +223,16 @@ pub fn focus(id: impl Into<NodeId>) {
         })
     });
     if let Some(node) = node {
-        DOM_STATE.with(|state| {
+        with_state_mut(|state| {
             DOM_NODES.with(|nodes| {
-                state
-                    .borrow_mut()
-                    .set_focused(Some(node), &nodes.borrow()[node]);
+                state.set_focused(Some(node), &nodes.borrow()[node]);
             });
         });
     }
 }
 
 pub fn focused_node() -> ReadSignal<Option<NodeId>> {
-    DOM_STATE.with(|d| d.borrow().focused())
+    with_state(|d| d.focused())
 }
 
 pub fn focus_id(id: impl Into<NodeId>) {
@@ -206,10 +248,8 @@ pub fn focus_id(id: impl Into<NodeId>) {
             None
         });
         if let Some(found_node) = found_node {
-            DOM_STATE.with(|state| {
-                state
-                    .borrow_mut()
-                    .set_focused(Some(found_node), &nodes[found_node]);
+            with_state_mut(|state| {
+                state.set_focused(Some(found_node), &nodes[found_node]);
             });
         }
     });
@@ -218,8 +258,7 @@ pub fn focus_id(id: impl Into<NodeId>) {
 pub fn focus_next() {
     DOM_NODES.with(|nodes| {
         let nodes = nodes.borrow();
-        DOM_STATE.with(|state| {
-            let mut state = state.borrow_mut();
+        with_state_mut(|state| {
             if let Some(focused) = state.focused_key() {
                 let current_focused = state
                     .focusable_nodes()
@@ -245,8 +284,7 @@ pub fn focus_next() {
 pub fn focus_prev() {
     DOM_NODES.with(|nodes| {
         let nodes = nodes.borrow();
-        DOM_STATE.with(|state| {
-            let mut state = state.borrow_mut();
+        with_state_mut(|state| {
             if let Some(focused) = state.focused_key() {
                 let current_focused = state
                     .focusable_nodes()

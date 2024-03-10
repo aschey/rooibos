@@ -14,7 +14,7 @@ use crate::runtime::with_runtime;
 /// down cannot be used higher up.
 ///
 /// ```
-/// use leptos::*;
+/// use rooibos::*;
 ///
 /// // define a newtype we'll provide as context
 /// // contexts are stored by their types, so it can be useful to create
@@ -57,7 +57,7 @@ use crate::runtime::with_runtime;
 /// contexts provided by their parents, including for their siblings, if they "shadow" context
 /// by providing another context of the same kind.
 /// ```rust
-/// use leptos::*;
+/// use rooibos::*;
 ///
 /// #[component]
 /// fn Parent() -> impl IntoView {
@@ -87,11 +87,11 @@ use crate::runtime::with_runtime;
 ///
 /// ### Solution
 ///
-/// If you are using the full Leptos framework, you can use the
-/// [`Provider`](../leptos/fn.Provider.html) component to solve this issue.
+/// If you are using the full rooibos framework, you can use the
+/// [`Provider`](../rooibos/fn.Provider.html) component to solve this issue.
 ///
 /// ```rust
-/// # use leptos::*;
+/// # use rooibos::*;
 /// #[component]
 /// fn Child() -> impl IntoView {
 ///     let context = expect_context::<&'static str>();
@@ -111,7 +111,7 @@ use crate::runtime::with_runtime;
 /// to simply make the body of `<Child/>` a function, which means it will be wrapped in a
 /// new reactive node when rendered:
 /// ```rust
-/// # use leptos::*;
+/// # use rooibos::*;
 /// #[component]
 /// fn Child() -> impl IntoView {
 ///     let context = expect_context::<&'static str>();
@@ -194,7 +194,7 @@ where
 /// in the tree cannot be used higher up.
 ///
 /// ```
-/// use leptos::*;
+/// use rooibos::*;
 ///
 /// // define a newtype we'll provide as context
 /// // contexts are stored by their types, so it can be useful to create
@@ -261,7 +261,7 @@ where
 /// in the tree cannot be used higher up.
 ///
 /// ```
-/// use leptos::*;
+/// use rooibos::*;
 ///
 /// // define a newtype we'll provide as context
 /// // contexts are stored by their types, so it can be useful to create

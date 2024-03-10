@@ -24,7 +24,7 @@ impl Trigger {
     /// This is identical to [`create_trigger`].
     ///
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// use std::cell::RefCell;
     /// use std::fmt::Write;
@@ -106,7 +106,7 @@ impl Trigger {
 /// of notifying other reactive code of a change. This can be useful
 /// for when using external data not stored in signals, for example.
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// use std::cell::RefCell;
 /// use std::fmt::Write;

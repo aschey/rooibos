@@ -14,11 +14,6 @@ pub trait IntoSignal: Sized {
     type Value;
 
     /// Consumes `self`, returning a [`Signal<T>`].
-    #[deprecated = "Will be removed in `leptos v0.6`. Please use `IntoSignal::into_signal()` \
-                    instead."]
-    fn derive_signal(self) -> Signal<Self::Value>;
-
-    /// Consumes `self`, returning a [`Signal<T>`].
     fn into_signal(self) -> Signal<Self::Value>;
 }
 
@@ -27,10 +22,6 @@ where
     F: Fn() -> T + 'static,
 {
     type Value = T;
-
-    fn derive_signal(self) -> Signal<T> {
-        self.into_signal()
-    }
 
     fn into_signal(self) -> Signal<Self::Value> {
         Signal::derive(self)
@@ -61,7 +52,7 @@ where
 ///
 /// ## Examples
 /// ```rust
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(2);
 /// let double_count = Signal::derive(move || count.get() * 2);
@@ -214,7 +205,7 @@ impl<T> SignalWithUntracked for Signal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (name, set_name) = create_signal("Alice".to_string());
 /// let name_upper = Signal::derive(move || name.with(|n| n.to_uppercase()));
@@ -288,7 +279,7 @@ impl<T> SignalWith for Signal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(2);
 /// let double_count = Signal::derive(move || count.get() * 2);
@@ -363,7 +354,7 @@ where
     /// Wraps a derived signal, i.e., any computation that accesses one or more
     /// reactive signals.
     /// ```rust
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let (count, set_count) = create_signal(2);
     /// let double_count = Signal::derive(move || count.get() * 2);
@@ -499,7 +490,7 @@ impl<T> Eq for SignalTypes<T> where T: PartialEq {}
 ///
 /// ## Examples
 /// ```rust
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(2);
 /// let double_count = MaybeSignal::derive(move || count.get() * 2);
@@ -550,7 +541,7 @@ impl<T: Default> Default for MaybeSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(2);
 /// let double_count = MaybeSignal::derive(move || count.get() * 2);
@@ -607,7 +598,7 @@ impl<T: Clone> SignalGet for MaybeSignal<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (name, set_name) = create_signal("Alice".to_string());
 /// let name_upper = MaybeSignal::derive(move || name.with(|n| n.to_uppercase()));
@@ -775,7 +766,7 @@ where
     /// Wraps a derived signal, i.e., any computation that accesses one or more
     /// reactive signals.
     /// ```rust
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let (count, set_count) = create_signal(2);
     /// let double_count = Signal::derive(move || count.get() * 2);
@@ -874,7 +865,7 @@ where
 ///
 /// ## Examples
 /// ```rust
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(Some(2));
 /// let double = |n| n * 2;
@@ -910,7 +901,7 @@ impl<T> Default for MaybeProp<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (count, set_count) = create_signal(Some(2));
 /// let double = |n| n * 2;
@@ -965,7 +956,7 @@ impl<T: Clone> SignalGet for MaybeProp<T> {
 /// # Examples
 ///
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// let (name, set_name) = create_signal("Alice".to_string());
 /// let (maybe_name, set_maybe_name) = create_signal(None);
@@ -1133,7 +1124,7 @@ where
     /// Wraps a derived signal, i.e., any computation that accesses one or more
     /// reactive signals.
     /// ```rust
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// let (count, set_count) = create_signal(2);
     /// let double_count = MaybeProp::derive(move || Some(count.get() * 2));

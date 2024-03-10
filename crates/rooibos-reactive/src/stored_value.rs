@@ -74,7 +74,7 @@ impl<T> StoredValue<T> {
     ///
     /// # Examples
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     ///
     /// #[derive(Clone)]
@@ -113,7 +113,7 @@ impl<T> StoredValue<T> {
     ///
     /// # Examples
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     ///
     /// pub struct MyUncloneableData {
@@ -127,7 +127,7 @@ impl<T> StoredValue<T> {
     /// ```
     #[track_caller]
     //               track the stored value. This method will also be removed in \
-    //               a future version of `leptos`"]
+    //               a future version of `rooibos`"]
     pub fn with_value<U>(&self, f: impl FnOnce(&T) -> U) -> U {
         self.try_with_value(f).expect("could not get stored value")
     }
@@ -152,7 +152,7 @@ impl<T> StoredValue<T> {
     ///
     /// # Examples
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     ///
     /// pub struct MyUncloneableData {
@@ -165,7 +165,7 @@ impl<T> StoredValue<T> {
     /// ```
     ///
     /// ```
-    /// use leptos_reactive::*;
+    /// use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     ///
     /// pub struct MyUncloneableData {
@@ -219,7 +219,7 @@ impl<T> StoredValue<T> {
     ///
     /// # Examples
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     ///
     /// pub struct MyUncloneableData {
@@ -270,7 +270,7 @@ impl<T> StoredValue<T> {
 /// types, it is not reactive; accessing it does not cause effects to subscribe, and
 /// updating it does not notify anything else.
 /// ```compile_fail
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// // this structure is neither `Copy` nor `Clone`
 /// pub struct MyUncloneableData {
@@ -284,7 +284,7 @@ impl<T> StoredValue<T> {
 /// # runtime.dispose();
 /// ```
 /// ```
-/// # use leptos_reactive::*;
+/// # use rooibos_reactive::*;
 /// # let runtime = create_runtime();
 /// // this structure is neither `Copy` nor `Clone`
 /// pub struct MyUncloneableData {
@@ -329,7 +329,7 @@ impl<T> StoredValue<T> {
     /// types, it is not reactive; accessing it does not cause effects to subscribe, and
     /// updating it does not notify anything else.
     /// ```compile_fail
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// // this structure is neither `Copy` nor `Clone`
     /// pub struct MyUncloneableData {
@@ -343,7 +343,7 @@ impl<T> StoredValue<T> {
     /// # runtime.dispose();
     /// ```
     /// ```
-    /// # use leptos_reactive::*;
+    /// # use rooibos_reactive::*;
     /// # let runtime = create_runtime();
     /// // this structure is neither `Copy` nor `Clone`
     /// pub struct MyUncloneableData {
