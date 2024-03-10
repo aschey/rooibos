@@ -290,13 +290,13 @@ impl NodeAttributes {
             "v:ratio" => {
                 let val = attribute.value().unwrap().clone();
                 let expr = match val {
-                    Expr::Tuple(expr) if expr.elems.len() == 2 => expr,
+                    Expr::Tuple(expr) if expr.elems.len() == 2 => expr.elems,
                     _ => {
                         emitter.emit(ErrorMessage::spanned(
                             val,
                             "value should be a tuple of length 2",
                         ));
-                        parse_quote!((0, 0))
+                        parse_quote!(0, 0)
                     }
                 };
 

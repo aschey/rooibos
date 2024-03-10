@@ -203,6 +203,40 @@ fn nested_layout() {
 }
 
 #[test]
+fn ratio() {
+    let _ = create_runtime();
+
+    let backend = TestBackend::new(10, 6);
+    let mut terminal = Terminal::new(backend).unwrap();
+
+    let view = view! {
+        <Col>
+            <Row v:ratio=(2,3)>
+                <Block title="test1" borders=Borders::ALL/>
+            </Row>
+            <Row v:min=0>
+                <Block title="test2" borders=Borders::ALL/>
+            </Row>
+        </Col>
+    };
+    mount(|| view);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+    clear_style(terminal.backend_mut().buffer_mut());
+    terminal.backend().assert_buffer(&Buffer::with_lines(vec![
+        "┌test1───┐",
+        "│        │",
+        "│        │",
+        "└────────┘",
+        "┌test2───┐",
+        "└────────┘",
+    ]));
+}
+
+#[test]
 fn conditional() {
     let _ = create_runtime();
 
