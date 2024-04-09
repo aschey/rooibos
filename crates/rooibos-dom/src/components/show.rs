@@ -1,42 +1,32 @@
 use std::sync::Arc;
 
 use either_of::Either;
-use reactive_graph::computed::ArcMemo;
+use reactive_graph::computed::{ArcMemo, Memo};
 use reactive_graph::traits::Get;
-use tachys::view::any_view::AnyView;
 use tachys::view::Render;
 
 use crate::prelude::*;
 
-type ChildrenFn = Arc<dyn Fn() -> AnyView<RooibosDom>>;
-
-struct ViewFn(Arc<dyn Fn() -> AnyView<RooibosDom> + Send + Sync + 'static>);
-
-impl ViewFn {
-    /// Execute the wrapped function
-    pub fn run(&self) -> AnyView<RooibosDom> {
-        (self.0)()
-    }
-}
-
-// #[component]
-pub fn Show<W>(
-    // #[prop(children, into)]
-    children: ChildrenFn,
+#[component]
+pub fn Show<C, W, F, R1, R2>(
+    #[prop(children)] mut children: C,
     when: W,
-    // #[prop(optional, into)]
-    fallback: ViewFn,
+    fallback: F,
 ) -> impl Render<RooibosDom>
 where
+    C: Fn() -> R1 + 'static,
+    F: Fn() -> R2 + 'static,
     W: Fn() -> bool + Send + Sync + 'static,
+    R1: Render<RooibosDom> + 'static,
+    R2: Render<RooibosDom> + 'static,
 {
-    let memoized_when = ArcMemo::new(move |_| when());
+    let memoized_when = Memo::new(move |_| when());
 
     move || {
         if memoized_when.get() {
             Either::Left(children())
         } else {
-            Either::Right(fallback.run())
+            Either::Right(fallback())
         }
     }
 }

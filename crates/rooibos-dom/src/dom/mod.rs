@@ -144,7 +144,7 @@ impl Renderer for RooibosDom {
     }
 
     fn get_parent(node: &Self::Node) -> Option<Self::Node> {
-        todo!()
+        node.get_parent()
     }
 
     fn first_child(node: &Self::Node) -> Option<Self::Node> {
@@ -211,6 +211,7 @@ fn mount_child(kind: MountKind, child: &DomNode) -> DomNodeKey {
             node.before(&child);
         }
     }
+    notify();
     child.key()
 }
 
@@ -260,6 +261,7 @@ fn unmount_child(child: DomNodeKey) {
 
         cleanup_removed_nodes(&child, &mut d);
     });
+    notify();
 }
 
 pub fn print_dom<W: io::Write>(writer: &mut W, include_transparent: bool) -> io::Result<()> {

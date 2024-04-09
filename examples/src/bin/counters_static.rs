@@ -16,45 +16,46 @@ use ratatui::prelude::{Constraint, CrosstermBackend, Rect};
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Frame;
 use rooibos::dom::prelude::*;
-use rooibos::reactive::{
-    create_runtime, create_signal, ReadSignal, Signal, SignalGet, SignalSet, SignalUpdate,
-};
+use rooibos::reactive::signal::signal;
+use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
-    let mut rt = Runtime::initialize();
+async fn async_main() -> Result<()> {
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
 
-    let mut terminal = setup_terminal()?;
+        let mut terminal = setup_terminal().unwrap();
+        mount(|| view!(<Counters/>), rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
 
-    std::panic::set_hook(Box::new(|panic_info| {
-        crossterm::execute!(std::io::stderr(), crossterm::terminal::LeaveAlternateScreen).unwrap();
-        crossterm::terminal::disable_raw_mode().unwrap();
-        let backtrace = Backtrace::capture();
-        println!("{panic_info} {backtrace}");
-    }));
-
-    mount(|| view!(<Counters/>));
-    // print_dom(&mut std::io::stdout(), true);
-    // Ok(())
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
-
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            unmount();
-            drop(rt);
-            return Ok(());
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -71,8 +72,8 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[component]
-fn Counter(id: u32, constraint: Constraint) -> impl IntoView {
-    let (count, set_count) = create_signal(id);
+fn Counter(id: u32, constraint: Constraint) -> impl Render {
+    let (count, set_count) = signal(id);
     create_key_effect(move |event| {
         if event.code == KeyCode::Up {
             set_count.update(|c| *c += 1);
@@ -88,14 +89,14 @@ fn Counter(id: u32, constraint: Constraint) -> impl IntoView {
 }
 
 #[component]
-fn Counters() -> impl IntoView {
+fn Counters() -> impl Render {
     view! {
         <Col>
         {(0..5).map(|i| {
             view! {
                 <Counter id=i constraint=Constraint::Length(2)/>
             }
-        }).collect_view()}
+        }).collect::<Vec<_>>()}
         </Col>
     }
 }

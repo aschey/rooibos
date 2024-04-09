@@ -16,37 +16,49 @@ use ratatui::layout::Constraint;
 use ratatui::Frame;
 use rooibos::dom::prelude::*;
 use rooibos::dom::{
-    block, col, component, mount, print_dom, render_dom, row, view, BlockProps, Component,
-    DocumentFragment, DomNode, IntoView, Mountable, ViewFragment,
+    block, col, component, mount, print_dom, render_dom, row, view, BlockProps, DocumentFragment,
+    DomNode,
 };
-use rooibos::reactive::{
-    create_runtime, create_rw_signal, on_cleanup, RwSignal, SignalGet, SignalUpdate,
-};
+use rooibos::reactive::signal::RwSignal;
+use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{create_key_effect, use_focus, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let _ = create_runtime();
-    let mut rt = Runtime::initialize();
-    let mut terminal = setup_terminal()?;
-    mount(|| view!(<App/>));
-    // print_dom(&mut std::io::stdout(), false);
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
 
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            return Ok(());
+#[tokio::main]
+async fn async_main() -> Result<()> {
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
+
+        let mut terminal = setup_terminal().unwrap();
+        mount(|| view!(<App/>), rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
+
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -65,8 +77,8 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[component]
-fn App() -> impl IntoView {
-    let show_popup = create_rw_signal(true);
+fn App() -> impl Render {
+    let show_popup = RwSignal::new(false);
 
     create_key_effect(move |event| {
         if event.code == KeyCode::Enter {
@@ -84,6 +96,7 @@ fn App() -> impl IntoView {
             </Paragraph>
             <Show
                 when=move || show_popup.get()
+                fallback= || ()
             >
                 {move || view! {
                     <Popup percent_x=50 percent_y=50>

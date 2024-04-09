@@ -310,6 +310,13 @@ impl DomNode {
         self.key
     }
 
+    pub(crate) fn get_parent(&self) -> Option<DomNode> {
+        DOM_NODES.with(|n| {
+            let n = n.borrow();
+            n[self.key].parent.map(|p| DomNode { key: p })
+        })
+    }
+
     pub(crate) fn append_child(&self, node: &DomNode) {
         DOM_NODES.with(|d| {
             let mut d = d.borrow_mut();

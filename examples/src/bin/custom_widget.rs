@@ -13,35 +13,45 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::prelude::Buffer;
 use ratatui::Frame;
 use rooibos::dom::prelude::*;
-use rooibos::dom::{
-    component, mount, prop, render_dom, view, Component, DomWidget, IntoView, Widget,
-};
-use rooibos::reactive::create_runtime;
+use rooibos::dom::{component, mount, prop, render_dom, view, Widget};
 use rooibos::runtime::{Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
-    let mut rt = Runtime::initialize();
+async fn async_main() -> Result<()> {
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
 
-    let mut terminal = setup_terminal()?;
-    mount(|| view!(<App/>));
-    // print_dom(&mut std::io::stdout(), false);
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
+        let mut terminal = setup_terminal().unwrap();
+        mount(|| view!(<App/>), rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
 
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            return Ok(());
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -58,7 +68,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[component]
-fn App() -> impl IntoView {
+fn App() -> impl Render {
     view! {
         <MyCustomWidget
             block=prop!(<Block title="custom widget"/>)
