@@ -15,34 +15,46 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Frame;
 use rooibos::dom::prelude::*;
-use rooibos::reactive::{
-    create_runtime, create_signal, ReadSignal, Signal, SignalGet, SignalSet, SignalUpdate,
-};
+use rooibos::reactive::signal::signal;
+use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
-    let mut rt = Runtime::initialize();
+async fn async_main() -> Result<()> {
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
 
-    let mut terminal = setup_terminal()?;
-    mount(|| view!(<Counter/>));
-    // print_dom(&mut std::io::stdout(), false);
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
+        let mut terminal = setup_terminal().unwrap();
+        mount(|| view!(<Counter/>), rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
 
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            return Ok(());
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -60,7 +72,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 
 #[component]
 fn counter() -> impl Render {
-    let (count, set_count) = create_signal(0);
+    let (count, set_count) = signal(0);
     create_key_effect(move |event| {
         if event.code == KeyCode::Enter {
             set_count.update(|c| *c += 1);

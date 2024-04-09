@@ -14,9 +14,11 @@ use crossterm::terminal::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
-use rooibos::dom::{block, col, mount, print_dom, render_dom, row, BlockProps, DomNode, DomWidget};
+use rooibos::dom::{
+    block, col, mount, print_dom, render_dom, row, BlockProps, DomNode, DomWidget, Render,
+};
 use rooibos::reactive::owner::Owner;
-use rooibos::reactive::signal::RwSignal;
+use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
@@ -34,7 +36,7 @@ async fn async_main() -> Result<()> {
         let mut rt = Runtime::initialize();
 
         let mut terminal = setup_terminal().unwrap();
-        mount(|| counter(0, 1), rt.connect_update());
+        mount(counter, rt.connect_update());
         // print_dom(&mut std::io::stdout(), false);
         terminal
             .draw(|f: &mut Frame| {
@@ -71,48 +73,17 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
     Ok(())
 }
 
-fn counter(initial_value: i32, step: u32) -> DomWidget {
-    let count = RwSignal::new(Count::new(initial_value, step));
+fn counter() -> impl Render {
+    let (count, set_count) = signal(1);
 
     create_key_effect(move |event| {
         if event.code == KeyCode::Enter {
-            count.update(Count::increase);
+            set_count.update(|c| *c += 1);
         }
     });
 
     block(move || {
-        let c = count.get().value();
+        let c = count.get();
         return BlockProps::default().title(format!("count: {}", c));
     })
-}
-
-#[derive(Debug, Clone)]
-pub struct Count {
-    value: i32,
-    step: i32,
-}
-
-impl Count {
-    pub fn new(value: i32, step: u32) -> Self {
-        Count {
-            value,
-            step: step as i32,
-        }
-    }
-
-    pub fn value(&self) -> i32 {
-        self.value
-    }
-
-    pub fn increase(&mut self) {
-        self.value += self.step;
-    }
-
-    pub fn decrease(&mut self) {
-        self.value += -self.step;
-    }
-
-    pub fn clear(&mut self) {
-        self.value = 0;
-    }
 }

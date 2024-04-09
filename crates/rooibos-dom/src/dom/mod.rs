@@ -112,15 +112,18 @@ impl Renderer for RooibosDom {
     }
 
     fn set_text(node: &Self::Text, text: &str) {
-        replace_child(node.key(), &Self::create_text_node(text));
+        node.replace_fragment(DocumentFragment::widget(make_dom_widget(
+            "text",
+            text.to_owned(),
+        )))
     }
 
     fn set_attribute(node: &Self::Element, name: &str, value: &str) {
-        // todo!()
+        todo!()
     }
 
     fn remove_attribute(node: &Self::Element, name: &str) {
-        // todo!()
+        todo!()
     }
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {

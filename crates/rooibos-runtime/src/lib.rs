@@ -120,7 +120,7 @@ impl Runtime {
                     match event {
                         Some(Event::TermEvent(e)) => {
                             self.set_last_term_event.set(Some(e));
-                            return TickResult::Continue;
+                            // return TickResult::Continue;
                         }
                         Some(Event::QuitRequested) => {
                             return TickResult::Exit;

@@ -262,6 +262,21 @@ impl DomNode {
         Self::from_fragment(DocumentFragment::transparent(name))
     }
 
+    pub(crate) fn replace_fragment(&self, fragment: DocumentFragment) {
+        let inner = DomNodeInner {
+            name: fragment.name.clone(),
+            node_type: fragment.node_type,
+            constraint: fragment.constraint,
+            children: vec![],
+            parent: None,
+            before_pending: vec![],
+            focusable: fragment.id.is_some(),
+            id: fragment.id,
+            data: None,
+        };
+        DOM_NODES.with(|n| n.borrow_mut()[self.key] = inner);
+    }
+
     pub(crate) fn set_data(&self, data: impl Any) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].data = Some(Rc::new(data)));
     }
