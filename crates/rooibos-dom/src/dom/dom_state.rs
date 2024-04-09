@@ -1,4 +1,5 @@
-use rooibos_reactive::{create_signal, ReadSignal, SignalSet, WriteSignal};
+use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
+use reactive_graph::traits::Set;
 
 use super::dom_node::{DomNodeInner, DomNodeKey, NodeId};
 
@@ -11,7 +12,7 @@ pub(crate) struct DomState {
 
 impl Default for DomState {
     fn default() -> Self {
-        let (focused, set_focused) = create_signal(None);
+        let (focused, set_focused) = signal(None);
         Self {
             focused,
             set_focused,

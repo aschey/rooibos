@@ -7,8 +7,9 @@ edition = "2021"
 crossterm = { version = "0.27", features = ["event-stream"], optional = true }
 futures-util = "0.3"
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-reactive = { path = "../rooibos-reactive" }
-tokio = { version = "1.36.0", default-features = false, features = [
+reactive_graph = { path = "../../../leptos/reactive_graph" }
+any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
+tokio = { version = "1.37.0", default-features = false, features = [
     "sync",
     "macros",
     "rt-multi-thread",

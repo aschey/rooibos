@@ -10,7 +10,7 @@ use syn::{
     Meta, Pat, PatIdent, Path, PathArguments, ReturnType, Type, TypePath, Visibility,
 };
 
-use crate::get_dom_import;
+use crate::{get_dom_import, get_reactive_import};
 
 pub(crate) struct Model {
     docs: Docs,
@@ -60,13 +60,13 @@ impl Parse for Model {
             }
         });
 
-        if !is_valid_return_type(&item.sig.output) {
-            bail!(
-                item.sig.output,
-                "return type is incorrect";
-                help = "return signature must be `-> impl IntoView`"
-            );
-        }
+        // if !is_valid_return_type(&item.sig.output) {
+        //     bail!(
+        //         item.sig.output,
+        //         "return type is incorrect";
+        //         help = "return signature must be `-> impl IntoView`"
+        //     );
+        // }
 
         Ok(Self {
             docs,
@@ -177,7 +177,8 @@ impl ToTokens for Model {
 
         let component_fn_prop_docs = generate_component_fn_prop_docs(&props).unwrap();
 
-        let crate_import = get_dom_import();
+        let dom_import = get_dom_import();
+        let reactive_import = get_reactive_import();
 
         let mut interior_generics = generics.to_token_stream();
         if !interior_generics.is_empty() {
@@ -185,10 +186,9 @@ impl ToTokens for Model {
         }
 
         let component = quote! {
-                Component::new(
-                    ::std::stringify!(#name),
-                    move || { #body_name #interior_generics (#used_prop_names) }
-                ).into_view()
+            #reactive_import::untrack(
+                move || { #body_name #interior_generics (#used_prop_names) }
+            )
         };
 
         let props_arg = quote! {
@@ -206,8 +206,8 @@ impl ToTokens for Model {
             #[doc = ""]
             #docs
             #component_fn_prop_docs
-            #[derive(#crate_import::typed_builder::TypedBuilder, #crate_import::ComponentChildren)]
-            #[builder(doc, crate_module_path=#crate_import::typed_builder)]
+            #[derive(#dom_import::typed_builder::TypedBuilder, #dom_import::ComponentChildren)]
+            #[builder(doc, crate_module_path=#dom_import::typed_builder)]
             #vis struct #props_name #impl_generics #where_clause {
                 #prop_builder_fields
             }

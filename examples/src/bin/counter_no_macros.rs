@@ -14,36 +14,48 @@ use crossterm::terminal::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
-use rooibos::dom::{
-    block, col, mount, print_dom, render_dom, row, BlockProps, Component, DocumentFragment,
-    DomNode, IntoView, Mountable, ViewFragment,
-};
-use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
+use rooibos::dom::{block, col, mount, print_dom, render_dom, row, BlockProps, DomNode, DomWidget};
+use rooibos::reactive::owner::Owner;
+use rooibos::reactive::signal::RwSignal;
+use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
-    let mut rt = Runtime::initialize();
+async fn async_main() -> Result<()> {
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
 
-    let mut terminal = setup_terminal()?;
-    mount(|| counter(0, 1));
-    // print_dom(&mut std::io::stdout(), false);
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
+        let mut terminal = setup_terminal().unwrap();
+        mount(|| counter(0, 1), rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
 
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            return Ok(());
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -59,7 +71,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
     Ok(())
 }
 
-fn counter(initial_value: i32, step: u32) -> impl IntoView {
+fn counter(initial_value: i32, step: u32) -> DomWidget {
     let count = RwSignal::new(Count::new(initial_value, step));
 
     create_key_effect(move |event| {
@@ -68,7 +80,10 @@ fn counter(initial_value: i32, step: u32) -> impl IntoView {
         }
     });
 
-    block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
+    block(move || {
+        let c = count.get().value();
+        return BlockProps::default().title(format!("count: {}", c));
+    })
 }
 
 #[derive(Debug, Clone)]

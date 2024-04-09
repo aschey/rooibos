@@ -1,23 +1,23 @@
 use std::fmt;
 
-use crate::{DomNode, IntoView, Mountable, View};
+use crate::DomNode;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Unit;
 
-impl IntoView for Unit {
-    fn into_view(self) -> View {
-        let component = UnitRepr::default();
+// impl IntoView for Unit {
+//     fn into_view(self) -> View {
+//         let component = UnitRepr::default();
 
-        View::Unit(component)
-    }
-}
+//         View::Unit(component)
+//     }
+// }
 
-impl IntoView for () {
-    fn into_view(self) -> View {
-        Unit.into_view()
-    }
-}
+// impl IntoView for () {
+//     fn into_view(self) -> View {
+//         Unit.into_view()
+//     }
+// }
 
 /// The internal representation of the [`Unit`] core-component.
 #[derive(Clone, PartialEq, Eq)]
@@ -39,8 +39,8 @@ impl Default for UnitRepr {
     }
 }
 
-impl Mountable for UnitRepr {
-    fn get_mountable_node(&self) -> DomNode {
-        self.node.clone()
-    }
-}
+// impl ToDomNode for UnitRepr {
+//     fn to_dom_node(&self) -> DomNode {
+//         self.node.clone()
+//     }
+// }

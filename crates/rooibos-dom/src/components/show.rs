@@ -1,23 +1,42 @@
-use rooibos_reactive::{create_memo, SignalGet};
+use std::sync::Arc;
+
+use either_of::Either;
+use reactive_graph::computed::ArcMemo;
+use reactive_graph::traits::Get;
+use tachys::view::any_view::AnyView;
+use tachys::view::Render;
 
 use crate::prelude::*;
 
-#[component]
+type ChildrenFn = Arc<dyn Fn() -> AnyView<RooibosDom>>;
+
+struct ViewFn(Arc<dyn Fn() -> AnyView<RooibosDom> + Send + Sync + 'static>);
+
+impl ViewFn {
+    /// Execute the wrapped function
+    pub fn run(&self) -> AnyView<RooibosDom> {
+        (self.0)()
+    }
+}
+
+// #[component]
 pub fn Show<W>(
-    #[prop(children, into)] children: ViewFn,
+    // #[prop(children, into)]
+    children: ChildrenFn,
     when: W,
-    #[prop(optional, into)] fallback: ViewFn,
-) -> impl IntoView
+    // #[prop(optional, into)]
+    fallback: ViewFn,
+) -> impl Render<RooibosDom>
 where
-    W: Fn() -> bool + 'static,
+    W: Fn() -> bool + Send + Sync + 'static,
 {
-    let memoized_when = create_memo(move |_| when());
+    let memoized_when = ArcMemo::new(move |_| when());
 
     move || {
         if memoized_when.get() {
-            children.run()
+            Either::Left(children())
         } else {
-            fallback.run()
+            Either::Right(fallback.run())
         }
     }
 }

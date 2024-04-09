@@ -255,11 +255,11 @@ fn Tab1() -> impl IntoView {
     ]);
 
     view! {
-        <Row>
-            <DemoTable constraint=Constraint::Percentage(30) servers=servers/>
-            <DemoMap constraint=Constraint::Percentage(70) enhanced_graphics=true servers=servers/>
-        </Row>
-    }
+            <Row>
+                <DemoTable constraint=Constraint::Percentage(30) servers=servers/>
+                <DemoMap constraint=Constraint::Percentage(70) enhanced_graphics=true
+    servers=servers/>         </Row>
+        }
 }
 
 #[component]
@@ -337,12 +337,12 @@ fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl IntoView {
     });
 
     view! {
-        <Col v:constraint=constraint>
-            <DemoGauge constraint=Constraint::Length(2) enhanced_graphics=enhanced_graphics progress=progress/>
-            <DemoSparkline constraint=Constraint::Length(3) enhanced_graphics=enhanced_graphics/>
-            <DemoLineGauge constraint=Constraint::Length(1) enhanced_graphics=enhanced_graphics progress=progress/>
-        </Col>
-    }
+            <Col v:constraint=constraint>
+                <DemoGauge constraint=Constraint::Length(2) enhanced_graphics=enhanced_graphics
+    progress=progress/>             <DemoSparkline constraint=Constraint::Length(3)
+    enhanced_graphics=enhanced_graphics/>             <DemoLineGauge constraint=Constraint::Length(1)
+    enhanced_graphics=enhanced_graphics progress=progress/>         </Col>
+        }
 }
 
 #[component]
@@ -702,70 +702,70 @@ fn DemoChart(enhanced_graphics: bool) -> impl IntoView {
     let window_end = create_memo(move |_| window.get()[1]);
 
     view! {
-        <Chart
-            block=prop! {
-                <Block
-                    title=prop! {
-                        <Span cyan bold>
-                            "Chart"
-                        </Span>
-                    }
-                    borders=Borders::ALL
-                />
-            }
-            x_axis=prop! {
-                <Axis
-                    title="X Axis"
-                    gray
-                    bounds=window.get()
-                    labels=vec![
-                        prop! {
-                            <Span bold>
-                                {window_start.get().to_string()}
+            <Chart
+                block=prop! {
+                    <Block
+                        title=prop! {
+                            <Span cyan bold>
+                                "Chart"
                             </Span>
-                        },
-                        prop! {
-                            <Span>{((window_start.get() + window_end.get()) / 2.0).to_string()}</Span>
-                        },
-                        prop! {
-                            <Span bold>
-                                {window_end.get().to_string()}
-                            </Span>
-                        },
-                    ]
-                />
-            }
-            y_axis=prop! {
-                <Axis
-                    title="Y Axis"
-                    gray
-                    bounds=[-20.0, 20.0]
-                    labels=vec![
-                        prop!(<Span bold>"-20"</Span>),
-                        prop!(<Span>"0"</Span>),
-                        prop!(<Span bold>"20"</Span>)
-                    ]
-                />
-            }
-        >
-            <DatasetOwned
-                name="data2"
-                marker=symbols::Marker::Dot
-                cyan
-                data=sin1.get().points
-            />
-            <DatasetOwned
-                name="data3"
-                marker=if enhanced_graphics {
-                    symbols::Marker::Braille
-                } else {
-                    symbols::Marker::Dot
+                        }
+                        borders=Borders::ALL
+                    />
                 }
-                yellow
-                data=sin2.get().points
-            />
-        </Chart>
-    }
+                x_axis=prop! {
+                    <Axis
+                        title="X Axis"
+                        gray
+                        bounds=window.get()
+                        labels=vec![
+                            prop! {
+                                <Span bold>
+                                    {window_start.get().to_string()}
+                                </Span>
+                            },
+                            prop! {
+                                <Span>{((window_start.get() + window_end.get()) /
+    2.0).to_string()}</Span>                         },
+                            prop! {
+                                <Span bold>
+                                    {window_end.get().to_string()}
+                                </Span>
+                            },
+                        ]
+                    />
+                }
+                y_axis=prop! {
+                    <Axis
+                        title="Y Axis"
+                        gray
+                        bounds=[-20.0, 20.0]
+                        labels=vec![
+                            prop!(<Span bold>"-20"</Span>),
+                            prop!(<Span>"0"</Span>),
+                            prop!(<Span bold>"20"</Span>)
+                        ]
+                    />
+                }
+            >
+                <DatasetOwned
+                    name="data2"
+                    marker=symbols::Marker::Dot
+                    cyan
+                    data=sin1.get().points
+                />
+                <DatasetOwned
+                    name="data3"
+                    marker=if enhanced_graphics {
+                        symbols::Marker::Braille
+                    } else {
+                        symbols::Marker::Dot
+                    }
+                    yellow
+                    data=sin2.get().points
+                />
+            </Chart>
+        }
 }
 
 #[component]
@@ -785,8 +785,8 @@ fn Footer(constraint: Constraint) -> impl IntoView {
             wrap=prop!(<Wrap trim=true/>)
             >
             <Line>
-                "This is a paragraph with several lines. You can change style your text the way you want"
-            </Line>
+                "This is a paragraph with several lines. You can change style your text the way
+    you want"             </Line>
             <Line>""</Line>
             <Line>
                 <Span>"For example: "</Span>

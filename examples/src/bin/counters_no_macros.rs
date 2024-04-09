@@ -1,3 +1,4 @@
+use std::any::Any;
 use std::cell::RefCell;
 use std::error::Error;
 use std::fmt::format;
@@ -15,35 +16,49 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::layout::Constraint;
 use ratatui::Frame;
 use rooibos::dom::{
-    block, col, mount, print_dom, render_dom, row, BlockProps, CollectView, Component,
-    DocumentFragment, DomNode, IntoView, Mountable, ViewFragment,
+    block, col, mount, print_dom, render_dom, row, BlockProps, DocumentFragment, DomNode, Render,
 };
-use rooibos::reactive::{create_runtime, on_cleanup, RwSignal, SignalGet, SignalUpdate};
+use rooibos::prelude::{for_each, ForEachProps};
+use rooibos::reactive::signal::RwSignal;
+use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{create_key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
-    let mut rt = Runtime::initialize();
+async fn async_main() -> Result<()> {
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
 
-    let mut terminal = setup_terminal()?;
-    mount(counters);
-    // print_dom(&mut std::io::stdout(), false);
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
+        let mut terminal = setup_terminal().unwrap();
+        mount(counters, rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
 
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            return Ok(());
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -59,22 +74,25 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
     Ok(())
 }
 
-fn counter(initial_value: i32, step: u32) -> impl IntoView {
+fn counter(initial_value: i32, step: u32) -> impl Render {
     let count = RwSignal::new(Count::new(initial_value, step));
 
-    create_key_effect(move |event| {
+    let _effect = create_key_effect(move |event| {
         if event.code == KeyCode::Enter {
             count.update(Count::increase);
         }
     });
 
-    block(move || BlockProps::default().title(format!("count: {}", count.get().value())))
+    block(move || {
+        _effect.type_id();
+        BlockProps::default().title(format!("count: {}", count.get().value()))
+    })
 }
 
-fn counters() -> impl IntoView {
+fn counters() -> impl Render {
     let count = RwSignal::new(Count::new(1, 1));
 
-    create_key_effect(move |event| {
+    let _effect = create_key_effect(move |event| {
         if event.code == KeyCode::Char('i') {
             count.update(Count::increase);
         }
@@ -83,15 +101,27 @@ fn counters() -> impl IntoView {
         }
     });
 
-    col().child(move || {
-        (1..count.get().value() + 1)
-            .map(|i| {
+    col().child(for_each(move || {
+        _effect.type_id();
+        ForEachProps::builder()
+            .each(move || (1..count.get().value() + 1))
+            .key(|k| *k)
+            .children(|i| {
                 row()
                     .constraint(Constraint::Length(1))
                     .child(counter(i, i as u32))
             })
-            .collect_view()
-    })
+            .build()
+    }))
+    // col().child(move || {
+    //     (1..count.get().value() + 1)
+    //         .map(|i| {
+    //             row()
+    //                 .constraint(Constraint::Length(1))
+    //                 .child(counter(i, i as u32))
+    //         })
+    //         .collect::<Vec<_>>()
+    // })
 }
 
 #[derive(Debug, Clone)]

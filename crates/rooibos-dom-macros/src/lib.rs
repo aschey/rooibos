@@ -111,7 +111,7 @@ fn get_reactive_import() -> proc_macro2::TokenStream {
             }
         }
     } else {
-        let found_crate = crate_name("rooibos-reactive").expect("rooibos-reactive not found");
+        let found_crate = crate_name("reactive_graph").expect("reactive_graph not found");
         match found_crate {
             FoundCrate::Itself => quote::quote!(::rooibos_reactive),
             FoundCrate::Name(name) => {

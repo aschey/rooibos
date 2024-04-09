@@ -59,7 +59,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[component]
-fn counter() -> impl IntoView {
+fn counter() -> impl Render {
     let (count, set_count) = create_signal(0);
     create_key_effect(move |event| {
         if event.code == KeyCode::Enter {

@@ -1,14 +1,18 @@
+use std::fmt::Debug;
+
+use tachys::view::Render;
+
 use crate::prelude::*;
 
 #[component]
-pub fn Popup<IV>(
-    #[prop(children)] children: IV,
+pub fn Popup<M>(
+    #[prop(children)] children: M,
     percent_x: u16,
     percent_y: u16,
     #[prop(default=None)] constraint: Option<Constraint>,
-) -> impl IntoView
+) -> impl Render<RooibosDom>
 where
-    IV: IntoView,
+    M: Render<RooibosDom> + 'static,
 {
     let inverse_y = (100 - percent_y) / 2;
     let inverse_x = (100 - percent_x) / 2;

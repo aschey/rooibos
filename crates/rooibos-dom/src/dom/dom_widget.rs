@@ -5,18 +5,21 @@ use std::rc::Rc;
 
 use ratatui::layout::{Constraint, Rect};
 use ratatui::Frame;
+use reactive_graph::effect::RenderEffect;
+use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{IntoView, Mountable, View};
+use crate::{notify, RooibosDom};
 
 #[derive(Clone)]
 pub struct DomWidget {
-    f: Rc<RefCell<dyn FnMut(&mut Frame, Rect)>>,
+    f: Rc<RefCell<Box<dyn FnMut(&mut Frame, Rect)>>>,
     id: u32,
     pub(crate) widget_type: String,
     pub(crate) constraint: Constraint,
     dom_id: Option<NodeId>,
+    _effect: Rc<RenderEffect<()>>,
 }
 
 impl Debug for DomWidget {
@@ -26,22 +29,33 @@ impl Debug for DomWidget {
 }
 
 impl DomWidget {
-    pub fn new<F: FnMut(&mut Frame, Rect) + 'static>(
+    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(&mut Frame, Rect) + 'static>(
         id: u32,
         widget_type: impl Into<String>,
-        f: F,
+        f: F1,
     ) -> Self {
+        let rc_f: Rc<RefCell<Box<dyn FnMut(&mut Frame, Rect)>>> =
+            Rc::new(RefCell::new(Box::new(|_, _| {})));
+
+        let effect = RenderEffect::new({
+            let rc_f = rc_f.clone();
+            move |_| {
+                (*rc_f.borrow_mut()) = Box::new((f)());
+                notify();
+            }
+        });
         Self {
             widget_type: widget_type.into(),
             id,
-            f: Rc::new(RefCell::new(f)),
+            f: rc_f,
             constraint: Constraint::default(),
             dom_id: None,
+            _effect: Rc::new(effect),
         }
     }
 
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
-        (*self.f).borrow_mut()(frame, rect)
+        (*self.f).borrow_mut()(frame, rect);
     }
 
     pub fn constraint(mut self, constraint: Constraint) -> Self {
@@ -55,21 +69,53 @@ impl DomWidget {
     }
 }
 
-impl IntoView for DomWidget {
-    fn into_view(self) -> View {
-        View::DomWidget(self)
-    }
-}
+impl Render<RooibosDom> for DomWidget {
+    type State = DomNode;
 
-impl Mountable for DomWidget {
-    fn get_mountable_node(&self) -> DomNode {
+    type FallibleState = ();
+
+    type AsyncOutput = ();
+
+    fn build(self) -> Self::State {
         DomNode::from_fragment(
             DocumentFragment::widget(self.clone())
                 .constraint(self.constraint)
                 .id(self.dom_id.clone()),
         )
     }
+
+    fn rebuild(self, state: &mut Self::State) {
+        todo!()
+    }
+
+    fn try_build(self) -> any_error::Result<Self::FallibleState> {
+        todo!()
+    }
+
+    fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
+        todo!()
+    }
+
+    async fn resolve(self) -> Self::AsyncOutput {
+        todo!()
+    }
 }
+
+// impl IntoView for DomWidget {
+//     fn into_view(self) -> View {
+//         View::DomWidget(self)
+//     }
+// }
+
+// impl ToDomNode for DomWidget {
+//     fn to_dom_node(&self) -> DomNode {
+//         DomNode::from_fragment(
+//             DocumentFragment::widget(self.clone())
+//                 .constraint(self.constraint)
+//                 .id(self.dom_id.clone()),
+//         )
+//     }
+// }
 
 impl PartialEq for DomWidget {
     fn eq(&self, other: &Self) -> bool {

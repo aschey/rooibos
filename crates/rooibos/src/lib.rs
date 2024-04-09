@@ -1,5 +1,5 @@
 pub mod reactive {
-    pub use rooibos_reactive::*;
+    pub use reactive_graph::*;
 }
 pub mod dom {
     pub use rooibos_dom::*;

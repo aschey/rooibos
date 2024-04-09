@@ -1,17 +1,20 @@
 use core::fmt::Debug;
+use std::any::Any;
 use std::cell::{Ref, RefMut};
 use std::fmt;
+use std::rc::Rc;
 
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::Frame;
 use slotmap::{new_key_type, SlotMap};
+use tachys::view::Render;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
 use super::dom_widget::DomWidget;
-use super::view::{IntoView, View};
+// use super::view::{IntoView, View};
 use super::{with_state_mut, DOM_NODES};
-use crate::{next_node_id, Mountable};
+use crate::{next_node_id, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq)]
 enum NodeIdInner {
@@ -121,7 +124,7 @@ impl Debug for NodeType {
     }
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub(crate) struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
@@ -131,6 +134,7 @@ pub(crate) struct DomNodeInner {
     pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) focusable: bool,
+    data: Option<Rc<dyn Any>>,
 }
 
 impl DomNodeInner {
@@ -234,6 +238,10 @@ pub struct DomNode {
 }
 
 impl DomNode {
+    pub(crate) fn from_key(key: DomNodeKey) -> Self {
+        Self { key }
+    }
+
     pub(crate) fn from_fragment(fragment: DocumentFragment) -> Self {
         let inner = DomNodeInner {
             name: fragment.name.clone(),
@@ -244,6 +252,7 @@ impl DomNode {
             before_pending: vec![],
             focusable: fragment.id.is_some(),
             id: fragment.id,
+            data: None,
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self { key }
@@ -251,6 +260,10 @@ impl DomNode {
 
     pub(crate) fn transparent(name: impl Into<String>) -> Self {
         Self::from_fragment(DocumentFragment::transparent(name))
+    }
+
+    pub(crate) fn set_data(&self, data: impl Any) {
+        DOM_NODES.with(|n| n.borrow_mut()[self.key].data = Some(Rc::new(data)));
     }
 
     pub(crate) fn set_name(&self, name: impl Into<String>) {
@@ -337,14 +350,40 @@ impl DomNode {
     }
 }
 
-impl IntoView for DomNode {
-    fn into_view(self) -> View {
-        View::DomNode(self)
+impl Render<RooibosDom> for DomNode {
+    type State = DomNode;
+
+    type FallibleState = ();
+
+    type AsyncOutput = ();
+
+    fn build(self) -> Self::State {
+        self
+    }
+
+    fn rebuild(self, state: &mut Self::State) {}
+
+    fn try_build(self) -> any_error::Result<Self::FallibleState> {
+        todo!()
+    }
+
+    fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
+        todo!()
+    }
+
+    async fn resolve(self) -> Self::AsyncOutput {
+        todo!()
     }
 }
 
-impl Mountable for DomNode {
-    fn get_mountable_node(&self) -> DomNode {
-        self.clone()
-    }
-}
+// impl IntoView for DomNode {
+//     fn into_view(self) -> View {
+//         View::DomNode(self)
+//     }
+// }
+
+// impl ToDomNode for DomNode {
+//     fn to_dom_node(&self) -> DomNode {
+//         self.clone()
+//     }
+// }

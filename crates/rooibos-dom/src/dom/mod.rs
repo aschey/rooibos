@@ -3,10 +3,14 @@ use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::Frame;
-use rooibos_reactive::{Disposer, ReadSignal};
+use reactive_graph::signal::ReadSignal;
 use slotmap::SlotMap;
+use tachys::prelude::*;
+use tachys::renderer::CastFrom;
+use tokio::sync::watch;
 
 use self::dom_state::DomState;
+use crate::make_dom_widget;
 
 mod component;
 mod document_fragment;
@@ -27,6 +31,10 @@ pub use element::*;
 pub use for_each::*;
 pub use view::*;
 
+pub trait Render: tachys::view::Render<RooibosDom, State = DomNode> {}
+
+impl<T> Render for T where T: tachys::view::Render<RooibosDom, State = DomNode> {}
+
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
 static NODE_ID: AtomicU32 = AtomicU32::new(1);
@@ -36,11 +44,19 @@ pub(crate) fn next_node_id() -> u32 {
 }
 
 thread_local! {
-    static DOM_ROOT: RefCell<Option<DomNode>> = RefCell::new(None);
+    static DOM_ROOT: RefCell<Option<DomNode>> = const { RefCell::new(None) };
     static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
         RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
     static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
+    static DOM_UPDATE_TX: RefCell<watch::Sender<()>> = {
+        let (tx, _) = watch::channel(());
+        RefCell::new(tx)
+    };
 }
+
+// pub trait ToDomNode {
+//     fn to_dom_node(&self) -> DomNode;
+// }
 
 fn with_state<F, R>(f: F) -> R
 where
@@ -68,14 +84,122 @@ where
     })
 }
 
+#[derive(Debug)]
+pub struct RooibosDom;
+
+impl Renderer for RooibosDom {
+    type Node = DomNode;
+
+    type Element = DomNode;
+
+    type Text = DomNode;
+
+    type Placeholder = DomNode;
+
+    fn intern(text: &str) -> &str {
+        text
+    }
+
+    fn create_text_node(text: &str) -> Self::Text {
+        DomNode::from_fragment(DocumentFragment::widget(make_dom_widget(
+            "text",
+            text.to_owned(),
+        )))
+    }
+
+    fn create_placeholder() -> Self::Placeholder {
+        DomNode::from_fragment(DocumentFragment::transparent(""))
+    }
+
+    fn set_text(node: &Self::Text, text: &str) {
+        replace_child(node.key(), &Self::create_text_node(text));
+    }
+
+    fn set_attribute(node: &Self::Element, name: &str, value: &str) {
+        // todo!()
+    }
+
+    fn remove_attribute(node: &Self::Element, name: &str) {
+        // todo!()
+    }
+
+    fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
+        mount_child(MountKind::Append(parent), new_child);
+    }
+
+    fn remove_node(parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
+        unmount_child(child.key());
+        Some(child.clone())
+    }
+
+    fn clear_children(parent: &Self::Element) {
+        todo!()
+    }
+
+    fn remove(node: &Self::Node) {
+        unmount_child(node.key());
+    }
+
+    fn get_parent(node: &Self::Node) -> Option<Self::Node> {
+        todo!()
+    }
+
+    fn first_child(node: &Self::Node) -> Option<Self::Node> {
+        todo!()
+    }
+
+    fn next_sibling(node: &Self::Node) -> Option<Self::Node> {
+        todo!()
+    }
+
+    fn log_node(node: &Self::Node) {
+        todo!()
+    }
+}
+
+impl CastFrom<DomNode> for DomNode {
+    fn cast_from(source: DomNode) -> Option<Self> {
+        Some(source)
+    }
+}
+
+impl AsRef<DomNode> for DomNode {
+    fn as_ref(&self) -> &DomNode {
+        self
+    }
+}
+
+impl Mountable<RooibosDom> for DomNode {
+    fn unmount(&mut self) {
+        unmount_child(self.key())
+    }
+
+    fn mount(
+        &mut self,
+        parent: &<RooibosDom as Renderer>::Element,
+        marker: Option<&<RooibosDom as Renderer>::Node>,
+    ) {
+        mount_child(MountKind::Append(parent), self);
+    }
+
+    fn insert_before_this(
+        &self,
+        parent: &<RooibosDom as Renderer>::Element,
+        child: &mut dyn Mountable<RooibosDom>,
+    ) -> bool {
+        child.mount(parent, Some(self));
+        true
+    }
+}
+
 pub enum MountKind<'a> {
     Before(&'a DomNode),
     Append(&'a DomNode),
 }
 
-fn mount_child<M: Mountable + std::fmt::Debug>(kind: MountKind, child: &M) -> DomNodeKey {
-    let child = child.get_mountable_node();
-
+fn mount_child(kind: MountKind, child: &DomNode) -> DomNodeKey {
+    // let child = child.to_dom_node();
+    // let child = child.build();
     match kind {
         MountKind::Append(node) => {
             node.append_child(&child);
@@ -108,6 +232,18 @@ fn disconnect_child(child: DomNodeKey) {
         }
         d[child].parent = None;
     });
+}
+
+fn replace_child(current: DomNodeKey, new: &DomNode) {
+    let parent = DOM_NODES.with(|d| {
+        let d = d.borrow();
+        let current_node = &d[current];
+        current_node.parent
+    });
+    disconnect_child(current);
+    if let Some(parent) = parent {
+        mount_child(MountKind::Append(&DomNode::from_key(parent)), new);
+    }
 }
 
 fn unmount_child(child: DomNodeKey) {
@@ -192,13 +328,18 @@ fn print_dom_inner<W: io::Write>(
     Ok(())
 }
 
-pub fn mount<F, IV>(f: F)
+pub(crate) fn notify() {
+    DOM_UPDATE_TX.with(|tx| tx.borrow().send(()).ok());
+}
+
+pub fn mount<F, M>(f: F, tx: watch::Sender<()>)
 where
-    F: FnOnce() -> IV + 'static,
-    IV: IntoView,
+    F: FnOnce() -> M + 'static,
+    M: Render<State = DomNode>,
 {
-    let node = f().into_view().get_mountable_node();
+    let node = f().build();
     DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
+    DOM_UPDATE_TX.with(|d| *d.borrow_mut() = tx);
 }
 
 pub fn unmount() {
