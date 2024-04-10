@@ -1,32 +1,33 @@
-use std::sync::Arc;
-
 use either_of::Either;
-use reactive_graph::computed::{ArcMemo, Memo};
+use reactive_graph::computed::Memo;
 use reactive_graph::traits::Get;
 use tachys::view::Render;
 
 use crate::prelude::*;
 
 #[component]
-pub fn Show<C, W, F, R1, R2>(
-    #[prop(children)] mut children: C,
+pub fn Show<C, W>(
+    /// The children will be shown whenever the condition in the `when` closure returns `true`.
+    #[prop(children)]
+    mut children: C,
+    /// A closure that returns a bool that determines whether this thing runs
     when: W,
-    fallback: F,
+    /// A closure that returns what gets rendered if the when statement is false. By default this
+    /// is the empty view.
+    #[prop(optional, into)]
+    fallback: ViewFn,
 ) -> impl Render<RooibosDom>
 where
-    C: Fn() -> R1 + 'static,
-    F: Fn() -> R2 + 'static,
+    C: IntoChildrenMut,
     W: Fn() -> bool + Send + Sync + 'static,
-    R1: Render<RooibosDom> + 'static,
-    R2: Render<RooibosDom> + 'static,
 {
     let memoized_when = Memo::new(move |_| when());
-
+    let mut children = children.into_children_mut();
     move || {
         if memoized_when.get() {
-            Either::Left(children())
+            Either::Left((children)())
         } else {
-            Either::Right(fallback())
+            Either::Right(fallback.run())
         }
     }
 }

@@ -12,6 +12,8 @@ use tokio::sync::watch;
 use self::dom_state::DomState;
 use crate::make_dom_widget;
 
+mod any_view;
+mod children;
 mod component;
 mod document_fragment;
 mod dom_node;
@@ -19,17 +21,16 @@ mod dom_state;
 mod dom_widget;
 mod dyn_child;
 mod element;
-mod for_each;
-mod unit;
-mod view;
+mod into_view;
 
+pub use any_view::*;
+pub use children::*;
 pub use component::*;
 pub use document_fragment::*;
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use element::*;
-pub use for_each::*;
-pub use view::*;
+pub use into_view::*;
 
 pub trait Render: tachys::view::Render<RooibosDom, State = DomNode> {}
 

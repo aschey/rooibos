@@ -1,7 +1,6 @@
-use std::borrow::Cow;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ratatui::prelude::Rect;
+use ratatui::prelude::*;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::canvas::{Canvas, Context};

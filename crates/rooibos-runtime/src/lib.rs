@@ -157,7 +157,7 @@ impl RuntimeHandle {
     }
 }
 
-pub fn create_key_effect<T>(f: impl Fn(KeyEvent) -> T + 'static) -> Effect {
+pub fn key_effect<T>(f: impl Fn(KeyEvent) -> T + 'static) -> Effect {
     let last_term_event = use_context::<TermSignal>().unwrap();
     Effect::new(move |_| {
         if let Some(crossterm::event::Event::Key(key_event)) = last_term_event.0.get() {

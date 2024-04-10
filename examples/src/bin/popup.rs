@@ -21,7 +21,7 @@ use rooibos::dom::{
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{create_key_effect, use_focus, Runtime, TickResult};
+use rooibos::runtime::{key_effect, use_focus, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -80,7 +80,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 fn App() -> impl Render {
     let show_popup = RwSignal::new(false);
 
-    create_key_effect(move |event| {
+    key_effect(move |event| {
         if event.code == KeyCode::Enter {
             show_popup.update(|p| *p = !*p);
         }
@@ -96,11 +96,10 @@ fn App() -> impl Render {
             </Paragraph>
             <Show
                 when=move || show_popup.get()
-                fallback= || ()
             >
                 {move || view! {
-                    <Popup percent_x=50 percent_y=50>
-                        {view! {
+                    <Popup percent_x=50 percent_y=50> {
+                        view! {
                             <Paragraph v:length=3 block=prop!(<Block borders=Borders::ALL/>)>
                                 "popup text"
                             </Paragraph>

@@ -10,18 +10,20 @@ use crossterm::terminal::{
 };
 use rand::distributions::Uniform;
 use rand::prelude::*;
-use rand::rngs::ThreadRng;
+use rand::rngs::StdRng;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::widgets::canvas::{self, Circle, Context, Map, MapResolution, Rectangle};
 use ratatui::Frame;
-use rooibos::dom::{component, mount, render_dom, view};
+use rooibos::dom::{component, mount, render_dom, view, *};
 use rooibos::prelude::*;
-use rooibos::reactive::{
-    create_effect, create_memo, create_rw_signal, create_signal, ReadSignal, RwSignal, Signal,
-    SignalGet, SignalUpdate,
-};
-use rooibos::runtime::{Runtime, TickResult};
+use rooibos::reactive::computed::Memo;
+use rooibos::reactive::effect::Effect;
+use rooibos::reactive::owner::{provide_context, use_context};
+use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
+use rooibos::reactive::traits::{Get, Set, Update};
+use rooibos::reactive::wrappers::read::Signal;
+use rooibos::runtime::{key_effect, Runtime, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
@@ -38,8 +40,13 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const NUM_TABS: usize = 3;
 
+fn main() -> Result<()> {
+    rooibos::runtime::execute(async_main).unwrap();
+    Ok(())
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn async_main() -> Result<()> {
     let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
         Box::pin(async move {
             let transport = ipc::create_endpoint(
@@ -66,35 +73,32 @@ async fn main() -> Result<()> {
                 .with_filter(tilia::Filter::default())
         })
         .init();
+    rooibos::runtime::init(async move {
+        let mut rt = Runtime::initialize();
 
-    let mut terminal = setup_terminal()?;
+        let mut terminal = setup_terminal().unwrap();
+        mount(|| view!(<App/>), rt.connect_update());
+        // print_dom(&mut std::io::stdout(), false);
+        terminal
+            .draw(|f: &mut Frame| {
+                render_dom(f);
+            })
+            .unwrap();
 
-    std::panic::set_hook(Box::new(|panic_info| {
-        crossterm::execute!(std::io::stderr(), crossterm::terminal::LeaveAlternateScreen).unwrap();
-        crossterm::terminal::disable_raw_mode().unwrap();
-        let backtrace = Backtrace::capture();
-        println!("{panic_info} {backtrace}");
-    }));
-
-    let mut rt = Runtime::initialize();
-
-    mount(|| view!(<App/>));
-    // print_dom(&mut std::io::stdout(), true);
-    // Ok(())
-    terminal.draw(|f: &mut Frame| {
-        render_dom(f);
-    })?;
-
-    loop {
-        if rt.tick().await == TickResult::Exit {
-            restore_terminal(terminal)?;
-            guard.stop().await.ok();
-            return Ok(());
+        loop {
+            if rt.tick().await == TickResult::Exit {
+                restore_terminal(terminal).unwrap();
+                return;
+            }
+            terminal
+                .draw(|f: &mut Frame| {
+                    render_dom(f);
+                })
+                .unwrap();
         }
-        terminal.draw(|f: &mut Frame| {
-            render_dom(f);
-        })?;
-    }
+    })
+    .await;
+    Ok(())
 }
 
 fn setup_terminal() -> Result<Terminal> {
@@ -111,28 +115,46 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-struct Tick;
+struct Tick(ReadSignal<u32>);
 
 #[component]
-fn App() -> impl IntoView {
-    let event_context = use_event_context();
-    event_context.dispatch(Command::new_async(|tx, cancellation_token| async move {
-        let mut interval = time::interval(Duration::from_millis(250));
+fn App() -> impl Render {
+    let (tick, set_tick) = signal(0);
+    provide_context(Tick(tick));
 
+    tokio::spawn(async move {
+        let mut interval = time::interval(Duration::from_millis(250));
+        let mut seq: u32 = 1;
         loop {
             tokio::select! {
                 _ = interval.tick() => {
-                    tx.send(Command::simple(Request::Custom(Box::new(Tick))))
-                        .await
-                        .unwrap();
+                   set_tick.set(seq);
+                   seq += 1;
                 }
-                _ = cancellation_token.cancelled() => {
-                    break;
-                }
+                // _ = cancellation_token.cancelled() => {
+                //     break;
+                // }
             }
         }
-        None
-    }));
+    });
+    // let event_context = use_event_context();
+    // event_context.dispatch(Command::new_async(|tx, cancellation_token| async move {
+    //     let mut interval = time::interval(Duration::from_millis(250));
+
+    //     loop {
+    //         tokio::select! {
+    //             _ = interval.tick() => {
+    //                 tx.send(Command::simple(Request::Custom(Box::new(Tick))))
+    //                     .await
+    //                     .unwrap();
+    //             }
+    //             _ = cancellation_token.cancelled() => {
+    //                 break;
+    //             }
+    //         }
+    //     }
+    //     None
+    // }));
 
     view! {
         <Col v:length=3>
@@ -143,7 +165,7 @@ fn App() -> impl IntoView {
 }
 
 #[component]
-fn HeaderTabs(titles: Vec<&'static str>) -> impl IntoView {
+fn HeaderTabs(titles: Vec<&'static str>) -> impl Render {
     let focus_context = use_focus_context::<usize>();
     let focus_selector = focus_context.get_focus_selector();
 
@@ -155,8 +177,7 @@ fn HeaderTabs(titles: Vec<&'static str>) -> impl IntoView {
     let previous_tab = move || update_current_tab(-1);
     let next_tab = move || update_current_tab(1);
 
-    let event_context = use_event_context();
-    event_context.create_key_effect(move |event| {
+    key_effect(move |event| {
         if event.kind == KeyEventKind::Press {
             match event.code {
                 KeyCode::Left => {
@@ -195,27 +216,39 @@ fn HeaderTabs(titles: Vec<&'static str>) -> impl IntoView {
 }
 
 #[component]
-fn TabContent() -> impl IntoView {
+fn TabContent() -> impl Render {
     let focus_context = use_focus_context::<usize>();
     let focus_selector = focus_context.get_focus_selector();
 
+    // view! {
+    //     <Switch>
+    //         <Case when=move || focus_selector.get() == Some(0)>
+    //             {move || view! ( <Tab0 />)}
+    //         </Case>
+    //         <Case when=move || focus_selector.get() == Some(1)>
+    //             {move || view! ( <Tab1 />)}
+    //         </Case>
+    //         <Case when=move || focus_selector.get() == Some(2)>
+    //             {move || view! ( <Tab2 />)}
+    //         </Case>
+    //     </Switch>
+    // }
     view! {
-        <Switch>
-            <Case when=move || focus_selector.get() == Some(0)>
-                {move || view! ( <Tab0 />)}
-            </Case>
-            <Case when=move || focus_selector.get() == Some(1)>
-                {move || view! ( <Tab1 />)}
-            </Case>
-            <Case when=move || focus_selector.get() == Some(2)>
-                {move || view! ( <Tab2 />)}
-            </Case>
-        </Switch>
+        <Row>
+            {move || match focus_selector.get() {
+                Some(0) => view! (<Tab0/>).into_any(),
+                Some(1) => view! (<Tab1/>).into_any(),
+                Some(2) => view! (<Tab2/>).into_any(),
+                _ => unreachable!()
+            }
+
+            }
+        </Row>
     }
 }
 
 #[component]
-fn Tab0() -> impl IntoView {
+fn Tab0() -> impl Render {
     view! {
         <Col>
             <Gauges constraint=Constraint::Length(9) enhanced_graphics=true/>
@@ -226,8 +259,8 @@ fn Tab0() -> impl IntoView {
 }
 
 #[component]
-fn Tab1() -> impl IntoView {
-    let servers = create_rw_signal(vec![
+fn Tab1() -> impl Render {
+    let servers = RwSignal::new(vec![
         Server {
             name: "NorthAmerica-1",
             location: "New York City",
@@ -255,15 +288,20 @@ fn Tab1() -> impl IntoView {
     ]);
 
     view! {
-            <Row>
-                <DemoTable constraint=Constraint::Percentage(30) servers=servers/>
-                <DemoMap constraint=Constraint::Percentage(70) enhanced_graphics=true
-    servers=servers/>         </Row>
-        }
+        <Row>
+            <DemoTable
+                constraint=Constraint::Percentage(30)
+                servers=servers/>
+            <DemoMap
+                constraint=Constraint::Percentage(70)
+                enhanced_graphics=true
+                servers=servers/>
+        </Row>
+    }
 }
 
 #[component]
-fn Tab2() -> impl IntoView {
+fn Tab2() -> impl Render {
     view! {
         <Row>
             <ColorsTable constraint=Constraint::Ratio(2, 1)/>
@@ -286,14 +324,14 @@ where
 #[derive(Clone)]
 pub struct RandomDistribution {
     distribution: Uniform<u64>,
-    rng: ThreadRng,
+    rng: StdRng,
 }
 
 impl RandomDistribution {
     pub fn new(lower: u64, upper: u64) -> RandomDistribution {
         RandomDistribution {
             distribution: Uniform::new(lower, upper),
-            rng: rand::thread_rng(),
+            rng: rand::rngs::StdRng::from_entropy(),
         }
     }
 }
@@ -310,39 +348,50 @@ where
     S: Iterator + Clone,
     S::Item: Clone,
 {
-    fn on_tick(mut self) -> Self {
+    fn on_tick(&mut self) {
         self.points = self.points[self.tick_rate..].to_vec();
         self.points
             .extend(self.source.by_ref().take(self.tick_rate));
-        self
     }
 }
 
 #[component]
-fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl IntoView {
-    let (progress, set_progress) = create_signal(0.0);
-    let event_context = use_event_context();
-    let tick_event = event_context.create_custom_event_signal::<Tick>();
-
-    create_effect(move |_| {
-        if tick_event.get().is_some() {
-            set_progress.update(|p| {
-                if p < 1.0 {
-                    (p + 0.001f64).min(1.0)
-                } else {
-                    0.0
-                }
-            });
+fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+    let (progress, set_progress) = signal(0.0);
+    // let event_context = use_event_context();
+    // let tick_event = event_context.create_custom_event_signal::<Tick>();
+    let tick = use_context::<Tick>().unwrap();
+    Effect::new(move |prev| {
+        let seq = tick.0.get();
+        if let Some(prev) = prev {
+            if seq > prev {
+                set_progress.update(|p| {
+                    *p = if *p < 1.0 {
+                        (*p + 0.001f64).min(1.0)
+                    } else {
+                        0.0
+                    }
+                });
+            }
         }
+
+        seq
     });
 
     view! {
-            <Col v:constraint=constraint>
-                <DemoGauge constraint=Constraint::Length(2) enhanced_graphics=enhanced_graphics
-    progress=progress/>             <DemoSparkline constraint=Constraint::Length(3)
-    enhanced_graphics=enhanced_graphics/>             <DemoLineGauge constraint=Constraint::Length(1)
-    enhanced_graphics=enhanced_graphics progress=progress/>         </Col>
-        }
+        <Col v:constraint=constraint>
+            <DemoGauge
+                constraint=Constraint::Length(2)
+                enhanced_graphics=enhanced_graphics
+                progress=progress/>
+            <DemoSparkline
+                constraint=Constraint::Length(3)
+                enhanced_graphics=enhanced_graphics/>
+            <DemoLineGauge
+                constraint=Constraint::Length(1)
+                enhanced_graphics=enhanced_graphics progress=progress/>
+        </Col>
+    }
 }
 
 #[component]
@@ -350,7 +399,7 @@ fn DemoGauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
     constraint: Constraint,
-) -> impl IntoView {
+) -> impl Render {
     view! {
         <Gauge
             v:constraint=constraint
@@ -368,7 +417,7 @@ fn DemoLineGauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
     constraint: Constraint,
-) -> impl IntoView {
+) -> impl Render {
     view! {
         <LineGauge
             v:constraint=constraint
@@ -385,22 +434,28 @@ fn DemoLineGauge(
 }
 
 #[component]
-fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl IntoView {
+fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let mut rand_signal = RandomDistribution::new(0, 100);
     let sparkline_points = rand_signal.by_ref().take(300).collect();
-    let sparkline_signal = create_rw_signal(RandomData {
+    let sparkline_signal = RwSignal::new(RandomData {
         source: rand_signal,
         points: sparkline_points,
         tick_rate: 1,
     });
 
-    let event_context = use_event_context();
-    let tick_event = event_context.create_custom_event_signal::<Tick>();
+    // let event_context = use_event_context();
+    // let tick_event = event_context.create_custom_event_signal::<Tick>();
+    let tick = use_context::<Tick>().unwrap();
 
-    create_effect(move |_| {
-        if tick_event.get().is_some() {
-            sparkline_signal.update(|s| s.clone().on_tick());
+    Effect::new(move |prev| {
+        let seq = tick.0.get();
+        if let Some(prev) = prev {
+            if seq <= prev {
+                return seq;
+            }
         }
+        sparkline_signal.update(|s| s.on_tick());
+        seq
     });
 
     view! {
@@ -419,13 +474,13 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl IntoVi
 }
 
 #[component]
-fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl IntoView {
-    let show_chart = create_signal(true);
+fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+    let show_chart = RwSignal::new(true);
 
-    let event_context = use_event_context();
-    event_context.create_key_effect(move |event| {
+    // let event_context = use_event_context();
+    key_effect(move |event| {
         if event.kind == KeyEventKind::Press && event.code == KeyCode::Char('t') {
-            show_chart.toggle();
+            show_chart.update(|s| *s = !*s);
         }
     });
 
@@ -458,11 +513,11 @@ const TASKS: [&str; 24] = [
 ];
 
 #[component]
-fn TaskList(constraint: Constraint) -> impl IntoView {
-    let selected_task = create_rw_signal::<Option<usize>>(None);
-    let task_data = create_rw_signal(TASKS.to_vec());
+fn TaskList(constraint: Constraint) -> impl Render {
+    let selected_task = RwSignal::<Option<usize>>::new(None);
+    let task_data = RwSignal::new(TASKS.to_vec());
 
-    let task_items = create_memo(move |_| {
+    let task_items = Memo::new(move |_| {
         task_data
             .get()
             .into_iter()
@@ -523,24 +578,28 @@ const LOGS: [(&str, &str); 26] = [
 ];
 
 #[component]
-fn Logs(constraint: Constraint) -> impl IntoView {
-    let log_data = create_rw_signal(LOGS.to_vec());
+fn Logs(constraint: Constraint) -> impl Render {
+    let log_data = RwSignal::new(LOGS.to_vec());
 
-    let event_context = use_event_context();
-    let tick_event = event_context.create_custom_event_signal::<Tick>();
-
-    create_effect(move |_| {
-        if tick_event.get().is_some() {
-            log_data.update(|logs| {
-                let mut logs = logs.clone();
-                let log = logs.pop().unwrap();
-                logs.insert(0, log);
-                logs
-            })
+    // let event_context = use_event_context();
+    // let tick_event = event_context.create_custom_event_signal::<Tick>();
+    let tick = use_context::<Tick>().unwrap();
+    Effect::new(move |prev| {
+        let seq = tick.0.get();
+        if let Some(prev) = prev {
+            if seq <= prev {
+                return seq;
+            }
         }
+        log_data.update(|logs| {
+            let mut logs = logs.clone();
+            let log = logs.pop().unwrap();
+            logs.insert(0, log);
+        });
+        seq
     });
 
-    let logs = create_memo(move |_| {
+    let logs = Memo::new(move |_| {
         let info_style = Style::default().fg(Color::Blue);
         let warning_style = Style::default().fg(Color::Yellow);
         let error_style = Style::default().fg(Color::Magenta);
@@ -606,21 +665,25 @@ const EVENTS: [(&str, u64); 24] = [
 ];
 
 #[component]
-fn DemoBarChart(enhanced_graphics: bool) -> impl IntoView {
-    let bar_chart_data = create_rw_signal(EVENTS.to_vec());
+fn DemoBarChart(enhanced_graphics: bool) -> impl Render {
+    let bar_chart_data = RwSignal::new(EVENTS.to_vec());
 
-    let event_context = use_event_context();
-    let tick_event = event_context.create_custom_event_signal::<Tick>();
+    // let event_context = use_event_context();
+    let tick = use_context::<Tick>().unwrap();
 
-    create_effect(move |_| {
-        if tick_event.get().is_some() {
-            bar_chart_data.update(|data| {
-                let mut data = data.clone();
-                let event = data.pop().unwrap();
-                data.insert(0, event);
-                data
-            })
+    Effect::new(move |prev| {
+        let seq = tick.0.get();
+        if let Some(prev) = prev {
+            if seq <= prev {
+                return seq;
+            }
         }
+        bar_chart_data.update(|data| {
+            let mut data = data.clone();
+            let event = data.pop().unwrap();
+            data.insert(0, event);
+        });
+        seq
     });
 
     view! {
@@ -670,106 +733,116 @@ impl Iterator for SinData {
 }
 
 #[component]
-fn DemoChart(enhanced_graphics: bool) -> impl IntoView {
+fn DemoChart(enhanced_graphics: bool) -> impl Render {
     let mut sin1_data = SinData::new(0.2, 3.0, 18.0);
-    let sin1 = create_rw_signal(RandomData::<SinData> {
+    let sin1 = RwSignal::new(RandomData::<SinData> {
         points: sin1_data.by_ref().take(100).collect(),
         source: sin1_data,
         tick_rate: 5,
     });
 
     let mut sin2_data = SinData::new(0.1, 2.0, 10.0);
-    let sin2 = create_rw_signal(RandomData::<SinData> {
+    let sin2 = RwSignal::new(RandomData::<SinData> {
         points: sin2_data.by_ref().take(200).collect(),
         source: sin2_data,
         tick_rate: 10,
     });
 
-    let window = create_rw_signal([0.0, 20.0]);
+    let window = RwSignal::new([0.0, 20.0]);
 
-    let event_context = use_event_context();
-    let tick_event = event_context.create_custom_event_signal::<Tick>();
+    // let event_context = use_event_context();
+    let tick = use_context::<Tick>().unwrap();
 
-    create_effect(move |_| {
-        if tick_event.get().is_some() {
-            window.update(|[start, end]| [start + 1.0, end + 1.0]);
-            sin1.update(|s| s.on_tick());
-            sin2.update(|s| s.on_tick());
+    Effect::new(move |prev| {
+        let seq = tick.0.get();
+        if let Some(prev) = prev {
+            if seq <= prev {
+                return seq;
+            }
         }
+        window.update(|[start, end]| {
+            *start += 1.0;
+            *end += 1.0;
+        });
+        sin1.update(|s| s.on_tick());
+        sin2.update(|s| s.on_tick());
+        seq
     });
 
-    let window_start = create_memo(move |_| window.get()[0]);
-    let window_end = create_memo(move |_| window.get()[1]);
+    let window_start = Memo::new(move |_| window.get()[0]);
+    let window_end = Memo::new(move |_| window.get()[1]);
 
     view! {
-            <Chart
-                block=prop! {
-                    <Block
-                        title=prop! {
-                            <Span cyan bold>
-                                "Chart"
-                            </Span>
-                        }
-                        borders=Borders::ALL
-                    />
-                }
-                x_axis=prop! {
-                    <Axis
-                        title="X Axis"
-                        gray
-                        bounds=window.get()
-                        labels=vec![
-                            prop! {
-                                <Span bold>
-                                    {window_start.get().to_string()}
-                                </Span>
-                            },
-                            prop! {
-                                <Span>{((window_start.get() + window_end.get()) /
-    2.0).to_string()}</Span>                         },
-                            prop! {
-                                <Span bold>
-                                    {window_end.get().to_string()}
-                                </Span>
-                            },
-                        ]
-                    />
-                }
-                y_axis=prop! {
-                    <Axis
-                        title="Y Axis"
-                        gray
-                        bounds=[-20.0, 20.0]
-                        labels=vec![
-                            prop!(<Span bold>"-20"</Span>),
-                            prop!(<Span>"0"</Span>),
-                            prop!(<Span bold>"20"</Span>)
-                        ]
-                    />
-                }
-            >
-                <DatasetOwned
-                    name="data2"
-                    marker=symbols::Marker::Dot
-                    cyan
-                    data=sin1.get().points
-                />
-                <DatasetOwned
-                    name="data3"
-                    marker=if enhanced_graphics {
-                        symbols::Marker::Braille
-                    } else {
-                        symbols::Marker::Dot
+        <Chart
+            block=prop! {
+                <Block
+                    title=prop! {
+                        <Span cyan bold>
+                            "Chart"
+                        </Span>
                     }
-                    yellow
-                    data=sin2.get().points
+                    borders=Borders::ALL
                 />
-            </Chart>
-        }
+            }
+            x_axis=prop! {
+                <Axis
+                    title="X Axis"
+                    gray
+                    bounds=window.get()
+                    labels=vec![
+                        prop! {
+                            <Span bold>
+                                {window_start.get().to_string()}
+                            </Span>
+                        },
+                        prop! {
+                            <Span>{
+                                ((window_start.get() + window_end.get()) / 2.0).to_string()
+                            }</Span>
+                        },
+                        prop! {
+                            <Span bold>
+                                {window_end.get().to_string()}
+                            </Span>
+                        },
+                    ]
+                />
+            }
+            y_axis=prop! {
+                <Axis
+                    title="Y Axis"
+                    gray
+                    bounds=[-20.0, 20.0]
+                    labels=vec![
+                        prop!(<Span bold>"-20"</Span>),
+                        prop!(<Span>"0"</Span>),
+                        prop!(<Span bold>"20"</Span>)
+                    ]
+                />
+            }
+        >
+            <DatasetOwned
+                name="data2"
+                marker=symbols::Marker::Dot
+                cyan
+                data=sin1.get().points
+            />
+            <DatasetOwned
+                name="data3"
+                marker=if enhanced_graphics {
+                    symbols::Marker::Braille
+                } else {
+                    symbols::Marker::Dot
+                }
+                yellow
+                data=sin2.get().points
+            />
+        </Chart>
+    }
 }
 
 #[component]
-fn Footer(constraint: Constraint) -> impl IntoView {
+fn Footer(constraint: Constraint) -> impl Render {
     view! {
         <Paragraph
             v:constraint=constraint
@@ -824,8 +897,8 @@ pub struct Server<'a> {
 }
 
 #[component]
-fn DemoTable(servers: RwSignal<Vec<Server<'static>>>, constraint: Constraint) -> impl IntoView {
-    let rows = create_memo(move |_| {
+fn DemoTable(servers: RwSignal<Vec<Server<'static>>>, constraint: Constraint) -> impl Render {
+    let rows = Memo::new(move |_| {
         servers
             .get()
             .into_iter()
@@ -866,7 +939,7 @@ fn DemoMap(
     servers: RwSignal<Vec<Server<'static>>>,
     enhanced_graphics: bool,
     constraint: Constraint,
-) -> impl IntoView {
+) -> impl Render {
     let paint_map = move |ctx: &mut Context<'_>| {
         let servers = servers.get();
         ctx.draw(&Map {
@@ -928,7 +1001,7 @@ fn DemoMap(
 }
 
 #[component]
-fn ColorsTable(constraint: Constraint) -> impl IntoView {
+fn ColorsTable(constraint: Constraint) -> impl Render {
     let colors = [
         Color::Reset,
         Color::Black,
@@ -949,7 +1022,7 @@ fn ColorsTable(constraint: Constraint) -> impl IntoView {
         Color::White,
     ];
 
-    let items = create_signal(
+    let items = signal(
         colors
             .iter()
             .map(|c| {

@@ -21,7 +21,7 @@ use rooibos::dom::{
 use rooibos::prelude::{for_each, ForEachProps};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{create_key_effect, Runtime, TickResult};
+use rooibos::runtime::{key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -77,7 +77,7 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 fn counter(initial_value: i32, step: u32) -> impl Render {
     let count = RwSignal::new(Count::new(initial_value, step));
 
-    let _effect = create_key_effect(move |event| {
+    let _effect = key_effect(move |event| {
         if event.code == KeyCode::Enter {
             count.update(Count::increase);
         }
@@ -92,7 +92,7 @@ fn counter(initial_value: i32, step: u32) -> impl Render {
 fn counters() -> impl Render {
     let count = RwSignal::new(Count::new(1, 1));
 
-    let _effect = create_key_effect(move |event| {
+    let _effect = key_effect(move |event| {
         if event.code == KeyCode::Char('i') {
             count.update(Count::increase);
         }
