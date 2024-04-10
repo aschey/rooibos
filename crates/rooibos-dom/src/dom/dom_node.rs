@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 use std::any::Any;
-use std::cell::{Ref, RefMut};
+use std::cell::Ref;
 use std::fmt;
 use std::rc::Rc;
 
@@ -63,7 +63,6 @@ pub(crate) enum NodeType {
         margin: u16,
         spacing: u16,
     },
-    Transparent,
     Overlay,
     Widget(DomWidget),
 }
@@ -81,12 +80,6 @@ impl NodeType {
                 attrs: Some(format!(
                     "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}"
                 )),
-                children: None,
-            },
-
-            NodeType::Transparent => NodeTypeStructure {
-                name: "Transparent",
-                attrs: None,
                 children: None,
             },
             NodeType::Overlay => NodeTypeStructure {
@@ -115,9 +108,6 @@ impl Debug for NodeType {
                 f,
                 "Layout(direction={direction}, flex={flex}, margin={margin}, spacing={spacing})"
             ),
-
-            NodeType::Transparent => write!(f, "Transparent"),
-            // NodeType::Root => write!(f, "Root"),
             NodeType::Overlay => write!(f, "Overlay"),
             NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
         }
@@ -138,24 +128,6 @@ pub(crate) struct DomNodeInner {
 }
 
 impl DomNodeInner {
-    pub(crate) fn resolve_children(
-        &self,
-        dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
-    ) -> Vec<(DomNodeKey, DomNodeInner)> {
-        let children: Vec<_> = self
-            .children
-            .iter()
-            .flat_map(|c| {
-                let child = &dom_nodes[*c];
-                if child.node_type == NodeType::Transparent {
-                    return child.resolve_children(dom_nodes);
-                }
-                vec![(*c, child.to_owned())]
-            })
-            .collect();
-        children
-    }
-
     fn render(
         &self,
         frame: &mut Frame,
@@ -168,9 +140,8 @@ impl DomNodeInner {
         if self.focusable {
             dom_state.add_focusable(key);
         }
-        let children: Vec<_> = self.resolve_children(dom_nodes);
 
-        let constraints = children.iter().map(|(_, c)| c.constraint);
+        let constraints = self.children.iter().map(|key| dom_nodes[*key].constraint);
 
         match &self.node_type {
             NodeType::Layout {
@@ -187,33 +158,26 @@ impl DomNodeInner {
                     .constraints(constraints);
 
                 let chunks = layout.split(rect);
-                children
+                self.children
                     .iter()
                     .zip(chunks.iter())
-                    .for_each(|((key, child), chunk)| {
-                        child.render(frame, *chunk, *key, dom_nodes, dom_state, Layout::default());
+                    .for_each(|(key, chunk)| {
+                        dom_nodes[*key].render(
+                            frame,
+                            *chunk,
+                            *key,
+                            dom_nodes,
+                            dom_state,
+                            Layout::default(),
+                        );
                     });
             }
 
             NodeType::Overlay => {
                 let parent_layout = parent_layout.constraints([self.constraint]);
                 let chunks = parent_layout.split(rect);
-                children.iter().for_each(|(key, child)| {
-                    child.render(
-                        frame,
-                        chunks[0],
-                        *key,
-                        dom_nodes,
-                        dom_state,
-                        parent_layout.clone(),
-                    );
-                });
-            }
-            NodeType::Transparent => {
-                let parent_layout = parent_layout.constraints([self.constraint]);
-                let chunks = parent_layout.split(rect);
-                children.iter().for_each(|(key, child)| {
-                    child.render(
+                self.children.iter().for_each(|key| {
+                    dom_nodes[*key].render(
                         frame,
                         chunks[0],
                         *key,
@@ -256,10 +220,6 @@ impl DomNode {
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self { key }
-    }
-
-    pub(crate) fn transparent(name: impl Into<String>) -> Self {
-        Self::from_fragment(DocumentFragment::transparent(name))
     }
 
     pub(crate) fn replace_fragment(&self, fragment: DocumentFragment) {
@@ -397,15 +357,3 @@ impl Render<RooibosDom> for DomNode {
         todo!()
     }
 }
-
-// impl IntoView for DomNode {
-//     fn into_view(self) -> View {
-//         View::DomNode(self)
-//     }
-// }
-
-// impl ToDomNode for DomNode {
-//     fn to_dom_node(&self) -> DomNode {
-//         self.clone()
-//     }
-// }

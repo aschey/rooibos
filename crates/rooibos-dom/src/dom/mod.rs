@@ -14,7 +14,6 @@ use crate::make_dom_widget;
 
 mod any_view;
 mod children;
-mod component;
 mod document_fragment;
 mod dom_node;
 mod dom_state;
@@ -25,7 +24,6 @@ mod into_view;
 
 pub use any_view::*;
 pub use children::*;
-pub use component::*;
 pub use document_fragment::*;
 pub use dom_node::*;
 pub use dom_widget::*;
@@ -109,7 +107,7 @@ impl Renderer for RooibosDom {
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        DomNode::from_fragment(DocumentFragment::transparent(""))
+        unimplemented!()
     }
 
     fn set_text(node: &Self::Text, text: &str) {
@@ -265,25 +263,12 @@ fn unmount_child(child: DomNodeKey) {
     notify();
 }
 
-pub fn print_dom<W: io::Write>(writer: &mut W, include_transparent: bool) -> io::Result<()> {
+pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
     DOM_ROOT.with(|dom| {
         DOM_NODES.with(|nodes| {
             let dom = dom.borrow();
             let nodes = nodes.borrow();
-            let root = &nodes[dom.as_ref().unwrap().key()];
-            if !include_transparent && root.node_type == NodeType::Transparent {
-                for (key, _) in &root.resolve_children(&nodes) {
-                    print_dom_inner(writer, &nodes, *key, "", include_transparent)?;
-                }
-            } else {
-                print_dom_inner(
-                    writer,
-                    &nodes,
-                    dom.as_ref().unwrap().key(),
-                    "",
-                    include_transparent,
-                )?;
-            }
+            print_dom_inner(writer, &nodes, dom.as_ref().unwrap().key(), "")?;
 
             Ok(())
         })
@@ -295,7 +280,6 @@ fn print_dom_inner<W: io::Write>(
     dom_ref: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
     key: DomNodeKey,
     indent: &str,
-    include_transparent: bool,
 ) -> io::Result<()> {
     let node = &dom_ref[key];
     let NodeTypeStructure {
@@ -319,14 +303,8 @@ fn print_dom_inner<W: io::Write>(
         writeln!(writer, "{indent}  {children}")?;
     }
     let child_indent = format!("{indent}  ");
-    if include_transparent {
-        for key in &node.children {
-            print_dom_inner(writer, dom_ref, *key, &child_indent, include_transparent)?;
-        }
-    } else {
-        for (key, _) in &node.resolve_children(dom_ref) {
-            print_dom_inner(writer, dom_ref, *key, &child_indent, include_transparent)?;
-        }
+    for key in &node.children {
+        print_dom_inner(writer, dom_ref, *key, &child_indent)?;
     }
 
     writeln!(writer, "{indent}</{node_name}>")?;

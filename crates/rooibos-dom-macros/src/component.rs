@@ -60,14 +60,6 @@ impl Parse for Model {
             }
         });
 
-        // if !is_valid_return_type(&item.sig.output) {
-        //     bail!(
-        //         item.sig.output,
-        //         "return type is incorrect";
-        //         help = "return signature must be `-> impl IntoView`"
-        //     );
-        // }
-
         Ok(Self {
             docs,
             vis: item.vis.clone(),
@@ -79,18 +71,6 @@ impl Parse for Model {
             body: item,
         })
     }
-}
-
-fn is_valid_return_type(return_type: &ReturnType) -> bool {
-    [
-        parse_quote!(-> impl IntoView),
-        parse_quote!(-> impl rooibos::dom::IntoView),
-        parse_quote!(-> impl ::rooibos::dom::IntoView),
-        parse_quote!(-> impl rooibos_dom::IntoView),
-        parse_quote!(-> impl ::rooibos_dom::IntoView),
-    ]
-    .iter()
-    .any(|test| return_type == test)
 }
 
 // implemented manually because Vec::drain_filter is nightly only

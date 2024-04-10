@@ -19,11 +19,11 @@ use rooibos::dom::{component, mount, render_dom, view, *};
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
-use rooibos::reactive::owner::{provide_context, use_context};
+use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::reactive::wrappers::read::Signal;
-use rooibos::runtime::{key_effect, Runtime, TickResult};
+use rooibos::runtime::{key_effect, use_focus, use_focus_with_id, Runtime, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
@@ -155,23 +155,22 @@ fn App() -> impl Render {
     //     }
     //     None
     // }));
-
+    let titles = StoredValue::new(vec!["Tab0", "Tab1", "Tab2"]);
     view! {
         <Col v:length=3>
-            <HeaderTabs titles=vec!["Tab0", "Tab1", "Tab2"]/>
+            <HeaderTabs titles=titles/>
         </Col>
 
     }
 }
 
 #[component]
-fn HeaderTabs(titles: Vec<&'static str>) -> impl Render {
-    let focus_context = use_focus_context::<usize>();
-    let focus_selector = focus_context.get_focus_selector();
+fn HeaderTabs(titles: StoredValue<Vec<&'static str>>) -> impl Render {
+    let (focused_tab, set_focused_tab) = signal(0);
 
     let update_current_tab = move |change: i32| {
-        let next = (focus_selector.get().unwrap() as i32 + change).rem_euclid(NUM_TABS as i32);
-        focus_context.set_focus(Some(next as usize));
+        let next = (focused_tab.get() as i32 + change).rem_euclid(NUM_TABS as i32);
+        set_focused_tab.set(next as usize);
     };
 
     let previous_tab = move || update_current_tab(-1);
@@ -191,35 +190,35 @@ fn HeaderTabs(titles: Vec<&'static str>) -> impl Render {
         }
     });
 
-    let titles = titles.iter().map(|t| {
-        prop! {
-            <Line>
-                <Span green>
-                    {*t}
-                </Span>
-            </Line>
-        }
-    });
     view! {
         <Col>
             <Tabs
                 v:length=3
                 block=prop!(<Block borders=Borders::ALL title="Demo"/>)
                 highlight_style=prop!(<Style yellow/>)
-                select=focus_selector.get().unwrap()
+                select=focused_tab.get()
             >
-                {titles}
+                {titles
+                    .get()
+                    .unwrap()
+                    .iter()
+                    .map(|t| {
+                        prop! {
+                            <Line>
+                                <Span green>
+                                    {*t}
+                                </Span>
+                            </Line>
+                        }
+                    })}
             </Tabs>
-            <TabContent/>
+            <TabContent focused=focused_tab/>
         </Col>
     }
 }
 
 #[component]
-fn TabContent() -> impl Render {
-    let focus_context = use_focus_context::<usize>();
-    let focus_selector = focus_context.get_focus_selector();
-
+fn TabContent(focused: ReadSignal<usize>) -> impl Render {
     // view! {
     //     <Switch>
     //         <Case when=move || focus_selector.get() == Some(0)>
@@ -235,10 +234,10 @@ fn TabContent() -> impl Render {
     // }
     view! {
         <Row>
-            {move || match focus_selector.get() {
-                Some(0) => view! (<Tab0/>).into_any(),
-                Some(1) => view! (<Tab1/>).into_any(),
-                Some(2) => view! (<Tab2/>).into_any(),
+            {move || match focused.get() {
+                0 => view! (<Tab0/>).into_any(),
+                1 => view! (<Tab1/>).into_any(),
+                2 => view! (<Tab2/>).into_any(),
                 _ => unreachable!()
             }
 

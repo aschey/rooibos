@@ -63,16 +63,6 @@ impl DocumentFragment {
         }
     }
 
-    pub(crate) fn transparent(name: impl Into<String>) -> Self {
-        Self {
-            node_type: NodeType::Transparent,
-            constraint: Constraint::default(),
-            flex: Flex::default(),
-            name: name.into(),
-            id: None,
-        }
-    }
-
     pub(crate) fn constraint(mut self, constraint: Constraint) -> Self {
         self.constraint = constraint;
         self
