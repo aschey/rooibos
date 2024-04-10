@@ -544,6 +544,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
 fn parse_named_element_children(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result {
     let mut tokens = vec![];
     let mut force_vec = false;
+    let mut block_count = 0;
     for node in nodes {
         match node {
             Node::Element(element) => {
@@ -565,6 +566,7 @@ fn parse_named_element_children(nodes: &[Node], emitter: &mut Emitter) -> manyho
             }
             Node::Block(block) => {
                 if let Some(block) = block.try_block() {
+                    block_count += 1;
                     // Get content without braces
                     let content: TokenStream =
                         block.stmts.iter().map(|s| s.to_token_stream()).collect();
@@ -587,8 +589,10 @@ fn parse_named_element_children(nodes: &[Node], emitter: &mut Emitter) -> manyho
         TokenStream::default()
     } else if tokens.len() == 1 && !force_vec {
         tokens[0].clone()
+    } else if block_count > 1 {
+        quote!(#(#tokens),*)
     } else {
-        quote! { vec![#(#tokens),*] }
+        quote!(vec![#(#tokens),*])
     })
 }
 

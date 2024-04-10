@@ -1021,26 +1021,23 @@ fn ColorsTable(constraint: Constraint) -> impl Render {
         Color::White,
     ];
 
-    let items = signal(
-        colors
-            .iter()
-            .map(|c| {
-                prop! {
-                    <Row>
-                        <Cell>{format!("{c:?}")}</Cell>
-                        <Cell fg=*c>"Foreground"</Cell>
-                        <Cell bg=*c>"Background"</Cell>
-                    </Row>
-                }
-            })
-            .collect::<Vec<_>>(),
-    );
     view! {
         <Table
             v:constraint=constraint
             block=prop!(<Block title="Colors" borders=Borders::ALL/>)
-        >
-            {items.get()}
+        > {
+            colors
+                .iter()
+                .map(|c| {
+                    prop! {
+                        <Row>
+                            <Cell>{format!("{c:?}")}</Cell>
+                            <Cell fg=*c>"Foreground"</Cell>
+                            <Cell bg=*c>"Background"</Cell>
+                        </Row>
+                    }
+                })
+            }
             {[
                 Constraint::Ratio(1, 3),
                 Constraint::Ratio(1, 3),
