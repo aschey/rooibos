@@ -22,7 +22,6 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::{key_effect, use_focus, use_focus_with_id, Runtime, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
@@ -88,6 +87,7 @@ async fn async_main() -> Result<()> {
         loop {
             if rt.tick().await == TickResult::Exit {
                 restore_terminal(terminal).unwrap();
+                guard.stop().await.ok();
                 return;
             }
             terminal
@@ -169,8 +169,10 @@ fn HeaderTabs(titles: StoredValue<Vec<&'static str>>) -> impl Render {
     let (focused_tab, set_focused_tab) = signal(0);
 
     let update_current_tab = move |change: i32| {
-        let next = (focused_tab.get() as i32 + change).rem_euclid(NUM_TABS as i32);
-        set_focused_tab.set(next as usize);
+        set_focused_tab.update(|f| {
+            let next = (*f as i32 + change).rem_euclid(NUM_TABS as i32);
+            *f = next as usize;
+        });
     };
 
     let previous_tab = move || update_current_tab(-1);
@@ -363,16 +365,17 @@ fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     Effect::new(move |prev| {
         let seq = tick.0.get();
         if let Some(prev) = prev {
-            if seq > prev {
-                set_progress.update(|p| {
-                    *p = if *p < 1.0 {
-                        (*p + 0.001f64).min(1.0)
-                    } else {
-                        0.0
-                    }
-                });
+            if seq <= prev {
+                return seq;
             }
         }
+        set_progress.update(|p| {
+            *p = if *p < 1.0 {
+                (*p + 0.001f64).min(1.0)
+            } else {
+                0.0
+            }
+        });
 
         seq
     });
@@ -485,20 +488,21 @@ fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
 
     view! {
         <Row v:constraint=constraint>
-            <Col v:percentage=if show_chart.get() { 50 } else { 100 }>
+            <Col v:constraint=move || Constraint::Percentage(if show_chart.get() { 50 } else { 100 })
+            >
                 <Row v:percentage=50>
                     <Col v:percentage=50>
-                        <TaskList constraint=Constraint::Percentage(50)/>
+                        <TaskList/>
                     </Col>
                     <Col v:percentage=50>
-                        <Logs constraint=Constraint::Percentage(50)/>
+                        <Logs/>
                     </Col>
                 </Row>
                 <Row v:percentage=50>
                     <DemoBarChart enhanced_graphics=enhanced_graphics/>
                 </Row>
             </Col>
-            <Col>
+            <Col v:constraint=move || Constraint::Percentage(if show_chart.get() { 50 } else { 0 })>
                 <DemoChart enhanced_graphics=enhanced_graphics/>
             </Col>
         </Row>
@@ -512,7 +516,7 @@ const TASKS: [&str; 24] = [
 ];
 
 #[component]
-fn TaskList(constraint: Constraint) -> impl Render {
+fn TaskList() -> impl Render {
     let selected_task = RwSignal::<Option<usize>>::new(None);
     let task_data = RwSignal::new(TASKS.to_vec());
 
@@ -536,7 +540,6 @@ fn TaskList(constraint: Constraint) -> impl Render {
 
     view! {
         <StatefulList
-            v:constraint=constraint
             v:state=prop!(<ListState with_selected=selected_task.get()/>)
             block=prop!(<Block borders=Borders::ALL title="List"/>)
             highlight_style=prop!(<Style bold/>)
@@ -577,11 +580,9 @@ const LOGS: [(&str, &str); 26] = [
 ];
 
 #[component]
-fn Logs(constraint: Constraint) -> impl Render {
+fn Logs() -> impl Render {
     let log_data = RwSignal::new(LOGS.to_vec());
 
-    // let event_context = use_event_context();
-    // let tick_event = event_context.create_custom_event_signal::<Tick>();
     let tick = use_context::<Tick>().unwrap();
     Effect::new(move |prev| {
         let seq = tick.0.get();
@@ -591,7 +592,6 @@ fn Logs(constraint: Constraint) -> impl Render {
             }
         }
         log_data.update(|logs| {
-            let mut logs = logs.clone();
             let log = logs.pop().unwrap();
             logs.insert(0, log);
         });
@@ -608,30 +608,32 @@ fn Logs(constraint: Constraint) -> impl Render {
             .get()
             .into_iter()
             .map(|(evt, level)| {
-                let s = match level {
+                let style = match level {
                     "ERROR" => error_style,
                     "CRITICAL" => critical_style,
                     "WARNING" => warning_style,
                     _ => info_style,
                 };
-                prop! {
-                    <ListItem>
-                        <Line>
-                            <Span style=s>{format!("{level:<9}")}</Span>
-                            <Span>{evt}</Span>
-                        </Line>
-                    </ListItem>
-                }
+                (evt, level, style)
             })
             .collect::<Vec<_>>()
     });
 
     view! {
         <List
-            v:constraint=constraint
             block=prop!(<Block borders=Borders::ALL title="Logs"/>)
-        >
-            {logs.get()}
+        > {
+            logs.get().iter().map(|(evt, level, style)| {
+                prop! {
+                    <ListItem>
+                        <Line>
+                            <Span style=*style>{format!("{level:<9}")}</Span>
+                            <Span>{*evt}</Span>
+                        </Line>
+                    </ListItem>
+                }
+            })
+        }
         </List>
     }
 }

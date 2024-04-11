@@ -14,6 +14,7 @@ pub struct AnyView {
 
 pub struct AnyViewState {
     type_id: TypeId,
+    parent: Option<DomNode>,
     state: Box<dyn Any>,
     unmount: fn(&mut dyn Any),
     mount: fn(&mut dyn Any, parent: &DomNode, marker: Option<&DomNode>),
@@ -79,9 +80,6 @@ where
     T: Render<RooibosDom> + 'static,
     T::State: 'static,
 {
-    // inlining allows the compiler to remove the unused functions
-    // i.e., doesn't ship HTML-generating code that isn't used
-    #[inline(always)]
     fn into_any(self) -> AnyView {
         let value = Box::new(self) as Box<dyn Any>;
 
@@ -94,7 +92,7 @@ where
             AnyViewState {
                 type_id: TypeId::of::<T>(),
                 state,
-
+                parent: None,
                 mount: mount_any::<T>,
                 unmount: unmount_any::<T>,
                 insert_before_this: insert_before_this::<T>,
@@ -112,11 +110,13 @@ where
                     .expect("AnyView::rebuild couldn't downcast state");
                 value.rebuild(state);
             } else {
-                let new = value.into_any().build();
+                let mut new = value.into_any().build();
 
-                // TODO mount new state
-                /* R::mount_before(&mut new, state.placeholder.as_ref()); */
                 state.unmount();
+                if let Some(parent) = &state.parent {
+                    new.mount(parent, None);
+                }
+
                 *state = new;
             }
         };
@@ -162,6 +162,7 @@ impl Mountable<RooibosDom> for AnyViewState {
     }
 
     fn mount(&mut self, parent: &DomNode, marker: Option<&DomNode>) {
+        self.parent = Some(parent.clone());
         (self.mount)(&mut *self.state, parent, marker)
     }
 

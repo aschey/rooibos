@@ -140,12 +140,6 @@ impl Runtime {
     }
 }
 
-// impl Drop for Runtime {
-//     fn drop(&mut self) {
-//         self.owner.dispose();
-//     }
-// }
-
 #[derive(Clone)]
 pub struct RuntimeHandle {
     custom_event_tx: mpsc::Sender<Box<dyn AnyClone + Send>>,

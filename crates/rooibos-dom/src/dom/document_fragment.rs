@@ -1,7 +1,11 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use ratatui::layout::{Constraint, Direction, Flex};
 
 use super::dom_node::{NodeId, NodeType};
 use super::dom_widget::DomWidget;
+use crate::LayoutProps;
 
 #[derive(Clone, PartialEq, Eq)]
 pub struct DocumentFragment {
@@ -25,12 +29,10 @@ impl DocumentFragment {
 
     pub(crate) fn row() -> Self {
         Self {
-            node_type: NodeType::Layout {
+            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutProps {
                 direction: Direction::Horizontal,
-                flex: Flex::default(),
-                margin: 0,
-                spacing: 0,
-            },
+                ..Default::default()
+            }))),
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "row".to_string(),
@@ -40,12 +42,10 @@ impl DocumentFragment {
 
     pub(crate) fn col() -> Self {
         Self {
-            node_type: NodeType::Layout {
+            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutProps {
                 direction: Direction::Vertical,
-                flex: Flex::default(),
-                margin: 0,
-                spacing: 0,
-            },
+                ..Default::default()
+            }))),
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "col".to_string(),

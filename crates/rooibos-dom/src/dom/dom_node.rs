@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 use std::any::Any;
-use std::cell::Ref;
+use std::cell::{Ref, RefCell};
 use std::fmt;
 use std::rc::Rc;
 
@@ -55,14 +55,17 @@ pub(crate) struct NodeTypeStructure {
     pub(crate) children: Option<String>,
 }
 
+#[derive(PartialEq, Eq, Clone, Copy, Default)]
+pub(crate) struct LayoutProps {
+    pub(crate) direction: Direction,
+    pub(crate) flex: Flex,
+    pub(crate) margin: u16,
+    pub(crate) spacing: u16,
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) enum NodeType {
-    Layout {
-        direction: Direction,
-        flex: Flex,
-        margin: u16,
-        spacing: u16,
-    },
+    Layout(Rc<RefCell<LayoutProps>>),
     Overlay,
     Widget(DomWidget),
 }
@@ -70,18 +73,21 @@ pub(crate) enum NodeType {
 impl NodeType {
     pub(crate) fn structure(&self) -> NodeTypeStructure {
         match self {
-            NodeType::Layout {
-                direction,
-                flex,
-                margin,
-                spacing,
-            } => NodeTypeStructure {
-                name: "Layout",
-                attrs: Some(format!(
-                    "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}"
-                )),
-                children: None,
-            },
+            NodeType::Layout(layout_props) => {
+                let LayoutProps {
+                    direction,
+                    flex,
+                    margin,
+                    spacing,
+                } = *layout_props.borrow();
+                NodeTypeStructure {
+                    name: "Layout",
+                    attrs: Some(format!(
+                        "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}"
+                    )),
+                    children: None,
+                }
+            }
             NodeType::Overlay => NodeTypeStructure {
                 name: "Overlay",
                 attrs: None,
@@ -99,15 +105,19 @@ impl NodeType {
 impl Debug for NodeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            NodeType::Layout {
-                direction,
-                flex,
-                margin,
-                spacing,
-            } => write!(
-                f,
-                "Layout(direction={direction}, flex={flex}, margin={margin}, spacing={spacing})"
-            ),
+            NodeType::Layout(layout_props) => {
+                let LayoutProps {
+                    direction,
+                    flex,
+                    margin,
+                    spacing,
+                } = *layout_props.borrow();
+                write!(
+                    f,
+                    "Layout(direction={direction}, flex={flex}, margin={margin}, \
+                     spacing={spacing})"
+                )
+            }
             NodeType::Overlay => write!(f, "Overlay"),
             NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
         }
@@ -118,13 +128,13 @@ impl Debug for NodeType {
 pub(crate) struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
-    pub(crate) constraint: Constraint,
+    pub(crate) constraint: Rc<RefCell<Constraint>>,
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) focusable: bool,
-    data: Option<Rc<dyn Any>>,
+    data: Vec<Rc<dyn Any>>,
 }
 
 impl DomNodeInner {
@@ -141,20 +151,25 @@ impl DomNodeInner {
             dom_state.add_focusable(key);
         }
 
-        let constraints = self.children.iter().map(|key| dom_nodes[*key].constraint);
+        let constraints = self
+            .children
+            .iter()
+            .map(|key| *dom_nodes[*key].constraint.borrow());
 
         match &self.node_type {
-            NodeType::Layout {
-                direction,
-                margin,
-                flex,
-                spacing,
-            } => {
+            NodeType::Layout(layout_props) => {
+                let LayoutProps {
+                    direction,
+                    flex,
+                    margin,
+                    spacing,
+                } = *layout_props.borrow();
+
                 let layout = Layout::default()
-                    .direction(*direction)
-                    .flex(*flex)
-                    .margin(*margin)
-                    .spacing(*spacing)
+                    .direction(direction)
+                    .flex(flex)
+                    .margin(margin)
+                    .spacing(spacing)
                     .constraints(constraints);
 
                 let chunks = layout.split(rect);
@@ -174,7 +189,7 @@ impl DomNodeInner {
             }
 
             NodeType::Overlay => {
-                let parent_layout = parent_layout.constraints([self.constraint]);
+                let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
                 let chunks = parent_layout.split(rect);
                 self.children.iter().for_each(|key| {
                     dom_nodes[*key].render(
@@ -188,7 +203,7 @@ impl DomNodeInner {
                 });
             }
             NodeType::Widget(widget) => {
-                let parent_layout = parent_layout.constraints([self.constraint]);
+                let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
                 let chunks = parent_layout.split(rect);
                 widget.render(frame, chunks[0]);
             }
@@ -202,21 +217,21 @@ pub struct DomNode {
 }
 
 impl DomNode {
-    pub(crate) fn from_key(key: DomNodeKey) -> Self {
-        Self { key }
-    }
+    // pub(crate) fn from_key(key: DomNodeKey) -> Self {
+    //     Self { key }
+    // }
 
     pub(crate) fn from_fragment(fragment: DocumentFragment) -> Self {
         let inner = DomNodeInner {
             name: fragment.name.clone(),
             node_type: fragment.node_type,
-            constraint: fragment.constraint,
+            constraint: Rc::new(RefCell::new(fragment.constraint)),
             children: vec![],
             parent: None,
             before_pending: vec![],
             focusable: fragment.id.is_some(),
             id: fragment.id,
-            data: None,
+            data: vec![],
         };
         let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
         Self { key }
@@ -226,26 +241,26 @@ impl DomNode {
         let inner = DomNodeInner {
             name: fragment.name.clone(),
             node_type: fragment.node_type,
-            constraint: fragment.constraint,
+            constraint: Rc::new(RefCell::new(fragment.constraint)),
             children: vec![],
             parent: None,
             before_pending: vec![],
             focusable: fragment.id.is_some(),
             id: fragment.id,
-            data: None,
+            data: vec![],
         };
         DOM_NODES.with(|n| n.borrow_mut()[self.key] = inner);
     }
 
-    pub(crate) fn set_data(&self, data: impl Any) {
-        DOM_NODES.with(|n| n.borrow_mut()[self.key].data = Some(Rc::new(data)));
+    pub(crate) fn add_data(&self, data: impl Any) {
+        DOM_NODES.with(|n| n.borrow_mut()[self.key].data.push(Rc::new(data)));
     }
 
     pub(crate) fn set_name(&self, name: impl Into<String>) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
     }
 
-    pub(crate) fn set_constraint(&self, constraint: Constraint) {
+    pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].constraint = constraint);
     }
 
@@ -257,13 +272,15 @@ impl DomNode {
         });
     }
 
-    pub(crate) fn set_margin(&self, new_margin: u16) {
+    pub(crate) fn layout_props(&self) -> Rc<RefCell<LayoutProps>> {
         DOM_NODES.with(|n| {
             let mut n = n.borrow_mut();
-            if let NodeType::Layout { margin, .. } = &mut n[self.key].node_type {
-                *margin = new_margin;
+            if let NodeType::Layout(layout_props) = &mut n[self.key].node_type {
+                layout_props.clone()
+            } else {
+                Rc::new(RefCell::new(LayoutProps::default()))
             }
-        });
+        })
     }
 
     pub(crate) fn key(&self) -> DomNodeKey {
@@ -317,7 +334,7 @@ impl DomNode {
             let d = d.borrow();
             with_state_mut(|state| {
                 state.clear_focused();
-                let constraint = d[self.key].constraint;
+                let constraint = *d[self.key].constraint.borrow();
 
                 d[self.key].render(
                     frame,

@@ -101,22 +101,6 @@ impl Render<RooibosDom> for DomWidget {
     }
 }
 
-// impl IntoView for DomWidget {
-//     fn into_view(self) -> View {
-//         View::DomWidget(self)
-//     }
-// }
-
-// impl ToDomNode for DomWidget {
-//     fn to_dom_node(&self) -> DomNode {
-//         DomNode::from_fragment(
-//             DocumentFragment::widget(self.clone())
-//                 .constraint(self.constraint)
-//                 .id(self.dom_id.clone()),
-//         )
-//     }
-// }
-
 impl PartialEq for DomWidget {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id

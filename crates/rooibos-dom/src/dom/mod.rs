@@ -107,7 +107,7 @@ impl Renderer for RooibosDom {
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        unimplemented!()
+        DomNode::from_fragment(DocumentFragment::widget(make_dom_widget("placeholder", "")))
     }
 
     fn set_text(node: &Self::Text, text: &str) {
@@ -117,19 +117,19 @@ impl Renderer for RooibosDom {
         )))
     }
 
-    fn set_attribute(node: &Self::Element, name: &str, value: &str) {
-        todo!()
+    fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
+        unimplemented!()
     }
 
-    fn remove_attribute(node: &Self::Element, name: &str) {
-        todo!()
+    fn remove_attribute(_node: &Self::Element, _name: &str) {
+        unimplemented!()
     }
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
-        mount_child(MountKind::Append(parent), new_child);
+        mount_child(parent, new_child);
     }
 
-    fn remove_node(parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
+    fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
         unmount_child(child.key());
         Some(child.clone())
     }
@@ -179,9 +179,9 @@ impl Mountable<RooibosDom> for DomNode {
     fn mount(
         &mut self,
         parent: &<RooibosDom as Renderer>::Element,
-        marker: Option<&<RooibosDom as Renderer>::Node>,
+        _marker: Option<&<RooibosDom as Renderer>::Node>,
     ) {
-        mount_child(MountKind::Append(parent), self);
+        mount_child(parent, self);
     }
 
     fn insert_before_this(
@@ -199,17 +199,8 @@ pub enum MountKind<'a> {
     Append(&'a DomNode),
 }
 
-fn mount_child(kind: MountKind, child: &DomNode) -> DomNodeKey {
-    // let child = child.to_dom_node();
-    // let child = child.build();
-    match kind {
-        MountKind::Append(node) => {
-            node.append_child(&child);
-        }
-        MountKind::Before(node) => {
-            node.before(&child);
-        }
-    }
+fn mount_child(parent: &DomNode, child: &DomNode) -> DomNodeKey {
+    parent.append_child(child);
     notify();
     child.key()
 }
@@ -225,29 +216,29 @@ fn cleanup_removed_nodes(
     nodes.remove(*node);
 }
 
-fn disconnect_child(child: DomNodeKey) {
-    DOM_NODES.with(|d| {
-        let mut d = d.borrow_mut();
-        let child_node = &d[child];
-        if let Some(parent) = child_node.parent {
-            let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
-            d[parent].children.remove(child_pos);
-        }
-        d[child].parent = None;
-    });
-}
+// fn disconnect_child(child: DomNodeKey) {
+//     DOM_NODES.with(|d| {
+//         let mut d = d.borrow_mut();
+//         let child_node = &d[child];
+//         if let Some(parent) = child_node.parent {
+//             let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
+//             d[parent].children.remove(child_pos);
+//         }
+//         d[child].parent = None;
+//     });
+// }
 
-fn replace_child(current: DomNodeKey, new: &DomNode) {
-    let parent = DOM_NODES.with(|d| {
-        let d = d.borrow();
-        let current_node = &d[current];
-        current_node.parent
-    });
-    disconnect_child(current);
-    if let Some(parent) = parent {
-        mount_child(MountKind::Append(&DomNode::from_key(parent)), new);
-    }
-}
+// fn replace_child(current: DomNodeKey, new: &DomNode) {
+//     let parent = DOM_NODES.with(|d| {
+//         let d = d.borrow();
+//         let current_node = &d[current];
+//         current_node.parent
+//     });
+//     disconnect_child(current);
+//     if let Some(parent) = parent {
+//         mount_child(&DomNode::from_key(parent), new);
+//     }
+// }
 
 fn unmount_child(child: DomNodeKey) {
     DOM_NODES.with(|d| {
@@ -296,7 +287,7 @@ fn print_dom_inner<W: io::Write>(
     if let Some(attrs) = attrs {
         write!(writer, " {attrs}")?;
     }
-    write!(writer, " constraint={}", node.constraint)?;
+    write!(writer, " constraint={}", node.constraint.borrow().clone())?;
 
     writeln!(writer, ">")?;
     if let Some(children) = children {

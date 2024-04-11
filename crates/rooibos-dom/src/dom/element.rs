@@ -1,20 +1,39 @@
-use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::Debug;
+use std::rc::Rc;
 
 use next_tuple::TupleBuilder;
-use ratatui::layout::Constraint;
+use ratatui::layout::{Constraint, Flex};
+use reactive_graph::effect::RenderEffect;
 use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use super::mount_child;
-use crate::{MountKind, RooibosDom};
+use crate::{notify, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<Children> {
     inner: DomNode,
     children: Children,
+}
+
+pub trait ToProperty<T> {
+    fn to_property(&self) -> T;
+}
+
+impl<F, T> ToProperty<T> for F
+where
+    F: Fn() -> T,
+{
+    fn to_property(&self) -> T {
+        self()
+    }
+}
+
+impl ToProperty<Constraint> for Constraint {
+    fn to_property(&self) -> Constraint {
+        *self
+    }
 }
 
 impl<Children> Element<Children>
@@ -28,8 +47,20 @@ where
         }
     }
 
-    pub fn constraint(self, constraint: Constraint) -> Self {
-        self.inner.set_constraint(constraint);
+    pub fn constraint<T>(self, constraint: T) -> Self
+    where
+        T: ToProperty<Constraint> + 'static,
+    {
+        let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
+        let effect = RenderEffect::new({
+            let constraint_rc = constraint_rc.clone();
+            move |_| {
+                *constraint_rc.borrow_mut() = constraint.to_property();
+                notify();
+            }
+        });
+        self.inner.set_constraint(constraint_rc);
+        self.inner.add_data(effect);
         self
     }
 
@@ -38,17 +69,51 @@ where
         self
     }
 
-    pub fn margin(self, margin: u16) -> Self {
-        self.inner.set_margin(margin);
+    pub fn margin<T>(self, margin: T) -> Self
+    where
+        T: ToProperty<u16> + 'static,
+    {
+        let layout_props = self.inner.layout_props();
+        let effect = RenderEffect::new({
+            move |_| {
+                layout_props.borrow_mut().margin = margin.to_property();
+                notify();
+            }
+        });
+        self.inner.add_data(effect);
+        self
+    }
+
+    pub fn flex<T>(self, flex: T) -> Self
+    where
+        T: ToProperty<Flex> + 'static,
+    {
+        let layout_props = self.inner.layout_props();
+        let effect = RenderEffect::new({
+            move |_| {
+                layout_props.borrow_mut().flex = flex.to_property();
+                notify();
+            }
+        });
+        self.inner.add_data(effect);
+        self
+    }
+
+    pub fn spacing<T>(self, spacing: T) -> Self
+    where
+        T: ToProperty<u16> + 'static,
+    {
+        let layout_props = self.inner.layout_props();
+        let effect = RenderEffect::new({
+            move |_| {
+                layout_props.borrow_mut().spacing = spacing.to_property();
+                notify();
+            }
+        });
+        self.inner.add_data(effect);
         self
     }
 }
-
-// impl<Children> ToDomNode for Element<Children> {
-//     fn to_dom_node(&self) -> DomNode {
-//         self.inner.clone()
-//     }
-// }
 
 pub fn row() -> Element<()> {
     Element {
@@ -85,20 +150,17 @@ where
         let mut children = self.children.build();
         children.mount(&self.inner, None);
         // Store children output to prevent drop effects from occurring
-        self.inner.set_data(children);
+        self.inner.add_data(children);
         self.inner
     }
 
-    fn rebuild(self, state: &mut Self::State) {
-        // todo!()
-        // self.children.rebuild(state);
-    }
+    fn rebuild(self, _state: &mut Self::State) {}
 
     fn try_build(self) -> any_error::Result<Self::FallibleState> {
         todo!()
     }
 
-    fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
+    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
         todo!()
     }
 
