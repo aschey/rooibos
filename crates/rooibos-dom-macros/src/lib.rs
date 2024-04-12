@@ -27,6 +27,12 @@ pub fn view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
 
 #[manyhow]
 #[proc_macro]
+pub fn any_view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+    view::any_view(tokens, emitter)
+}
+
+#[manyhow]
+#[proc_macro]
 pub fn prop(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
     view::prop(tokens, emitter)
 }

@@ -237,9 +237,9 @@ fn TabContent(focused: ReadSignal<usize>) -> impl Render {
     view! {
         <Row>
             {move || match focused.get() {
-                0 => view! (<Tab0/>).into_any(),
-                1 => view! (<Tab1/>).into_any(),
-                2 => view! (<Tab2/>).into_any(),
+                0 => any_view!(<Tab0/>),
+                1 => any_view!(<Tab1/>),
+                2 => any_view!(<Tab2/>),
                 _ => unreachable!()
             }
 

@@ -4,7 +4,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use rstml::node::{KeyedAttribute, Node, NodeAttribute, NodeElement};
 use syn::spanned::Spanned;
-use syn::{parse_quote, Block, Expr, ExprLit, Generics, Lit, LitInt};
+use syn::{parse_quote, Block, Expr, Generics};
 
 #[derive(Clone, Debug)]
 enum Constraint {
@@ -452,6 +452,11 @@ pub(crate) fn view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Resul
             #view
         }
     })
+}
+
+pub(crate) fn any_view(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+    let view = view(tokens, emitter)?;
+    Ok(quote!((#view).into_any()))
 }
 
 pub(crate) fn prop(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
