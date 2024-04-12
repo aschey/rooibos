@@ -518,34 +518,45 @@ const TASKS: [&str; 24] = [
 #[component]
 fn TaskList() -> impl Render {
     let selected_task = RwSignal::<Option<usize>>::new(None);
-    let task_data = RwSignal::new(TASKS.to_vec());
 
-    let task_items = Memo::new(move |_| {
-        task_data
-            .get()
-            .into_iter()
-            .map(|t| {
-                prop! {
-                    <ListItem>
-                        <>
-                            <Line>
-                                <Span>{t}</Span>
-                            </Line>
-                        </>
-                    </ListItem>
-                }
-            })
-            .collect::<Vec<_>>()
+    let update_current_task = move |change: i32| {
+        selected_task.update(|sel| match sel {
+            Some(s) => {
+                let next = (*s as i32 + change).rem_euclid(TASKS.len() as i32);
+                *sel = Some(next as usize);
+            }
+            None => *sel = Some(0),
+        });
+    };
+
+    key_effect(move |key| {
+        if key.code == KeyCode::Up {
+            update_current_task(-1)
+        } else if key.code == KeyCode::Down {
+            update_current_task(1);
+        }
     });
 
     view! {
         <StatefulList
-            v:state=prop!(<ListState with_selected=selected_task.get()/>)
+            v:state= move || prop!(<ListState with_selected=selected_task.get()/>)
             block=prop!(<Block borders=Borders::ALL title="List"/>)
             highlight_style=prop!(<Style bold/>)
             highlight_symbol="> "
-        >
-            {task_items.get()}
+        > {
+            TASKS
+                .map(|t| {
+                    prop! {
+                        <ListItem>
+                            <>
+                                <Line>
+                                    <Span>{t}</Span>
+                                </Line>
+                            </>
+                        </ListItem>
+                    }
+                })
+            }
         </StatefulList>
     }
 }

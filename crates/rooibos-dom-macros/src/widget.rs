@@ -5,14 +5,12 @@ use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
 use syn::{DeriveInput, Generics, Token, Visibility, WhereClause};
 
-use crate::{get_dom_import, get_reactive_import};
-
 pub(crate) struct Model {
     name: Ident,
     make_builder: Ident,
     vis: Visibility,
     generics: Generics,
-    stateful_render: Ident,
+    state_generics: Generics,
     pub(crate) stateful: bool,
 }
 
@@ -21,9 +19,9 @@ impl Parse for Model {
         let name: Ident = input.parse()?;
 
         let mut make_builder = Ident::new("_", Span::call_site());
-        let mut stateful_render = Ident::new("_", Span::call_site());
         let mut vis = Visibility::Inherited;
         let mut generics = Generics::default();
+        let mut state_generics = Generics::default();
         let mut where_clause: Option<WhereClause> = None;
         while !input.is_empty() {
             let _: syn::Token![,] = input.parse()?;
@@ -36,14 +34,14 @@ impl Parse for Model {
                 "generics" => {
                     generics = input.parse()?;
                 }
+                "state_generics" => {
+                    state_generics = input.parse()?;
+                }
                 "where_clause" => {
                     where_clause = Some(input.parse()?);
                 }
                 "make_builder" => {
                     make_builder = input.parse()?;
-                }
-                "stateful_render" => {
-                    stateful_render = input.parse()?;
                 }
                 prop => {
                     return Err(syn::Error::new_spanned(
@@ -58,8 +56,8 @@ impl Parse for Model {
             name,
             vis,
             generics,
+            state_generics,
             make_builder,
-            stateful_render,
             stateful: false,
         })
     }
@@ -72,7 +70,7 @@ impl ToTokens for Model {
             self.make_builder.clone(),
             self.vis.clone(),
             self.generics.clone(),
-            self.stateful_render.clone(),
+            self.state_generics.clone(),
             self.stateful,
         ));
     }
@@ -84,12 +82,6 @@ struct MakeBuilder {
     name: Ident,
 }
 
-#[derive(Clone, Debug, Attribute)]
-#[attribute(ident = stateful_render_trait)]
-struct StatefulRender {
-    name: Ident,
-}
-
 pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
     let make_builder = MakeBuilder::from_attributes(&input.attrs).unwrap();
 
@@ -98,20 +90,18 @@ pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
         make_builder.name,
         input.vis,
         input.generics,
-        Ident::new("_", Span::call_site()),
+        Generics::default(),
         false,
     )
 }
 
 pub(crate) fn derive_stateful_widget(input: DeriveInput) -> TokenStream {
-    let stateful_render = StatefulRender::from_attributes(&input.attrs).unwrap();
-
     get_tokens(
         input.ident,
         Ident::new("_", Span::call_site()),
         input.vis,
         input.generics,
-        stateful_render.name,
+        Generics::default(),
         true,
     )
 }
@@ -121,7 +111,7 @@ fn get_tokens(
     make_builder: Ident,
     vis: Visibility,
     generics: Generics,
-    stateful_render: Ident,
+    state_generics: Generics,
     stateful: bool,
 ) -> TokenStream {
     let snake_name = if stateful {
@@ -140,6 +130,7 @@ fn get_tokens(
     let props_name = Ident::new(&props_name, Span::call_site());
 
     let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+    let (_, state_ty_generics, _) = state_generics.split_for_impl();
     let mut generics_static = generics.clone();
     if let Some(lifetime) = generics_static.lifetimes_mut().next() {
         lifetime.lifetime.ident = Ident::new("static", lifetime.lifetime.ident.span());
@@ -150,34 +141,17 @@ fn get_tokens(
     if stateful {
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
-            impl #impl_generics #stateful_render<#props_name #ty_generics>
-            for ::std::cell::RefCell<#state_name> #where_clause
-            {
-                fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame,
-                    rect: Rect) {
-                    frame.render_stateful_widget(widget, rect, &mut self.borrow_mut())
-                }
-            }
-
-            impl #impl_generics #stateful_render<#props_name #ty_generics> for #state_name
-            {
-                fn render_with_state(&mut self, widget: #props_name, frame: &mut Frame,
-                    rect: Rect) {
-                    frame.render_stateful_widget(widget, rect, &mut self.clone())
-                }
-            }
-
             #vis type #props_name #ty_generics = #name #ty_generics;
 
             #vis fn #fn_name #impl_generics (
                 props: impl Fn() -> #props_name #ty_generics_static + 'static,
-                mut state: impl #stateful_render<#name #ty_generics> + Clone + 'static,
+                mut state: impl Fn() -> #state_name #state_ty_generics + 'static,
             ) -> DomWidget {
                 DomWidget::new(#type_name, move || {
                     let props = props();
-                    let mut state = state.clone();
+                    let mut state = state();
                     move |frame: &mut Frame, rect: Rect| {
-                        state.render_with_state(props.clone(), frame, rect);
+                        frame.render_stateful_widget(props.clone(), rect, &mut state);
                     }
                 })
             }

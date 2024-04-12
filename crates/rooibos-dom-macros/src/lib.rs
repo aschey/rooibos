@@ -73,13 +73,6 @@ pub fn make_builder(attr: TokenStream, tokens: TokenStream) -> manyhow::Result {
     Ok(attr_make_builder(attr, tokens))
 }
 
-#[manyhow]
-#[proc_macro]
-pub fn impl_stateful_render(tokens: TokenStream) -> manyhow::Result {
-    let input: view_traits::StatefulModel = syn::parse2(tokens)?;
-    Ok(input.into_token_stream())
-}
-
 fn get_dom_import() -> proc_macro2::TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {

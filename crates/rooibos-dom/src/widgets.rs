@@ -4,16 +4,14 @@ use ratatui::prelude::*;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::canvas::{Canvas, Context};
-use ratatui::widgets::{StatefulWidget, *};
+use ratatui::widgets::*;
 use ratatui::Frame;
-use rooibos_dom_macros::{impl_stateful_render, impl_stateful_widget, impl_widget, make_builder};
+use rooibos_dom_macros::{impl_stateful_widget, impl_widget, make_builder};
 
 use crate::DomWidget;
 
 #[make_builder]
 pub trait MakeBuilder {}
-
-impl_stateful_render!(StatefulRender, visibility=pub);
 
 pub trait NewExt<'a, T>
 where
@@ -78,9 +76,9 @@ impl_widget!(LineGauge, visibility=pub, generics=<'a>, make_builder=MakeBuilder)
 impl_widget!(BarChart, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
 impl_widget!(Clear, visibility=pub, make_builder=MakeBuilder);
 impl_widget!(Canvas, visibility=pub, generics=<'a, F>, make_builder=MakeBuilder, where_clause=where F: Fn(&mut Context) + Clone + 'static);
-impl_stateful_widget!(List, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
-impl_stateful_widget!(Table, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
-impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>, stateful_render=StatefulRender);
+impl_stateful_widget!(List, visibility=pub, generics=<'a>);
+impl_stateful_widget!(Table, visibility=pub, generics=<'a>);
+impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>);
 
 pub fn make_dom_widget<W: Widget + Clone + 'static>(
     name: impl Into<String>,
