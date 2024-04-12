@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::AtomicU32;
 
 use ratatui::prelude::*;
 use ratatui::style::Style;
@@ -9,8 +9,6 @@ use ratatui::Frame;
 use rooibos_dom_macros::{impl_stateful_render, impl_stateful_widget, impl_widget, make_builder};
 
 use crate::DomWidget;
-
-pub static __NODE_ID: AtomicU32 = AtomicU32::new(1);
 
 #[make_builder]
 pub trait MakeBuilder {}
@@ -88,7 +86,7 @@ pub fn make_dom_widget<W: Widget + Clone + 'static>(
     name: impl Into<String>,
     widget: W,
 ) -> DomWidget {
-    DomWidget::new(__NODE_ID.fetch_add(1, Ordering::Relaxed), name, move || {
+    DomWidget::new(name, move || {
         let widget = widget.clone();
         move |frame, rect| {
             frame.render_widget(widget.clone(), rect);

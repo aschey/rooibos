@@ -146,8 +146,7 @@ fn get_tokens(
     }
     let (_, ty_generics_static, _) = generics_static.split_for_impl();
     let type_name = Literal::string(&name.to_string());
-    let crate_name = get_dom_import();
-    let reactive = get_reactive_import();
+
     if stateful {
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
@@ -174,7 +173,7 @@ fn get_tokens(
                 props: impl Fn() -> #props_name #ty_generics_static + 'static,
                 mut state: impl #stateful_render<#name #ty_generics> + Clone + 'static,
             ) -> DomWidget {
-                DomWidget::new(#crate_name::__NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move || {
+                DomWidget::new(#type_name, move || {
                     let props = props();
                     let mut state = state.clone();
                     move |frame: &mut Frame, rect: Rect| {
@@ -191,7 +190,7 @@ fn get_tokens(
 
             #vis fn #fn_name #impl_generics (props: impl Fn() -> #props_name #ty_generics_static + 'static)
             -> DomWidget #where_clause {
-                DomWidget::new(#crate_name::__NODE_ID.fetch_add(1, Ordering::Relaxed), #type_name, move || {
+                DomWidget::new(#type_name, move || {
                     let props = props();
                     move |frame: &mut Frame, rect: Rect| {
                         frame.render_widget(props.clone(), rect);

@@ -5,7 +5,7 @@ use ratatui::style::{Style, Styled};
 use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget};
 use ratatui::{symbols, Frame};
 
-use crate::{DomWidget, MakeBuilder, __NODE_ID};
+use crate::{DomWidget, MakeBuilder};
 
 #[derive(Clone, Default)]
 pub struct SparklineProps<'a> {
@@ -66,14 +66,10 @@ impl<'a> Styled for SparklineProps<'a> {
 impl MakeBuilder for SparklineProps<'_> {}
 
 pub fn sparkline(props: impl Fn() -> SparklineProps<'static> + 'static) -> DomWidget {
-    DomWidget::new(
-        __NODE_ID.fetch_add(1, Ordering::Relaxed),
-        "sparkline",
-        move || {
-            let props = props();
-            move |frame: &mut Frame, rect: Rect| {
-                frame.render_widget(props.clone(), rect);
-            }
-        },
-    )
+    DomWidget::new("sparkline", move || {
+        let props = props();
+        move |frame: &mut Frame, rect: Rect| {
+            frame.render_widget(props.clone(), rect);
+        }
+    })
 }

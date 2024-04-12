@@ -2,6 +2,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use ratatui::text::Text;
 use ratatui::Frame;
 use reactive_graph::signal::ReadSignal;
 use slotmap::SlotMap;
@@ -10,7 +11,7 @@ use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::make_dom_widget;
+use crate::{make_dom_widget, NewExt};
 
 mod any_view;
 mod children;
@@ -29,6 +30,10 @@ pub use dom_node::*;
 pub use dom_widget::*;
 pub use element::*;
 pub use into_view::*;
+
+pub trait RenderAny: tachys::view::Render<RooibosDom> {}
+
+impl<T> RenderAny for T where T: tachys::view::Render<RooibosDom> {}
 
 pub trait Render: tachys::view::Render<RooibosDom, State = DomNode> {}
 
@@ -102,18 +107,21 @@ impl Renderer for RooibosDom {
     fn create_text_node(text: &str) -> Self::Text {
         DomNode::from_fragment(DocumentFragment::widget(make_dom_widget(
             "text",
-            text.to_owned(),
+            Text::new(text.to_owned()),
         )))
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        DomNode::from_fragment(DocumentFragment::widget(make_dom_widget("placeholder", "")))
+        DomNode::from_fragment(DocumentFragment::widget(make_dom_widget(
+            "placeholder",
+            Text::new(""),
+        )))
     }
 
     fn set_text(node: &Self::Text, text: &str) {
         node.replace_fragment(DocumentFragment::widget(make_dom_widget(
             "text",
-            text.to_owned(),
+            Text::new(text.to_owned()),
         )))
     }
 

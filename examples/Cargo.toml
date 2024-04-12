@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ratatui = { path = "../../ratatui" }
+ratatui = { version = "0.26" }
 crossterm = "0.27"
 rooibos = { path = "../crates/rooibos" }
 tokio = { version = "1.36.0", features = ["rt-multi-thread", "macros"] }
@@ -17,5 +17,6 @@ tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
 ] }
 rand = "0.8.5"
+tui-textarea = "0.4.0"
 # ratatui-textarea = "0.3.2"
 # tui-tree-widget = "0.13.0"

@@ -10,7 +10,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{notify, RooibosDom};
+use crate::{next_node_id, notify, RooibosDom};
 
 #[derive(Clone)]
 pub struct DomWidget {
@@ -30,10 +30,10 @@ impl Debug for DomWidget {
 
 impl DomWidget {
     pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(&mut Frame, Rect) + 'static>(
-        id: u32,
         widget_type: impl Into<String>,
         f: F1,
     ) -> Self {
+        let id = next_node_id();
         let rc_f: Rc<RefCell<Box<dyn FnMut(&mut Frame, Rect)>>> =
             Rc::new(RefCell::new(Box::new(|_, _| {})));
 

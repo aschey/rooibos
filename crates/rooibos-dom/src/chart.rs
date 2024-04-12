@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType};
 
-use crate::{DomWidget, MakeBuilder, __NODE_ID};
+use crate::{DomWidget, MakeBuilder};
 
 #[derive(Clone, Default)]
 pub struct DatasetOwned<'a> {
@@ -144,12 +144,8 @@ impl<'a> Widget for ChartProps<'a> {
 }
 
 pub fn chart(props: impl Fn() -> ChartProps<'static> + 'static) -> DomWidget {
-    DomWidget::new(
-        __NODE_ID.fetch_add(1, Ordering::Relaxed),
-        "chart",
-        move || {
-            let props = props();
-            move |frame: &mut Frame, rect: Rect| frame.render_widget(props.clone(), rect)
-        },
-    )
+    DomWidget::new("chart", move || {
+        let props = props();
+        move |frame: &mut Frame, rect: Rect| frame.render_widget(props.clone(), rect)
+    })
 }

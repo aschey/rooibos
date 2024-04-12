@@ -14,7 +14,7 @@ tokio = { version = "1.37.0", default-features = false, features = [
     "macros",
     "rt-multi-thread",
 ] }
-ratatui = { path = "../../../ratatui", default-features = false }
+ratatui = { version = "0.26", default-features = false }
 dyn-clonable = "0.9"
 
 [features]
