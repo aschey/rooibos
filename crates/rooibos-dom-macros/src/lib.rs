@@ -54,14 +54,14 @@ pub fn impl_stateful_widget(tokens: TokenStream) -> manyhow::Result {
 }
 
 #[manyhow]
-#[proc_macro_derive(Widget, attributes(make_builder_trait))]
+#[proc_macro_derive(Widget, attributes(make_builder_trait, render_ref))]
 pub fn widget(tokens: TokenStream) -> manyhow::Result {
     let input: DeriveInput = syn::parse2(tokens)?;
     Ok(widget::derive_widget(input))
 }
 
 #[manyhow]
-#[proc_macro_derive(StatefulWidget)]
+#[proc_macro_derive(StatefulWidget, attributes(render_ref))]
 pub fn stateful_widget(tokens: TokenStream) -> manyhow::Result {
     let input: DeriveInput = syn::parse2(tokens)?;
     Ok(widget::derive_stateful_widget(input))

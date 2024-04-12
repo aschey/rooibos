@@ -691,7 +691,6 @@ fn DemoBarChart(enhanced_graphics: bool) -> impl Render {
             }
         }
         bar_chart_data.update(|data| {
-            let mut data = data.clone();
             let event = data.pop().unwrap();
             data.insert(0, event);
         });

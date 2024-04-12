@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use ratatui::prelude::*;
 use ratatui::style::{Style, Styled};
 use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget};

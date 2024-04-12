@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::process::Output;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use any_spawner::Executor;
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -132,7 +132,7 @@ impl Runtime {
 
                 }
                 _ = self.dom_update_rx.changed() => {
-                    // self.set_last_term_event.update_untracked(|v| *v = None);
+                    self.set_last_term_event.update_untracked(|v| *v = None);
                     return TickResult::Continue;
                 }
             }
@@ -153,8 +153,15 @@ impl RuntimeHandle {
 
 pub fn key_effect<T>(f: impl Fn(KeyEvent) -> T + 'static) -> Effect {
     let last_term_event = use_context::<TermSignal>().unwrap();
+    // prevent key events from firing on mount
+    // TODO: is there a better way to do this? probably
+    let init = AtomicBool::new(false);
     Effect::new(move |_| {
+        let is_init = init.swap(true, Ordering::Relaxed);
         if let Some(crossterm::event::Event::Key(key_event)) = last_term_event.0.get() {
+            if !is_init {
+                return;
+            }
             if key_event.kind == KeyEventKind::Press {
                 f(key_event);
             }

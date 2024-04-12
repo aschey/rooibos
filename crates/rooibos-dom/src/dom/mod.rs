@@ -19,7 +19,6 @@ mod document_fragment;
 mod dom_node;
 mod dom_state;
 mod dom_widget;
-mod dyn_child;
 mod element;
 mod into_view;
 

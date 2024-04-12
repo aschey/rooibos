@@ -1,9 +1,9 @@
-use attribute_derive::Attribute;
+use attribute_derive::FromAttr;
 use convert_case::{Case, Casing};
 use proc_macro2::{Ident, Literal, Span, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::parse::{Parse, ParseStream};
-use syn::{DeriveInput, Generics, Token, Visibility, WhereClause};
+use syn::{DeriveInput, Generics, LitBool, Token, Visibility, WhereClause};
 
 pub(crate) struct Model {
     name: Ident,
@@ -11,6 +11,7 @@ pub(crate) struct Model {
     vis: Visibility,
     generics: Generics,
     state_generics: Generics,
+    render_ref: bool,
     pub(crate) stateful: bool,
 }
 
@@ -23,6 +24,7 @@ impl Parse for Model {
         let mut generics = Generics::default();
         let mut state_generics = Generics::default();
         let mut where_clause: Option<WhereClause> = None;
+        let mut render_ref = true;
         while !input.is_empty() {
             let _: syn::Token![,] = input.parse()?;
             let ident: syn::Ident = input.parse()?;
@@ -43,6 +45,10 @@ impl Parse for Model {
                 "make_builder" => {
                     make_builder = input.parse()?;
                 }
+                "render_ref" => {
+                    let render_bool: LitBool = input.parse()?;
+                    render_ref = render_bool.value();
+                }
                 prop => {
                     return Err(syn::Error::new_spanned(
                         ident,
@@ -58,6 +64,7 @@ impl Parse for Model {
             generics,
             state_generics,
             make_builder,
+            render_ref,
             stateful: false,
         })
     }
@@ -72,19 +79,30 @@ impl ToTokens for Model {
             self.generics.clone(),
             self.state_generics.clone(),
             self.stateful,
+            self.render_ref,
         ));
     }
 }
 
-#[derive(Clone, Debug, Attribute)]
+#[derive(Clone, Debug, FromAttr)]
 #[attribute(ident = make_builder_trait)]
 struct MakeBuilder {
     name: Ident,
 }
 
+#[derive(Clone, Debug, FromAttr)]
+#[attribute(ident = render_ref)]
+struct RenderRef(bool);
+
+impl Default for RenderRef {
+    fn default() -> Self {
+        Self(true)
+    }
+}
+
 pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
     let make_builder = MakeBuilder::from_attributes(&input.attrs).unwrap();
-
+    let render_ref = RenderRef::from_attributes(&input.attrs).unwrap_or_default();
     get_tokens(
         input.ident,
         make_builder.name,
@@ -92,10 +110,12 @@ pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
         input.generics,
         Generics::default(),
         false,
+        render_ref.0,
     )
 }
 
 pub(crate) fn derive_stateful_widget(input: DeriveInput) -> TokenStream {
+    let render_ref = RenderRef::from_attributes(&input.attrs).unwrap_or_default();
     get_tokens(
         input.ident,
         Ident::new("_", Span::call_site()),
@@ -103,6 +123,7 @@ pub(crate) fn derive_stateful_widget(input: DeriveInput) -> TokenStream {
         input.generics,
         Generics::default(),
         true,
+        render_ref.0,
     )
 }
 
@@ -113,6 +134,7 @@ fn get_tokens(
     generics: Generics,
     state_generics: Generics,
     stateful: bool,
+    render_ref: bool,
 ) -> TokenStream {
     let snake_name = if stateful {
         format!("Stateful{name}")
@@ -139,6 +161,11 @@ fn get_tokens(
     let type_name = Literal::string(&name.to_string());
 
     if stateful {
+        let render_fn = if render_ref {
+            quote!(render_stateful_widget_ref(&props, rect, &mut state))
+        } else {
+            quote!(render_stateful_widget(props.clone(), rect, &mut state))
+        };
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
             #vis type #props_name #ty_generics = #name #ty_generics;
@@ -151,12 +178,17 @@ fn get_tokens(
                     let props = props();
                     let mut state = state();
                     move |frame: &mut Frame, rect: Rect| {
-                        frame.render_stateful_widget(props.clone(), rect, &mut state);
+                        frame.#render_fn;
                     }
                 })
             }
         }
     } else {
+        let render_fn = if render_ref {
+            quote!(render_widget_ref(&props, rect))
+        } else {
+            quote!(render_widget(props.clone(), rect))
+        };
         quote! {
             #vis type #props_name #ty_generics = #name #ty_generics;
 
@@ -167,7 +199,7 @@ fn get_tokens(
                 DomWidget::new(#type_name, move || {
                     let props = props();
                     move |frame: &mut Frame, rect: Rect| {
-                        frame.render_widget(props.clone(), rect);
+                        frame.#render_fn;
                     }
 
                 })

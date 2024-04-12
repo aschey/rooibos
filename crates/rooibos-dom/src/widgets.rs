@@ -1,5 +1,3 @@
-use std::sync::atomic::AtomicU32;
-
 use ratatui::prelude::*;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
@@ -78,7 +76,7 @@ impl_widget!(Clear, visibility=pub, make_builder=MakeBuilder);
 impl_widget!(Canvas, visibility=pub, generics=<'a, F>, make_builder=MakeBuilder, where_clause=where F: Fn(&mut Context) + Clone + 'static);
 impl_stateful_widget!(List, visibility=pub, generics=<'a>);
 impl_stateful_widget!(Table, visibility=pub, generics=<'a>);
-impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>);
+impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>, render_ref=false);
 
 pub fn make_dom_widget<W: Widget + Clone + 'static>(
     name: impl Into<String>,
