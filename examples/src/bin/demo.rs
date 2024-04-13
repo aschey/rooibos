@@ -425,7 +425,7 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render
             } else {
                 symbols::bar::THREE_LEVELS
             }
-    />
+        />
     }
 }
 
@@ -441,8 +441,10 @@ fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
 
     view! {
         <Row v:constraint=constraint>
-            <Col v:constraint=move || Constraint::Percentage(if show_chart.get() { 50 } else { 100 })
-            >
+            <Col
+                v:constraint=move || {
+                    Constraint::Percentage(if show_chart.get() { 50 } else { 100 })
+                }>
                 <Row v:percentage=50>
                     <Col v:percentage=50>
                         <TaskList/>
@@ -455,7 +457,10 @@ fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
                     <DemoBarChart enhanced_graphics=enhanced_graphics/>
                 </Row>
             </Col>
-            <Col v:constraint=move || Constraint::Percentage(if show_chart.get() { 50 } else { 0 })>
+            <Col
+                v:constraint=move || {
+                    Constraint::Percentage(if show_chart.get() { 50 } else { 0 })
+                }>
                 <DemoChart enhanced_graphics=enhanced_graphics/>
             </Col>
         </Row>
@@ -501,11 +506,7 @@ fn TaskList() -> impl Render {
                 .map(|t| {
                     prop! {
                         <ListItem>
-                            <>
-                                <Line>
-                                    <Span>{t}</Span>
-                                </Line>
-                            </>
+                            <><Line><Span>{t}</Span></Line></>
                         </ListItem>
                     }
                 })
@@ -633,7 +634,6 @@ const EVENTS: [(&str, u64); 24] = [
 fn DemoBarChart(enhanced_graphics: bool) -> impl Render {
     let bar_chart_data = RwSignal::new(EVENTS.to_vec());
 
-    // let event_context = use_event_context();
     let tick = use_context::<Tick>().unwrap();
 
     Effect::new(move |prev| {
