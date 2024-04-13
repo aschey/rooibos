@@ -121,30 +121,10 @@ fn App() -> impl Render {
                    set_tick.set(seq);
                    seq += 1;
                 }
-                // _ = cancellation_token.cancelled() => {
-                //     break;
-                // }
             }
         }
     });
-    // let event_context = use_event_context();
-    // event_context.dispatch(Command::new_async(|tx, cancellation_token| async move {
-    //     let mut interval = time::interval(Duration::from_millis(250));
 
-    //     loop {
-    //         tokio::select! {
-    //             _ = interval.tick() => {
-    //                 tx.send(Command::simple(Request::Custom(Box::new(Tick))))
-    //                     .await
-    //                     .unwrap();
-    //             }
-    //             _ = cancellation_token.cancelled() => {
-    //                 break;
-    //             }
-    //         }
-    //     }
-    //     None
-    // }));
     let titles = StoredValue::new(vec!["Tab0", "Tab1", "Tab2"]);
     view! {
         <Col v:length=3>
@@ -211,19 +191,6 @@ fn HeaderTabs(titles: StoredValue<Vec<&'static str>>) -> impl Render {
 
 #[component]
 fn TabContent(focused: ReadSignal<usize>) -> impl Render {
-    // view! {
-    //     <Switch>
-    //         <Case when=move || focus_selector.get() == Some(0)>
-    //             {move || view! ( <Tab0 />)}
-    //         </Case>
-    //         <Case when=move || focus_selector.get() == Some(1)>
-    //             {move || view! ( <Tab1 />)}
-    //         </Case>
-    //         <Case when=move || focus_selector.get() == Some(2)>
-    //             {move || view! ( <Tab2 />)}
-    //         </Case>
-    //     </Switch>
-    // }
     view! {
         <Row>
             {move || match focused.get() {
@@ -349,8 +316,7 @@ where
 #[component]
 fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let (progress, set_progress) = signal(0.0);
-    // let event_context = use_event_context();
-    // let tick_event = event_context.create_custom_event_signal::<Tick>();
+
     let tick = use_context::<Tick>().unwrap();
     Effect::new(move |prev| {
         let seq = tick.0.get();
@@ -435,8 +401,6 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render
         tick_rate: 1,
     });
 
-    // let event_context = use_event_context();
-    // let tick_event = event_context.create_custom_event_signal::<Tick>();
     let tick = use_context::<Tick>().unwrap();
 
     Effect::new(move |prev| {
@@ -469,7 +433,6 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render
 fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let show_chart = RwSignal::new(true);
 
-    // let event_context = use_event_context();
     key_effect(move |event| {
         if event.kind == KeyEventKind::Press && event.code == KeyCode::Char('t') {
             show_chart.update(|s| *s = !*s);
@@ -750,8 +713,6 @@ fn DemoChart(enhanced_graphics: bool) -> impl Render {
     });
 
     let window = RwSignal::new([0.0, 20.0]);
-
-    // let event_context = use_event_context();
     let tick = use_context::<Tick>().unwrap();
 
     Effect::new(move |prev| {
@@ -857,10 +818,12 @@ fn Footer(constraint: Constraint) -> impl Render {
                     }/>
                 }
             wrap=prop!(<Wrap trim=true/>)
-            >
+        >
             <Line>
-                "This is a paragraph with several lines. You can change style your text the way
-    you want"             </Line>
+                "This is a paragraph with several lines.
+                You can change style your text the way
+                you want"             
+            </Line>
             <Line>""</Line>
             <Line>
                 <Span>"For example: "</Span>
