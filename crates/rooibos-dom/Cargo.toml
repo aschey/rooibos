@@ -7,14 +7,16 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.27.0"
-reactive_graph = { path = "../../../leptos/reactive_graph" }
-tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
-next_tuple = { path = "../../../leptos/next_tuple" }
-any_error = { path = "../../../leptos/any_error" }
-either_of = { path = "../../../leptos/either_of" }
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79" }
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79", features = [
+    "reactive_graph",
+] }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79" }
+any_error = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79" }
 matchit = "0.8"
 paste = "1.0.14"
-ratatui = { path = "../../../ratatui", features = ["unstable"] }
+ratatui = { version = "0.26", features = ["unstable"] }
 rooibos-dom-macros = { path = "../rooibos-dom-macros" }
 slotmap = "1"
 typed-builder = "0.18.1"

@@ -159,13 +159,13 @@ fn get_tokens(
     }
     let (_, ty_generics_static, _) = generics_static.split_for_impl();
     let type_name = Literal::string(&name.to_string());
+    let render_props = if render_ref {
+        quote!(&props)
+    } else {
+        quote!(props.clone())
+    };
 
     if stateful {
-        let render_fn = if render_ref {
-            quote!(render_stateful_widget_ref(&props, rect, &mut state))
-        } else {
-            quote!(render_stateful_widget(props.clone(), rect, &mut state))
-        };
         let state_name = Ident::new(&format!("{name}State"), Span::call_site());
         quote! {
             #vis type #props_name #ty_generics = #name #ty_generics;
@@ -178,17 +178,12 @@ fn get_tokens(
                     let props = props();
                     let mut state = state();
                     move |frame: &mut Frame, rect: Rect| {
-                        frame.#render_fn;
+                        frame.render_stateful_widget(#render_props, rect, &mut state);
                     }
                 })
             }
         }
     } else {
-        let render_fn = if render_ref {
-            quote!(render_widget_ref(&props, rect))
-        } else {
-            quote!(render_widget(props.clone(), rect))
-        };
         quote! {
             #vis type #props_name #ty_generics = #name #ty_generics;
 
@@ -199,7 +194,7 @@ fn get_tokens(
                 DomWidget::new(#type_name, move || {
                     let props = props();
                     move |frame: &mut Frame, rect: Rect| {
-                        frame.#render_fn;
+                        frame.render_widget(#render_props, rect);
                     }
 
                 })

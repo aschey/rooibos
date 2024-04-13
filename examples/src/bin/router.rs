@@ -22,7 +22,7 @@ use rooibos::dom::{
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::wrappers::read::Signal;
-use rooibos::runtime::{key_effect, use_focus, Runtime, TickResult};
+use rooibos::runtime::{key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;

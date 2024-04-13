@@ -22,7 +22,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{key_effect, use_focus, use_focus_with_id, Runtime, TickResult};
+use rooibos::runtime::{key_effect, Runtime, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };

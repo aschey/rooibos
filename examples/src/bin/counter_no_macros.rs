@@ -37,7 +37,6 @@ async fn async_main() -> Result<()> {
 
         let mut terminal = setup_terminal().unwrap();
         mount(counter, rt.connect_update());
-        // print_dom(&mut std::io::stdout(), false);
         terminal
             .draw(|f: &mut Frame| {
                 render_dom(f);

@@ -20,7 +20,7 @@ use rooibos::dom::{
     DomNode,
 };
 use rooibos::reactive::traits::Get;
-use rooibos::runtime::{key_effect, use_focus, Runtime, TickResult};
+use rooibos::runtime::{key_effect, Runtime, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;

@@ -20,6 +20,7 @@ mod dom_node;
 mod dom_state;
 mod dom_widget;
 mod element;
+mod focus;
 mod into_view;
 
 pub use any_view::*;
@@ -28,6 +29,7 @@ pub use document_fragment::*;
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use element::*;
+pub use focus::*;
 pub use into_view::*;
 
 pub trait RenderAny: tachys::view::Render<RooibosDom> {}
