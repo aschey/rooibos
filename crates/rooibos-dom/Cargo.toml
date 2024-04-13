@@ -26,7 +26,9 @@ rustc-hash = "1.1.0"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
 
 [dev-dependencies]
-any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79", features = [
+    "tokio",
+] }
 ctor = "0.2.7"
 tokio = { version = "1.37.0", default-features = false, features = [
     "sync",

@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use any_spawner::Executor;
@@ -51,14 +52,15 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     res
 }
 
-pub async fn init(f: impl std::future::Future) {
+pub async fn init<F, Fut, T>(f: F) -> T
+where
+    F: FnOnce(Runtime) -> Fut,
+    Fut: Future<Output = T>,
+{
     any_spawner::Executor::init_tokio().unwrap();
     let local = task::LocalSet::new();
-    local
-        .run_until(async move {
-            f.await;
-        })
-        .await;
+    let rt = Runtime::initialize();
+    local.run_until(f(rt)).await
 }
 
 pub struct Runtime {

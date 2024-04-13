@@ -7,3 +7,4 @@ edition = "2021"
 rooibos-dom = { path = "../rooibos-dom" }
 reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "9e6ccd6bdee021ea72042af30cfa24100a756f79" }
 rooibos-runtime = { path = "../rooibos-runtime" }
+rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }

@@ -11,3 +11,4 @@ pub mod runtime {
 pub mod prelude {
     pub use rooibos_dom::prelude::*;
 }
+pub use rooibos_runtime_macros::main;

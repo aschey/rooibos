@@ -39,13 +39,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const NUM_TABS: usize = 3;
 
-fn main() -> Result<()> {
-    rooibos::runtime::execute(async_main).unwrap();
-    Ok(())
-}
-
-#[tokio::main]
-async fn async_main() -> Result<()> {
+#[rooibos::main]
+async fn main(mut rt: Runtime) -> Result<()> {
     let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
         Box::pin(async move {
             let transport = ipc::create_endpoint(
@@ -72,33 +67,28 @@ async fn async_main() -> Result<()> {
                 .with_filter(tilia::Filter::default())
         })
         .init();
-    rooibos::runtime::init(async move {
-        let mut rt = Runtime::initialize();
 
-        let mut terminal = setup_terminal().unwrap();
-        mount(|| view!(<App/>), rt.connect_update());
-        // print_dom(&mut std::io::stdout(), false);
+    let mut terminal = setup_terminal().unwrap();
+    mount(|| view!(<App/>), rt.connect_update());
+    // print_dom(&mut std::io::stdout(), false);
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
+
+    loop {
+        if rt.tick().await == TickResult::Exit {
+            restore_terminal(terminal).unwrap();
+            guard.stop().await.ok();
+            return Ok(());
+        }
         terminal
             .draw(|f: &mut Frame| {
                 render_dom(f);
             })
             .unwrap();
-
-        loop {
-            if rt.tick().await == TickResult::Exit {
-                restore_terminal(terminal).unwrap();
-                guard.stop().await.ok();
-                return;
-            }
-            terminal
-                .draw(|f: &mut Frame| {
-                    render_dom(f);
-                })
-                .unwrap();
-        }
-    })
-    .await;
-    Ok(())
+    }
 }
 
 fn setup_terminal() -> Result<Terminal> {

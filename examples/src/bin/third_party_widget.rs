@@ -51,39 +51,28 @@ impl_stateful_widget!(
     render_ref=false
 );
 
-fn main() -> Result<()> {
-    rooibos::runtime::execute(async_main).unwrap();
-    Ok(())
-}
+#[rooibos::main]
+async fn main(mut rt: Runtime) -> Result<()> {
+    let mut terminal = setup_terminal().unwrap();
+    mount(|| view!(<App/>), rt.connect_update());
 
-#[tokio::main]
-async fn async_main() -> Result<()> {
-    rooibos::runtime::init(async move {
-        let mut rt = Runtime::initialize();
+    terminal
+        .draw(|f: &mut Frame| {
+            render_dom(f);
+        })
+        .unwrap();
 
-        let mut terminal = setup_terminal().unwrap();
-        mount(|| view!(<App/>), rt.connect_update());
-
+    loop {
+        if rt.tick().await == TickResult::Exit {
+            restore_terminal(terminal).unwrap();
+            return Ok(());
+        }
         terminal
             .draw(|f: &mut Frame| {
                 render_dom(f);
             })
             .unwrap();
-
-        loop {
-            if rt.tick().await == TickResult::Exit {
-                restore_terminal(terminal).unwrap();
-                return;
-            }
-            terminal
-                .draw(|f: &mut Frame| {
-                    render_dom(f);
-                })
-                .unwrap();
-        }
-    })
-    .await;
-    Ok(())
+    }
 }
 
 fn setup_terminal() -> Result<Terminal> {
