@@ -1,40 +1,29 @@
-use std::backtrace::Backtrace;
 use std::error::Error;
-use std::io::{stdout, Stdout};
 use std::time::Duration;
 
-use crossterm::event::{DisableMouseCapture, KeyCode, KeyEventKind};
-use crossterm::execute;
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-};
+use crossterm::event::KeyCode;
 use rand::distributions::Uniform;
 use rand::prelude::*;
 use rand::rngs::StdRng;
-use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::widgets::canvas::{self, Circle, Context, Map, MapResolution, Rectangle};
-use ratatui::Frame;
-use rooibos::dom::{component, mount, render_dom, view, *};
+use rooibos::prelude::canvas::{Circle, Context, Map, MapResolution, Rectangle};
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
-use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
+use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{tick, use_keypress, TickResult};
+use rooibos::runtime::{setup_terminal, tick, use_keypress, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
 use tilia::tower_rpc::transport::CodecTransport;
 use tilia::tower_rpc::LengthDelimitedCodec;
 use tokio::time;
-use tracing::{info, Level};
+use tracing::Level;
 use tracing_subscriber::fmt::Layer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
-type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 const NUM_TABS: usize = 3;
@@ -78,30 +67,17 @@ async fn main() -> Result<()> {
         .unwrap();
 
     loop {
-        if tick().await == TickResult::Exit {
-            restore_terminal(terminal).unwrap();
-            guard.stop().await.ok();
-            return Ok(());
-        }
         terminal
             .draw(|f: &mut Frame| {
                 render_dom(f);
             })
             .unwrap();
+
+        if tick().await == TickResult::Exit {
+            guard.stop().await.ok();
+            return Ok(());
+        }
     }
-}
-
-fn setup_terminal() -> Result<Terminal> {
-    execute!(stdout(), EnterAlternateScreen)?;
-    enable_raw_mode()?;
-    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    Ok(terminal)
-}
-
-fn restore_terminal(mut terminal: Terminal) -> Result<()> {
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    disable_raw_mode()?;
-    Ok(())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

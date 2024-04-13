@@ -16,10 +16,11 @@ pub mod prelude {
     pub use chart::*;
     pub use components::*;
     pub use ratatui::layout::*;
+    pub use ratatui::prelude::{Buffer, Constraint};
     pub use ratatui::style::*;
     pub use ratatui::text::*;
     pub use ratatui::widgets::*;
-    pub use ratatui::{symbols, Frame};
+    pub use ratatui::{symbols, Frame, Terminal};
     pub use sparkline::*;
 
     pub use super::*;

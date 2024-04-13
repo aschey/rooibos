@@ -1,14 +1,21 @@
 use std::any::Any;
 use std::cell::OnceCell;
 use std::future::Future;
-use std::panic::Location;
+use std::io::{self, stdout, Stdout};
+use std::panic::{set_hook, take_hook, Location};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::time::Instant;
 
 use any_spawner::Executor;
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use crossterm::execute;
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use futures_util::StreamExt;
+use ratatui::backend::CrosstermBackend;
+use ratatui::Terminal;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::Effect;
 use reactive_graph::owner::{provide_context, use_context, Owner};
@@ -49,8 +56,10 @@ pub enum TickResult {
 
 pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     let owner = Owner::new();
+    set_panic_hook();
     let res = owner.with(f);
     drop(owner);
+    restore_terminal().unwrap();
     res
 }
 
@@ -123,4 +132,25 @@ pub fn use_keypress() -> ReadSignal<Option<crossterm::event::KeyEvent>> {
     });
 
     term_signal
+}
+
+pub fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
+    execute!(stdout(), EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    Ok(terminal)
+}
+
+pub fn restore_terminal() -> io::Result<()> {
+    execute!(stdout(), LeaveAlternateScreen)?;
+    disable_raw_mode()?;
+    Ok(())
+}
+
+pub fn set_panic_hook() {
+    let original_hook = take_hook();
+    set_hook(Box::new(move |panic_info| {
+        let _ = restore_terminal();
+        original_hook(panic_info);
+    }));
 }
