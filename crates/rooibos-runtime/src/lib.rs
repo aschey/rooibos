@@ -1,6 +1,8 @@
 use std::any::Any;
+use std::cell::OnceCell;
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::OnceLock;
 
 use any_spawner::Executor;
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -10,9 +12,11 @@ use reactive_graph::effect::Effect;
 use reactive_graph::owner::{provide_context, use_context, Owner};
 use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
 use reactive_graph::traits::{Get, Set, UpdateUntracked};
-use rooibos_dom::{focused_node, NodeId};
-use tokio::sync::{mpsc, watch};
+use rooibos_dom::{dom_update_receiver, focused_node, DomUpdateReceiver, NodeId};
+use tokio::sync::{mpsc, watch, Mutex};
 use tokio::task;
+
+static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
 
 pub enum Event {
     TermEvent(crossterm::event::Event),
@@ -52,44 +56,41 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     res
 }
 
-pub async fn init<F, Fut, T>(f: F) -> T
+pub async fn init<T, F>(f: F) -> T
 where
-    F: FnOnce(Runtime) -> Fut,
-    Fut: Future<Output = T>,
+    F: Future<Output = T>,
 {
     any_spawner::Executor::init_tokio().unwrap();
+    CURRENT_RUNTIME
+        .set(Mutex::new(Runtime::initialize()))
+        .unwrap();
+
     let local = task::LocalSet::new();
-    let rt = Runtime::initialize();
-    local.run_until(f(rt)).await
+    local.run_until(f).await
 }
 
-pub struct Runtime {
+#[derive(Debug)]
+struct Runtime {
     event_rx: mpsc::Receiver<Event>,
-    dom_update_tx: watch::Sender<()>,
-    dom_update_rx: watch::Receiver<()>,
+    dom_update_rx: DomUpdateReceiver,
     set_last_term_event: WriteSignal<Option<crossterm::event::Event>>,
 }
 
 impl Runtime {
-    pub fn initialize() -> Self {
+    fn initialize() -> Self {
         let (event_tx, event_rx) = mpsc::channel(32);
-        let (dom_update_tx, dom_update_rx) = watch::channel(());
         let (last_term_event, set_last_term_event) = signal(None);
+        let dom_update_rx = dom_update_receiver();
         provide_context(TermSignal(last_term_event));
         tokio::spawn(async move { read_input(event_tx).await });
         Self {
             event_rx,
-            dom_update_tx,
             dom_update_rx,
             set_last_term_event,
         }
     }
 
-    pub fn connect_update(&self) -> watch::Sender<()> {
-        self.dom_update_tx.clone()
-    }
-
-    pub async fn tick(&mut self) -> TickResult {
+    async fn tick(&mut self) -> TickResult {
         loop {
             tokio::select! {
                 event = self.event_rx.recv() => {
@@ -109,6 +110,11 @@ impl Runtime {
             }
         }
     }
+}
+
+pub async fn tick() -> TickResult {
+    let rt = CURRENT_RUNTIME.get().unwrap();
+    rt.lock().await.tick().await
 }
 
 pub fn key_effect<T>(f: impl Fn(KeyEvent) -> T + 'static) -> Effect {

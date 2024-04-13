@@ -48,6 +48,15 @@ pub(crate) fn next_node_id() -> u32 {
     NODE_ID.fetch_add(1, Ordering::SeqCst)
 }
 
+#[derive(Debug)]
+pub struct DomUpdateReceiver(watch::Receiver<()>);
+
+impl DomUpdateReceiver {
+    pub async fn changed(&mut self) -> Result<(), watch::error::RecvError> {
+        self.0.changed().await
+    }
+}
+
 thread_local! {
     static DOM_ROOT: RefCell<Option<DomNode>> = const { RefCell::new(None) };
     static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
@@ -57,6 +66,12 @@ thread_local! {
         let (tx, _) = watch::channel(());
         RefCell::new(tx)
     };
+}
+
+pub fn dom_update_receiver() -> DomUpdateReceiver {
+    let (tx, rx) = watch::channel(());
+    DOM_UPDATE_TX.with(|d| *d.borrow_mut() = tx);
+    DomUpdateReceiver(rx)
 }
 
 // pub trait ToDomNode {
@@ -316,14 +331,13 @@ pub(crate) fn notify() {
     DOM_UPDATE_TX.with(|tx| tx.borrow().send(()).ok());
 }
 
-pub fn mount<F, M>(f: F, tx: watch::Sender<()>)
+pub fn mount<F, M>(f: F)
 where
     F: FnOnce() -> M + 'static,
     M: Render<State = DomNode>,
 {
     let node = f().build();
     DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
-    DOM_UPDATE_TX.with(|d| *d.borrow_mut() = tx);
 }
 
 pub fn unmount() {

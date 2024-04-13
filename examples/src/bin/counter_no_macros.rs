@@ -20,15 +20,15 @@ use rooibos::dom::{
 use rooibos::reactive::owner::Owner;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, Runtime, TickResult};
+use rooibos::runtime::{key_effect, tick, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
-async fn main(mut rt: Runtime) -> Result<()> {
+async fn main() -> Result<()> {
     let mut terminal = setup_terminal().unwrap();
-    mount(counter, rt.connect_update());
+    mount(counter);
     terminal
         .draw(|f: &mut Frame| {
             render_dom(f);
@@ -36,7 +36,7 @@ async fn main(mut rt: Runtime) -> Result<()> {
         .unwrap();
 
     loop {
-        if rt.tick().await == TickResult::Exit {
+        if tick().await == TickResult::Exit {
             restore_terminal(terminal).unwrap();
             return Ok(());
         }

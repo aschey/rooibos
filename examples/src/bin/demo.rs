@@ -22,7 +22,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{key_effect, Runtime, TickResult};
+use rooibos::runtime::{key_effect, tick, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
@@ -40,7 +40,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 const NUM_TABS: usize = 3;
 
 #[rooibos::main]
-async fn main(mut rt: Runtime) -> Result<()> {
+async fn main() -> Result<()> {
     let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
         Box::pin(async move {
             let transport = ipc::create_endpoint(
@@ -69,8 +69,8 @@ async fn main(mut rt: Runtime) -> Result<()> {
         .init();
 
     let mut terminal = setup_terminal().unwrap();
-    mount(|| view!(<App/>), rt.connect_update());
-    // print_dom(&mut std::io::stdout(), false);
+    mount(|| view!(<App/>));
+
     terminal
         .draw(|f: &mut Frame| {
             render_dom(f);
@@ -78,7 +78,7 @@ async fn main(mut rt: Runtime) -> Result<()> {
         .unwrap();
 
     loop {
-        if rt.tick().await == TickResult::Exit {
+        if tick().await == TickResult::Exit {
             restore_terminal(terminal).unwrap();
             guard.stop().await.ok();
             return Ok(());

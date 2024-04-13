@@ -31,8 +31,8 @@ async fn standalone_widget() {
             let view = view! {
                 <Block title="test" borders=Borders::ALL/>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -60,8 +60,8 @@ async fn widget_no_props() {
                     <Block/>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -89,8 +89,8 @@ async fn simple_column() {
                     <Block title="test" borders=Borders::ALL/>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -118,8 +118,8 @@ async fn str_only() {
                     "test"
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -145,8 +145,8 @@ async fn str_block() {
                     {"test"}
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -172,8 +172,8 @@ async fn string_block() {
                     {"test".to_string()}
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -204,8 +204,8 @@ async fn nested_layout() {
                     </Row>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -241,8 +241,8 @@ async fn ratio() {
                     </Row>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -279,8 +279,8 @@ async fn conditional() {
                     }
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -311,8 +311,8 @@ async fn list_basic() {
                     </List>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -345,8 +345,8 @@ async fn prop_iteration() {
                     </List>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -380,8 +380,7 @@ async fn stateful() {
                 </StatefulList>
             };
 
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -412,8 +411,8 @@ async fn list_styled() {
                     </List>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -450,8 +449,8 @@ async fn block_children() {
                     </Tabs>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -479,8 +478,8 @@ async fn single_child_as_vec() {
                     </Tabs>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -513,8 +512,7 @@ async fn single_nested_child_as_vec() {
                 </Col>
             };
 
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -543,8 +541,8 @@ async fn complex_block_children() {
                     </Tabs>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -572,8 +570,8 @@ async fn macro_as_prop() {
                     </Paragraph>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -604,8 +602,8 @@ async fn simple_overlay() {
                     </Paragraph>
                 </Overlay>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -643,8 +641,8 @@ async fn overlay_multiple() {
                     </Col>
                 </Overlay>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -696,8 +694,8 @@ async fn two_overlays() {
                     </Col>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -733,8 +731,8 @@ async fn array_as_variable() {
                     </Tabs>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -772,8 +770,8 @@ async fn simple_custom_component() {
                     <Viewer text="hi" flag=true/>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -813,8 +811,8 @@ async fn custom_component_children() {
                     </Viewer>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -853,8 +851,8 @@ async fn generic_component() {
                     <Viewer<usize> text="hi" flag=true/>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -898,8 +896,8 @@ async fn custom_component_children_second() {
                     </Viewer>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -947,8 +945,8 @@ async fn custom_child_prop() {
                     </Viewer>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -991,8 +989,8 @@ async fn component_child() {
                     </Viewer>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -1043,8 +1041,8 @@ async fn component_child_nested() {
                     </Viewer>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);
@@ -1098,8 +1096,8 @@ async fn custom_component_nested_layout() {
                     </Row>
                 </Col>
             };
-            let (tx, _) = watch::channel(());
-            mount(|| view, tx);
+
+            mount(|| view);
             terminal
                 .draw(|f: &mut Frame| {
                     render_dom(f);

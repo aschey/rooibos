@@ -21,7 +21,7 @@ use rooibos::dom::{
 };
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, Runtime, TickResult};
+use rooibos::runtime::{key_effect, tick, TickResult};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
@@ -52,9 +52,9 @@ impl_stateful_widget!(
 );
 
 #[rooibos::main]
-async fn main(mut rt: Runtime) -> Result<()> {
+async fn main() -> Result<()> {
     let mut terminal = setup_terminal().unwrap();
-    mount(|| view!(<App/>), rt.connect_update());
+    mount(|| view!(<App/>));
 
     terminal
         .draw(|f: &mut Frame| {
@@ -63,7 +63,7 @@ async fn main(mut rt: Runtime) -> Result<()> {
         .unwrap();
 
     loop {
-        if rt.tick().await == TickResult::Exit {
+        if tick().await == TickResult::Exit {
             restore_terminal(terminal).unwrap();
             return Ok(());
         }
