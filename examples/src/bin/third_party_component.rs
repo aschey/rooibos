@@ -19,9 +19,10 @@ use rooibos::dom::{
     block, col, component, mount, print_dom, render_dom, row, view, BlockProps, DocumentFragment,
     DomNode,
 };
+use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 use tui_textarea::TextArea;
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
@@ -72,11 +73,15 @@ fn TextView() -> impl Render {
     text_area.set_block(prop!(<Block borders=Borders::ALL title="Example"/>));
     let text_area = RwSignal::new(text_area);
 
-    key_effect(move |event| {
-        text_area.update(|mut t| {
-            t.input(event);
-        });
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            text_area.update(|mut t| {
+                t.input(term_signal);
+            });
+        }
     });
+
     view! {
         <TextAreaWidget text_area=text_area/>
     }

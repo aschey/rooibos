@@ -22,7 +22,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{signal, ArcRwSignal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
@@ -145,9 +145,10 @@ fn HeaderTabs(titles: StoredValue<Vec<&'static str>>) -> impl Render {
     let previous_tab = move || update_current_tab(-1);
     let next_tab = move || update_current_tab(1);
 
-    key_effect(move |event| {
-        if event.kind == KeyEventKind::Press {
-            match event.code {
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            match term_signal.code {
                 KeyCode::Left => {
                     previous_tab();
                 }
@@ -430,9 +431,12 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render
 fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let show_chart = RwSignal::new(true);
 
-    key_effect(move |event| {
-        if event.kind == KeyEventKind::Press && event.code == KeyCode::Char('t') {
-            show_chart.update(|s| *s = !*s);
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Char('t') {
+                show_chart.update(|s| *s = !*s);
+            }
         }
     });
 
@@ -484,11 +488,14 @@ fn TaskList() -> impl Render {
         });
     };
 
-    key_effect(move |key| {
-        if key.code == KeyCode::Up {
-            update_current_task(-1)
-        } else if key.code == KeyCode::Down {
-            update_current_task(1);
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Up {
+                update_current_task(-1)
+            } else if term_signal.code == KeyCode::Down {
+                update_current_task(1);
+            }
         }
     });
 

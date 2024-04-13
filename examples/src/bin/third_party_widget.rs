@@ -19,9 +19,10 @@ use rooibos::dom::{
     block, col, component, mount, print_dom, render_dom, row, view, BlockProps, DocumentFragment,
     DomNode,
 };
+use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
@@ -113,9 +114,10 @@ fn App() -> impl Render {
         TreeItem::new_leaf("h", "h"),
     ]);
 
-    key_effect(move |event| {
-        if event.kind == KeyEventKind::Press {
-            match event.code {
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            match term_signal.code {
                 KeyCode::Char('\n' | ' ') => {
                     state.update(|mut s| {
                         s.toggle_selected();

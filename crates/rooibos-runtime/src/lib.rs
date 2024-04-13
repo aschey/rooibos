@@ -1,8 +1,10 @@
 use std::any::Any;
 use std::cell::OnceCell;
 use std::future::Future;
+use std::panic::Location;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
+use std::time::Instant;
 
 use any_spawner::Executor;
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
@@ -10,21 +12,20 @@ use futures_util::StreamExt;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::Effect;
 use reactive_graph::owner::{provide_context, use_context, Owner};
-use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
-use reactive_graph::traits::{Get, Set, UpdateUntracked};
+use reactive_graph::signal::{signal, ReadSignal, RwSignal, WriteSignal};
+use reactive_graph::traits::{DefinedAt, Get, IsDisposed, Set, UpdateUntracked};
+use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::{dom_update_receiver, focused_node, DomUpdateReceiver, NodeId};
-use tokio::sync::{mpsc, watch, Mutex};
+use tokio::sync::{broadcast, mpsc, watch, Mutex};
 use tokio::task;
 
 static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
+static TERM_TX: OnceLock<broadcast::Sender<crossterm::event::Event>> = OnceLock::new();
 
-pub enum Event {
-    TermEvent(crossterm::event::Event),
-    CancellationComplete(Option<String>),
-    QuitRequested,
-}
-
-async fn read_input(event_tx: mpsc::Sender<Event>) {
+async fn read_input(
+    quit_tx: mpsc::Sender<()>,
+    term_tx: broadcast::Sender<crossterm::event::Event>,
+) {
     let mut event_reader = crossterm::event::EventStream::new().fuse();
     while let Some(Ok(event)) = event_reader.next().await {
         if let event::Event::Key(KeyEvent {
@@ -32,16 +33,13 @@ async fn read_input(event_tx: mpsc::Sender<Event>) {
         }) = event
         {
             if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
-                event_tx.send(Event::QuitRequested).await.unwrap();
+                quit_tx.send(()).await.unwrap();
                 break;
             }
-            event_tx.send(Event::TermEvent(event)).await.unwrap();
+            term_tx.send(event).ok();
         }
     }
 }
-
-#[derive(Clone, Copy)]
-struct TermSignal(ReadSignal<Option<crossterm::event::Event>>);
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum TickResult {
@@ -71,42 +69,32 @@ where
 
 #[derive(Debug)]
 struct Runtime {
-    event_rx: mpsc::Receiver<Event>,
+    quit_rx: mpsc::Receiver<()>,
     dom_update_rx: DomUpdateReceiver,
-    set_last_term_event: WriteSignal<Option<crossterm::event::Event>>,
 }
 
 impl Runtime {
     fn initialize() -> Self {
-        let (event_tx, event_rx) = mpsc::channel(32);
-        let (last_term_event, set_last_term_event) = signal(None);
+        let (quit_tx, quit_rx) = mpsc::channel(32);
+        let (term_event_tx, _) = broadcast::channel(32);
+        TERM_TX.set(term_event_tx.clone()).unwrap();
         let dom_update_rx = dom_update_receiver();
-        provide_context(TermSignal(last_term_event));
-        tokio::spawn(async move { read_input(event_tx).await });
+
+        tokio::spawn(async move { read_input(quit_tx, term_event_tx).await });
         Self {
-            event_rx,
             dom_update_rx,
-            set_last_term_event,
+
+            quit_rx,
         }
     }
 
     async fn tick(&mut self) -> TickResult {
-        loop {
-            tokio::select! {
-                event = self.event_rx.recv() => {
-                    match event {
-                        Some(Event::TermEvent(e)) => {
-                            self.set_last_term_event.set(Some(e));
-                        }
-                        Some(Event::QuitRequested) => {
-                            return TickResult::Exit;
-                        }
-                        _ => {}
-                    }
-                }
-                _ = self.dom_update_rx.changed() => {
-                    return TickResult::Continue;
-                }
+        tokio::select! {
+            _ = self.quit_rx.recv() => {
+                TickResult::Exit
+            }
+            _ = self.dom_update_rx.changed() => {
+                TickResult::Continue
             }
         }
     }
@@ -117,20 +105,22 @@ pub async fn tick() -> TickResult {
     rt.lock().await.tick().await
 }
 
-pub fn key_effect<T>(f: impl Fn(KeyEvent) -> T + 'static) -> Effect {
-    let last_term_event = use_context::<TermSignal>().unwrap();
-    // prevent key events from firing on mount
-    // TODO: is there a better way to do this? probably
-    let init = AtomicBool::new(false);
-    Effect::new(move |_| {
-        let is_init = init.swap(true, Ordering::Relaxed);
-        if let Some(crossterm::event::Event::Key(key_event)) = last_term_event.0.get() {
-            if !is_init {
-                return;
-            }
-            if key_event.kind == KeyEventKind::Press {
-                f(key_event);
+pub fn use_keypress() -> ReadSignal<Option<crossterm::event::KeyEvent>> {
+    let mut term_rx = TERM_TX.get().unwrap().subscribe();
+    let (term_signal, set_term_signal) = signal(None);
+    tokio::spawn(async move {
+        // TODO: this doesn't work?
+        // if term_signal.is_disposed() {
+        //     return;
+        // }
+        while let Ok(event) = term_rx.recv().await {
+            if let event::Event::Key(key_event) = event {
+                if key_event.kind == KeyEventKind::Press {
+                    set_term_signal.set(Some(key_event));
+                }
             }
         }
-    })
+    });
+
+    term_signal
 }

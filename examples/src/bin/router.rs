@@ -19,10 +19,11 @@ use rooibos::dom::{
     block, col, component, mount, print_dom, render_dom, row, view, BlockProps, DocumentFragment,
     DomNode,
 };
+use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::wrappers::read::Signal;
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -91,11 +92,15 @@ fn App() -> impl Render {
 fn Child0() -> impl Render {
     let router = use_router();
 
-    key_effect(move |event| {
-        if event.code == KeyCode::Enter && event.kind == KeyEventKind::Press {
-            router.push("/child1?id=1");
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Enter {
+                router.push("/child1?id=1");
+            }
         }
     });
+
     view! {
         <Paragraph>
             "child0"
@@ -108,10 +113,13 @@ fn Child1(child2_id: RwSignal<i32>) -> impl Render {
     let router = use_router();
     let id = router.use_query("id");
 
-    key_effect(move |event| {
-        if event.code == KeyCode::Enter && event.kind == KeyEventKind::Press {
-            router.push(format!("/child2/{}", child2_id.get_untracked()));
-            child2_id.update(|id| *id += 1);
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Enter {
+                router.push(format!("/child2/{}", child2_id.get_untracked()));
+                child2_id.update(|id| *id += 1);
+            }
         }
     });
 
@@ -127,9 +135,12 @@ fn Child2() -> impl Render {
     let router = use_router();
     let id = router.use_param("id");
 
-    key_effect(move |event| {
-        if event.code == KeyCode::Enter && event.kind == KeyEventKind::Press {
-            router.pop();
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Enter {
+                router.pop();
+            }
         }
     });
 

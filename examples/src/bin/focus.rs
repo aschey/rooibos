@@ -19,8 +19,9 @@ use rooibos::dom::{
     block, col, component, mount, print_dom, render_dom, row, view, BlockProps, DocumentFragment,
     DomNode,
 };
+use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -66,14 +67,15 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 
 #[component]
 fn App() -> impl Render {
-    // let focus_manager = use_focus_manager();
-
-    key_effect(move |event| {
-        if event.code == KeyCode::Up {
-            focus_prev();
-        }
-        if event.code == KeyCode::Down {
-            focus_next();
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Up {
+                focus_prev();
+            }
+            if term_signal.code == KeyCode::Down {
+                focus_next();
+            }
         }
     });
 

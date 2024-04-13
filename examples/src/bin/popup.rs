@@ -19,9 +19,10 @@ use rooibos::dom::{
     block, col, component, mount, print_dom, render_dom, row, view, BlockProps, DocumentFragment,
     DomNode,
 };
+use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -69,9 +70,12 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 fn App() -> impl Render {
     let show_popup = RwSignal::new(false);
 
-    key_effect(move |event| {
-        if event.code == KeyCode::Enter {
-            show_popup.update(|p| *p = !*p);
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Enter {
+                show_popup.update(|p| *p = !*p);
+            }
         }
     });
 

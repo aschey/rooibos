@@ -1,26 +1,18 @@
-use std::cell::RefCell;
 use std::error::Error;
-use std::fmt::format;
 use std::io::{stdout, Stdout};
-use std::rc::Rc;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::time::Duration;
 
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::Constraint;
 use ratatui::Frame;
-use rooibos::dom::{
-    block, col, mount, print_dom, render_dom, row, BlockProps, DomNode, DomWidget, Render,
-};
-use rooibos::reactive::owner::Owner;
-use rooibos::reactive::signal::{signal, RwSignal};
+use rooibos::dom::prelude::*;
+use rooibos::reactive::effect::Effect;
+use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -64,9 +56,12 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 fn counter() -> impl Render {
     let (count, set_count) = signal(1);
 
-    key_effect(move |event| {
-        if event.code == KeyCode::Enter {
-            set_count.update(|c| *c += 1);
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Enter {
+                set_count.update(|c| *c += 1);
+            }
         }
     });
 

@@ -15,9 +15,10 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Frame;
 use rooibos::dom::prelude::*;
-use rooibos::reactive::signal::signal;
+use rooibos::reactive::effect::Effect;
+use rooibos::reactive::signal::{self, signal};
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{key_effect, tick, TickResult};
+use rooibos::runtime::{tick, use_keypress, TickResult};
 
 type Terminal = ratatui::Terminal<CrosstermBackend<Stdout>>;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -62,9 +63,12 @@ fn restore_terminal(mut terminal: Terminal) -> Result<()> {
 #[component]
 fn counter() -> impl Render {
     let (count, set_count) = signal(0);
-    key_effect(move |event| {
-        if event.code == KeyCode::Enter {
-            set_count.update(|c| *c += 1);
+    let term_signal = use_keypress();
+    Effect::new(move |_| {
+        if let Some(term_signal) = term_signal.get() {
+            if term_signal.code == KeyCode::Enter {
+                set_count.update(|c| *c += 1);
+            }
         }
     });
 
