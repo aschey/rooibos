@@ -116,12 +116,9 @@ fn App() -> impl Render {
         let mut interval = time::interval(Duration::from_millis(250));
         let mut seq: u32 = 1;
         loop {
-            tokio::select! {
-                _ = interval.tick() => {
-                   set_tick.set(seq);
-                   seq += 1;
-                }
-            }
+            interval.tick().await;
+            set_tick.set(seq);
+            seq += 1;
         }
     });
 

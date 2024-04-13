@@ -181,7 +181,11 @@ impl View {
                             }
                         }
                     } else {
-                        quote!(#name #rest)
+                        quote! {
+                            #name #rest
+                            #constraint
+                            #id
+                        }
                     }
                 };
 
