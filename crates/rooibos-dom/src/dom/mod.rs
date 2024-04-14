@@ -149,7 +149,7 @@ impl Renderer for RooibosDom {
         unimplemented!()
     }
 
-    fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
+    fn insert_node(parent: &Self::Element, new_child: &Self::Node, _marker: Option<&Self::Node>) {
         mount_child(parent, new_child);
     }
 
@@ -158,7 +158,7 @@ impl Renderer for RooibosDom {
         Some(child.clone())
     }
 
-    fn clear_children(parent: &Self::Element) {
+    fn clear_children(_parent: &Self::Element) {
         todo!()
     }
 
@@ -170,15 +170,15 @@ impl Renderer for RooibosDom {
         node.get_parent()
     }
 
-    fn first_child(node: &Self::Node) -> Option<Self::Node> {
+    fn first_child(_node: &Self::Node) -> Option<Self::Node> {
         todo!()
     }
 
-    fn next_sibling(node: &Self::Node) -> Option<Self::Node> {
+    fn next_sibling(_node: &Self::Node) -> Option<Self::Node> {
         todo!()
     }
 
-    fn log_node(node: &Self::Node) {
+    fn log_node(_node: &Self::Node) {
         todo!()
     }
 }

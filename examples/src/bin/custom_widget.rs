@@ -1,26 +1,15 @@
 use std::error::Error;
 
 use rooibos::prelude::*;
-use rooibos::runtime::{setup_terminal, tick, TickResult};
+use rooibos::runtime::run;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let mut terminal = setup_terminal().unwrap();
     mount(|| view!(<App/>));
-
-    loop {
-        terminal
-            .draw(|f: &mut Frame| {
-                render_dom(f);
-            })
-            .unwrap();
-
-        if tick().await == TickResult::Exit {
-            return Ok(());
-        }
-    }
+    run().await?;
+    Ok(())
 }
 
 #[component]

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::owner::{provide_context, use_context, StoredValue};
 use reactive_graph::signal::RwSignal;
@@ -185,13 +183,13 @@ impl Render<RooibosDom> for Router {
         })
     }
 
-    fn rebuild(self, state: &mut Self::State) {}
+    fn rebuild(self, _state: &mut Self::State) {}
 
     fn try_build(self) -> any_error::Result<Self::FallibleState> {
         todo!()
     }
 
-    fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
+    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
         todo!()
     }
 

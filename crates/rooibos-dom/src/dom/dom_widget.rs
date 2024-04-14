@@ -12,9 +12,11 @@ use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
 use crate::{next_node_id, notify, RooibosDom};
 
+type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
+
 #[derive(Clone)]
 pub struct DomWidget {
-    f: Rc<RefCell<Box<dyn FnMut(&mut Frame, Rect)>>>,
+    f: Rc<RefCell<DomWidgetFn>>,
     id: u32,
     pub(crate) widget_type: String,
     pub(crate) constraint: Constraint,
@@ -34,8 +36,7 @@ impl DomWidget {
         f: F1,
     ) -> Self {
         let id = next_node_id();
-        let rc_f: Rc<RefCell<Box<dyn FnMut(&mut Frame, Rect)>>> =
-            Rc::new(RefCell::new(Box::new(|_, _| {})));
+        let rc_f: Rc<RefCell<DomWidgetFn>> = Rc::new(RefCell::new(Box::new(|_, _| {})));
 
         let effect = RenderEffect::new({
             let rc_f = rc_f.clone();
@@ -84,7 +85,7 @@ impl Render<RooibosDom> for DomWidget {
         )
     }
 
-    fn rebuild(self, state: &mut Self::State) {
+    fn rebuild(self, _state: &mut Self::State) {
         todo!()
     }
 
@@ -92,7 +93,7 @@ impl Render<RooibosDom> for DomWidget {
         todo!()
     }
 
-    fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
+    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
         todo!()
     }
 

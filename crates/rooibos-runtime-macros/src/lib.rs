@@ -1,4 +1,4 @@
-use manyhow::{bail, manyhow};
+use manyhow::manyhow;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
@@ -29,7 +29,7 @@ pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
         .collect();
     let func_param_idents = quote!(#(#func_param_idents),*);
     Ok(quote! {
-       #func_sig {
+        #func_sig {
             #runtime::execute(move || ___async_main(#func_param_idents))
         }
 

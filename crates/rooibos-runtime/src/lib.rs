@@ -1,13 +1,8 @@
-use std::any::Any;
-use std::cell::OnceCell;
 use std::future::Future;
 use std::io::{self, stdout, Stdout};
-use std::panic::{set_hook, take_hook, Location};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::panic::{set_hook, take_hook};
 use std::sync::OnceLock;
-use std::time::Instant;
 
-use any_spawner::Executor;
 use crossterm::event::{self, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use crossterm::execute;
 use crossterm::terminal::{
@@ -16,14 +11,11 @@ use crossterm::terminal::{
 use futures_util::StreamExt;
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
-use reactive_graph::computed::Memo;
-use reactive_graph::effect::Effect;
-use reactive_graph::owner::{provide_context, use_context, Owner};
-use reactive_graph::signal::{signal, ReadSignal, RwSignal, WriteSignal};
-use reactive_graph::traits::{DefinedAt, Get, IsDisposed, Set, UpdateUntracked};
-use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::{dom_update_receiver, focused_node, DomUpdateReceiver, NodeId};
-use tokio::sync::{broadcast, mpsc, watch, Mutex};
+use reactive_graph::owner::Owner;
+use reactive_graph::signal::{signal, ReadSignal};
+use reactive_graph::traits::Set;
+use rooibos_dom::{dom_update_receiver, render_dom, DomUpdateReceiver};
+use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::task;
 
 static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
@@ -153,4 +145,14 @@ pub fn set_panic_hook() {
         let _ = restore_terminal();
         original_hook(panic_info);
     }));
+}
+
+pub async fn run() -> io::Result<()> {
+    let mut terminal = setup_terminal()?;
+    loop {
+        terminal.draw(render_dom)?;
+        if tick().await == TickResult::Exit {
+            return Ok(());
+        }
+    }
 }

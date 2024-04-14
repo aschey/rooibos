@@ -10,10 +10,9 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::Get;
 use rooibos_dom::{
     block, col, component, list, mount, overlay, paragraph, prop, render_dom, row, stateful_list,
-    tabs, view, BlockProps, BuildFacade, BuilderFacade, ComponentChildren, DomNode, ListProps,
-    NewExt, ParagraphProps, Render, StatefulListProps, TabsProps, View,
+    tabs, view, BlockProps, BuildFacade, BuilderFacade, ComponentChildren, ListProps, NewExt,
+    ParagraphProps, Render, StatefulListProps, TabsProps,
 };
-use tokio::sync::watch;
 use tokio::task::LocalSet;
 use typed_builder::TypedBuilder;
 

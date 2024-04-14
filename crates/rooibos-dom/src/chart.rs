@@ -1,5 +1,3 @@
-use std::sync::atomic::Ordering;
-
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType};
 

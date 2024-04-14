@@ -5,26 +5,15 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{setup_terminal, tick, use_keypress, TickResult};
+use rooibos::runtime::{run, use_keypress};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let mut terminal = setup_terminal().unwrap();
     mount(|| view!(<App/>));
-
-    loop {
-        terminal
-            .draw(|f: &mut Frame| {
-                render_dom(f);
-            })
-            .unwrap();
-
-        if tick().await == TickResult::Exit {
-            return Ok(());
-        }
-    }
+    run().await?;
+    Ok(())
 }
 
 #[component]

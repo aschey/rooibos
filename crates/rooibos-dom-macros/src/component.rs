@@ -1,4 +1,4 @@
-use attribute_derive::Attribute as AttributeDerive;
+use attribute_derive::FromAttr;
 use convert_case::{Case, Casing};
 use manyhow::{bail, error_message, ErrorMessage};
 use proc_macro2::{Ident, Span, TokenStream};
@@ -396,7 +396,7 @@ impl Docs {
     }
 }
 
-#[derive(Clone, Debug, AttributeDerive, Default)]
+#[derive(Clone, Debug, FromAttr, Default)]
 #[attribute(ident = prop)]
 struct PropOpt {
     #[attribute(conflicts = [optional_no_strip, strip_option])]

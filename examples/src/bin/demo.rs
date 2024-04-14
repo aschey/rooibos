@@ -12,7 +12,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{setup_terminal, tick, use_keypress, TickResult};
+use rooibos::runtime::{run, use_keypress};
 use tilia::tower_rpc::transport::ipc::{
     self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
 };
@@ -57,27 +57,10 @@ async fn main() -> Result<()> {
         })
         .init();
 
-    let mut terminal = setup_terminal().unwrap();
     mount(|| view!(<App/>));
-
-    terminal
-        .draw(|f: &mut Frame| {
-            render_dom(f);
-        })
-        .unwrap();
-
-    loop {
-        terminal
-            .draw(|f: &mut Frame| {
-                render_dom(f);
-            })
-            .unwrap();
-
-        if tick().await == TickResult::Exit {
-            guard.stop().await.ok();
-            return Ok(());
-        }
-    }
+    run().await?;
+    guard.stop().await.unwrap();
+    Ok(())
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

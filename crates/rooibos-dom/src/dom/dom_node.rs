@@ -12,7 +12,6 @@ use tachys::view::Render;
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
 use super::dom_widget::DomWidget;
-// use super::view::{IntoView, View};
 use super::{with_state_mut, DOM_NODES};
 use crate::{next_node_id, RooibosDom};
 
@@ -256,9 +255,9 @@ impl DomNode {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].data.push(Rc::new(data)));
     }
 
-    pub(crate) fn set_name(&self, name: impl Into<String>) {
-        DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
-    }
+    // pub(crate) fn set_name(&self, name: impl Into<String>) {
+    //     DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
+    // }
 
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
         DOM_NODES.with(|n| n.borrow_mut()[self.key].constraint = constraint);
@@ -314,20 +313,20 @@ impl DomNode {
         });
     }
 
-    pub(crate) fn before(&self, node: &DomNode) {
-        DOM_NODES.with(|d| {
-            let mut d = d.borrow_mut();
+    // pub(crate) fn before(&self, node: &DomNode) {
+    //     DOM_NODES.with(|d| {
+    //         let mut d = d.borrow_mut();
 
-            if let Some(parent_id) = d[self.key].parent {
-                let parent = d.get_mut(parent_id).unwrap();
-                let self_index = parent.children.iter().position(|c| c == &self.key).unwrap();
-                parent.children.insert(self_index, node.key);
-                d[node.key].parent = Some(parent_id);
-            } else {
-                d[self.key].before_pending.push(node.key);
-            }
-        });
-    }
+    //         if let Some(parent_id) = d[self.key].parent {
+    //             let parent = d.get_mut(parent_id).unwrap();
+    //             let self_index = parent.children.iter().position(|c| c == &self.key).unwrap();
+    //             parent.children.insert(self_index, node.key);
+    //             d[node.key].parent = Some(parent_id);
+    //         } else {
+    //             d[self.key].before_pending.push(node.key);
+    //         }
+    //     });
+    // }
 
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
         DOM_NODES.with(|d| {
@@ -360,13 +359,13 @@ impl Render<RooibosDom> for DomNode {
         self
     }
 
-    fn rebuild(self, state: &mut Self::State) {}
+    fn rebuild(self, _state: &mut Self::State) {}
 
     fn try_build(self) -> any_error::Result<Self::FallibleState> {
         todo!()
     }
 
-    fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
+    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
         todo!()
     }
 

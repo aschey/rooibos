@@ -1,9 +1,9 @@
-use attribute_derive::Attribute;
+use attribute_derive::FromAttr;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::ItemTrait;
 
-#[derive(Clone, Debug, Attribute)]
+#[derive(Clone, Debug, FromAttr)]
 #[attribute(ident = make_builder)]
 struct MakeBuilder {
     #[attribute(optional)]
