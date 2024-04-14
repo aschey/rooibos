@@ -144,8 +144,6 @@ where
 
     type FallibleState = DomNode;
 
-    type AsyncOutput = ();
-
     fn build(self) -> Self::State {
         let mut children = self.children.build();
         children.mount(&self.inner, None);
@@ -161,10 +159,6 @@ where
     }
 
     fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
-
-    async fn resolve(self) -> Self::AsyncOutput {
         todo!()
     }
 }

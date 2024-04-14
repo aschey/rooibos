@@ -353,8 +353,6 @@ impl Render<RooibosDom> for DomNode {
 
     type FallibleState = ();
 
-    type AsyncOutput = ();
-
     fn build(self) -> Self::State {
         self
     }
@@ -366,10 +364,6 @@ impl Render<RooibosDom> for DomNode {
     }
 
     fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
-
-    async fn resolve(self) -> Self::AsyncOutput {
         todo!()
     }
 }

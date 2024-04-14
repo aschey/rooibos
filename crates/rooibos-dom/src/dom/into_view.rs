@@ -28,7 +28,6 @@ where
 impl<T: Render<RooibosDom>> Render<RooibosDom> for View<T> {
     type State = T::State;
     type FallibleState = T::FallibleState;
-    type AsyncOutput = T::AsyncOutput;
 
     fn build(self) -> Self::State {
         self.0.build()
@@ -44,9 +43,5 @@ impl<T: Render<RooibosDom>> Render<RooibosDom> for View<T> {
 
     fn try_rebuild(self, state: &mut Self::FallibleState) -> any_error::Result<()> {
         self.0.try_rebuild(state)
-    }
-
-    async fn resolve(self) -> Self::AsyncOutput {
-        self.0.resolve().await
     }
 }

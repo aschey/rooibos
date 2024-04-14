@@ -75,8 +75,6 @@ impl Render<RooibosDom> for DomWidget {
 
     type FallibleState = ();
 
-    type AsyncOutput = ();
-
     fn build(self) -> Self::State {
         DomNode::from_fragment(
             DocumentFragment::widget(self.clone())
@@ -94,10 +92,6 @@ impl Render<RooibosDom> for DomWidget {
     }
 
     fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
-
-    async fn resolve(self) -> Self::AsyncOutput {
         todo!()
     }
 }

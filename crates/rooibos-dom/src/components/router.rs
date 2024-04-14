@@ -132,8 +132,6 @@ impl Render<RooibosDom> for Router {
 
     type FallibleState = RenderEffect<RouterState>;
 
-    type AsyncOutput = ();
-
     fn build(self) -> Self::State {
         init_router(self.initial);
         let router_ctx = use_router();
@@ -190,10 +188,6 @@ impl Render<RooibosDom> for Router {
     }
 
     fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
-
-    async fn resolve(self) -> Self::AsyncOutput {
         todo!()
     }
 }

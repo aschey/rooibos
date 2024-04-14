@@ -132,7 +132,6 @@ where
 impl Render<RooibosDom> for AnyView {
     type State = AnyViewState;
     type FallibleState = Self::State;
-    type AsyncOutput = Self;
 
     fn build(self) -> Self::State {
         (self.build)(self.value)
@@ -147,11 +146,6 @@ impl Render<RooibosDom> for AnyView {
     }
 
     fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
-
-    async fn resolve(self) -> Self::AsyncOutput {
-        // we probably do need a function for this
         todo!()
     }
 }
