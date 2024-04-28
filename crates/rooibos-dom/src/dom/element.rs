@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use next_tuple::TupleBuilder;
+use next_tuple::NextTuple;
 use ratatui::layout::{Constraint, Flex};
 use reactive_graph::effect::RenderEffect;
 use tachys::prelude::*;
@@ -38,7 +38,7 @@ impl ToProperty<Constraint> for Constraint {
 
 impl<Children> Element<Children>
 where
-    Children: TupleBuilder,
+    Children: NextTuple,
 {
     pub fn child<T>(self, child: T) -> Element<Children::Output<T>> {
         Element {
