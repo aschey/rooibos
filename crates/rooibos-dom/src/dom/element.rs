@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use next_tuple::TupleBuilder;
+use next_tuple::NextTuple;
 use ratatui::layout::{Constraint, Flex};
 use reactive_graph::effect::RenderEffect;
 use tachys::prelude::*;
@@ -38,7 +38,7 @@ impl ToProperty<Constraint> for Constraint {
 
 impl<Children> Element<Children>
 where
-    Children: TupleBuilder,
+    Children: NextTuple,
 {
     pub fn child<T>(self, child: T) -> Element<Children::Output<T>> {
         Element {
@@ -142,8 +142,6 @@ where
 {
     type State = DomNode;
 
-    type FallibleState = DomNode;
-
     fn build(self) -> Self::State {
         let mut children = self.children.build();
         children.mount(&self.inner, None);
@@ -153,12 +151,4 @@ where
     }
 
     fn rebuild(self, _state: &mut Self::State) {}
-
-    fn try_build(self) -> any_error::Result<Self::FallibleState> {
-        todo!()
-    }
-
-    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
 }

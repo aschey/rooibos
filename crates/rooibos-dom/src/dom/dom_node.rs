@@ -360,19 +360,9 @@ impl DomNode {
 impl Render<RooibosDom> for DomNode {
     type State = DomNode;
 
-    type FallibleState = ();
-
     fn build(self) -> Self::State {
         self
     }
 
     fn rebuild(self, _state: &mut Self::State) {}
-
-    fn try_build(self) -> any_error::Result<Self::FallibleState> {
-        todo!()
-    }
-
-    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
 }

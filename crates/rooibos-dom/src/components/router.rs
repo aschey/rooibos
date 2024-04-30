@@ -130,8 +130,6 @@ impl Mountable<RooibosDom> for RouterState {
 impl Render<RooibosDom> for Router {
     type State = RenderEffect<RouterState>;
 
-    type FallibleState = RenderEffect<RouterState>;
-
     fn build(self) -> Self::State {
         init_router(self.initial);
         let router_ctx = use_router();
@@ -182,14 +180,6 @@ impl Render<RooibosDom> for Router {
     }
 
     fn rebuild(self, _state: &mut Self::State) {}
-
-    fn try_build(self) -> any_error::Result<Self::FallibleState> {
-        todo!()
-    }
-
-    fn try_rebuild(self, _state: &mut Self::FallibleState) -> any_error::Result<()> {
-        todo!()
-    }
 }
 
 #[component]
