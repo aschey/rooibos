@@ -2,7 +2,7 @@ use manyhow::manyhow;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
-use syn::{FnArg, Ident, ItemFn, Pat, PatType};
+use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
 
 #[manyhow]
 #[proc_macro_attribute]
@@ -10,12 +10,14 @@ pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
     let mut func: ItemFn = syn::parse2(tokens)?;
     let mut func_copy = func.clone();
     func.sig.asyncness = None;
+    func_copy.vis = Visibility::Inherited;
     func_copy.sig.ident = Ident::new(&format!("__{}", func.sig.ident), Span::call_site());
 
     let runtime = get_runtime_import();
     let output = func.sig.output.clone();
 
     let func_copy_ident = func_copy.sig.ident.clone();
+    let vis = func_copy.vis.clone();
     let func_sig = func.sig.clone();
     let inputs = func.sig.inputs.clone();
     let func_param_idents: Vec<Box<Pat>> = func
@@ -29,7 +31,7 @@ pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
         .collect();
     let func_param_idents = quote!(#(#func_param_idents),*);
     Ok(quote! {
-        #func_sig {
+        #vis #func_sig {
             #runtime::execute(move || ___async_main(#func_param_idents))
         }
 

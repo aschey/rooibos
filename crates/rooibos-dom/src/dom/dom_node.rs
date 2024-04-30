@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 use std::any::Any;
 use std::cell::{Ref, RefCell};
-use std::fmt;
+use std::fmt::{self, Display};
 use std::rc::Rc;
 
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
@@ -31,6 +31,15 @@ impl NodeId {
 
     pub fn new(id: impl Into<String>) -> Self {
         Self(NodeIdInner::Manual(id.into()))
+    }
+}
+
+impl Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            NodeIdInner::Auto(val) => std::fmt::Display::fmt(&val, f),
+            NodeIdInner::Manual(val) => std::fmt::Display::fmt(&val, f),
+        }
     }
 }
 

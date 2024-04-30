@@ -398,23 +398,18 @@ pub fn focus_next() {
     DOM_NODES.with(|nodes| {
         let nodes = nodes.borrow();
         with_state_mut(|state| {
+            let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
-                let current_focused = state
-                    .focusable_nodes()
-                    .iter()
-                    .position(|n| n == &focused)
-                    .unwrap();
+                let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
 
-                if current_focused < state.focusable_nodes().len() - 1 {
-                    let next = state.focusable_nodes()[current_focused + 1];
+                if current_focused < focusable_nodes.len() - 1 {
+                    let next = focusable_nodes[current_focused + 1];
                     state.set_focused(Some(next), &nodes[next]);
-                } else {
-                    let next = state.focusable_nodes()[0];
-                    state.set_focused(Some(next), &nodes[next]);
+                    return;
                 }
-            } else {
-                let next = state.focusable_nodes()[0];
-                state.set_focused(Some(next), &nodes[next]);
+            }
+            if let Some(next) = focusable_nodes.first() {
+                state.set_focused(Some(*next), &nodes[*next]);
             }
         });
     });
@@ -424,22 +419,17 @@ pub fn focus_prev() {
     DOM_NODES.with(|nodes| {
         let nodes = nodes.borrow();
         with_state_mut(|state| {
+            let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
-                let current_focused = state
-                    .focusable_nodes()
-                    .iter()
-                    .position(|n| n == &focused)
-                    .unwrap();
+                let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
                 if current_focused > 0 {
-                    let prev = state.focusable_nodes()[current_focused - 1];
+                    let prev = focusable_nodes[current_focused - 1];
                     state.set_focused(Some(prev), &nodes[prev]);
-                } else {
-                    let prev = state.focusable_nodes()[state.focusable_nodes().len() - 1];
-                    state.set_focused(Some(prev), &nodes[prev]);
+                    return;
                 }
-            } else {
-                let prev = state.focusable_nodes()[state.focusable_nodes().len() - 1];
-                state.set_focused(Some(prev), &nodes[prev]);
+            }
+            if let Some(prev) = focusable_nodes.last() {
+                state.set_focused(Some(*prev), &nodes[*prev]);
             }
         });
     });
