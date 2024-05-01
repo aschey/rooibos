@@ -1,5 +1,3 @@
-use tachys::view::Render;
-
 use crate::prelude::*;
 
 #[component]
@@ -8,9 +6,9 @@ pub fn Popup<M>(
     percent_x: u16,
     percent_y: u16,
     #[prop(default=None)] constraint: Option<Constraint>,
-) -> impl Render<RooibosDom>
+) -> impl RenderAny
 where
-    M: Render<RooibosDom> + 'static,
+    M: RenderAny + 'static,
 {
     let inverse_y = (100 - percent_y) / 2;
     let inverse_x = (100 - percent_x) / 2;

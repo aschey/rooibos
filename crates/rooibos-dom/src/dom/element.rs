@@ -9,7 +9,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{notify, RooibosDom};
+use crate::{notify, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<Children> {
@@ -138,7 +138,7 @@ pub fn overlay() -> Element<()> {
 
 impl<Children> Render<RooibosDom> for Element<Children>
 where
-    Children: Render<RooibosDom> + 'static,
+    Children: RenderAny + 'static,
 {
     type State = DomNode;
 

@@ -1,7 +1,6 @@
 use either_of::Either;
 use reactive_graph::computed::Memo;
 use reactive_graph::traits::Get;
-use tachys::view::Render;
 
 use crate::prelude::*;
 
@@ -16,7 +15,7 @@ pub fn Show<C, W>(
     /// is the empty view.
     #[prop(optional, into)]
     fallback: ViewFn,
-) -> impl Render<RooibosDom>
+) -> impl RenderAny
 where
     C: IntoChildrenMut,
     W: Fn() -> bool + Send + Sync + 'static,

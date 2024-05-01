@@ -1,11 +1,9 @@
 use std::fmt::{self, Debug};
 use std::sync::Arc;
 
-use tachys::view::Render;
-
 use super::any_view::AnyView;
 use crate::dom::any_view::IntoAny;
-use crate::{IntoView, RooibosDom, View};
+use crate::{IntoView, RenderAny, View};
 
 /// The most common type for the `children` property on components,
 /// which can only be called once.
@@ -33,7 +31,7 @@ pub trait IntoChildrenMut {
 impl<F, C> ToChildren<F> for Children
 where
     F: FnOnce() -> C + Send + 'static,
-    C: Render<RooibosDom> + Send + 'static,
+    C: RenderAny + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -44,7 +42,7 @@ where
 impl<F, C> ToChildren<F> for ChildrenFn
 where
     F: Fn() -> C + Send + 'static,
-    C: Render<RooibosDom> + Send + 'static,
+    C: RenderAny + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -65,7 +63,7 @@ where
 impl<F, C> ToChildren<F> for ChildrenFnMut
 where
     F: Fn() -> C + Send + 'static,
-    C: Render<RooibosDom> + Send + 'static,
+    C: RenderAny + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -76,7 +74,7 @@ where
 impl<F, C> ToChildren<F> for BoxedChildrenFn
 where
     F: Fn() -> C + 'static,
-    C: Render<RooibosDom> + Send + 'static,
+    C: RenderAny + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -98,7 +96,7 @@ impl Default for ViewFn {
 impl<F, C> From<F> for ViewFn
 where
     F: Fn() -> C + Send + Sync + 'static,
-    C: Render<RooibosDom> + Send + 'static,
+    C: RenderAny + Send + 'static,
 {
     fn from(value: F) -> Self {
         Self(Arc::new(move || value().into_any()))
@@ -126,7 +124,7 @@ impl Default for ViewFnOnce {
 impl<F, C> From<F> for ViewFnOnce
 where
     F: FnOnce() -> C + Send + 'static,
-    C: Render<RooibosDom> + Send + 'static,
+    C: RenderAny + Send + 'static,
 {
     fn from(value: F) -> Self {
         Self(Box::new(move || value().into_any()))

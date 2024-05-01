@@ -3,7 +3,7 @@ use std::fmt::Debug;
 
 use tachys::view::{Mountable, Render};
 
-use crate::{DomNode, RooibosDom};
+use crate::{DomNode, RenderAny, RooibosDom};
 
 pub struct AnyView {
     type_id: TypeId,
@@ -40,7 +40,7 @@ pub trait IntoAny {
 
 fn mount_any<T>(state: &mut dyn Any, parent: &DomNode, marker: Option<&DomNode>)
 where
-    T: Render<RooibosDom>,
+    T: RenderAny,
     T::State: 'static,
 {
     let state = state
@@ -51,7 +51,7 @@ where
 
 fn unmount_any<T>(state: &mut dyn Any)
 where
-    T: Render<RooibosDom>,
+    T: RenderAny,
     T::State: 'static,
 {
     let state = state
@@ -66,7 +66,7 @@ fn insert_before_this<T>(
     child: &mut dyn Mountable<RooibosDom>,
 ) -> bool
 where
-    T: Render<RooibosDom>,
+    T: RenderAny,
     T::State: 'static,
 {
     let state = state
@@ -77,7 +77,7 @@ where
 
 impl<T> IntoAny for T
 where
-    T: Render<RooibosDom> + 'static,
+    T: RenderAny + 'static,
     T::State: 'static,
 {
     fn into_any(self) -> AnyView {

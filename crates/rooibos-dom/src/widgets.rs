@@ -3,7 +3,7 @@ use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::canvas::{Canvas, Context};
 use ratatui::widgets::*;
-use ratatui::Frame;
+use rooibos_dom::prelude::*;
 use rooibos_dom_macros::{impl_stateful_widget, impl_widget, make_builder};
 
 use crate::DomWidget;
@@ -89,24 +89,6 @@ pub fn make_dom_widget<W: Widget + Clone + 'static>(
         }
     })
 }
-
-// impl IntoView for String {
-//     fn into_view(self) -> View {
-//         make_dom_widget("String", self).into_view()
-//     }
-// }
-
-// impl IntoView for &'static str {
-//     fn into_view(self) -> View {
-//         make_dom_widget("String", self).into_view().into_view()
-//     }
-// }
-
-// impl<'a> IntoView for Cow<'a, str> {
-//     fn into_view(self) -> View {
-//         make_dom_widget("String", self.to_string()).into_view()
-//     }
-// }
 
 pub trait WrapExt {
     fn trim(self, trim: bool) -> Self;

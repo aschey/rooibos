@@ -1,6 +1,6 @@
 use tachys::view::Render;
 
-use crate::RooibosDom;
+use crate::{RenderAny, RooibosDom};
 
 pub struct View<T>(T)
 where
@@ -12,20 +12,20 @@ impl<T> View<T> {
     }
 }
 
-pub trait IntoView: Sized + Render<RooibosDom> {
+pub trait IntoView: Sized + RenderAny {
     fn into_view(self) -> View<Self>;
 }
 
 impl<T> IntoView for T
 where
-    T: Sized + Render<RooibosDom>,
+    T: Sized + RenderAny,
 {
     fn into_view(self) -> View<Self> {
         View(self)
     }
 }
 
-impl<T: Render<RooibosDom>> Render<RooibosDom> for View<T> {
+impl<T: RenderAny> Render<RooibosDom> for View<T> {
     type State = T::State;
 
     fn build(self) -> Self::State {

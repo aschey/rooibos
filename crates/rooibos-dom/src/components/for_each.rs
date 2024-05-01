@@ -4,18 +4,16 @@ use reactive_graph::owner::Owner;
 use rooibos_dom_macros::component;
 use tachys::reactive_graph::OwnedView;
 use tachys::view::keyed::keyed;
-use tachys::view::Render;
 
 use crate::prelude::*;
-// use crate::IntoView;
 
 #[component]
-pub fn ForEach<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl Render<RooibosDom>
+pub fn ForEach<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl RenderAny
 where
     IF: Fn() -> I + 'static,
     I: IntoIterator<Item = T>,
     EF: Fn(T) -> N + Clone + 'static,
-    N: Render<RooibosDom> + 'static,
+    N: RenderAny + 'static,
     KF: Fn(&T) -> K + Clone + 'static,
     K: Eq + Hash + 'static,
     T: 'static,
