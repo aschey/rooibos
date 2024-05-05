@@ -438,10 +438,10 @@ async fn block_children() {
 
             let view = view! {
                 <Col>
-                    <Tabs highlight_style=Style::default()>
+                    <TabHeaders highlight_style=Style::default()>
                         "tab1"
                         "tab2"
-                    </Tabs>
+                    </TabHeaders>
                 </Col>
             };
 
@@ -468,9 +468,9 @@ async fn single_child_as_vec() {
 
             let view = view! {
                 <Col>
-                    <Tabs highlight_style=Style::default()>
+                    <TabHeaders highlight_style=Style::default()>
                         <>{"tab1"}</>
-                    </Tabs>
+                    </TabHeaders>
                 </Col>
             };
 
@@ -497,13 +497,13 @@ async fn single_nested_child_as_vec() {
 
             let view = view! {
                 <Col>
-                    <Tabs highlight_style=Style::default()>
+                    <TabHeaders highlight_style=Style::default()>
                         <>
                             <Line>
                                 <Span>"tab1"</Span>
                             </Line>
                         </>
-                    </Tabs>
+                    </TabHeaders>
                 </Col>
             };
 
@@ -530,10 +530,10 @@ async fn complex_block_children() {
 
             let view = view! {
                 <Col>
-                    <Tabs select=0 highlight_style=prop!(<Style/>)>
+                    <TabHeaders select=0 highlight_style=prop!(<Style/>)>
                         <Line>"tab1"</Line>
                         <Line>{vec![Span::from("tab2")]}</Line>
-                    </Tabs>
+                    </TabHeaders>
                 </Col>
             };
 
@@ -721,9 +721,9 @@ async fn array_as_variable() {
             let tab_items = StoredValue::new(vec!["tab1", "tab2"]);
             let view = view! {
                 <Col>
-                    <Tabs highlight_style=Style::default()>
+                    <TabHeaders highlight_style=Style::default()>
                         {tab_items.get().unwrap()}
-                    </Tabs>
+                    </TabHeaders>
                 </Col>
             };
 

@@ -4,15 +4,14 @@ use std::time::Duration;
 use crossterm::event::KeyCode;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
-use rooibos::reactive::owner::{provide_context, StoredValue};
+use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::{run, use_keypress};
-use tilia::tower_rpc::transport::ipc::{
-    self, IpcSecurity, OnConflict, SecurityAttributes, ServerId,
-};
-use tilia::tower_rpc::transport::CodecTransport;
-use tilia::tower_rpc::LengthDelimitedCodec;
+use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
+use tilia::transport_async::ipc::{IpcSecurity, OnConflict, SecurityAttributes, ServerId};
+use tilia::transport_async::{ipc, Bind};
 use tokio::time;
 use tracing::Level;
 use tracing_subscriber::fmt::Layer;
@@ -36,13 +35,17 @@ const NUM_TABS: usize = 3;
 async fn main() -> Result<()> {
     let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
         Box::pin(async move {
-            let transport = ipc::create_endpoint(
-                ServerId("rooibos-demo"),
-                SecurityAttributes::allow_everyone_create().unwrap(),
-                OnConflict::Overwrite,
+            let transport = ipc::Endpoint::bind(
+                ipc::EndpointParams::new(
+                    ServerId("rooibos-demo"),
+                    SecurityAttributes::allow_everyone_create().unwrap(),
+                    OnConflict::Overwrite,
+                )
+                .unwrap(),
             )
+            .await
             .unwrap();
-            CodecTransport::new(transport, LengthDelimitedCodec)
+            CodecStream::new(transport, LengthDelimitedCodec)
         })
     });
 
@@ -85,18 +88,23 @@ fn App() -> impl Render {
         }
     });
 
-    let titles = StoredValue::new(vec!["Tab0", "Tab1", "Tab2"]);
     view! {
         <Col v:length=3>
-            <HeaderTabs titles=titles/>
+            <HeaderTabs/>
         </Col>
 
     }
 }
 
+const TAB0: &str = "Tab0";
+const TAB1: &str = "Tab1";
+const TAB2: &str = "Tab2";
+
 #[component]
-fn HeaderTabs(titles: StoredValue<Vec<&'static str>>) -> impl Render {
+fn HeaderTabs() -> impl Render {
     let (focused_tab, set_focused_tab) = signal(0);
+    let titles = vec![TAB0, TAB1, TAB2];
+    let focused_title = Signal::derive(move || titles[focused_tab.get()].to_string());
 
     let update_current_tab = move |change: i32| {
         set_focused_tab.update(|f| {
@@ -123,45 +131,36 @@ fn HeaderTabs(titles: StoredValue<Vec<&'static str>>) -> impl Render {
         }
     });
 
+    let tab_header = |title: &'static str| prop!(<Line><Span green>{title}</Span></Line>);
+
     view! {
         <Col>
             <Tabs
-                v:length=3
+                padding=1
                 block=prop!(<Block borders=Borders::ALL title="Demo"/>)
                 highlight_style=prop!(<Style yellow/>)
-                select=focused_tab.get()
+                current_tab=focused_title
             >
-                {titles
-                    .get()
-                    .unwrap()
-                    .iter()
-                    .map(|t| {
-                        prop! {
-                            <Line>
-                                <Span green>
-                                    {*t}
-                                </Span>
-                            </Line>
-                        }
-                    })}
+                <Tab
+                    header=tab_header(TAB0)
+                    value = TAB0.to_string()
+                >
+                    {move || any_view!(<Tab0/>)}
+                </Tab>
+                <Tab
+                    header=tab_header(TAB1)
+                    value = TAB1.to_string()
+                >
+                    {move || any_view!(<Tab1/>)}
+                </Tab>
+                <Tab
+                    header=tab_header(TAB2)
+                    value = TAB2.to_string()
+                >
+                    {move || any_view!(<Tab2/>)}
+                </Tab>
             </Tabs>
-            <TabContent focused=focused_tab/>
+
         </Col>
-    }
-}
-
-#[component]
-fn TabContent(focused: ReadSignal<usize>) -> impl Render {
-    view! {
-        <Row>
-            {move || match focused.get() {
-                0 => any_view!(<Tab0/>),
-                1 => any_view!(<Tab1/>),
-                2 => any_view!(<Tab2/>),
-                _ => unreachable!()
-            }
-
-            }
-        </Row>
     }
 }

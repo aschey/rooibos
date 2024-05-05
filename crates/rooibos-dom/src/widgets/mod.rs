@@ -1,3 +1,7 @@
+mod chart;
+mod sparkline;
+
+pub use chart::*;
 use ratatui::prelude::*;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span, Text};
@@ -5,6 +9,7 @@ use ratatui::widgets::canvas::{Canvas, Context};
 use ratatui::widgets::*;
 use rooibos_dom::prelude::*;
 use rooibos_dom_macros::{impl_stateful_widget, impl_widget, make_builder};
+pub use sparkline::*;
 
 use crate::DomWidget;
 
@@ -67,7 +72,7 @@ impl MakeBuilder for Wrap {}
 impl_widget!(Block, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
 impl_widget!(Paragraph, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
 impl_widget!(List, visibility=pub,generics=<'a>, make_builder=MakeBuilder);
-impl_widget!(Tabs, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
+impl_widget!(Tabs, name_override=TabHeaders, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
 impl_widget!(Table, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
 impl_widget!(Gauge, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
 impl_widget!(LineGauge, visibility=pub, generics=<'a>, make_builder=MakeBuilder);
@@ -97,5 +102,19 @@ pub trait WrapExt {
 impl WrapExt for Wrap {
     fn trim(self, trim: bool) -> Self {
         Self { trim }
+    }
+}
+
+pub trait TabsExt<'a> {
+    fn block_opt(self, block: Option<Block<'a>>) -> Self;
+}
+
+impl<'a> TabsExt<'a> for Tabs<'a> {
+    fn block_opt(self, block: Option<Block<'a>>) -> Self {
+        if let Some(block) = block {
+            self.block(block)
+        } else {
+            self
+        }
     }
 }

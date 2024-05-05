@@ -8,12 +8,9 @@ pub use dom::*;
 pub use rooibos_dom_macros::*;
 pub use typed_builder;
 pub use widgets::*;
-mod chart;
 mod components;
-mod sparkline;
 
 pub mod prelude {
-    pub use chart::*;
     pub use components::*;
     pub use ratatui::layout::*;
     pub use ratatui::prelude::{Buffer, Constraint};
@@ -21,7 +18,6 @@ pub mod prelude {
     pub use ratatui::text::*;
     pub use ratatui::widgets::*;
     pub use ratatui::{symbols, Frame, Terminal};
-    pub use sparkline::*;
 
     pub use super::*;
 }

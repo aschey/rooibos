@@ -11,11 +11,11 @@ pub type Children = Box<dyn FnOnce() -> AnyView>;
 
 /// A type for the `children` property on components that can be called
 /// more than once.
-pub type ChildrenFn = Arc<dyn Fn() -> AnyView>;
+pub type ChildrenFn = Arc<dyn Fn() -> AnyView + Send + Sync>;
 
 /// A type for the `children` property on components that can be called
 /// more than once, but may mutate the children.
-pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView>;
+pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView + Send + Sync>;
 
 // This is to still support components that accept `Box<dyn Fn() -> AnyView>` as a children.
 type BoxedChildrenFn = Box<dyn Fn() -> AnyView>;
@@ -26,6 +26,10 @@ pub trait ToChildren<F> {
 
 pub trait IntoChildrenMut {
     fn into_children_mut(self) -> ChildrenFnMut;
+}
+
+pub trait IntoChildren {
+    fn into_children(self) -> ChildrenFn;
 }
 
 impl<F, C> ToChildren<F> for Children
@@ -41,7 +45,7 @@ where
 
 impl<F, C> ToChildren<F> for ChildrenFn
 where
-    F: Fn() -> C + Send + 'static,
+    F: Fn() -> C + Send + Sync + 'static,
     C: RenderAny + Send + 'static,
 {
     #[inline]
@@ -52,7 +56,7 @@ where
 
 impl<F, C> IntoChildrenMut for F
 where
-    F: FnMut() -> C + 'static,
+    F: FnMut() -> C + Send + Sync + 'static,
     C: IntoAny,
 {
     fn into_children_mut(mut self) -> ChildrenFnMut {
@@ -60,9 +64,19 @@ where
     }
 }
 
+impl<F, C> IntoChildren for F
+where
+    F: Fn() -> C + Send + Sync + 'static,
+    C: IntoAny,
+{
+    fn into_children(self) -> ChildrenFn {
+        Arc::new(move || self().into_any())
+    }
+}
+
 impl<F, C> ToChildren<F> for ChildrenFnMut
 where
-    F: Fn() -> C + Send + 'static,
+    F: Fn() -> C + Send + Sync + 'static,
     C: RenderAny + Send + 'static,
 {
     #[inline]
