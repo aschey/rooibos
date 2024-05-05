@@ -103,7 +103,8 @@ const TAB2: &str = "Tab2";
 #[component]
 fn HeaderTabs() -> impl Render {
     let (focused_tab, set_focused_tab) = signal(0);
-    let titles = vec![TAB0, TAB1, TAB2];
+
+    let titles = [TAB0, TAB1, TAB2];
     let focused_title = Signal::derive(move || titles[focused_tab.get()].to_string());
 
     let update_current_tab = move |change: i32| {

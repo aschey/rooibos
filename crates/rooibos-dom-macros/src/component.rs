@@ -286,7 +286,7 @@ impl Docs {
         const RSX_START: &str = "# ::rooibos::rsx::view! {cx,";
         const RSX_END: &str = "# };}).dispose();";
 
-        // Seperated out of chain to allow rustfmt to work
+        // Separated out of chain to allow rustfmt to work
         let map = |(doc, span): (String, Span)| {
             doc.lines()
                 .flat_map(|doc| {
@@ -300,8 +300,8 @@ impl Docs {
                         {
                             view_code_fence_state = ViewCodeFenceState::Rust;
                             let view = trimmed_doc.find('v').unwrap();
-                            quotes = trimmed_doc[..view].to_owned();
-                            quote_ws = leading_ws.to_owned();
+                            trimmed_doc[..view].clone_into(&mut quotes);
+                            leading_ws.clone_into(&mut quote_ws);
                             let rust_options = &trimmed_doc[view + "view".len()..].trim_start();
                             vec![
                                 format!("{leading_ws}{quotes}{rust_options}"),
