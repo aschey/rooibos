@@ -104,17 +104,3 @@ impl WrapExt for Wrap {
         Self { trim }
     }
 }
-
-pub trait TabsExt<'a> {
-    fn block_opt(self, block: Option<Block<'a>>) -> Self;
-}
-
-impl<'a> TabsExt<'a> for Tabs<'a> {
-    fn block_opt(self, block: Option<Block<'a>>) -> Self {
-        if let Some(block) = block {
-            self.block(block)
-        } else {
-            self
-        }
-    }
-}

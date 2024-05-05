@@ -240,13 +240,15 @@ struct NodeAttributes {
     key: Option<Expr>,
     focusable: Option<Expr>,
     id: Option<Expr>,
+    modify_fn: Option<TokenStream>,
 }
 
 impl NodeAttributes {
     fn from_custom(
-        tag: TokenStream,
+        tag: Ident,
         attributes: &[NodeAttribute],
         children: TokenStream,
+        wrap_fn: bool,
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         Self::from_nodes(
@@ -257,6 +259,7 @@ impl NodeAttributes {
             } else {
                 Some(children)
             },
+            wrap_fn,
             emitter,
         )
     }
@@ -334,14 +337,19 @@ impl NodeAttributes {
                 self.id = attribute.value().cloned();
                 true
             }
+            "v:modify" => {
+                self.modify_fn = Some(attribute.value().unwrap().into_token_stream());
+                true
+            }
             _ => false,
         }
     }
 
     fn from_nodes(
-        tag: Option<TokenStream>,
+        tag: Option<Ident>,
         nodes: &[NodeAttribute],
         args: Option<TokenStream>,
+        wrap_fn: bool,
         emitter: &mut Emitter,
     ) -> manyhow::Result<Self> {
         let mut attrs = Self {
@@ -351,6 +359,7 @@ impl NodeAttributes {
             key: None,
             focusable: None,
             id: None,
+            modify_fn: None,
         };
 
         let custom_attrs: Vec<_> = nodes
@@ -385,18 +394,32 @@ impl NodeAttributes {
             }
         }
 
-        if let Some(props) = &attrs.props {
-            attrs.props = Some(quote! { #props.build() });
+        if let Some(props) = attrs.props.clone() {
+            Self::build_props(&props, &mut attrs);
         }
 
         if let Some(tag) = &tag {
             if custom_attrs.is_empty() {
                 let props = build_struct(tag, &args);
-                attrs.props = Some(quote! { #props.build() });
+                Self::build_props(&props, &mut attrs);
+            }
+        }
+
+        if wrap_fn {
+            if let Some(props) = &attrs.props {
+                attrs.props = Some(quote! { move || #props});
             }
         }
 
         Ok(attrs)
+    }
+
+    fn build_props(props: &TokenStream, attrs: &mut NodeAttributes) {
+        if let Some(modify_fn) = &attrs.modify_fn {
+            attrs.props = Some(quote! { (#modify_fn)(#props).build() })
+        } else {
+            attrs.props = Some(quote! { #props.build() });
+        }
     }
 
     fn from_layout_nodes(nodes: &[NodeAttribute], emitter: &mut Emitter) -> Self {
@@ -407,6 +430,7 @@ impl NodeAttributes {
             key: None,
             focusable: None,
             id: None,
+            modify_fn: None,
         };
 
         for node in nodes {
@@ -434,7 +458,7 @@ impl NodeAttributes {
     }
 }
 
-fn build_struct(tag_name: &TokenStream, args: &Option<TokenStream>) -> TokenStream {
+fn build_struct(tag_name: &Ident, args: &Option<TokenStream>) -> TokenStream {
     if let Some(args) = args.as_ref() {
         quote! {
             #tag_name::new(#args)
@@ -559,10 +583,10 @@ fn parse_named_element_children(nodes: &[Node], emitter: &mut Emitter) -> manyho
             Node::Element(element) => {
                 let children = parse_named_element_children(&element.children, emitter)?;
                 let attrs = NodeAttributes::from_custom(
-                    Ident::new(&element.name().to_string(), element.name().span())
-                        .to_token_stream(),
+                    Ident::new(&element.name().to_string(), element.name().span()),
                     element.attributes(),
                     children,
+                    false,
                     emitter,
                 )?;
 
@@ -687,12 +711,8 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
             let children = parse_named_element_children(&element.children, emitter)?;
 
             let props = Ident::new(&(name.to_owned() + "Props"), Span::call_site());
-            let attrs = NodeAttributes::from_custom(
-                quote!(move || #props),
-                element.attributes(),
-                children,
-                emitter,
-            )?;
+            let attrs =
+                NodeAttributes::from_custom(props, element.attributes(), children, true, emitter)?;
             let generics = &element.open_tag.generics;
 
             Ok(View {

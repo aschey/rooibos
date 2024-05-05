@@ -44,13 +44,22 @@ where
     });
 
     let block = StoredValue::new(block);
+
     view! {
         <Col>
             <TabHeaders
-                v:length=padding * 2 + 1
                 select=cur_tab.get().unwrap().1
-                block_opt=block.get().unwrap()
                 highlight_style=highlight_style
+                v:length=padding * 2 + 1
+                v:modify = {
+                    |tab_headers: Tabs<'static>| {
+                        if let Some(block) = block.get().unwrap() {
+                            tab_headers.block(block)
+                        } else {
+                            tab_headers
+                        }
+                    }
+                }
             >
                 {headers.get().unwrap()}
             </TabHeaders>
