@@ -7,24 +7,24 @@ use crate::prelude::*;
 #[component]
 pub fn Show<C, W>(
     /// The children will be shown whenever the condition in the `when` closure returns `true`.
-    #[prop(children)]
-    mut children: C,
+    #[prop(children, into)]
+    mut children: TypedChildrenMut<C>,
     /// A closure that returns a bool that determines whether this thing runs
     when: W,
     /// A closure that returns what gets rendered if the when statement is false. By default this
     /// is the empty view.
     #[prop(optional, into)]
     fallback: ViewFn,
-) -> impl RenderAny
+) -> impl IntoView
 where
-    C: IntoChildrenMut,
+    C: IntoView + 'static,
     W: Fn() -> bool + Send + Sync + 'static,
 {
     let memoized_when = Memo::new(move |_| when());
-    let mut children = children.into_children_mut();
+    let mut children = children.into_inner();
     move || {
         if memoized_when.get() {
-            Either::Left((children)())
+            Either::Left(children())
         } else {
             Either::Right(fallback.run())
         }

@@ -7,12 +7,12 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.27.0"
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "a8ee0d16dadb9346598e63d1f9c54a3b545b8fbf" }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "a8ee0d16dadb9346598e63d1f9c54a3b545b8fbf", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc", features = [
     "reactive_graph",
 ] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "a8ee0d16dadb9346598e63d1f9c54a3b545b8fbf" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "a8ee0d16dadb9346598e63d1f9c54a3b545b8fbf" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
 matchit = "0.8"
 paste = "1.0.14"
 ratatui = { version = "0.26", features = ["unstable"] }
@@ -25,7 +25,7 @@ rustc-hash = "1.1.0"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
 
 [dev-dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "a8ee0d16dadb9346598e63d1f9c54a3b545b8fbf", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc", features = [
     "tokio",
 ] }
 ctor = "0.2.7"

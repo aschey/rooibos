@@ -6,7 +6,7 @@ pub fn Popup<M>(
     percent_x: u16,
     percent_y: u16,
     #[prop(default=None)] constraint: Option<Constraint>,
-) -> impl RenderAny
+) -> impl IntoView
 where
     M: RenderAny + 'static,
 {

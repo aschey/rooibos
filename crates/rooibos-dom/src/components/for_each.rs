@@ -8,13 +8,13 @@ use tachys::view::keyed::keyed;
 use crate::prelude::*;
 
 #[component]
-pub fn ForEach<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl RenderAny
+pub fn ForEach<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
 where
-    IF: Fn() -> I + 'static,
+    IF: Fn() -> I + Send + 'static,
     I: IntoIterator<Item = T>,
-    EF: Fn(T) -> N + Clone + 'static,
-    N: RenderAny + 'static,
-    KF: Fn(&T) -> K + Clone + 'static,
+    EF: Fn(T) -> N + Clone + Send + 'static,
+    N: IntoView + 'static,
+    KF: Fn(&T) -> K + Clone + Send + 'static,
     K: Eq + Hash + 'static,
     T: 'static,
 {

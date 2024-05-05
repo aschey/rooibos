@@ -9,7 +9,7 @@ use tachys::view::{Mountable, Render};
 use typed_builder::TypedBuilder;
 use url::Url;
 
-use crate::{AnyViewState, ChildrenFnMut, DomNode, IntoChildrenMut, RenderAny, RooibosDom};
+use crate::{AnyViewState, ChildrenFnMut, DomNode, IntoChildrenMut, IntoView, RooibosDom};
 
 #[derive(TypedBuilder, ComponentChildren)]
 pub struct Route {
@@ -186,6 +186,6 @@ impl Render<RooibosDom> for Router {
 pub fn Router(
     #[prop(children)] routes: Vec<Route>,
     #[prop(into, default = "/".to_owned())] initial: String,
-) -> impl RenderAny {
+) -> impl IntoView {
     Router { routes, initial }
 }

@@ -163,6 +163,16 @@ where
 /// allow the compiler to optimize the view more effectively.
 pub struct TypedChildrenMut<T>(Box<dyn FnMut() -> View<T> + Send>);
 
+impl<F, T> From<F> for TypedChildrenMut<T>
+where
+    F: FnMut() -> T + Send + 'static,
+    T: RenderAny,
+{
+    fn from(mut value: F) -> Self {
+        Self(Box::new(move || value().into_view()))
+    }
+}
+
 impl<T> Debug for TypedChildrenMut<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("TypedChildrenMut").finish()
