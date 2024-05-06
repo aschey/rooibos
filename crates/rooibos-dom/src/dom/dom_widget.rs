@@ -21,6 +21,7 @@ pub struct DomWidget {
     pub(crate) widget_type: String,
     pub(crate) constraint: Constraint,
     dom_id: Option<NodeId>,
+    focusable: bool,
     _effect: Rc<RenderEffect<()>>,
 }
 
@@ -51,6 +52,7 @@ impl DomWidget {
             f: rc_f,
             constraint: Constraint::default(),
             dom_id: None,
+            focusable: false,
             _effect: Rc::new(effect),
         }
     }
@@ -68,6 +70,11 @@ impl DomWidget {
         self.dom_id = Some(id.into());
         self
     }
+
+    pub fn focusable(mut self, focusable: bool) -> Self {
+        self.focusable = focusable;
+        self
+    }
 }
 
 impl Render<RooibosDom> for DomWidget {
@@ -77,7 +84,8 @@ impl Render<RooibosDom> for DomWidget {
         DomNode::from_fragment(
             DocumentFragment::widget(self.clone())
                 .constraint(self.constraint)
-                .id(self.dom_id.clone()),
+                .id(self.dom_id.clone())
+                .focusable(self.focusable),
         )
     }
 

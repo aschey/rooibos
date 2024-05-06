@@ -237,7 +237,7 @@ impl DomNode {
             children: vec![],
             parent: None,
             before_pending: vec![],
-            focusable: fragment.id.is_some(),
+            focusable: fragment.focusable,
             id: fragment.id,
             data: vec![],
         };

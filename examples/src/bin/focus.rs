@@ -33,18 +33,18 @@ fn App() -> impl Render {
         <Row>
             <Col v:percentage=50>
                 <Row v:percentage=50>
-                    <FocusBlock v:focusable=true title="item 1"/>
+                    <FocusBlock title="item 1"/>
                 </Row>
                 <Row v:percentage=50>
-                    <FocusBlock v:focusable=true title="item 2"/>
+                    <FocusBlock title="item 2"/>
                 </Row>
             </Col>
             <Col v:percentage=50>
                 <Row v:percentage=50>
-                    <FocusBlock v:focusable=true title="item 3"/>
+                    <FocusBlock title="item 3"/>
                 </Row>
                 <Row v:percentage=50>
-                    <FocusBlock v:focusable=true title="item 4"/>
+                    <FocusBlock title="item 4"/>
                 </Row>
             </Col>
         </Row>
@@ -56,7 +56,7 @@ fn FocusBlock(#[prop(into)] title: &'static str) -> impl Render {
     let (id, focused) = use_focus();
 
     view! {
-        <Paragraph v:id=id block=prop!(<Block/>)>
+        <Paragraph v:id=id v:focusable block=prop!(<Block/>)>
             {format!("{title} - focused: {}", focused.get())}
         </Paragraph>
     }

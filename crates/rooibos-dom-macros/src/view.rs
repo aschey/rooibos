@@ -56,6 +56,7 @@ pub(crate) struct View {
     view_type: ViewType,
     constraint: Option<ConstraintTokens>,
     id: Option<Expr>,
+    focusable: Option<Expr>,
     layout_props: Option<TokenStream>,
 }
 
@@ -66,6 +67,10 @@ impl View {
         let child_tokens: Vec<_> = children.iter().map(|v| v.view_to_tokens()).collect();
         let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
         let id = self.id.as_ref().map(|id| quote!(.id(#id)));
+        let focusable = self
+            .focusable
+            .as_ref()
+            .map(|focusable| quote!(.focusable(#focusable)));
         let overlay_fn = if cfg!(debug_assertions) {
             quote! {
                 {
@@ -83,6 +88,7 @@ impl View {
             #overlay_fn
             #constraint
             #id
+            #focusable
             #(.child(#child_tokens))*
         };
 
@@ -98,6 +104,10 @@ impl View {
     ) -> TokenStream {
         let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
         let id = self.id.as_ref().map(|id| quote!(.id(#id)));
+        let focusable = self
+            .focusable
+            .as_ref()
+            .map(|focusable| quote!(.focusable(#focusable)));
         let layout = match direction {
             Direction::Row => Ident::new("row", span),
             Direction::Col => Ident::new("col", span),
@@ -125,6 +135,7 @@ impl View {
             #layout_fn
             #constraint
             #id
+            #focusable
             #layout_props
             #(.child(#child_tokens))*
         };
@@ -165,6 +176,10 @@ impl View {
                 };
                 let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
                 let id = self.id.as_ref().map(|id| quote!(.id(#id)));
+                let focusable = self
+                    .focusable
+                    .as_ref()
+                    .map(|focusable| quote!(.focusable(#focusable)));
                 let get_conditional = |rest: TokenStream| {
                     // in debug mode, add a dummy condition to associate the closing tag span
                     // the referenced function so rust analyzer can highlight it
@@ -178,6 +193,7 @@ impl View {
                                 #name #rest
                                 #constraint
                                 #id
+                                #focusable
                             }
                         }
                     } else {
@@ -185,6 +201,7 @@ impl View {
                             #name #rest
                             #constraint
                             #id
+                            #focusable
                         }
                     }
                 };
@@ -330,7 +347,12 @@ impl NodeAttributes {
                 true
             }
             "v:focusable" => {
-                self.focusable = attribute.value().cloned();
+                self.focusable = Some(
+                    attribute
+                        .value()
+                        .cloned()
+                        .unwrap_or_else(|| syn::parse_quote!(true)),
+                );
                 true
             }
             "v:id" => {
@@ -553,6 +575,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                     constraint: None,
                     layout_props: None,
                     id: None,
+                    focusable: None,
                 });
             }
             Node::Block(block) => {
@@ -563,6 +586,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                         constraint: None,
                         layout_props: None,
                         id: None,
+                        focusable: None,
                     })
                 }
             }
@@ -656,6 +680,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,
+                focusable: attrs.focusable,
             })
         }
         "Col" => {
@@ -675,6 +700,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,
+                focusable: attrs.focusable,
             })
         }
         "FocusScope" => {
@@ -686,6 +712,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,
+                focusable: attrs.focusable,
             })
         }
         "Overlay" => {
@@ -705,6 +732,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 constraint: attrs.constraint,
                 layout_props: attrs.props,
                 id: attrs.id,
+                focusable: attrs.focusable,
             })
         }
         name => {
@@ -737,6 +765,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 constraint: attrs.constraint,
                 layout_props: None,
                 id: attrs.id,
+                focusable: attrs.focusable,
             })
         }
     }

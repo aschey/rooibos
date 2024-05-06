@@ -12,6 +12,7 @@ pub struct DocumentFragment {
     pub(crate) node_type: NodeType,
     pub(crate) constraint: Constraint,
     pub(crate) id: Option<NodeId>,
+    pub(crate) focusable: bool,
     pub(crate) flex: Flex,
     pub(crate) name: String,
 }
@@ -23,6 +24,7 @@ impl DocumentFragment {
             constraint: widget.constraint,
             node_type: NodeType::Widget(widget),
             flex: Flex::default(),
+            focusable: false,
             id: None,
         }
     }
@@ -36,6 +38,7 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "row".to_string(),
+            focusable: false,
             id: None,
         }
     }
@@ -49,6 +52,7 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "col".to_string(),
+            focusable: false,
             id: None,
         }
     }
@@ -59,6 +63,7 @@ impl DocumentFragment {
             constraint: Constraint::default(),
             flex: Flex::default(),
             name: "overlay".to_string(),
+            focusable: false,
             id: None,
         }
     }
@@ -70,6 +75,11 @@ impl DocumentFragment {
 
     pub(crate) fn id(mut self, id: Option<NodeId>) -> Self {
         self.id = id;
+        self
+    }
+
+    pub(crate) fn focusable(mut self, focusable: bool) -> Self {
+        self.focusable = focusable;
         self
     }
 }
