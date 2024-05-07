@@ -19,29 +19,32 @@ async fn main() -> Result<()> {
 fn Counter(id: u32, constraint: Constraint) -> impl Render {
     let (count, set_count) = signal(id);
 
-    let term_signal = use_keypress();
-    Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Up {
-                set_count.update(|c| *c += 1);
-            }
-            if term_signal.code == KeyCode::Down {
-                set_count.update(|c| *c -= 1);
-            }
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Up {
+            set_count.update(|c| *c += 1);
         }
-    });
+        if key_event.code == KeyCode::Down {
+            set_count.update(|c| *c -= 1);
+        }
+    };
 
     view! {
         <Block
             v:id=id.to_string() title=format!("count: {}", count.get())
+            v:focusable
             v:constraint=constraint
+            on:key_down=key_down
         />
     }
 }
 
 #[component]
 fn Counters() -> impl Render {
-    let (n_counters, set_n_counters) = signal(1);
+    let (n_counters, set_n_counters) = signal(5);
+
+    Effect::new(move |_| {
+        focus_next();
+    });
 
     let term_signal = use_keypress();
     Effect::new(move |_| {

@@ -4,7 +4,7 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::run;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -16,16 +16,19 @@ async fn main() -> Result<()> {
 }
 
 fn counter() -> impl Render {
-    let (count, set_count) = signal(1);
+    let (count, set_count) = signal(0);
 
-    let term_signal = use_keypress();
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Enter {
-                set_count.update(|c| *c += 1);
-            }
-        }
+        focus_next();
     });
 
-    col().child(move || format!("count {}", count.get()))
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Enter {
+            set_count.update(|c| *c += 1);
+        }
+    };
+
+    paragraph(move || ParagraphProps::new(format!("count {}", count.get())))
+        .focusable(true)
+        .on_key_down(key_down)
 }

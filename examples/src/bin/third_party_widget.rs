@@ -5,7 +5,7 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::run;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -64,44 +64,45 @@ fn App() -> impl Render {
         TreeItem::new_leaf("h", "h"),
     ]);
 
-    let term_signal = use_keypress();
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            match term_signal.code {
-                KeyCode::Char('\n' | ' ') => {
-                    state.update(|mut s| {
-                        s.toggle_selected();
-                    });
-                }
-                KeyCode::Left => state.update(|mut s| {
-                    s.key_left();
-                }),
-                KeyCode::Right => state.update(|mut s| {
-                    s.key_right();
-                }),
-                KeyCode::Down => state.update(|mut s| {
-                    s.key_down(&tree.get());
-                }),
-                KeyCode::Up => state.update(|mut s| {
-                    s.key_up(&tree.get());
-                }),
-                KeyCode::Home => state.update(|mut s| {
-                    s.select_first(&tree.get());
-                }),
-                KeyCode::End => state.update(|mut s| {
-                    s.select_last(&tree.get());
-                }),
-                _ => {}
-            }
-        }
+        focus_next();
     });
+
+    let key_down = move |key_event: KeyEvent| match key_event.code {
+        KeyCode::Char('\n' | ' ') => {
+            state.update(|mut s| {
+                s.toggle_selected();
+            });
+        }
+        KeyCode::Left => state.update(|mut s| {
+            s.key_left();
+        }),
+        KeyCode::Right => state.update(|mut s| {
+            s.key_right();
+        }),
+        KeyCode::Down => state.update(|mut s| {
+            s.key_down(&tree.get());
+        }),
+        KeyCode::Up => state.update(|mut s| {
+            s.key_up(&tree.get());
+        }),
+        KeyCode::Home => state.update(|mut s| {
+            s.select_first(&tree.get());
+        }),
+        KeyCode::End => state.update(|mut s| {
+            s.select_last(&tree.get());
+        }),
+        _ => {}
+    };
 
     view! {
         <StatefulTree
             unwrap
             block=prop!(<Block borders=Borders::ALL title="Tree Widget"/>)
             highlight_style=prop!(<Style black on_green bold/>)
+            v:focusable
             v:state=move || state.get()
+            on:key_down=key_down
         >
             {tree.get()}
         </StatefulTree>

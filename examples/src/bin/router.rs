@@ -4,7 +4,7 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::run;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -18,6 +18,10 @@ async fn main() -> Result<()> {
 #[component]
 fn App() -> impl Render {
     let child2_id = RwSignal::new(0);
+
+    Effect::new(move |_| {
+        focus_next();
+    });
 
     view! {
         <Col>
@@ -40,17 +44,18 @@ fn App() -> impl Render {
 fn Child0() -> impl Render {
     let router = use_router();
 
-    let term_signal = use_keypress();
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Enter {
-                router.push("/child1?id=1");
-            }
-        }
+        focus_id("child0");
     });
 
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Enter {
+            router.push("/child1?id=1");
+        }
+    };
+
     view! {
-        <Paragraph>
+        <Paragraph v:id="child0" v:focusable on:key_down=key_down>
             "child0"
         </Paragraph>
     }
@@ -61,18 +66,19 @@ fn Child1(child2_id: RwSignal<i32>) -> impl Render {
     let router = use_router();
     let id = router.use_query("id");
 
-    let term_signal = use_keypress();
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Enter {
-                router.push(format!("/child2/{}", child2_id.get_untracked()));
-                child2_id.update(|id| *id += 1);
-            }
-        }
+        focus_id("child1");
     });
 
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Enter {
+            router.push(format!("/child2/{}", child2_id.get_untracked()));
+            child2_id.update(|id| *id += 1);
+        }
+    };
+
     view! {
-        <Paragraph>
+        <Paragraph v:id="child1" v:focusable on:key_down=key_down>
             {format!("child1 id={}", id.get().unwrap())}
         </Paragraph>
     }
@@ -83,17 +89,18 @@ fn Child2() -> impl Render {
     let router = use_router();
     let id = router.use_param("id");
 
-    let term_signal = use_keypress();
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Enter {
-                router.pop();
-            }
-        }
+        focus_id("child2");
     });
 
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Enter {
+            router.pop();
+        }
+    };
+
     view! {
-        <Paragraph>
+        <Paragraph v:id="child2" v:focusable on:key_down=key_down>
             {format!("child2 id={}", id.get().unwrap())}
         </Paragraph>
     }

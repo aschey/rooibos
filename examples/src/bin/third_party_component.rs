@@ -4,7 +4,7 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::run;
 use tui_textarea::TextArea;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -18,27 +18,28 @@ async fn main() -> Result<()> {
 
 #[component]
 fn TextView() -> impl Render {
+    Effect::new(move |_| {
+        focus_next();
+    });
+
     let mut text_area = TextArea::default();
     text_area.set_block(prop!(<Block borders=Borders::ALL title="Example"/>));
     let text_area = RwSignal::new(text_area);
 
-    let term_signal = use_keypress();
-    Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            text_area.update(|mut t| {
-                let signal: crossterm::event::KeyEvent = term_signal.into();
-                t.input(signal);
-            });
-        }
-    });
+    let key_down = move |key_event: KeyEvent| {
+        text_area.update(|mut t| {
+            let signal: crossterm::event::KeyEvent = key_event.into();
+            t.input(signal);
+        });
+    };
 
     view! {
-        <TextAreaWidget text_area=text_area/>
+        <TextAreaWidget text_area=text_area v:focusable on:key_down=key_down/>
     }
 }
 
 #[component]
-fn TextAreaWidget(text_area: RwSignal<TextArea<'static>>) -> impl Render {
+fn TextAreaWidget(text_area: RwSignal<TextArea<'static>>) -> DomWidget {
     DomWidget::new("TextArea", move || {
         let widget = text_area.get();
         move |f: &mut Frame, area: Rect| {

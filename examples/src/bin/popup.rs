@@ -4,7 +4,7 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::run;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -19,18 +19,23 @@ async fn main() -> Result<()> {
 fn App() -> impl Render {
     let show_popup = RwSignal::new(false);
 
-    let term_signal = use_keypress();
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Enter {
-                show_popup.update(|p| *p = !*p);
-            }
-        }
+        focus_next();
     });
+
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Enter {
+            show_popup.update(|p| *p = !*p);
+        }
+    };
 
     view! {
         <Overlay v:length=6>
-            <Paragraph block=prop!(<Block borders=Borders::ALL/>)>
+            <Paragraph
+                v:focusable
+                block=prop!(<Block borders=Borders::ALL/>)
+                on:key_down=key_down
+            >
                 <Line>"text1"</Line>
                 <Line>"text2"</Line>
                 <Line>"text3"</Line>

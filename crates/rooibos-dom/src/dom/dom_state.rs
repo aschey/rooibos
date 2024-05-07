@@ -41,6 +41,17 @@ impl DomState {
     }
 
     pub(crate) fn clear_focused(&mut self) {
+        self.focused_key = None;
+        self.set_focused.set(None);
+    }
+
+    pub(crate) fn remove_focusable(&mut self, key: &DomNodeKey) {
+        if let Some(pos) = self.focusable_nodes.iter().position(|n| n == key) {
+            self.focusable_nodes.remove(pos);
+        }
+    }
+
+    pub(crate) fn clear_focusables(&mut self) {
         self.focusable_nodes.clear();
     }
 

@@ -20,7 +20,7 @@ fn Counter() -> impl Render {
     let (count, set_count) = signal(0);
 
     Effect::new(move |_| {
-        focus_id("counter");
+        focus_next();
     });
 
     let key_down = move |key_event: KeyEvent| {
@@ -30,10 +30,8 @@ fn Counter() -> impl Render {
     };
 
     view! {
-        <Col>
-            <Paragraph v:id="counter" v:focusable on:key_down=key_down>
-                {format!("count {}", count.get())}
-            </Paragraph>
-        </Col>
+        <Paragraph v:focusable on:key_down=key_down>
+            {format!("count {}", count.get())}
+        </Paragraph>
     }
 }

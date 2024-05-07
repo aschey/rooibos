@@ -341,7 +341,7 @@ impl DomNode {
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
         with_nodes(|d| {
             with_state_mut(|state| {
-                state.clear_focused();
+                state.clear_focusables();
                 let constraint = *d[self.key].constraint.borrow();
 
                 d[self.key].render(

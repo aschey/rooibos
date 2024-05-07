@@ -12,7 +12,7 @@ use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{make_dom_widget, KeyEvent, KeyEventKind, NewExt};
+use crate::{make_dom_widget, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, NewExt};
 
 mod any_view;
 mod children;
@@ -272,6 +272,12 @@ fn cleanup_removed_nodes(
     node: &DomNodeKey,
     nodes: &mut RefMut<'_, SlotMap<DomNodeKey, DomNodeInner>>,
 ) {
+    with_state_mut(|s| {
+        if s.focused_key() == Some(*node) {
+            s.clear_focused();
+        }
+        s.remove_focusable(node);
+    });
     let children = nodes[*node].children.clone();
     for child in children {
         cleanup_removed_nodes(&child, nodes);
@@ -409,9 +415,21 @@ pub fn focused_node() -> ReadSignal<Option<NodeId>> {
     with_state(|d| d.focused())
 }
 
+enum Focus {
+    Next,
+    Prev,
+}
+
 pub fn send_key(key_event: KeyEvent) {
-    with_nodes_mut(|mut n| {
+    let focus = with_nodes_mut(|mut n| {
         with_state(|d| {
+            if key_event.code == KeyCode::Tab {
+                if key_event.modifiers.contains(KeyModifiers::SHIFT) {
+                    return Some(Focus::Prev);
+                } else {
+                    return Some(Focus::Next);
+                }
+            }
             if let Some(key) = d.focused_key() {
                 if key_event.kind == KeyEventKind::Press {
                     if let Some(on_key_down) = &mut n[key].on_key_down {
@@ -419,8 +437,19 @@ pub fn send_key(key_event: KeyEvent) {
                     }
                 }
             }
+            None
         })
     });
+
+    match focus {
+        Some(Focus::Next) => {
+            focus_next();
+        }
+        Some(Focus::Prev) => {
+            focus_prev();
+        }
+        None => {}
+    }
 }
 
 pub fn focus_id(id: impl Into<NodeId>) {
