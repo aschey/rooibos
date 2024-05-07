@@ -57,7 +57,7 @@ pub(crate) struct View {
     constraint: Option<ConstraintTokens>,
     id: Option<Expr>,
     focusable: Option<Expr>,
-    on_key_down: Option<TokenStream>,
+    event_handlers: EventHandlers,
     layout_props: Option<TokenStream>,
 }
 
@@ -75,11 +75,9 @@ impl View {
         let overlay_fn = if cfg!(debug_assertions) {
             quote! {
                 {
-                    if false {
-                        #closing()
-                    } else {
-                        #overlay()
-                    }
+                    #[cfg(__never_compiled)]
+                    #closing();
+                    #overlay()
                 }
             }
         } else {
@@ -123,9 +121,9 @@ impl View {
 
         let layout_fn = if cfg!(debug_assertions) {
             quote! {
-                if false {
-                    #closing()
-                } else {
+                {
+                    #[cfg(__never_compiled)]
+                    #closing();
                     #layout()
                 }
             }
@@ -181,17 +179,14 @@ impl View {
                     .focusable
                     .as_ref()
                     .map(|focusable| quote!(.focusable(#focusable)));
-                let on_key_down = self
-                    .on_key_down
-                    .as_ref()
-                    .map(|handler| quote!(.on_key_down(#handler)));
+                let event_handlers = self.event_handlers.clone();
                 let get_conditional = |rest: TokenStream| {
                     let attrs = quote! {
                         #name #rest
                         #constraint
                         #id
                         #focusable
-                        #on_key_down
+                        #event_handlers
                     };
                     // in debug mode, add a dummy condition to associate the closing tag span
                     // the referenced function so rust analyzer can highlight it
@@ -199,9 +194,8 @@ impl View {
                     if cfg!(debug_assertions) {
                         quote! {
                             {
-                                if false {
-                                    #closing_name #rest;
-                                }
+                                #[cfg(__never_compiled)]
+                                #closing_name #rest;
                                 #attrs
                             }
                         }
@@ -255,6 +249,40 @@ impl ToTokens for ConstraintTokens {
         tokens.append_all(new_tokens);
     }
 }
+#[derive(Default, Clone, Debug)]
+struct EventHandlers {
+    on_key_down: Option<TokenStream>,
+    on_key_up: Option<TokenStream>,
+    on_focus: Option<TokenStream>,
+    on_blur: Option<TokenStream>,
+}
+
+impl ToTokens for EventHandlers {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let on_key_down = self
+            .on_key_down
+            .as_ref()
+            .map(|handler| quote!(.on_key_down(#handler)));
+        let on_key_up = self
+            .on_key_up
+            .as_ref()
+            .map(|handler| quote!(.on_key_up(#handler)));
+        let on_blur = self
+            .on_blur
+            .as_ref()
+            .map(|handler| quote!(.on_blur(#handler)));
+        let on_focus = self
+            .on_focus
+            .as_ref()
+            .map(|handler| quote!(.on_focus(#handler)));
+        tokens.append_all(quote! {
+            #on_key_down
+            #on_key_up
+            #on_blur
+            #on_focus
+        })
+    }
+}
 
 struct NodeAttributes {
     constraint: Option<ConstraintTokens>,
@@ -264,7 +292,7 @@ struct NodeAttributes {
     focusable: Option<Expr>,
     id: Option<Expr>,
     modify_fn: Option<TokenStream>,
-    on_key_down: Option<TokenStream>,
+    event_handlers: EventHandlers,
 }
 
 impl NodeAttributes {
@@ -371,7 +399,21 @@ impl NodeAttributes {
                 true
             }
             "on:key_down" => {
-                self.on_key_down = Some(attribute.value().unwrap().into_token_stream());
+                self.event_handlers.on_key_down =
+                    Some(attribute.value().unwrap().into_token_stream());
+                true
+            }
+            "on:key_up" => {
+                self.event_handlers.on_key_up =
+                    Some(attribute.value().unwrap().into_token_stream());
+                true
+            }
+            "on:focus" => {
+                self.event_handlers.on_focus = Some(attribute.value().unwrap().into_token_stream());
+                true
+            }
+            "on:blur" => {
+                self.event_handlers.on_blur = Some(attribute.value().unwrap().into_token_stream());
                 true
             }
             _ => false,
@@ -393,7 +435,7 @@ impl NodeAttributes {
             focusable: None,
             id: None,
             modify_fn: None,
-            on_key_down: None,
+            event_handlers: Default::default(),
         };
 
         let custom_attrs: Vec<_> = nodes
@@ -465,7 +507,7 @@ impl NodeAttributes {
             focusable: None,
             id: None,
             modify_fn: None,
-            on_key_down: None,
+            event_handlers: Default::default(),
         };
 
         for node in nodes {
@@ -589,7 +631,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                     layout_props: None,
                     id: None,
                     focusable: None,
-                    on_key_down: None,
+                    event_handlers: Default::default(),
                 });
             }
             Node::Block(block) => {
@@ -601,7 +643,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                         layout_props: None,
                         id: None,
                         focusable: None,
-                        on_key_down: None,
+                        event_handlers: Default::default(),
                     })
                 }
             }
@@ -670,15 +712,15 @@ fn parse_named_element_children(nodes: &[Node], emitter: &mut Emitter) -> manyho
 
 fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Result<View> {
     let element_name = element.name().to_string();
-    if !element_name.is_case(Case::UpperCamel) {
-        let element_name_camel = element_name.to_case(Case::UpperCamel);
-        bail!(
-            element,
-            "should have an upper camel case name: {element_name_camel}"
-        )
-    }
+    // if !element_name.is_case(Case::UpperCamel) {
+    //     let element_name_camel = element_name.to_case(Case::UpperCamel);
+    //     bail!(
+    //         element,
+    //         "should have an upper camel case name: {element_name_camel}"
+    //     )
+    // }
     match element_name.as_str() {
-        "Row" => {
+        "row" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
             let children = parse_elements(&element.children, emitter)?;
 
@@ -696,10 +738,10 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
-                on_key_down: attrs.on_key_down,
+                event_handlers: attrs.event_handlers,
             })
         }
-        "Col" => {
+        "col" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
             let children = parse_elements(&element.children, emitter)?;
 
@@ -717,10 +759,10 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
-                on_key_down: attrs.on_key_down,
+                event_handlers: attrs.event_handlers,
             })
         }
-        "FocusScope" => {
+        "focusScope" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
             let children = parse_elements(&element.children, emitter)?;
 
@@ -730,10 +772,10 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
-                on_key_down: attrs.on_key_down,
+                event_handlers: attrs.event_handlers,
             })
         }
-        "Overlay" => {
+        "overlay" => {
             let attrs = NodeAttributes::from_layout_nodes(element.attributes(), emitter);
             let children = parse_elements(&element.children, emitter)?;
 
@@ -751,22 +793,25 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
-                on_key_down: attrs.on_key_down,
+                event_handlers: attrs.event_handlers,
             })
         }
         name => {
             let children = parse_named_element_children(&element.children, emitter)?;
 
-            let props = Ident::new(&(name.to_owned() + "Props"), Span::call_site());
+            let props = Ident::new(
+                &(name.to_case(Case::UpperCamel) + "Props"),
+                Span::call_site(),
+            );
             let attrs =
                 NodeAttributes::from_custom(props, element.attributes(), children, true, emitter)?;
             let generics = &element.open_tag.generics;
 
             Ok(View {
                 view_type: ViewType::Element {
-                    name: Ident::new(&name.to_case(Case::Snake), element.name().span()),
+                    name: Ident::new(name, element.name().span()),
                     closing_name: Ident::new(
-                        &name.to_case(Case::Snake),
+                        name,
                         element
                             .close_tag
                             .clone()
@@ -785,7 +830,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: None,
                 id: attrs.id,
                 focusable: attrs.focusable,
-                on_key_down: attrs.on_key_down,
+                event_handlers: attrs.event_handlers,
             })
         }
     }

@@ -1,6 +1,5 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::io;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::text::Text;
@@ -40,8 +39,6 @@ impl<T> RenderAny for T where T: tachys::view::Render<RooibosDom> {}
 pub trait Render: tachys::view::Render<RooibosDom, State = DomNode> {}
 
 impl<T> Render for T where T: tachys::view::Render<RooibosDom, State = DomNode> {}
-
-type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent)>>;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
@@ -273,9 +270,6 @@ fn cleanup_removed_nodes(
     nodes: &mut RefMut<'_, SlotMap<DomNodeKey, DomNodeInner>>,
 ) {
     with_state_mut(|s| {
-        if s.focused_key() == Some(*node) {
-            s.clear_focused();
-        }
         s.remove_focusable(node);
     });
     let children = nodes[*node].children.clone();
@@ -404,8 +398,8 @@ pub fn focus(id: impl Into<NodeId>) {
     });
     if let Some(node) = node {
         with_state_mut(|state| {
-            with_nodes(|nodes| {
-                state.set_focused(Some(node), &nodes[node]);
+            with_nodes_mut(|mut nodes| {
+                state.set_focused(node, &mut nodes);
             });
         });
     }
@@ -423,7 +417,7 @@ enum Focus {
 pub fn send_key(key_event: KeyEvent) {
     let focus = with_nodes_mut(|mut n| {
         with_state(|d| {
-            if key_event.code == KeyCode::Tab {
+            if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
                 if key_event.modifiers.contains(KeyModifiers::SHIFT) {
                     return Some(Focus::Prev);
                 } else {
@@ -431,9 +425,16 @@ pub fn send_key(key_event: KeyEvent) {
                 }
             }
             if let Some(key) = d.focused_key() {
-                if key_event.kind == KeyEventKind::Press {
-                    if let Some(on_key_down) = &mut n[key].on_key_down {
-                        on_key_down.borrow_mut()(key_event);
+                match key_event.kind {
+                    KeyEventKind::Press | KeyEventKind::Repeat => {
+                        if let Some(on_key_down) = &mut n[key].event_handlers.on_key_down {
+                            on_key_down.borrow_mut()(key_event);
+                        }
+                    }
+                    KeyEventKind::Release => {
+                        if let Some(on_key_up) = &mut n[key].event_handlers.on_key_up {
+                            on_key_up.borrow_mut()(key_event);
+                        }
                     }
                 }
             }
@@ -454,7 +455,7 @@ pub fn send_key(key_event: KeyEvent) {
 
 pub fn focus_id(id: impl Into<NodeId>) {
     let id = id.into();
-    with_nodes(|nodes| {
+    with_nodes_mut(|mut nodes| {
         let found_node = nodes.iter().find_map(|(key, node)| {
             if let Some(current_id) = &node.id {
                 if &id == current_id {
@@ -465,14 +466,14 @@ pub fn focus_id(id: impl Into<NodeId>) {
         });
         if let Some(found_node) = found_node {
             with_state_mut(|state| {
-                state.set_focused(Some(found_node), &nodes[found_node]);
+                state.set_focused(found_node, &mut nodes);
             });
         }
     });
 }
 
 pub fn focus_next() {
-    with_nodes(|nodes| {
+    with_nodes_mut(|mut nodes| {
         with_state_mut(|state| {
             let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
@@ -480,31 +481,31 @@ pub fn focus_next() {
 
                 if current_focused < focusable_nodes.len() - 1 {
                     let next = focusable_nodes[current_focused + 1];
-                    state.set_focused(Some(next), &nodes[next]);
+                    state.set_focused(next, &mut nodes);
                     return;
                 }
             }
             if let Some(next) = focusable_nodes.first() {
-                state.set_focused(Some(*next), &nodes[*next]);
+                state.set_focused(*next, &mut nodes);
             }
         });
     });
 }
 
 pub fn focus_prev() {
-    with_nodes(|nodes| {
+    with_nodes_mut(|mut nodes| {
         with_state_mut(|state| {
             let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
                 let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
                 if current_focused > 0 {
                     let prev = focusable_nodes[current_focused - 1];
-                    state.set_focused(Some(prev), &nodes[prev]);
+                    state.set_focused(prev, &mut nodes);
                     return;
                 }
             }
             if let Some(prev) = focusable_nodes.last() {
-                state.set_focused(Some(*prev), &nodes[*prev]);
+                state.set_focused(*prev, &mut nodes);
             }
         });
     });

@@ -1,3 +1,4 @@
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
@@ -31,18 +32,18 @@ pub(crate) fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Re
     });
 
     view! {
-        <Col v:constraint=constraint>
+        <col v:constraint=constraint>
             <DemoGauge
-                constraint=Constraint::Length(2)
+                constraint=Length(2)
                 enhanced_graphics=enhanced_graphics
                 progress=progress/>
             <DemoSparkline
-                constraint=Constraint::Length(3)
+                constraint=Length(3)
                 enhanced_graphics=enhanced_graphics/>
             <DemoLineGauge
-                constraint=Constraint::Length(1)
+                constraint=Length(1)
                 enhanced_graphics=enhanced_graphics progress=progress/>
-        </Col>
+        </col>
     }
 }
 
@@ -53,7 +54,7 @@ fn DemoGauge(
     constraint: Constraint,
 ) -> impl Render {
     view! {
-        <Gauge
+        <gauge
             v:constraint=constraint
             block=prop!(<Block title="Gauge:"/>)
             gauge_style=prop!(<Style magenta on_black italic bold/>)
@@ -71,7 +72,7 @@ fn DemoLineGauge(
     constraint: Constraint,
 ) -> impl Render {
     view! {
-        <LineGauge
+        <lineGauge
             v:constraint=constraint
             block=prop!(<Block title="LineGauge:"/>)
             gauge_style=prop!(<Style magenta/>)
@@ -109,7 +110,7 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render
     });
 
     view! {
-        <Sparkline
+        <sparkline
             v:constraint=constraint
             block=prop!(<Block title="Sparkline:"/>)
             green

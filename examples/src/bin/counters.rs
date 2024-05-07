@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
@@ -29,7 +30,7 @@ fn Counter(id: u32, constraint: Constraint) -> impl Render {
     };
 
     view! {
-        <Block
+        <block
             v:id=id.to_string() title=format!("count: {}", count.get())
             v:focusable
             v:constraint=constraint
@@ -58,16 +59,16 @@ fn Counters() -> impl Render {
     });
 
     view! {
-        <Col>
-            <ForEach
+        <col>
+            <For
                 each=move|| (0..n_counters.get())
                 key=|i| *i
                 children=move|i| {
                     view! {
-                        <Counter id=i constraint=Constraint::Length(2)/>
+                        <Counter id=i constraint=Length(2)/>
                     }
                 }
             />
-        </Col>
+        </col>
     }
 }

@@ -46,8 +46,8 @@ fn counters() -> impl Render {
         }
     });
 
-    col().child(for_each(move || {
-        ForEachProps::builder()
+    col().child(For(move || {
+        ForProps::builder()
             .each(move || (1..count.get() + 1))
             .key(|k| *k)
             .children(|i| counter(i, Constraint::Length(2)))

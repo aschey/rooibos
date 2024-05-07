@@ -1,3 +1,4 @@
+use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType};
 
@@ -77,7 +78,7 @@ impl<'a> ChartProps<'a> {
             y_axis: Axis::default(),
             style: Style::default(),
             datasets,
-            hidden_legend_constraints: (Constraint::Ratio(1, 4), Constraint::Ratio(1, 4)),
+            hidden_legend_constraints: (Ratio(1, 4), Ratio(1, 4)),
         }
     }
 

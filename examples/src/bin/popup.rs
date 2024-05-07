@@ -30,8 +30,8 @@ fn App() -> impl Render {
     };
 
     view! {
-        <Overlay v:length=6>
-            <Paragraph
+        <overlay v:length=6>
+            <paragraph
                 v:focusable
                 block=prop!(<Block borders=Borders::ALL/>)
                 on:key_down=key_down
@@ -40,21 +40,21 @@ fn App() -> impl Render {
                 <Line>"text2"</Line>
                 <Line>"text3"</Line>
                 <Line>"text4"</Line>
-            </Paragraph>
+            </paragraph>
             <Show
                 when=move || show_popup.get()
             >
                 {move || view! {
                     <Popup percent_x=50 percent_y=50> {
                         view! {
-                            <Paragraph v:length=3 block=prop!(<Block borders=Borders::ALL/>)>
+                            <paragraph v:length=3 block=prop!(<Block borders=Borders::ALL/>)>
                                 "popup text"
-                            </Paragraph>
+                            </paragraph>
                             }
                         }
                     </Popup>
                 }}
             </Show>
-        </Overlay>
+        </overlay>
     }
 }

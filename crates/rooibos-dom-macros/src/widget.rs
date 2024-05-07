@@ -96,19 +96,20 @@ impl Model {
             stateful,
         } = self.clone();
         let name_to_convert = name_override.unwrap_or_else(|| name.clone());
-        let snake_name = if stateful {
-            format!("Stateful{name_to_convert}")
+        let camel_name = if stateful {
+            format!("stateful{name_to_convert}")
         } else {
             name_to_convert.to_string()
         }
-        .to_case(Case::Snake);
+        .to_case(Case::Camel);
 
-        let fn_name = Ident::new(&snake_name, Span::call_site());
+        let fn_name = Ident::new(&camel_name, Span::call_site());
         let props_name = if stateful {
             format!("Stateful{name_to_convert}Props")
         } else {
             format!("{name_to_convert}Props")
-        };
+        }
+        .to_case(Case::UpperCamel);
         let props_name = Ident::new(&props_name, Span::call_site());
 
         let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
@@ -130,6 +131,7 @@ impl Model {
             quote! {
                 #vis type #props_name #ty_generics = #name #ty_generics;
 
+                #[allow(non_snake_case)]
                 #vis fn #fn_name #impl_generics (
                     props: impl Fn() -> #props_name #ty_generics_static + 'static,
                     mut state: impl Fn() -> #state_name #state_ty_generics + 'static,
@@ -149,6 +151,7 @@ impl Model {
 
                 impl #impl_generics #make_builder for #props_name #ty_generics #where_clause {}
 
+                #[allow(non_snake_case)]
                 #vis fn #fn_name #impl_generics (props: impl Fn() -> #props_name #ty_generics_static + 'static)
                 -> DomWidget #where_clause {
                     DomWidget::new(#type_name, move || {
@@ -198,15 +201,6 @@ pub(crate) fn derive_widget(input: DeriveInput) -> TokenStream {
 
 pub(crate) fn derive_stateful_widget(input: DeriveInput) -> TokenStream {
     let render_ref = RenderRef::from_attributes(&input.attrs).unwrap_or_default();
-    // get_tokens(
-    //     input.ident,
-    //     Ident::new("_", Span::call_site()),
-    //     input.vis,
-    //     input.generics,
-    //     Generics::default(),
-    //     true,
-    //     render_ref.0,
-    // )
 
     let model = Model {
         name: input.ident,

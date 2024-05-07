@@ -1,12 +1,13 @@
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 
 #[component]
 pub(crate) fn Tab2() -> impl Render {
     view! {
-        <Row>
-            <ColorsTable constraint=Constraint::Ratio(2, 1)/>
-            <Col v:ratio=(2,1)/>
-        </Row>
+        <row>
+            <ColorsTable constraint=Ratio(2, 1)/>
+            <col v:ratio=(2,1)/>
+        </row>
     }
 }
 
@@ -33,7 +34,7 @@ fn ColorsTable(constraint: Constraint) -> impl Render {
     ];
 
     view! {
-        <Table
+        <table
             v:constraint=constraint
             block=prop!(<Block title="Colors" borders=Borders::ALL/>)
         > {
@@ -50,10 +51,10 @@ fn ColorsTable(constraint: Constraint) -> impl Render {
                 })
             }
             {[
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3),
-                Constraint::Ratio(1, 3)
+                Ratio(1, 3),
+                Ratio(1, 3),
+                Ratio(1, 3)
             ]}
-        </Table>
+        </table>
     }
 }

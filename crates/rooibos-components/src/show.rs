@@ -1,8 +1,7 @@
 use either_of::Either;
 use reactive_graph::computed::Memo;
 use reactive_graph::traits::Get;
-
-use crate::prelude::*;
+use rooibos_dom::prelude::*;
 
 #[component]
 pub fn Show<C, W>(

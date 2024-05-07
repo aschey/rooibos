@@ -26,6 +26,16 @@ impl Parse for Model {
         let mut item = ItemFn::parse(input)?;
         let docs = Docs::new(&item.attrs)?;
 
+        let fn_element = item.sig.ident.clone();
+        let fn_name = fn_element.to_string();
+        if !fn_name.is_case(Case::UpperCamel) {
+            let fn_name_camel = fn_name.to_case(Case::UpperCamel);
+            bail!(
+                fn_element,
+                "should have an upper camel case name: {fn_name_camel}"
+            )
+        }
+
         let props = item
             .sig
             .inputs
@@ -65,7 +75,7 @@ impl Parse for Model {
             vis: item.vis.clone(),
             // create component functions with snake case names to prevent clashes with Ratatui's
             // widget names
-            name: convert_to_snake_case(&item.sig.ident, item.sig.ident.span()),
+            name: item.sig.ident.clone(),
             props,
             ret: item.sig.output.clone(),
             body: item,
@@ -86,15 +96,6 @@ pub fn drain_filter<T>(vec: &mut Vec<T>, mut some_predicate: impl FnMut(&mut T) 
     }
 }
 
-pub fn convert_to_snake_case(name: &Ident, span: Span) -> Ident {
-    let name_str = name.to_string();
-    if name_str.is_case(Case::Snake) {
-        name.clone()
-    } else {
-        Ident::new(&name_str.to_case(Case::Snake), span)
-    }
-}
-
 impl ToTokens for Model {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let Self {
@@ -111,7 +112,7 @@ impl ToTokens for Model {
 
         body.sig.ident = format_ident!(
             "__{}",
-            convert_to_snake_case(&body.sig.ident, Span::call_site())
+            body.sig.ident // convert_to_snake_case(&body.sig.ident, Span::call_site())
         );
 
         let body_name = body.sig.ident.clone();
@@ -194,7 +195,7 @@ impl ToTokens for Model {
 
             #docs
             #component_fn_prop_docs
-            #[allow(clippy::too_many_arguments, unused_mut)]
+            #[allow(clippy::too_many_arguments, unused_mut, non_snake_case)]
             // #tracing_instrument_attr
             #vis fn #name #impl_generics (
                 #[allow(unused_variables)]
@@ -202,7 +203,7 @@ impl ToTokens for Model {
             ) #ret #(+ #lifetimes)*
             #where_clause
             {
-                #[allow(clippy::too_many_arguments, unused_mut)]
+                #[allow(clippy::too_many_arguments, unused_mut, non_snake_case)]
                 #body
                 #destructure_props
                 #component

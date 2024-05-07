@@ -17,9 +17,9 @@ use tracing_subscriber::fmt::Layer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
-use crate::tab0::{tab_0, Tab0Props};
-use crate::tab1::{tab_1, Tab1Props};
-use crate::tab2::{tab_2, Tab2Props};
+use crate::tab0::{Tab0, Tab0Props};
+use crate::tab1::{Tab1, Tab1Props};
+use crate::tab2::{Tab2, Tab2Props};
 
 mod random;
 mod tab0;
@@ -88,9 +88,9 @@ fn App() -> impl Render {
     });
 
     view! {
-        <Col v:length=3>
+        <col v:length=3>
             <HeaderTabs/>
-        </Col>
+        </col>
 
     }
 }
@@ -134,7 +134,7 @@ fn HeaderTabs() -> impl Render {
     let tab_header = |title: &'static str| prop!(<Line><Span green>{title}</Span></Line>);
 
     view! {
-        <Col>
+        <col>
             <Tabs
                 padding=1
                 block=prop!(<Block borders=Borders::ALL title="Demo"/>)
@@ -161,6 +161,6 @@ fn HeaderTabs() -> impl Render {
                 </Tab>
             </Tabs>
 
-        </Col>
+        </col>
     }
 }

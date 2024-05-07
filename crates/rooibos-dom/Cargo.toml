@@ -12,14 +12,10 @@ tachys = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855a
     "reactive_graph",
 ] }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
-matchit = "0.8"
-paste = "1.0.14"
 ratatui = { version = "0.26", features = ["unstable"] }
 rooibos-dom-macros = { path = "../rooibos-dom-macros" }
 slotmap = "1"
 typed-builder = "0.18.1"
-url = "2.5.0"
 indexmap = "2.2.5"
 rustc-hash = "1.1.0"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }

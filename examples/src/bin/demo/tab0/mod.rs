@@ -1,7 +1,8 @@
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 
-use crate::tab0::charts::{charts, ChartsProps};
-use crate::tab0::gauges::{gauges, GaugesProps};
+use crate::tab0::charts::{Charts, ChartsProps};
+use crate::tab0::gauges::{Gauges, GaugesProps};
 
 mod charts;
 mod gauges;
@@ -9,18 +10,18 @@ mod gauges;
 #[component]
 pub(crate) fn Tab0() -> impl Render {
     view! {
-        <Col>
-            <Gauges constraint=Constraint::Length(9) enhanced_graphics=true/>
-            <Charts constraint=Constraint::Min(8) enhanced_graphics=true/>
-            <Footer constraint=Constraint::Length(7) />
-        </Col>
+        <col>
+            <Gauges constraint=Length(9) enhanced_graphics=true/>
+            <Charts constraint=Min(8) enhanced_graphics=true/>
+            <Footer constraint=Length(7) />
+        </col>
     }
 }
 
 #[component]
 fn Footer(constraint: Constraint) -> impl Render {
     view! {
-        <Paragraph
+        <paragraph
             v:constraint=constraint
             block=prop! {
                 <Block
@@ -62,6 +63,6 @@ fn Footer(constraint: Constraint) -> impl Render {
             <Line>
                 "One more thing is that it should display unicode characters: 10€"
             </Line>
-        </Paragraph>
+        </paragraph>
     }
 }

@@ -10,10 +10,8 @@ pub use events::*;
 pub use rooibos_dom_macros::*;
 pub use typed_builder;
 pub use widgets::*;
-mod components;
 
 pub mod prelude {
-    pub use components::*;
     pub use ratatui::layout::*;
     pub use ratatui::prelude::{Buffer, Constraint};
     pub use ratatui::style::*;

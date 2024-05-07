@@ -24,7 +24,7 @@ fn App() -> impl Render {
     });
 
     view! {
-        <Col>
+        <col>
             <Router>
                 <Route path="/">
                     {move || view!(<Child0/>)}
@@ -36,7 +36,7 @@ fn App() -> impl Render {
                     {move || view!(<Child2/>)}
                 </Route>
         </Router>
-    </Col>
+    </col>
     }
 }
 
@@ -55,9 +55,9 @@ fn Child0() -> impl Render {
     };
 
     view! {
-        <Paragraph v:id="child0" v:focusable on:key_down=key_down>
+        <paragraph v:id="child0" v:focusable on:key_down=key_down>
             "child0"
-        </Paragraph>
+        </paragraph>
     }
 }
 
@@ -78,9 +78,9 @@ fn Child1(child2_id: RwSignal<i32>) -> impl Render {
     };
 
     view! {
-        <Paragraph v:id="child1" v:focusable on:key_down=key_down>
+        <paragraph v:id="child1" v:focusable on:key_down=key_down>
             {format!("child1 id={}", id.get().unwrap())}
-        </Paragraph>
+        </paragraph>
     }
 }
 
@@ -100,8 +100,8 @@ fn Child2() -> impl Render {
     };
 
     view! {
-        <Paragraph v:id="child2" v:focusable on:key_down=key_down>
+        <paragraph v:id="child2" v:focusable on:key_down=key_down>
             {format!("child2 id={}", id.get().unwrap())}
-        </Paragraph>
+        </paragraph>
     }
 }

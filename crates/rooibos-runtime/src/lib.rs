@@ -1,12 +1,18 @@
 use std::future::Future;
 use std::io::{self, stdout, Stdout};
 use std::panic::{set_hook, take_hook};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
+use std::time::Duration;
 
-use crossterm::event::{self, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{
+    self, KeyCode, KeyEvent, KeyModifiers, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
+    PushKeyboardEnhancementFlags,
+};
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
+    LeaveAlternateScreen,
 };
 use futures_util::StreamExt;
 use ratatui::backend::CrosstermBackend;
@@ -16,10 +22,11 @@ use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
 use rooibos_dom::{dom_update_receiver, render_dom, send_key, DomUpdateReceiver};
 use tokio::sync::{broadcast, mpsc, Mutex};
-use tokio::task;
+use tokio::task::{self, spawn_local};
 
 static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
 static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::KeyEvent>> = OnceLock::new();
+static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
 
 async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibos_dom::KeyEvent>) {
     let mut event_reader = crossterm::event::EventStream::new().fuse();
@@ -28,6 +35,7 @@ async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibo
             let KeyEvent {
                 code, modifiers, ..
             } = key_event;
+
             if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
                 quit_tx.send(()).await.unwrap();
                 break;
@@ -80,6 +88,11 @@ impl Runtime {
         TERM_TX.set(term_event_tx.clone()).unwrap();
         let dom_update_rx = dom_update_receiver();
 
+        // We need to query this info before reading events from crossterm
+        SUPPORTS_KEYBOARD_ENHANCEMENT.store(
+            supports_keyboard_enhancement().unwrap_or(false),
+            Ordering::Relaxed,
+        );
         tokio::spawn(async move { read_input(quit_tx, term_event_tx).await });
         Self {
             dom_update_rx,
@@ -129,15 +142,24 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     term_signal
 }
 
+pub fn supports_key_up() -> bool {
+    SUPPORTS_KEYBOARD_ENHANCEMENT.load(Ordering::Relaxed)
+}
+
 pub fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
-    execute!(stdout(), EnterAlternateScreen)?;
+    execute!(
+        stdout(),
+        EnterAlternateScreen,
+        PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all()),
+    )?;
+
     enable_raw_mode()?;
     let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
     Ok(terminal)
 }
 
 pub fn restore_terminal() -> io::Result<()> {
-    execute!(stdout(), LeaveAlternateScreen)?;
+    execute!(stdout(), PopKeyboardEnhancementFlags, LeaveAlternateScreen)?;
     disable_raw_mode()?;
     Ok(())
 }
@@ -165,4 +187,14 @@ pub async fn run() -> io::Result<()> {
             TickResult::Continue => {}
         }
     }
+}
+
+pub fn delay<F>(duration: Duration, f: F)
+where
+    F: Future<Output = ()> + 'static,
+{
+    spawn_local(async move {
+        tokio::time::sleep(duration).await;
+        f.await;
+    });
 }

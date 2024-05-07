@@ -1,9 +1,8 @@
 use reactive_graph::owner::StoredValue;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::Signal;
+use rooibos_dom::prelude::*;
 use typed_builder::TypedBuilder;
-
-use crate::prelude::*;
 
 #[derive(TypedBuilder, ComponentChildren)]
 pub struct Tab {
@@ -46,8 +45,8 @@ where
     let block = StoredValue::new(block);
 
     view! {
-        <Col>
-            <TabHeaders
+        <col>
+            <tabHeaders
                 select=cur_tab.get().unwrap().1
                 highlight_style=highlight_style
                 v:length=padding * 2 + 1
@@ -62,8 +61,8 @@ where
                 }
             >
                 {headers.get().unwrap()}
-            </TabHeaders>
+            </tabHeaders>
             {move || cur_tab.get().unwrap().0()}
-        </Col>
+        </col>
     }
 }

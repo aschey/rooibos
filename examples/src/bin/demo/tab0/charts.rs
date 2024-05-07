@@ -1,3 +1,4 @@
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -23,30 +24,30 @@ pub(crate) fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
     });
 
     view! {
-        <Row v:constraint=constraint>
-            <Col
+        <row v:constraint=constraint>
+            <col
                 v:constraint=move || {
-                    Constraint::Percentage(if show_chart.get() { 50 } else { 100 })
+                    Percentage(if show_chart.get() { 50 } else { 100 })
                 }>
-                <Row v:percentage=50>
-                    <Col v:percentage=50>
+                <row v:percentage=50>
+                    <col v:percentage=50>
                         <TaskList/>
-                    </Col>
-                    <Col v:percentage=50>
+                    </col>
+                    <col v:percentage=50>
                         <Logs/>
-                    </Col>
-                </Row>
-                <Row v:percentage=50>
+                    </col>
+                </row>
+                <row v:percentage=50>
                     <DemoBarChart enhanced_graphics=enhanced_graphics/>
-                </Row>
-            </Col>
-            <Col
+                </row>
+            </col>
+            <col
                 v:constraint=move || {
-                    Constraint::Percentage(if show_chart.get() { 50 } else { 0 })
+                    Percentage(if show_chart.get() { 50 } else { 0 })
                 }>
                 <DemoChart enhanced_graphics=enhanced_graphics/>
-            </Col>
-        </Row>
+            </col>
+        </row>
     }
 }
 
@@ -117,7 +118,7 @@ fn DemoChart(enhanced_graphics: bool) -> impl Render {
     let window_end = Memo::new(move |_| window.get()[1]);
 
     view! {
-        <Chart
+        <chart
             block=prop! {
                 <Block
                     title=prop! {
@@ -181,7 +182,7 @@ fn DemoChart(enhanced_graphics: bool) -> impl Render {
                 yellow
                 data=sin2.get().points
             />
-        </Chart>
+        </chart>
     }
 }
 
@@ -233,7 +234,7 @@ fn DemoBarChart(enhanced_graphics: bool) -> impl Render {
     });
 
     view! {
-        <BarChart
+        <barChart
             block=prop!(<Block borders=Borders::ALL title="Bar chart"/>)
             data=&bar_chart_data.get()
             bar_width=3
@@ -282,7 +283,7 @@ fn TaskList() -> impl Render {
     });
 
     view! {
-        <StatefulList
+        <statefulList
             v:state= move || prop!(<ListState with_selected=selected_task.get()/>)
             block=prop!(<Block borders=Borders::ALL title="List"/>)
             highlight_style=prop!(<Style bold/>)
@@ -297,7 +298,7 @@ fn TaskList() -> impl Render {
                     }
                 })
             }
-        </StatefulList>
+        </statefulList>
     }
 }
 
@@ -371,7 +372,7 @@ fn Logs() -> impl Render {
     });
 
     view! {
-        <List
+        <list
             block=prop!(<Block borders=Borders::ALL title="Logs"/>)
         > {
             logs.get().iter().map(|(evt, level, style)| {
@@ -385,6 +386,6 @@ fn Logs() -> impl Render {
                 }
             })
         }
-        </List>
+        </list>
     }
 }

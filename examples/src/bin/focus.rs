@@ -29,24 +29,24 @@ fn App() -> impl Render {
     });
 
     view! {
-        <Row>
-            <Col v:percentage=50>
-                <Row v:percentage=50>
+        <row>
+            <col v:percentage=50>
+                <row v:percentage=50>
                     <FocusBlock title="item 1"/>
-                </Row>
-                <Row v:percentage=50>
+                </row>
+                <row v:percentage=50>
                     <FocusBlock title="item 2"/>
-                </Row>
-            </Col>
-            <Col v:percentage=50>
-                <Row v:percentage=50>
+                </row>
+            </col>
+            <col v:percentage=50>
+                <row v:percentage=50>
                     <FocusBlock title="item 3"/>
-                </Row>
-                <Row v:percentage=50>
+                </row>
+                <row v:percentage=50>
                     <FocusBlock title="item 4"/>
-                </Row>
-            </Col>
-        </Row>
+                </row>
+            </col>
+        </row>
     }
 }
 
@@ -55,8 +55,8 @@ fn FocusBlock(#[prop(into)] title: &'static str) -> impl Render {
     let (id, focused) = use_focus();
 
     view! {
-        <Paragraph v:id=id v:focusable block=prop!(<Block/>)>
+        <paragraph v:id=id v:focusable block=prop!(<Block/>)>
             {format!("{title} - focused: {}", focused.get())}
-        </Paragraph>
+        </paragraph>
     }
 }

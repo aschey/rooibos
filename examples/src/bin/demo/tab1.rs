@@ -1,4 +1,5 @@
 use rooibos::prelude::canvas::{Circle, Context, Map, MapResolution, Rectangle};
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::signal::RwSignal;
@@ -34,15 +35,15 @@ pub(crate) fn Tab1() -> impl Render {
     ]);
 
     view! {
-        <Row>
+        <row>
             <DemoTable
-                constraint=Constraint::Percentage(30)
+                constraint=Percentage(30)
                 servers=servers/>
             <DemoMap
-                constraint=Constraint::Percentage(70)
+                constraint=Percentage(70)
                 enhanced_graphics=true
                 servers=servers/>
-        </Row>
+        </row>
     }
 }
 
@@ -71,7 +72,7 @@ fn DemoTable(servers: RwSignal<Vec<Server<'static>>>, constraint: Constraint) ->
             .collect::<Vec<_>>()
     });
     view! {
-        <Table
+        <table
             v:constraint=constraint
             header=prop! {
                 <Row yellow bottom_margin=1>
@@ -84,11 +85,11 @@ fn DemoTable(servers: RwSignal<Vec<Server<'static>>>, constraint: Constraint) ->
         >
             {rows.get()}
             {[
-                Constraint::Length(15),
-                Constraint::Length(15),
-                Constraint::Length(10),
+                Length(15),
+                Length(15),
+                Length(10),
             ]}
-        </Table>
+        </table>
     }
 }
 
@@ -143,7 +144,7 @@ fn DemoMap(
         }
     };
     view! {
-        <Canvas
+        <canvas
             v:constraint=constraint
             block=prop!(<Block title="world" borders=Borders::ALL/>)
             paint=paint_map

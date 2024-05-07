@@ -96,7 +96,7 @@ fn App() -> impl Render {
     };
 
     view! {
-        <StatefulTree
+        <statefulTree
             unwrap
             block=prop!(<Block borders=Borders::ALL title="Tree Widget"/>)
             highlight_style=prop!(<Style black on_green bold/>)
@@ -105,6 +105,6 @@ fn App() -> impl Render {
             on:key_down=key_down
         >
             {tree.get()}
-        </StatefulTree>
+        </statefulTree>
     }
 }

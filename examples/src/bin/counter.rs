@@ -30,8 +30,8 @@ fn Counter() -> impl Render {
     };
 
     view! {
-        <Paragraph v:focusable on:key_down=key_down>
+        <paragraph v:focusable on:key_down=key_down>
             {format!("count {}", count.get())}
-        </Paragraph>
+        </paragraph>
     }
 }

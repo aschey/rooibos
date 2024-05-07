@@ -1,14 +1,13 @@
 use std::hash::Hash;
 
 use reactive_graph::owner::Owner;
+use rooibos_dom::prelude::*;
 use rooibos_dom_macros::component;
 use tachys::reactive_graph::OwnedView;
 use tachys::view::keyed::keyed;
 
-use crate::prelude::*;
-
 #[component]
-pub fn ForEach<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
+pub fn For<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
 where
     IF: Fn() -> I + Send + 'static,
     I: IntoIterator<Item = T>,

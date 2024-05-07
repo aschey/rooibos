@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::runtime::run;
 
@@ -15,7 +16,7 @@ async fn main() -> Result<()> {
 #[component]
 fn App() -> impl Render {
     view! {
-        <MyCustomWidget
+        <myCustomWidget
             block=prop!(<Block title="custom widget"/>)
             text="widget text"
         />
@@ -63,7 +64,7 @@ impl<'a> Widget for MyCustomWidget<'a> {
 impl<'a> WidgetRef for MyCustomWidget<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         let chunks = Layout::default()
-            .constraints([Constraint::Length(3), Constraint::Min(0)])
+            .constraints([Length(3), Min(0)])
             .split(area);
         self.tabs.render_ref(chunks[0], buf);
         self.paragraph.render_ref(chunks[1], buf);

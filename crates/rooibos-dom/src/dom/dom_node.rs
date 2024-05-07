@@ -12,8 +12,8 @@ use tachys::view::Render;
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
 use super::dom_widget::DomWidget;
-use super::{with_nodes, with_nodes_mut, with_state_mut, KeyEventFn, DOM_NODES};
-use crate::{next_node_id, RooibosDom};
+use super::{with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
+use crate::{next_node_id, EventHandlers, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq)]
 enum NodeIdInner {
@@ -142,7 +142,7 @@ pub(crate) struct DomNodeInner {
     pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) focusable: bool,
-    pub(crate) on_key_down: Option<KeyEventFn>,
+    pub(crate) event_handlers: EventHandlers,
     data: Vec<Rc<dyn Any>>,
 }
 
@@ -240,7 +240,7 @@ impl DomNode {
             before_pending: vec![],
             focusable: fragment.focusable,
             id: fragment.id,
-            on_key_down: fragment.on_key_down,
+            event_handlers: fragment.event_handlers,
             data: vec![],
         };
         let key = with_nodes_mut(|mut n| n.insert(inner));
@@ -257,7 +257,7 @@ impl DomNode {
             before_pending: vec![],
             focusable: fragment.id.is_some(),
             id: fragment.id,
-            on_key_down: fragment.on_key_down,
+            event_handlers: fragment.event_handlers,
             data: vec![],
         };
         with_nodes_mut(|mut n| n[self.key] = inner);
