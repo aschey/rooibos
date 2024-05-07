@@ -1,13 +1,17 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use derivative::Derivative;
 use ratatui::layout::{Constraint, Direction, Flex};
 
 use super::dom_node::{NodeId, NodeType};
 use super::dom_widget::DomWidget;
+use super::KeyEventFn;
 use crate::LayoutProps;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Derivative)]
+#[derivative(PartialEq, Eq)]
+#[derive(Clone)]
 pub struct DocumentFragment {
     pub(crate) node_type: NodeType,
     pub(crate) constraint: Constraint,
@@ -15,6 +19,8 @@ pub struct DocumentFragment {
     pub(crate) focusable: bool,
     pub(crate) flex: Flex,
     pub(crate) name: String,
+    #[derivative(PartialEq = "ignore")]
+    pub(crate) on_key_down: Option<KeyEventFn>,
 }
 
 impl DocumentFragment {
@@ -26,6 +32,8 @@ impl DocumentFragment {
             flex: Flex::default(),
             focusable: false,
             id: None,
+
+            on_key_down: None,
         }
     }
 
@@ -40,6 +48,7 @@ impl DocumentFragment {
             name: "row".to_string(),
             focusable: false,
             id: None,
+            on_key_down: None,
         }
     }
 
@@ -54,6 +63,7 @@ impl DocumentFragment {
             name: "col".to_string(),
             focusable: false,
             id: None,
+            on_key_down: None,
         }
     }
 
@@ -65,6 +75,7 @@ impl DocumentFragment {
             name: "overlay".to_string(),
             focusable: false,
             id: None,
+            on_key_down: None,
         }
     }
 
@@ -80,6 +91,11 @@ impl DocumentFragment {
 
     pub(crate) fn focusable(mut self, focusable: bool) -> Self {
         self.focusable = focusable;
+        self
+    }
+
+    pub(crate) fn on_key_down(mut self, handler: Option<KeyEventFn>) -> Self {
+        self.on_key_down = handler;
         self
     }
 }

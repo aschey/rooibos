@@ -10,7 +10,8 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{next_node_id, notify, RooibosDom};
+use super::KeyEventFn;
+use crate::{next_node_id, notify, KeyEvent, RooibosDom};
 
 type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
 
@@ -22,6 +23,7 @@ pub struct DomWidget {
     pub(crate) constraint: Constraint,
     dom_id: Option<NodeId>,
     focusable: bool,
+    on_key_down: Option<KeyEventFn>,
     _effect: Rc<RenderEffect<()>>,
 }
 
@@ -53,6 +55,7 @@ impl DomWidget {
             constraint: Constraint::default(),
             dom_id: None,
             focusable: false,
+            on_key_down: None,
             _effect: Rc::new(effect),
         }
     }
@@ -75,6 +78,14 @@ impl DomWidget {
         self.focusable = focusable;
         self
     }
+
+    pub fn on_key_down<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(KeyEvent) + 'static,
+    {
+        self.on_key_down = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
 }
 
 impl Render<RooibosDom> for DomWidget {
@@ -85,7 +96,8 @@ impl Render<RooibosDom> for DomWidget {
             DocumentFragment::widget(self.clone())
                 .constraint(self.constraint)
                 .id(self.dom_id.clone())
-                .focusable(self.focusable),
+                .focusable(self.focusable)
+                .on_key_down(self.on_key_down),
         )
     }
 

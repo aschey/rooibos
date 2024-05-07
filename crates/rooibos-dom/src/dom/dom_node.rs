@@ -12,7 +12,7 @@ use tachys::view::Render;
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
 use super::dom_widget::DomWidget;
-use super::{with_state_mut, DOM_NODES};
+use super::{with_nodes, with_nodes_mut, with_state_mut, KeyEventFn, DOM_NODES};
 use crate::{next_node_id, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq)]
@@ -142,6 +142,7 @@ pub(crate) struct DomNodeInner {
     pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) focusable: bool,
+    pub(crate) on_key_down: Option<KeyEventFn>,
     data: Vec<Rc<dyn Any>>,
 }
 
@@ -239,9 +240,10 @@ impl DomNode {
             before_pending: vec![],
             focusable: fragment.focusable,
             id: fragment.id,
+            on_key_down: fragment.on_key_down,
             data: vec![],
         };
-        let key = DOM_NODES.with(|n| n.borrow_mut().insert(inner));
+        let key = with_nodes_mut(|mut n| n.insert(inner));
         Self { key }
     }
 
@@ -255,13 +257,14 @@ impl DomNode {
             before_pending: vec![],
             focusable: fragment.id.is_some(),
             id: fragment.id,
+            on_key_down: fragment.on_key_down,
             data: vec![],
         };
-        DOM_NODES.with(|n| n.borrow_mut()[self.key] = inner);
+        with_nodes_mut(|mut n| n[self.key] = inner);
     }
 
     pub(crate) fn add_data(&self, data: impl Any) {
-        DOM_NODES.with(|n| n.borrow_mut()[self.key].data.push(Rc::new(data)));
+        with_nodes_mut(|mut n| n[self.key].data.push(Rc::new(data)));
     }
 
     // pub(crate) fn set_name(&self, name: impl Into<String>) {
@@ -269,21 +272,19 @@ impl DomNode {
     // }
 
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
-        DOM_NODES.with(|n| n.borrow_mut()[self.key].constraint = constraint);
+        with_nodes_mut(|mut n| n[self.key].constraint = constraint);
     }
 
     pub(crate) fn set_id(&self, id: impl Into<NodeId>) {
-        DOM_NODES.with(|n| {
-            let mut n = n.borrow_mut();
+        with_nodes_mut(|mut n| {
             n[self.key].id = Some(id.into());
             n[self.key].focusable = true;
         });
     }
 
     pub(crate) fn layout_props(&self) -> Rc<RefCell<LayoutProps>> {
-        DOM_NODES.with(|n| {
-            let mut n = n.borrow_mut();
-            if let NodeType::Layout(layout_props) = &mut n[self.key].node_type {
+        with_nodes(|n| {
+            if let NodeType::Layout(layout_props) = &n[self.key].node_type {
                 layout_props.clone()
             } else {
                 Rc::new(RefCell::new(LayoutProps::default()))
@@ -338,8 +339,7 @@ impl DomNode {
     // }
 
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
-        DOM_NODES.with(|d| {
-            let d = d.borrow();
+        with_nodes(|d| {
             with_state_mut(|state| {
                 state.clear_focused();
                 let constraint = *d[self.key].constraint.borrow();

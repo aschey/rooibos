@@ -1,11 +1,10 @@
 use std::error::Error;
 
-use crossterm::event::KeyCode;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::run;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -19,18 +18,22 @@ async fn main() -> Result<()> {
 #[component]
 fn Counter() -> impl Render {
     let (count, set_count) = signal(0);
-    let term_signal = use_keypress();
+
     Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Enter {
-                set_count.update(|c| *c += 1);
-            }
-        }
+        focus_id("counter");
     });
+
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Enter {
+            set_count.update(|c| *c += 1);
+        }
+    };
 
     view! {
         <Col>
-            {move || format!("count {}", count.get())}
+            <Paragraph v:id="counter" v:focusable on:key_down=key_down>
+                {format!("count {}", count.get())}
+            </Paragraph>
         </Col>
     }
 }

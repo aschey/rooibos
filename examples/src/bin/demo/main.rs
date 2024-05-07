@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::time::Duration;
 
-use crossterm::event::KeyCode;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::provide_context;

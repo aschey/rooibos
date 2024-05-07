@@ -57,6 +57,7 @@ pub(crate) struct View {
     constraint: Option<ConstraintTokens>,
     id: Option<Expr>,
     focusable: Option<Expr>,
+    on_key_down: Option<TokenStream>,
     layout_props: Option<TokenStream>,
 }
 
@@ -180,7 +181,18 @@ impl View {
                     .focusable
                     .as_ref()
                     .map(|focusable| quote!(.focusable(#focusable)));
+                let on_key_down = self
+                    .on_key_down
+                    .as_ref()
+                    .map(|handler| quote!(.on_key_down(#handler)));
                 let get_conditional = |rest: TokenStream| {
+                    let attrs = quote! {
+                        #name #rest
+                        #constraint
+                        #id
+                        #focusable
+                        #on_key_down
+                    };
                     // in debug mode, add a dummy condition to associate the closing tag span
                     // the referenced function so rust analyzer can highlight it
                     // correctly
@@ -190,18 +202,12 @@ impl View {
                                 if false {
                                     #closing_name #rest;
                                 }
-                                #name #rest
-                                #constraint
-                                #id
-                                #focusable
+                                #attrs
                             }
                         }
                     } else {
                         quote! {
-                            #name #rest
-                            #constraint
-                            #id
-                            #focusable
+                            #attrs
                         }
                     }
                 };
@@ -258,6 +264,7 @@ struct NodeAttributes {
     focusable: Option<Expr>,
     id: Option<Expr>,
     modify_fn: Option<TokenStream>,
+    on_key_down: Option<TokenStream>,
 }
 
 impl NodeAttributes {
@@ -363,6 +370,10 @@ impl NodeAttributes {
                 self.modify_fn = Some(attribute.value().unwrap().into_token_stream());
                 true
             }
+            "on:key_down" => {
+                self.on_key_down = Some(attribute.value().unwrap().into_token_stream());
+                true
+            }
             _ => false,
         }
     }
@@ -382,6 +393,7 @@ impl NodeAttributes {
             focusable: None,
             id: None,
             modify_fn: None,
+            on_key_down: None,
         };
 
         let custom_attrs: Vec<_> = nodes
@@ -453,6 +465,7 @@ impl NodeAttributes {
             focusable: None,
             id: None,
             modify_fn: None,
+            on_key_down: None,
         };
 
         for node in nodes {
@@ -576,6 +589,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                     layout_props: None,
                     id: None,
                     focusable: None,
+                    on_key_down: None,
                 });
             }
             Node::Block(block) => {
@@ -587,6 +601,7 @@ fn parse_elements(nodes: &[Node], emitter: &mut Emitter) -> manyhow::Result<Vec<
                         layout_props: None,
                         id: None,
                         focusable: None,
+                        on_key_down: None,
                     })
                 }
             }
@@ -681,6 +696,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
+                on_key_down: attrs.on_key_down,
             })
         }
         "Col" => {
@@ -701,6 +717,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
+                on_key_down: attrs.on_key_down,
             })
         }
         "FocusScope" => {
@@ -713,6 +730,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
+                on_key_down: attrs.on_key_down,
             })
         }
         "Overlay" => {
@@ -733,6 +751,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: attrs.props,
                 id: attrs.id,
                 focusable: attrs.focusable,
+                on_key_down: attrs.on_key_down,
             })
         }
         name => {
@@ -766,6 +785,7 @@ fn parse_element(element: &NodeElement, emitter: &mut Emitter) -> manyhow::Resul
                 layout_props: None,
                 id: attrs.id,
                 focusable: attrs.focusable,
+                on_key_down: attrs.on_key_down,
             })
         }
     }

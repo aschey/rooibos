@@ -26,7 +26,8 @@ fn TextView() -> impl Render {
     Effect::new(move |_| {
         if let Some(term_signal) = term_signal.get() {
             text_area.update(|mut t| {
-                t.input(term_signal);
+                let signal: crossterm::event::KeyEvent = term_signal.into();
+                t.input(signal);
             });
         }
     });

@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = "0.27.0"
+crossterm = "0.27"
 reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
 tachys = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc", features = [
     "reactive_graph",
@@ -23,6 +23,8 @@ url = "2.5.0"
 indexmap = "2.2.5"
 rustc-hash = "1.1.0"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
+bitflags = "2"
+derivative = "2"
 
 [dev-dependencies]
 any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc", features = [

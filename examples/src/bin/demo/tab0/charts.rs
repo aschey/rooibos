@@ -1,4 +1,3 @@
-use crossterm::event::KeyCode;
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;

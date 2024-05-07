@@ -1,5 +1,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::io;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::text::Text;
@@ -11,7 +12,7 @@ use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{make_dom_widget, NewExt};
+use crate::{make_dom_widget, KeyEvent, KeyEventKind, NewExt};
 
 mod any_view;
 mod children;
@@ -39,6 +40,8 @@ impl<T> RenderAny for T where T: tachys::view::Render<RooibosDom> {}
 pub trait Render: tachys::view::Render<RooibosDom, State = DomNode> {}
 
 impl<T> Render for T where T: tachys::view::Render<RooibosDom, State = DomNode> {}
+
+type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent)>>;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
@@ -74,10 +77,6 @@ pub fn dom_update_receiver() -> DomUpdateReceiver {
     DomUpdateReceiver(rx)
 }
 
-// pub trait ToDomNode {
-//     fn to_dom_node(&self) -> DomNode;
-// }
-
 fn with_state<F, R>(f: F) -> R
 where
     F: FnOnce(&DomState) -> R,
@@ -101,6 +100,46 @@ where
             return f(s);
         }
         panic!("state deallocated")
+    })
+}
+
+fn with_nodes<F, R>(f: F) -> R
+where
+    F: FnOnce(Ref<SlotMap<DomNodeKey, DomNodeInner>>) -> R,
+{
+    DOM_NODES.with(|n| {
+        let n = n.borrow();
+        f(n)
+    })
+}
+
+fn with_nodes_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(RefMut<SlotMap<DomNodeKey, DomNodeInner>>) -> R,
+{
+    DOM_NODES.with(|n| {
+        let n = n.borrow_mut();
+        f(n)
+    })
+}
+
+fn with_root<F, R>(f: F) -> R
+where
+    F: FnOnce(Ref<Option<DomNode>>) -> R,
+{
+    DOM_ROOT.with(|n| {
+        let n = n.borrow();
+        f(n)
+    })
+}
+
+fn with_root_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(RefMut<Option<DomNode>>) -> R,
+{
+    DOM_ROOT.with(|n| {
+        let n = n.borrow_mut();
+        f(n)
     })
 }
 
@@ -265,8 +304,7 @@ fn cleanup_removed_nodes(
 // }
 
 fn unmount_child(child: DomNodeKey) {
-    DOM_NODES.with(|d| {
-        let mut d = d.borrow_mut();
+    with_nodes_mut(|mut d| {
         let child_node = &d[child];
         if let Some(parent) = child_node.parent {
             let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
@@ -279,12 +317,9 @@ fn unmount_child(child: DomNodeKey) {
 }
 
 pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
-    DOM_ROOT.with(|dom| {
-        DOM_NODES.with(|nodes| {
-            let dom = dom.borrow();
-            let nodes = nodes.borrow();
+    with_root(|dom| {
+        with_nodes(|nodes| {
             print_dom_inner(writer, &nodes, dom.as_ref().unwrap().key(), "")?;
-
             Ok(())
         })
     })
@@ -337,23 +372,23 @@ where
     M: Render<State = DomNode>,
 {
     let node = f().build();
-    DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
+    with_root_mut(|mut d| *d = Some(node));
 }
 
 pub fn unmount() {
-    DOM_ROOT.with(|d| *d.borrow_mut() = None);
+    with_root_mut(|mut d| *d = None);
     DOM_STATE.with(|d| *d.borrow_mut() = None);
-    DOM_NODES.with(|d| (*d.borrow_mut()).clear());
+    with_nodes_mut(|mut d| (*d).clear());
 }
 
 pub fn render_dom(frame: &mut Frame) {
-    DOM_ROOT.with(|d| d.borrow().as_ref().unwrap().render(frame, frame.size()));
+    with_root(|d| d.as_ref().unwrap().render(frame, frame.size()));
 }
 
 pub fn focus(id: impl Into<NodeId>) {
     let id = id.into();
-    let node = DOM_NODES.with(|d| {
-        d.borrow().iter().find_map(|(k, v)| {
+    let node = with_nodes(|d| {
+        d.iter().find_map(|(k, v)| {
             if v.id.as_ref() == Some(&id) {
                 Some(k)
             } else {
@@ -363,8 +398,8 @@ pub fn focus(id: impl Into<NodeId>) {
     });
     if let Some(node) = node {
         with_state_mut(|state| {
-            DOM_NODES.with(|nodes| {
-                state.set_focused(Some(node), &nodes.borrow()[node]);
+            with_nodes(|nodes| {
+                state.set_focused(Some(node), &nodes[node]);
             });
         });
     }
@@ -374,10 +409,23 @@ pub fn focused_node() -> ReadSignal<Option<NodeId>> {
     with_state(|d| d.focused())
 }
 
+pub fn send_key(key_event: KeyEvent) {
+    with_nodes_mut(|mut n| {
+        with_state(|d| {
+            if let Some(key) = d.focused_key() {
+                if key_event.kind == KeyEventKind::Press {
+                    if let Some(on_key_down) = &mut n[key].on_key_down {
+                        on_key_down.borrow_mut()(key_event);
+                    }
+                }
+            }
+        })
+    });
+}
+
 pub fn focus_id(id: impl Into<NodeId>) {
     let id = id.into();
-    DOM_NODES.with(|nodes| {
-        let nodes = nodes.borrow();
+    with_nodes(|nodes| {
         let found_node = nodes.iter().find_map(|(key, node)| {
             if let Some(current_id) = &node.id {
                 if &id == current_id {
@@ -395,8 +443,7 @@ pub fn focus_id(id: impl Into<NodeId>) {
 }
 
 pub fn focus_next() {
-    DOM_NODES.with(|nodes| {
-        let nodes = nodes.borrow();
+    with_nodes(|nodes| {
         with_state_mut(|state| {
             let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
@@ -416,8 +463,7 @@ pub fn focus_next() {
 }
 
 pub fn focus_prev() {
-    DOM_NODES.with(|nodes| {
-        let nodes = nodes.borrow();
+    with_nodes(|nodes| {
         with_state_mut(|state| {
             let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {

@@ -1,6 +1,5 @@
 use std::error::Error;
 
-use crossterm::event::KeyCode;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
