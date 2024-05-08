@@ -50,6 +50,7 @@ where
             block=prop! {
                 <Block
                     borders=Borders::ALL
+                    border_type=BorderType::Rounded
                     border_style=prop! {
                         <Style
                             fg=border_color.get()

@@ -2,8 +2,8 @@ use std::error::Error;
 
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::signal::{signal, RwSignal};
+use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::{run, use_keypress};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -15,42 +15,56 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn counter(id: u32, constraint: Constraint) -> impl Render {
-    let count = RwSignal::new(id);
+fn counter(id: i32, constraint: Constraint) -> impl Render {
+    let (count, set_count) = signal(id);
+    let default_padding = Padding {
+        left: 1,
+        top: 1,
+        ..Default::default()
+    };
+    let block = RwSignal::new(Block::default().padding(default_padding));
+
+    let key_down = move |key_event: KeyEvent| {
+        if key_event.code == KeyCode::Up {
+            set_count.update(|c| *c += 1);
+        }
+        if key_event.code == KeyCode::Down {
+            set_count.update(|c| *c -= 1);
+        }
+    };
+
+    paragraph(move || ParagraphProps::new(format!("count: {}", count.get())).block(block.get()))
+        .constraint(constraint)
+        .on_focus(move || block.set(Block::bordered().blue()))
+        .on_blur(move || block.set(Block::default().padding(default_padding)))
+        .on_key_down(key_down)
+        .focusable(true)
+        .id(id.to_string())
+}
+
+fn counters() -> impl Render {
+    let (n_counters, set_n_counters) = signal(5);
+
+    Effect::new(move |_| {
+        focus_next();
+    });
 
     let term_signal = use_keypress();
     Effect::new(move |_| {
         if let Some(term_signal) = term_signal.get() {
             if term_signal.code == KeyCode::Enter {
-                count.update(|c| *c += 1);
-            }
-        }
-    });
-
-    block(move || BlockProps::default().title(format!("count: {}", count.get())))
-        .constraint(constraint)
-}
-
-fn counters() -> impl Render {
-    let count = RwSignal::new(1);
-
-    let term_signal = use_keypress();
-    Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Up {
-                count.update(|c| *c += 1);
-            }
-            if term_signal.code == KeyCode::Down {
-                count.update(|c| *c -= 1);
+                set_n_counters.update(|c| *c += 1);
+            } else if term_signal.code == KeyCode::Backspace {
+                set_n_counters.update(|c| *c -= 1);
             }
         }
     });
 
     col().child(For(move || {
         ForProps::builder()
-            .each(move || (1..count.get() + 1))
+            .each(move || (0..n_counters.get()))
             .key(|k| *k)
-            .children(|i| counter(i, Constraint::Length(2)))
+            .children(|i| counter(i, Constraint::Length(3)))
             .build()
     }))
 }

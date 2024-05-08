@@ -1,12 +1,13 @@
 use rooibos_dom::prelude::*;
 
+use crate::{Show, ShowProps};
 #[component]
-pub fn Popup<M>(
+fn PopupInner<M>(
     #[prop(children)] children: M,
     percent_x: u16,
     percent_y: u16,
     #[prop(default=None)] constraint: Option<Constraint>,
-) -> impl IntoView
+) -> impl Render
 where
     M: RenderAny + 'static,
 {
@@ -28,5 +29,34 @@ where
             </row>
             <row v:percentage=inverse_y />
         </col>
+    }
+}
+
+#[component]
+pub fn Popup<M, W, F>(
+    #[prop(children)] mut children: F,
+    visible: W,
+    percent_x: u16,
+    percent_y: u16,
+    #[prop(default=None)] constraint: Option<Constraint>,
+) -> impl IntoView
+where
+    F: FnMut() -> M + Send + 'static,
+    M: RenderAny + 'static,
+    W: Fn() -> bool + Send + Sync + 'static,
+{
+    view! {
+        <Show
+            when=visible
+        >
+            {move || {
+                let children = children();
+                view! {
+                    <PopupInner percent_x=percent_x percent_y=percent_y constraint=constraint>
+                        {children}
+                    </PopupInner>
+                }
+            }}
+       </Show>
     }
 }

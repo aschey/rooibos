@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
@@ -34,12 +35,12 @@ fn CounterButton() -> impl Render {
     let (count, set_count) = signal(0);
 
     view! {
-        <row v:length=5>
-            <col v:length=20>
+        <Container h_constraint=Length(20) v_constraint=Length(5)>
+            {view! {
                 <Button on_click=move || set_count.update(|c| *c +=1)>
                     {move || format!("count {}", count.get())}
                 </Button>
-            </col>
-        </row>
+            }}
+        </Container>
     }
 }

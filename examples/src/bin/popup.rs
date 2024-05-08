@@ -41,20 +41,13 @@ fn App() -> impl Render {
                 <Line>"text3"</Line>
                 <Line>"text4"</Line>
             </paragraph>
-            <Show
-                when=move || show_popup.get()
-            >
+            <Popup percent_x=50 percent_y=50 visible=move || show_popup.get()>
                 {move || view! {
-                    <Popup percent_x=50 percent_y=50> {
-                        view! {
-                            <paragraph v:length=3 block=prop!(<Block borders=Borders::ALL/>)>
-                                "popup text"
-                            </paragraph>
-                            }
-                        }
-                    </Popup>
+                    <paragraph v:length=3 block=prop!(<Block borders=Borders::ALL/>)>
+                        "popup text"
+                    </paragraph>
                 }}
-            </Show>
+            </Popup>
         </overlay>
     }
 }
