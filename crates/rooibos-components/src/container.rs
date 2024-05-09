@@ -1,10 +1,11 @@
+use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::prelude::*;
 
 #[component]
 pub fn Container<M>(
     #[prop(children)] children: M,
-    h_constraint: Constraint,
-    v_constraint: Constraint,
+    #[prop(into)] h_constraint: MaybeSignal<Constraint>,
+    #[prop(into)] v_constraint: MaybeSignal<Constraint>,
 ) -> impl Render
 where
     M: RenderAny + 'static,

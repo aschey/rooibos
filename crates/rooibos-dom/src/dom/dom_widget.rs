@@ -6,33 +6,44 @@ use std::rc::Rc;
 use ratatui::layout::{Constraint, Rect};
 use ratatui::Frame;
 use reactive_graph::effect::RenderEffect;
+use reactive_graph::traits::Get;
+use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{next_node_id, notify, EventHandlers, KeyEvent, RooibosDom};
+use crate::{next_node_id, notify, KeyEvent, MouseEvent, RooibosDom};
 
-type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
+pub(crate) type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
 
 #[derive(Clone)]
 pub struct DomWidget {
+    inner: DomNode,
+}
+
+#[derive(Clone)]
+pub(crate) struct DomWidgetNode {
     f: Rc<RefCell<DomWidgetFn>>,
     id: u32,
     pub(crate) widget_type: String,
-    pub(crate) constraint: Constraint,
-    dom_id: Option<NodeId>,
-    focusable: bool,
-    event_handlers: EventHandlers,
     _effect: Rc<RenderEffect<()>>,
 }
 
-impl Debug for DomWidget {
+impl PartialEq for DomWidgetNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Eq for DomWidgetNode {}
+
+impl Debug for DomWidgetNode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "<{}/>", self.widget_type)
     }
 }
 
-impl DomWidget {
+impl DomWidgetNode {
     pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(&mut Frame, Rect) + 'static>(
         widget_type: impl Into<String>,
         f: F1,
@@ -48,13 +59,9 @@ impl DomWidget {
             }
         });
         Self {
-            widget_type: widget_type.into(),
             id,
             f: rc_f,
-            constraint: Constraint::default(),
-            dom_id: None,
-            focusable: false,
-            event_handlers: Default::default(),
+            widget_type: widget_type.into(),
             _effect: Rc::new(effect),
         }
     }
@@ -62,51 +69,108 @@ impl DomWidget {
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
         (*self.f).borrow_mut()(frame, rect);
     }
+}
 
-    pub fn constraint(mut self, constraint: Constraint) -> Self {
-        self.constraint = constraint;
+impl DomWidget {
+    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(&mut Frame, Rect) + 'static>(
+        widget_type: impl Into<String>,
+        f: F1,
+    ) -> Self {
+        let dom_widget_node = DomWidgetNode::new(widget_type, f);
+        let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
+        Self { inner }
+    }
+
+    pub(crate) fn inner(&self) -> DomNode {
+        self.inner.clone()
+    }
+
+    pub fn constraint<S>(self, constraint: S) -> Self
+    where
+        S: Into<MaybeSignal<Constraint>>,
+    {
+        let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
+
+        let effect = RenderEffect::new({
+            let constraint = constraint.into();
+            let constraint_rc = constraint_rc.clone();
+            move |_| {
+                *constraint_rc.borrow_mut() = constraint.get();
+                notify();
+            }
+        });
+        self.inner.set_constraint(constraint_rc);
+        self.inner.add_data(effect);
         self
     }
 
-    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
-        self.dom_id = Some(id.into());
+    pub fn id(self, id: impl Into<NodeId>) -> Self {
+        self.inner.set_id(id);
         self
     }
 
-    pub fn focusable(mut self, focusable: bool) -> Self {
-        self.focusable = focusable;
+    pub fn focusable<S>(self, focusable: S) -> Self
+    where
+        S: Into<MaybeSignal<bool>>,
+    {
+        let focusable_rc = Rc::new(RefCell::new(false));
+
+        let effect = RenderEffect::new({
+            let focusable = focusable.into();
+            let focusable_rc = focusable_rc.clone();
+            move |_| {
+                *focusable_rc.borrow_mut() = focusable.get();
+                notify();
+            }
+        });
+        self.inner.set_focusable(focusable_rc);
+        self.inner.add_data(effect);
         self
     }
 
-    pub fn on_key_down<F>(mut self, handler: F) -> Self
+    pub fn on_key_down<F>(self, handler: F) -> Self
     where
         F: FnMut(KeyEvent) + 'static,
     {
-        self.event_handlers = self.event_handlers.on_key_down(handler);
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_key_down(handler));
+
         self
     }
 
-    pub fn on_key_up<F>(mut self, handler: F) -> Self
+    pub fn on_key_up<F>(self, handler: F) -> Self
     where
         F: FnMut(KeyEvent) + 'static,
     {
-        self.event_handlers = self.event_handlers.on_key_up(handler);
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_key_up(handler));
         self
     }
 
-    pub fn on_focus<F>(mut self, handler: F) -> Self
+    pub fn on_focus<F>(self, handler: F) -> Self
     where
         F: FnMut() + 'static,
     {
-        self.event_handlers = self.event_handlers.on_focus(handler);
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
         self
     }
 
-    pub fn on_blur<F>(mut self, handler: F) -> Self
+    pub fn on_blur<F>(self, handler: F) -> Self
     where
         F: FnMut() + 'static,
     {
-        self.event_handlers = self.event_handlers.on_blur(handler);
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
+        self
+    }
+
+    pub fn on_click<F>(self, handler: F) -> Self
+    where
+        F: FnMut(MouseEvent) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_click(handler));
         self
     }
 }
@@ -115,24 +179,8 @@ impl Render<RooibosDom> for DomWidget {
     type State = DomNode;
 
     fn build(self) -> Self::State {
-        DomNode::from_fragment(
-            DocumentFragment::widget(self.clone())
-                .constraint(self.constraint)
-                .id(self.dom_id.clone())
-                .focusable(self.focusable)
-                .event_handlers(self.event_handlers),
-        )
+        self.inner
     }
 
-    fn rebuild(self, _state: &mut Self::State) {
-        todo!()
-    }
+    fn rebuild(self, _state: &mut Self::State) {}
 }
-
-impl PartialEq for DomWidget {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-
-impl Eq for DomWidget {}

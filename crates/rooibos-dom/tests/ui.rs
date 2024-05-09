@@ -624,7 +624,7 @@ async fn overlay_multiple() {
             let view = view! {
                 <overlay>
                     <block borders=Borders::ALL title="test"/>
-                    <col margin= || 1>
+                    <col margin=1>
                         <list>
                             <ListItem>{"hi"}</ListItem>
                             <ListItem>{"yo"}</ListItem>
@@ -668,7 +668,7 @@ async fn two_overlays() {
                     <col v:percentage=50>
                         <overlay>
                             <block borders=Borders::ALL title="test"/>
-                            <col margin= || 1>
+                            <col margin=1>
                                 <list v:length=2>
                                     <ListItem>{"hi"}</ListItem>
                                     <ListItem>{"yo"}</ListItem>
@@ -679,7 +679,7 @@ async fn two_overlays() {
                     <col v:percentage=50>
                         <overlay>
                             <block borders=Borders::ALL title="test2"/>
-                            <col margin= || 1>
+                            <col margin=1>
                                 <list v:length=2>
                                     <ListItem>{"hi2"}</ListItem>
                                     <ListItem>{"yo2"}</ListItem>

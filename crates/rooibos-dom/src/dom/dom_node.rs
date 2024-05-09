@@ -4,6 +4,7 @@ use std::cell::{Ref, RefCell};
 use std::fmt::{self, Display};
 use std::rc::Rc;
 
+use derivative::Derivative;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::Frame;
 use slotmap::{new_key_type, SlotMap};
@@ -11,17 +12,16 @@ use tachys::view::Render;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
-use super::dom_widget::DomWidget;
 use super::{with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
-use crate::{next_node_id, EventHandlers, RooibosDom};
+use crate::{next_node_id, DomWidgetNode, EventHandlers, RooibosDom};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 enum NodeIdInner {
     Auto(u32),
     Manual(String),
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct NodeId(NodeIdInner);
 
 impl NodeId {
@@ -75,7 +75,7 @@ pub(crate) struct LayoutProps {
 pub(crate) enum NodeType {
     Layout(Rc<RefCell<LayoutProps>>),
     Overlay,
-    Widget(DomWidget),
+    Widget(DomWidgetNode),
 }
 
 impl NodeType {
@@ -132,7 +132,8 @@ impl Debug for NodeType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub(crate) struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
@@ -141,8 +142,10 @@ pub(crate) struct DomNodeInner {
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
-    pub(crate) focusable: bool,
+    pub(crate) focusable: Rc<RefCell<bool>>,
+    #[derivative(Debug = "ignore")]
     pub(crate) event_handlers: EventHandlers,
+    pub(crate) rect: Rc<RefCell<Rect>>,
     data: Vec<Rc<dyn Any>>,
 }
 
@@ -156,7 +159,8 @@ impl DomNodeInner {
         dom_state: &mut DomState,
         parent_layout: Layout,
     ) {
-        if self.focusable {
+        *self.rect.borrow_mut() = rect;
+        if *self.focusable.borrow() {
             dom_state.add_focusable(key);
         }
 
@@ -215,6 +219,7 @@ impl DomNodeInner {
                 let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
                 let chunks = parent_layout.split(rect);
                 widget.render(frame, chunks[0]);
+                *self.rect.borrow_mut() = chunks[0];
             }
         }
     }
@@ -238,10 +243,11 @@ impl DomNode {
             children: vec![],
             parent: None,
             before_pending: vec![],
-            focusable: fragment.focusable,
+            focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
             event_handlers: fragment.event_handlers,
             data: vec![],
+            rect: Rc::new(RefCell::new(Rect::default())),
         };
         let key = with_nodes_mut(|mut n| n.insert(inner));
         Self { key }
@@ -255,10 +261,11 @@ impl DomNode {
             children: vec![],
             parent: None,
             before_pending: vec![],
-            focusable: fragment.id.is_some(),
+            focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
             event_handlers: fragment.event_handlers,
             data: vec![],
+            rect: Rc::new(RefCell::new(Rect::default())),
         };
         with_nodes_mut(|mut n| n[self.key] = inner);
     }
@@ -275,10 +282,23 @@ impl DomNode {
         with_nodes_mut(|mut n| n[self.key].constraint = constraint);
     }
 
+    pub(crate) fn set_focusable(&self, focusable: Rc<RefCell<bool>>) {
+        with_nodes_mut(|mut n| n[self.key].focusable = focusable);
+    }
+
+    pub(crate) fn update_event_handlers<F>(&self, update: F)
+    where
+        F: FnOnce(EventHandlers) -> EventHandlers,
+    {
+        with_nodes_mut(|mut n| {
+            n[self.key].event_handlers = update(n[self.key].event_handlers.clone())
+        });
+    }
+
     pub(crate) fn set_id(&self, id: impl Into<NodeId>) {
         with_nodes_mut(|mut n| {
             n[self.key].id = Some(id.into());
-            n[self.key].focusable = true;
+            *n[self.key].focusable.borrow_mut() = true;
         });
     }
 

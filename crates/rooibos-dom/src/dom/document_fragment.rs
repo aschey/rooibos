@@ -5,8 +5,7 @@ use derivative::Derivative;
 use ratatui::layout::{Constraint, Direction, Flex};
 
 use super::dom_node::{NodeId, NodeType};
-use super::dom_widget::DomWidget;
-use crate::{EventHandlers, LayoutProps};
+use crate::{DomWidgetNode, EventHandlers, LayoutProps};
 
 #[derive(Derivative)]
 #[derivative(PartialEq, Eq)]
@@ -23,10 +22,10 @@ pub struct DocumentFragment {
 }
 
 impl DocumentFragment {
-    pub(crate) fn widget(widget: DomWidget) -> Self {
+    pub(crate) fn widget(widget: DomWidgetNode) -> Self {
         Self {
             name: widget.widget_type.clone(),
-            constraint: widget.constraint,
+            constraint: Constraint::default(),
             node_type: NodeType::Widget(widget),
             flex: Flex::default(),
             focusable: false,
@@ -75,25 +74,5 @@ impl DocumentFragment {
             id: None,
             event_handlers: Default::default(),
         }
-    }
-
-    pub(crate) fn constraint(mut self, constraint: Constraint) -> Self {
-        self.constraint = constraint;
-        self
-    }
-
-    pub(crate) fn id(mut self, id: Option<NodeId>) -> Self {
-        self.id = id;
-        self
-    }
-
-    pub(crate) fn focusable(mut self, focusable: bool) -> Self {
-        self.focusable = focusable;
-        self
-    }
-
-    pub(crate) fn event_handlers(mut self, handlers: EventHandlers) -> Self {
-        self.event_handlers = handlers;
-        self
     }
 }

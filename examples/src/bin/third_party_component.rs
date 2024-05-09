@@ -4,6 +4,7 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::wrappers::read::MaybeSignal;
 use rooibos::runtime::run;
 use tui_textarea::TextArea;
 
@@ -39,7 +40,7 @@ fn TextView() -> impl Render {
 }
 
 #[component]
-fn TextAreaWidget(text_area: RwSignal<TextArea<'static>>) -> DomWidget {
+fn TextAreaWidget(#[prop(into)] text_area: MaybeSignal<TextArea<'static>>) -> DomWidget {
     DomWidget::new("TextArea", move || {
         let widget = text_area.get();
         move |f: &mut Frame, area: Rect| {

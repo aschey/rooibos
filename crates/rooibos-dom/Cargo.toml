@@ -7,11 +7,11 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.27"
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a" }
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a", features = [
     "reactive_graph",
 ] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a" }
 ratatui = { version = "0.26", features = ["unstable"] }
 rooibos-dom-macros = { path = "../rooibos-dom-macros" }
 slotmap = "1"
@@ -23,7 +23,7 @@ bitflags = "2"
 derivative = "2"
 
 [dev-dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "e82227aa07023855ac704c4f484a466109c3f8cc", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a", features = [
     "tokio",
 ] }
 ctor = "0.2.7"

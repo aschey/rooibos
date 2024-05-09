@@ -5,6 +5,8 @@ use std::rc::Rc;
 use next_tuple::NextTuple;
 use ratatui::layout::{Constraint, Flex};
 use reactive_graph::effect::RenderEffect;
+use reactive_graph::traits::Get;
+use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
@@ -15,25 +17,6 @@ use crate::{notify, RenderAny, RooibosDom};
 pub struct Element<Children> {
     inner: DomNode,
     children: Children,
-}
-
-pub trait ToProperty<T> {
-    fn to_property(&self) -> T;
-}
-
-impl<F, T> ToProperty<T> for F
-where
-    F: Fn() -> T,
-{
-    fn to_property(&self) -> T {
-        self()
-    }
-}
-
-impl ToProperty<Constraint> for Constraint {
-    fn to_property(&self) -> Constraint {
-        *self
-    }
 }
 
 impl<Children> Element<Children>
@@ -47,15 +30,17 @@ where
         }
     }
 
-    pub fn constraint<T>(self, constraint: T) -> Self
+    pub fn constraint<S>(self, constraint: S) -> Self
     where
-        T: ToProperty<Constraint> + 'static,
+        S: Into<MaybeSignal<Constraint>>,
     {
         let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
+
         let effect = RenderEffect::new({
+            let constraint = constraint.into();
             let constraint_rc = constraint_rc.clone();
             move |_| {
-                *constraint_rc.borrow_mut() = constraint.to_property();
+                *constraint_rc.borrow_mut() = constraint.get();
                 notify();
             }
         });
@@ -69,14 +54,15 @@ where
         self
     }
 
-    pub fn margin<T>(self, margin: T) -> Self
+    pub fn margin<S>(self, margin: S) -> Self
     where
-        T: ToProperty<u16> + 'static,
+        S: Into<MaybeSignal<u16>>,
     {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
+            let margin = margin.into();
             move |_| {
-                layout_props.borrow_mut().margin = margin.to_property();
+                layout_props.borrow_mut().margin = margin.get();
                 notify();
             }
         });
@@ -84,14 +70,15 @@ where
         self
     }
 
-    pub fn flex<T>(self, flex: T) -> Self
+    pub fn flex<S>(self, flex: S) -> Self
     where
-        T: ToProperty<Flex> + 'static,
+        S: Into<MaybeSignal<Flex>>,
     {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
+            let flex = flex.into();
             move |_| {
-                layout_props.borrow_mut().flex = flex.to_property();
+                layout_props.borrow_mut().flex = flex.get();
                 notify();
             }
         });
@@ -99,14 +86,15 @@ where
         self
     }
 
-    pub fn spacing<T>(self, spacing: T) -> Self
+    pub fn spacing<S>(self, spacing: S) -> Self
     where
-        T: ToProperty<u16> + 'static,
+        S: Into<MaybeSignal<u16>>,
     {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
+            let spacing = spacing.into();
             move |_| {
-                layout_props.borrow_mut().spacing = spacing.to_property();
+                layout_props.borrow_mut().spacing = spacing.get();
                 notify();
             }
         });

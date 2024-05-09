@@ -2,6 +2,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
+use ratatui::layout::Position;
 use ratatui::text::Text;
 use ratatui::Frame;
 use reactive_graph::signal::ReadSignal;
@@ -11,7 +12,7 @@ use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{make_dom_widget, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, NewExt};
+use crate::{make_dom_widget, Event, KeyCode, KeyEventKind, KeyModifiers, NewExt};
 
 mod any_view;
 mod children;
@@ -157,24 +158,24 @@ impl Renderer for RooibosDom {
     }
 
     fn create_text_node(text: &str) -> Self::Text {
-        DomNode::from_fragment(DocumentFragment::widget(make_dom_widget(
-            "text",
-            Text::new(text.to_owned()),
-        )))
+        make_dom_widget("text", Text::new(text.to_owned())).inner()
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        DomNode::from_fragment(DocumentFragment::widget(make_dom_widget(
-            "placeholder",
-            Text::new(""),
-        )))
+        make_dom_widget("placeholder", Text::new("")).inner()
     }
 
     fn set_text(node: &Self::Text, text: &str) {
-        node.replace_fragment(DocumentFragment::widget(make_dom_widget(
+        let text = text.to_string();
+        node.replace_fragment(DocumentFragment::widget(DomWidgetNode::new(
             "text",
-            Text::new(text.to_owned()),
-        )))
+            move || {
+                let text = text.clone();
+                move |frame, rect| {
+                    frame.render_widget(&text, rect);
+                }
+            },
+        )));
     }
 
     fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
@@ -414,30 +415,74 @@ enum Focus {
     Prev,
 }
 
-pub fn send_key(key_event: KeyEvent) {
-    let focus = with_nodes_mut(|mut n| {
-        with_state(|d| {
-            if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
-                if key_event.modifiers.contains(KeyModifiers::SHIFT) {
-                    return Some(Focus::Prev);
-                } else {
-                    return Some(Focus::Next);
-                }
-            }
-            if let Some(key) = d.focused_key() {
-                match key_event.kind {
-                    KeyEventKind::Press | KeyEventKind::Repeat => {
-                        if let Some(on_key_down) = &mut n[key].event_handlers.on_key_down {
-                            on_key_down.borrow_mut()(key_event);
+pub fn send_event(event: Event) {
+    let focus = with_state_mut(|state| {
+        with_nodes_mut(|mut nodes| {
+            match event {
+                Event::Key(key_event) => {
+                    if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
+                        if key_event.modifiers.contains(KeyModifiers::SHIFT) {
+                            return Some(Focus::Prev);
+                        } else {
+                            return Some(Focus::Next);
+                        }
+                    } else if let Some(key) = state.focused_key() {
+                        match key_event.kind {
+                            KeyEventKind::Press | KeyEventKind::Repeat => {
+                                if let Some(on_key_down) =
+                                    &mut nodes[key].event_handlers.on_key_down
+                                {
+                                    on_key_down.borrow_mut()(key_event);
+                                }
+                            }
+                            KeyEventKind::Release => {
+                                if let Some(on_key_up) = &mut nodes[key].event_handlers.on_key_up {
+                                    on_key_up.borrow_mut()(key_event);
+                                }
+                            }
                         }
                     }
-                    KeyEventKind::Release => {
-                        if let Some(on_key_up) = &mut n[key].event_handlers.on_key_up {
-                            on_key_up.borrow_mut()(key_event);
+                }
+
+                Event::FocusGained => todo!(),
+                Event::FocusLost => todo!(),
+                Event::Mouse(mouse_event) => match mouse_event.kind {
+                    crate::MouseEventKind::Down(_) => {
+                        let current = nodes.keys().find(|k| {
+                            nodes[*k].rect.borrow().contains(Position {
+                                x: mouse_event.column,
+                                y: mouse_event.row,
+                            }) && nodes[*k].event_handlers.on_click.is_some()
+                        });
+                        if let Some(current) = current {
+                            if let Some(on_click) = &mut nodes[current].event_handlers.on_click {
+                                on_click.borrow_mut()(mouse_event);
+                            }
                         }
                     }
-                }
-            }
+                    crate::MouseEventKind::Up(_) => {}
+                    crate::MouseEventKind::Drag(_) => {}
+                    crate::MouseEventKind::Moved => {
+                        let current = nodes.keys().find(|k| {
+                            nodes[*k].rect.borrow().contains(Position {
+                                x: mouse_event.column,
+                                y: mouse_event.row,
+                            }) && *nodes[*k].focusable.borrow()
+                        });
+                        if let Some(current) = current {
+                            if state.focused_key() != Some(current) {
+                                state.set_focused(current, &mut nodes);
+                            }
+                        }
+                    }
+                    crate::MouseEventKind::ScrollDown => {}
+                    crate::MouseEventKind::ScrollUp => {}
+                    crate::MouseEventKind::ScrollLeft => {}
+                    crate::MouseEventKind::ScrollRight => {}
+                },
+                Event::Paste(_) => todo!(),
+                Event::Resize(_, _) => todo!(),
+            };
             None
         })
     });

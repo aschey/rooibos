@@ -255,6 +255,7 @@ struct EventHandlers {
     on_key_up: Option<TokenStream>,
     on_focus: Option<TokenStream>,
     on_blur: Option<TokenStream>,
+    on_click: Option<TokenStream>,
 }
 
 impl ToTokens for EventHandlers {
@@ -275,11 +276,17 @@ impl ToTokens for EventHandlers {
             .on_focus
             .as_ref()
             .map(|handler| quote!(.on_focus(#handler)));
+        let on_click = self
+            .on_click
+            .as_ref()
+            .map(|handler| quote!(.on_click(#handler)));
+
         tokens.append_all(quote! {
             #on_key_down
             #on_key_up
             #on_blur
             #on_focus
+            #on_click
         })
     }
 }
@@ -414,6 +421,10 @@ impl NodeAttributes {
             }
             "on:blur" => {
                 self.event_handlers.on_blur = Some(attribute.value().unwrap().into_token_stream());
+                true
+            }
+            "on:click" => {
+                self.event_handlers.on_click = Some(attribute.value().unwrap().into_token_stream());
                 true
             }
             _ => false,

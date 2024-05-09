@@ -28,7 +28,7 @@ fn counter() -> impl Render {
         }
     };
 
-    paragraph(move || ParagraphProps::new(format!("count {}", count.get())))
+    paragraph(move || Paragraph::new(format!("count {}", count.get())))
         .focusable(true)
         .on_key_down(key_down)
 }

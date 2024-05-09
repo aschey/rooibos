@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
@@ -33,7 +34,7 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
         }
     };
 
-    paragraph(move || ParagraphProps::new(format!("count: {}", count.get())).block(block.get()))
+    paragraph(move || Paragraph::new(format!("count: {}", count.get())).block(block.get()))
         .constraint(constraint)
         .on_focus(move || block.set(Block::bordered().blue()))
         .on_blur(move || block.set(Block::default().padding(default_padding)))
@@ -64,7 +65,7 @@ fn counters() -> impl Render {
         ForProps::builder()
             .each(move || (0..n_counters.get()))
             .key(|k| *k)
-            .children(|i| counter(i, Constraint::Length(3)))
+            .children(|i| counter(i, Length(3)))
             .build()
     }))
 }

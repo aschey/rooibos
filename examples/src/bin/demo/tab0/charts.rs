@@ -5,6 +5,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::use_keypress;
 
 use crate::random::RandomData;
@@ -26,9 +27,8 @@ pub(crate) fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
     view! {
         <row v:constraint=constraint>
             <col
-                v:constraint=move || {
-                    Percentage(if show_chart.get() { 50 } else { 100 })
-                }>
+                v:constraint = Signal::derive(move ||
+                    Percentage(if show_chart.get() { 50 } else { 100 }))>
                 <row v:percentage=50>
                     <col v:percentage=50>
                         <TaskList/>
@@ -42,9 +42,8 @@ pub(crate) fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
                 </row>
             </col>
             <col
-                v:constraint=move || {
-                    Percentage(if show_chart.get() { 50 } else { 0 })
-                }>
+                v:constraint = Signal::derive(move ||
+                    Percentage(if show_chart.get() { 50 } else { 0 }))>
                 <DemoChart enhanced_graphics=enhanced_graphics/>
             </col>
         </row>

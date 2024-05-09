@@ -6,8 +6,8 @@ use std::sync::OnceLock;
 use std::time::Duration;
 
 use crossterm::event::{
-    self, KeyCode, KeyEvent, KeyModifiers, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags,
+    self, DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent, KeyModifiers,
+    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 use crossterm::execute;
 use crossterm::terminal::{
@@ -20,15 +20,15 @@ use ratatui::Terminal;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
-use rooibos_dom::{dom_update_receiver, render_dom, send_key, DomUpdateReceiver};
+use rooibos_dom::{dom_update_receiver, render_dom, send_event, DomUpdateReceiver, Event};
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::task::{self, spawn_local};
 
 static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
-static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::KeyEvent>> = OnceLock::new();
+static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::Event>> = OnceLock::new();
 static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
 
-async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibos_dom::KeyEvent>) {
+async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibos_dom::Event>) {
     let mut event_reader = crossterm::event::EventStream::new().fuse();
     while let Some(Ok(event)) = event_reader.next().await {
         if let event::Event::Key(key_event) = event {
@@ -40,8 +40,8 @@ async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibo
                 quit_tx.send(()).await.unwrap();
                 break;
             }
-            term_tx.send(key_event.into()).ok();
         }
+        term_tx.send(event.into()).ok();
     }
 }
 
@@ -78,7 +78,7 @@ where
 struct Runtime {
     quit_rx: mpsc::Receiver<()>,
     dom_update_rx: DomUpdateReceiver,
-    term_event_rx: broadcast::Receiver<rooibos_dom::KeyEvent>,
+    term_event_rx: broadcast::Receiver<rooibos_dom::Event>,
 }
 
 impl Runtime {
@@ -111,7 +111,7 @@ impl Runtime {
             }
             term_event = self.term_event_rx.recv() => {
                 if let Ok(term_event) = term_event {
-                    send_key(term_event)
+                    send_event(term_event)
                 }
                 TickResult::Continue
             }
@@ -132,9 +132,11 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
         // if term_signal.is_disposed() {
         //     return;
         // }
-        while let Ok(key_event) = term_rx.recv().await {
-            if key_event.kind == rooibos_dom::KeyEventKind::Press {
-                set_term_signal.set(Some(key_event));
+        while let Ok(event) = term_rx.recv().await {
+            if let Event::Key(key_event) = event {
+                if key_event.kind == rooibos_dom::KeyEventKind::Press {
+                    set_term_signal.set(Some(key_event));
+                }
             }
         }
     });
@@ -151,6 +153,7 @@ pub fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
         stdout(),
         EnterAlternateScreen,
         PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all()),
+        EnableMouseCapture
     )?;
 
     enable_raw_mode()?;
@@ -159,7 +162,12 @@ pub fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
 }
 
 pub fn restore_terminal() -> io::Result<()> {
-    execute!(stdout(), PopKeyboardEnhancementFlags, LeaveAlternateScreen)?;
+    execute!(
+        stdout(),
+        PopKeyboardEnhancementFlags,
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    )?;
     disable_raw_mode()?;
     Ok(())
 }
