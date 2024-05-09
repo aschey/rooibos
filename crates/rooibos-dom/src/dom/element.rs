@@ -14,16 +14,16 @@ use super::dom_node::{DomNode, NodeId};
 use crate::{notify, RenderAny, RooibosDom};
 
 #[derive(Debug)]
-pub struct Element<Children> {
+pub struct Element<C> {
     inner: DomNode,
-    children: Children,
+    children: C,
 }
 
-impl<Children> Element<Children>
+impl<C> Element<C>
 where
-    Children: NextTuple,
+    C: NextTuple,
 {
-    pub fn child<T>(self, child: T) -> Element<Children::Output<T>> {
+    pub fn child<T>(self, child: T) -> Element<C::Output<T>> {
         Element {
             inner: self.inner,
             children: self.children.next_tuple(child),
@@ -103,24 +103,24 @@ where
     }
 }
 
-pub fn row() -> Element<()> {
+pub fn row<C>(children: C) -> Element<C> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::row()),
-        children: (),
+        children,
     }
 }
 
-pub fn col() -> Element<()> {
+pub fn col<C>(children: C) -> Element<C> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::col()),
-        children: (),
+        children,
     }
 }
 
-pub fn overlay() -> Element<()> {
+pub fn overlay<C>(children: C) -> Element<C> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::overlay()),
-        children: (),
+        children,
     }
 }
 

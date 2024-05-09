@@ -65,19 +65,19 @@ impl View {
     fn get_overlay_tokens(&self, span: Span, closing_span: Span, children: &[View]) -> TokenStream {
         let overlay = Ident::new("overlay", span);
         let closing = Ident::new("overlay", closing_span);
-        let child_tokens: Vec<_> = children.iter().map(|v| v.view_to_tokens()).collect();
         let constraint = self.constraint.as_ref().map(|c| quote!(.constraint(#c)));
         let id = self.id.as_ref().map(|id| quote!(.id(#id)));
         let focusable = self
             .focusable
             .as_ref()
             .map(|focusable| quote!(.focusable(#focusable)));
+        let children = Self::to_child_tokens(children);
         let overlay_fn = if cfg!(debug_assertions) {
             quote! {
                 {
                     #[cfg(__never_compiled)]
-                    #closing();
-                    #overlay()
+                    #closing(());
+                    #overlay(#children)
                 }
             }
         } else {
@@ -88,10 +88,18 @@ impl View {
             #constraint
             #id
             #focusable
-            #(.child(#child_tokens))*
         };
 
         layout_tokens
+    }
+
+    fn to_child_tokens(children: &[View]) -> TokenStream {
+        let child_tokens: Vec<_> = children.iter().map(|v| v.view_to_tokens()).collect();
+        match child_tokens.as_slice() {
+            [] => quote!(()),
+            [child] => quote!((#child,)),
+            children => quote!((#(#children),*)),
+        }
     }
 
     fn get_layout_tokens(
@@ -116,15 +124,15 @@ impl View {
             Direction::Row => Ident::new("row", closing_span),
             Direction::Col => Ident::new("col", closing_span),
         };
-        let child_tokens: Vec<_> = children.iter().map(|v| v.view_to_tokens()).collect();
         let layout_props = self.layout_props.clone();
 
+        let children = Self::to_child_tokens(children);
         let layout_fn = if cfg!(debug_assertions) {
             quote! {
                 {
                     #[cfg(__never_compiled)]
-                    #closing();
-                    #layout()
+                    #closing(());
+                    #layout(#children)
                 }
             }
         } else {
@@ -136,7 +144,6 @@ impl View {
             #id
             #focusable
             #layout_props
-            #(.child(#child_tokens))*
         };
 
         layout_tokens

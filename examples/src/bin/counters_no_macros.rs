@@ -61,7 +61,7 @@ fn counters() -> impl Render {
         }
     });
 
-    col().child(For(move || {
+    col(For(move || {
         ForProps::builder()
             .each(move || (0..n_counters.get()))
             .key(|k| *k)
