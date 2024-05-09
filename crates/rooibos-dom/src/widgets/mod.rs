@@ -1,6 +1,8 @@
 mod chart;
 mod sparkline;
 
+use std::any::type_name;
+
 pub use chart::*;
 use ratatui::prelude::*;
 use ratatui::style::Style;
@@ -83,14 +85,22 @@ impl_stateful_widget!(List, visibility=pub, generics=<'a>);
 impl_stateful_widget!(Table, visibility=pub, generics=<'a>);
 impl_stateful_widget!(Scrollbar, visibility=pub, generics=<'a>, render_ref=false);
 
-pub fn make_dom_widget<W: Widget + Clone + 'static>(
-    name: impl Into<String>,
-    widget: W,
-) -> DomWidget {
-    DomWidget::new(name, move || {
-        let widget = widget.clone();
-        move |frame, rect| {
-            frame.render_widget(widget.clone(), rect);
+#[macro_export]
+macro_rules! widget {
+    ($($x:tt)*) => {
+        widget(move || $($x)*)
+    };
+}
+
+pub fn widget<F, W>(props: F) -> DomWidget
+where
+    F: Fn() -> W + 'static,
+    W: WidgetRef + 'static,
+{
+    DomWidget::new(type_name::<W>(), move || {
+        let props = props();
+        move |frame: &mut Frame, rect: Rect| {
+            frame.render_widget(&props, rect);
         }
     })
 }

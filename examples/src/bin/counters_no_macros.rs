@@ -34,7 +34,7 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
         }
     };
 
-    paragraph(move || Paragraph::new(format!("count: {}", count.get())).block(block.get()))
+    widget!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
         .constraint(constraint)
         .on_focus(move || block.set(Block::bordered().blue()))
         .on_blur(move || block.set(Block::default().padding(default_padding)))
@@ -61,11 +61,9 @@ fn counters() -> impl Render {
         }
     });
 
-    col(For(move || {
-        ForProps::builder()
-            .each(move || (0..n_counters.get()))
-            .key(|k| *k)
-            .children(|i| counter(i, Length(3)))
-            .build()
-    }))
+    col!(for_each(
+        move || (0..n_counters.get()),
+        |k| *k,
+        |i| counter(i, Length(3))
+    ))
 }

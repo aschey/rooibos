@@ -103,6 +103,45 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! row {
+    () => (
+        $crate::row(())
+    );
+    ($x:expr) => (
+        $crate::row(($x,))
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::row(($($x),+))
+    );
+}
+
+#[macro_export]
+macro_rules! col {
+    () => (
+        $crate::col(())
+    );
+    ($x:expr) => (
+        $crate::col(($x,))
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::col(($($x),+))
+    );
+}
+
+#[macro_export]
+macro_rules! overlay {
+    () => (
+        $crate::overlay(())
+    );
+    ($x:expr) => (
+        $crate::overlay(($x,))
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::overlay(($($x),+))
+    );
+}
+
 pub fn row<C>(children: C) -> Element<C> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::row()),

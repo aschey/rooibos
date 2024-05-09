@@ -12,7 +12,7 @@ use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{make_dom_widget, Event, KeyCode, KeyEventKind, KeyModifiers, NewExt};
+use crate::{widget, Event, KeyCode, KeyEventKind, KeyModifiers, NewExt};
 
 mod any_view;
 mod children;
@@ -158,11 +158,12 @@ impl Renderer for RooibosDom {
     }
 
     fn create_text_node(text: &str) -> Self::Text {
-        make_dom_widget("text", Text::new(text.to_owned())).inner()
+        let text = text.to_owned();
+        widget!(Text::new(text.clone())).inner()
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        make_dom_widget("placeholder", Text::new("")).inner()
+        widget!(Text::new("")).inner()
     }
 
     fn set_text(node: &Self::Text, text: &str) {
