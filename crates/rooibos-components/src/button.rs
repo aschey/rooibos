@@ -2,10 +2,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use ratatui::style::{Color, Style};
+use ratatui::text::Text;
+use ratatui::widgets::{Block, BorderType, Paragraph};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::prelude::*;
+use rooibos_dom::{widget_ref, KeyCode, KeyEvent, Render};
 use rooibos_runtime::{delay, supports_key_up};
 
 pub struct Button {

@@ -1,10 +1,15 @@
 use std::error::Error;
 
-use rooibos::prelude::*;
+use rooibos::components::Popup;
+use rooibos::dom::{
+    focus_next, mount, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render,
+};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::run;
+use rooibos::tui::text::Line;
+use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -42,8 +47,7 @@ fn app() -> impl Render {
         .on_key_down(key_down),
         Popup::default().percent_x(50).percent_y(50).render(
             move || show_popup.get(),
-            move || widget_ref!(Paragraph::new("popup text").block(Block::bordered()))
-                .constraint(Constraint::Length(3))
+            move || widget_ref!(Paragraph::new("popup text").block(Block::bordered())).length(3)
         )
     ]
 }

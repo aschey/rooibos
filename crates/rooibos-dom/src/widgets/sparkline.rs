@@ -1,15 +1,15 @@
 use ratatui::prelude::*;
 use ratatui::style::{Style, Styled};
 use ratatui::symbols;
-use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget, WidgetRef};
+use ratatui::widgets::{Block, RenderDirection, Widget, WidgetRef};
 
 #[derive(Clone, Default)]
-pub struct SparklineProps<'a> {
-    inner: Sparkline<'a>,
+pub struct Sparkline<'a> {
+    inner: ratatui::widgets::Sparkline<'a>,
     data: Vec<u64>,
 }
 
-impl<'a> SparklineProps<'a> {
+impl<'a> Sparkline<'a> {
     pub fn block(mut self, block: Block<'a>) -> Self {
         self.inner = self.inner.block(block);
         self
@@ -41,19 +41,19 @@ impl<'a> SparklineProps<'a> {
     }
 }
 
-impl<'a> WidgetRef for SparklineProps<'a> {
+impl<'a> WidgetRef for Sparkline<'a> {
     fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         self.inner.clone().data(&self.data).render(area, buf)
     }
 }
 
-impl<'a> Widget for SparklineProps<'a> {
+impl<'a> Widget for Sparkline<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_ref(area, buf)
     }
 }
 
-impl<'a> Styled for SparklineProps<'a> {
+impl<'a> Styled for Sparkline<'a> {
     type Item = Self;
 
     fn style(&self) -> Style {

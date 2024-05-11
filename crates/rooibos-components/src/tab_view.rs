@@ -1,6 +1,12 @@
+use ratatui::style::Style;
+use ratatui::text::Line;
+use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, GetUntracked};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
-use rooibos_dom::prelude::*;
+use rooibos_dom::{
+    col, signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoChildrenFn, MouseEvent,
+    Render,
+};
 
 #[derive(Clone)]
 pub struct Tab {

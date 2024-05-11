@@ -1,7 +1,7 @@
 use either_of::Either;
 use reactive_graph::computed::Memo;
 use reactive_graph::traits::Get;
-use rooibos_dom::prelude::*;
+use rooibos_dom::{IntoView, TypedChildrenMut, ViewFn};
 
 pub struct Show {
     fallback: ViewFn,

@@ -1,7 +1,7 @@
 use std::hash::Hash;
 
 use reactive_graph::owner::Owner;
-use rooibos_dom::prelude::*;
+use rooibos_dom::IntoView;
 use tachys::reactive_graph::OwnedView;
 use tachys::view::keyed::keyed;
 

@@ -1,14 +1,17 @@
 use std::error::Error;
 use std::time::Duration;
 
-use rooibos::components::TabView;
-use rooibos::prelude::*;
+use rooibos::components::{Tab, TabView};
+use rooibos::dom::{col, mount, signal, Constrainable, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::{run, use_keypress};
+use rooibos::tui::style::{Style, Stylize};
+use rooibos::tui::text::Line;
+use rooibos::tui::widgets::Block;
 use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
 use tilia::transport_async::ipc::{IpcSecurity, OnConflict, SecurityAttributes, ServerId};
 use tilia::transport_async::{ipc, Bind};

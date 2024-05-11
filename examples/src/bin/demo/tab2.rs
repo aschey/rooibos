@@ -1,5 +1,7 @@
-use rooibos::prelude::Constraint::*;
-use rooibos::prelude::*;
+use rooibos::dom::{col, row, widget_ref, Constrainable, Render};
+use rooibos::tui::layout::Constraint::{self, *};
+use rooibos::tui::style::{Color, Stylize};
+use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {
     row![colors_table(Ratio(2, 1)), col![].ratio(2, 1)]

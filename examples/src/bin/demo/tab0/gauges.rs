@@ -1,9 +1,13 @@
-use rooibos::prelude::Constraint::*;
-use rooibos::prelude::*;
+use rooibos::dom::{col, widget_ref, Constrainable, Render, Sparkline};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::tui::layout::Constraint;
+use rooibos::tui::layout::Constraint::*;
+use rooibos::tui::style::{Style, Stylize};
+use rooibos::tui::symbols;
+use rooibos::tui::widgets::{Block, Gauge, LineGauge};
 
 use crate::random::{RandomData, RandomDistribution};
 use crate::Tick;
@@ -97,7 +101,7 @@ fn demo_sparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Rende
     });
 
     widget_ref!(
-        SparklineProps::default()
+        Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()
             .data(sparkline_signal.get().points)

@@ -1,11 +1,14 @@
 use std::error::Error;
 
-use rooibos::prelude::*;
+use rooibos::dom::{focus_next, mount, DomWidget, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::MaybeSignal;
 use rooibos::runtime::run;
+use rooibos::tui::layout::Rect;
+use rooibos::tui::widgets::Block;
+use rooibos::tui::Frame;
 use tui_textarea::TextArea;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;

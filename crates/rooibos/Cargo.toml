@@ -9,6 +9,7 @@ reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
 rooibos-components = { path = "../rooibos-components" }
+ratatui = { version = "0.26", features = ["unstable"] }
 
 [features]
 nightly = [

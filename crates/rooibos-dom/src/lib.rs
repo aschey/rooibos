@@ -16,14 +16,3 @@ macro_rules! signal {
         Signal::derive(move || $($x)*)
     };
 }
-
-pub mod prelude {
-    pub use ratatui::layout::*;
-    pub use ratatui::prelude::{Buffer, Constraint};
-    pub use ratatui::style::*;
-    pub use ratatui::text::*;
-    pub use ratatui::widgets::*;
-    pub use ratatui::{symbols, Frame, Terminal};
-
-    pub use super::*;
-}

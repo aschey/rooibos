@@ -1,4 +1,6 @@
-use rooibos::prelude::*;
+use rooibos::dom::{
+    col, row, signal, stateful_widget, widget_ref, Chart, Constrainable, Dataset, KeyCode, Render,
+};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
@@ -6,6 +8,11 @@ use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::use_keypress;
+use rooibos::tui::layout::Constraint;
+use rooibos::tui::style::{Color, Style, Stylize};
+use rooibos::tui::symbols;
+use rooibos::tui::text::{Line, Span};
+use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
 
 use crate::random::RandomData;
 use crate::Tick;
@@ -106,13 +113,13 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let window_end = Memo::new(move |_| window.get()[1]);
 
     widget_ref!(
-        ChartProps::new(vec![
-            DatasetOwned::default()
+        Chart::new(vec![
+            Dataset::default()
                 .name("data2")
                 .marker(symbols::Marker::Dot)
                 .cyan()
                 .data(sin1.get().points),
-            DatasetOwned::default()
+            Dataset::default()
                 .name("data3")
                 .marker(if enhanced_graphics {
                     symbols::Marker::Braille

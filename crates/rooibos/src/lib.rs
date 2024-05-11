@@ -11,8 +11,5 @@ pub mod components {
     pub use rooibos_components::*;
 }
 
-pub mod prelude {
-    pub use rooibos_components::*;
-    pub use rooibos_dom::prelude::*;
-}
+pub use ratatui as tui;
 pub use rooibos_runtime_macros::main;

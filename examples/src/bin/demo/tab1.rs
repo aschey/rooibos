@@ -1,9 +1,12 @@
-use rooibos::prelude::canvas::{Canvas, Circle, Context, Map, MapResolution, Rectangle};
-use rooibos::prelude::Constraint::*;
-use rooibos::prelude::*;
+use rooibos::dom::{col, row, widget_ref, Constrainable, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Get;
+use rooibos::tui::layout::Constraint::*;
+use rooibos::tui::style::{Color, Style, Stylize};
+use rooibos::tui::symbols;
+use rooibos::tui::widgets::canvas::{self, Canvas, Circle, Context, Map, MapResolution, Rectangle};
+use rooibos::tui::widgets::{Block, Row, Table};
 
 pub(crate) fn tab1() -> impl Render {
     let servers = RwSignal::new(vec![

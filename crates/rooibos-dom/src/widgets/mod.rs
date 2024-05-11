@@ -4,9 +4,9 @@ mod sparkline;
 use std::any::type_name;
 
 pub use chart::*;
-use ratatui::prelude::*;
-use ratatui::widgets::*;
-use rooibos_dom::prelude::*;
+use ratatui::layout::Rect;
+use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
+use ratatui::Frame;
 pub use sparkline::*;
 
 use crate::DomWidget;
@@ -71,14 +71,4 @@ where
             frame.render_stateful_widget(props.clone(), rect, &mut state);
         }
     })
-}
-
-pub trait WrapExt {
-    fn trim(self, trim: bool) -> Self;
-}
-
-impl WrapExt for Wrap {
-    fn trim(self, trim: bool) -> Self {
-        Self { trim }
-    }
 }

@@ -1,14 +1,14 @@
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
-use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType, WidgetRef};
+use ratatui::widgets::{Axis, Block, GraphType, WidgetRef};
 
 #[derive(Clone, Default)]
-pub struct DatasetOwned<'a> {
-    inner: Dataset<'a>,
+pub struct Dataset<'a> {
+    inner: ratatui::widgets::Dataset<'a>,
     data: Vec<(f64, f64)>,
 }
 
-impl<'a> DatasetOwned<'a> {
+impl<'a> Dataset<'a> {
     pub fn name<S>(mut self, name: S) -> Self
     where
         S: Into<Line<'a>>,
@@ -41,7 +41,7 @@ impl<'a> DatasetOwned<'a> {
     }
 }
 
-impl<'a> Styled for DatasetOwned<'a> {
+impl<'a> Styled for Dataset<'a> {
     type Item = Self;
 
     fn style(&self) -> Style {
@@ -57,8 +57,8 @@ impl<'a> Styled for DatasetOwned<'a> {
 }
 
 #[derive(Clone)]
-pub struct ChartProps<'a> {
-    datasets: Vec<DatasetOwned<'a>>,
+pub struct Chart<'a> {
+    datasets: Vec<Dataset<'a>>,
     block: Option<Block<'a>>,
     x_axis: Axis<'a>,
     y_axis: Axis<'a>,
@@ -66,8 +66,8 @@ pub struct ChartProps<'a> {
     hidden_legend_constraints: (Constraint, Constraint),
 }
 
-impl<'a> ChartProps<'a> {
-    pub fn new(datasets: Vec<DatasetOwned<'a>>) -> Self {
+impl<'a> Chart<'a> {
+    pub fn new(datasets: Vec<Dataset<'a>>) -> Self {
         Self {
             block: None,
             x_axis: Axis::default(),
@@ -104,7 +104,7 @@ impl<'a> ChartProps<'a> {
     }
 }
 
-impl<'a> Styled for ChartProps<'a> {
+impl<'a> Styled for Chart<'a> {
     type Item = Self;
 
     fn style(&self) -> Style {
@@ -116,9 +116,9 @@ impl<'a> Styled for ChartProps<'a> {
     }
 }
 
-impl<'a> WidgetRef for ChartProps<'a> {
+impl<'a> WidgetRef for Chart<'a> {
     fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        let mut chart = Chart::new(
+        let mut chart = ratatui::widgets::Chart::new(
             self.datasets
                 .iter()
                 .map(|d| d.inner.clone().data(&d.data))
@@ -136,7 +136,7 @@ impl<'a> WidgetRef for ChartProps<'a> {
     }
 }
 
-impl<'a> Widget for ChartProps<'a> {
+impl<'a> Widget for Chart<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         self.render_ref(area, buf)
     }
