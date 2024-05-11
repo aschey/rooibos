@@ -29,11 +29,13 @@ impl Tab {
     }
 }
 
+type OnChangeFn = dyn FnMut(usize, &str);
+
 pub struct TabView {
     block: MaybeProp<Block<'static>>,
     padding: MaybeProp<u16>,
     highlight_style: MaybeSignal<Style>,
-    on_change: Box<dyn FnMut(usize, &str)>,
+    on_change: Box<OnChangeFn>,
 }
 
 impl Default for TabView {
