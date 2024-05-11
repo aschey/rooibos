@@ -23,8 +23,10 @@ use reactive_graph::traits::Set;
 use rooibos_dom::{
     dom_update_receiver, mount, render_dom, send_event, DomUpdateReceiver, Event, Render,
 };
+use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::task::{self, spawn_local};
+use tracing::{error, warn};
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
@@ -41,7 +43,10 @@ async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibo
             } = key_event;
 
             if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
-                quit_tx.send(()).await.unwrap();
+                let _ = quit_tx
+                    .send(())
+                    .await
+                    .tap_err(|e| warn!("error sending quit signal {e:?}"));
                 break;
             }
         }
@@ -61,7 +66,7 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     set_panic_hook();
     let res = owner.with(f);
     drop(owner);
-    restore_terminal().unwrap();
+    let _ = restore_terminal().tap_err(|e| error!("error restoring terminal: {e:?}"));
     res
 }
 
@@ -69,7 +74,7 @@ pub async fn init_executor<T, F>(f: F) -> T
 where
     F: Future<Output = T>,
 {
-    any_spawner::Executor::init_tokio().unwrap();
+    any_spawner::Executor::init_tokio().expect("executor already initialized");
 
     let local = task::LocalSet::new();
     local.run_until(f).await
@@ -97,7 +102,7 @@ impl RuntimeSettings {
 pub fn init(settings: RuntimeSettings) {
     CURRENT_RUNTIME
         .set(Mutex::new(Runtime::initialize(settings)))
-        .unwrap();
+        .expect("init called more than once");
 }
 
 pub fn start<F, M>(settings: RuntimeSettings, f: F)
@@ -120,7 +125,9 @@ impl Runtime {
     fn initialize(settings: RuntimeSettings) -> Self {
         let (quit_tx, quit_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
-        TERM_TX.set(term_event_tx.clone()).unwrap();
+        TERM_TX
+            .set(term_event_tx.clone())
+            .expect("runtime initialized more than once");
         let dom_update_rx = dom_update_receiver();
 
         // We need to query this info before reading events from crossterm
@@ -158,12 +165,12 @@ impl Runtime {
 }
 
 pub async fn tick() -> TickResult {
-    let rt = CURRENT_RUNTIME.get().unwrap();
+    let rt = CURRENT_RUNTIME.get().expect("runtime not initialized");
     rt.lock().await.tick().await
 }
 
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
-    let mut term_rx = TERM_TX.get().unwrap().subscribe();
+    let mut term_rx = TERM_TX.get().expect("runtime not initialized").subscribe();
     let (term_signal, set_term_signal) = signal(None);
     tokio::spawn(async move {
         // TODO: this doesn't work?
@@ -214,7 +221,7 @@ where
     *RESTORE_TERMINAL
         .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
         .lock()
-        .unwrap() = Box::new(move || {
+        .expect("lock poisoned") = Box::new(move || {
         let mut writer = (settings.get_writer)();
 
         if settings.keyboard_enhancement {
@@ -237,7 +244,7 @@ where
 
 pub fn restore_terminal() -> io::Result<()> {
     if let Some(restore) = RESTORE_TERMINAL.get() {
-        let _ = restore.lock().unwrap()();
+        restore.lock().expect("lock poisoned")()?;
     }
     Ok(())
 }
