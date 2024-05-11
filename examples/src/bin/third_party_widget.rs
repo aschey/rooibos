@@ -1,8 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{focus_next, stateful_widget, KeyCode, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::dom::{stateful_widget, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
@@ -40,10 +39,6 @@ fn app() -> impl Render {
         .unwrap(),
         TreeItem::new_leaf("h", "h"),
     ]);
-
-    Effect::new(move |_| {
-        focus_next();
-    });
 
     let key_down = move |key_event: KeyEvent, _| match key_event.code {
         KeyCode::Char('\n' | ' ') => {

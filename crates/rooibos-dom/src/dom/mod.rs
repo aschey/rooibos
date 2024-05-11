@@ -1,6 +1,6 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::io;
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use ratatui::layout::{Constraint, Position};
 use ratatui::text::Text;
@@ -125,6 +125,7 @@ thread_local! {
         let (tx, _) = watch::channel(());
         RefCell::new(tx)
     };
+    static INITIAL_RENDER: AtomicBool = const { AtomicBool::new(true) };
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {
@@ -443,6 +444,11 @@ pub fn unmount() {
 
 pub fn render_dom(frame: &mut Frame) {
     with_root(|d| d.as_ref().unwrap().render(frame, frame.size()));
+
+    // Focus the first node after the initial render
+    if INITIAL_RENDER.with(|f| f.swap(false, Ordering::Relaxed)) {
+        focus_next();
+    }
 }
 
 pub fn focus(id: impl Into<NodeId>) {

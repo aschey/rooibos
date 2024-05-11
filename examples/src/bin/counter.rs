@@ -1,8 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{focus_next, widget_ref, KeyCode, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
@@ -18,10 +17,6 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
-
-    Effect::new(move |_| {
-        focus_next();
-    });
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {

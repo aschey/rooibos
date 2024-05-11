@@ -1,8 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{focus_next, DomWidget, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::dom::{DomWidget, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::MaybeSignal;
@@ -22,10 +21,6 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    Effect::new(move |_| {
-        focus_next();
-    });
-
     let mut text_area_widget = TextArea::default();
     text_area_widget.set_block(Block::bordered().title("Example"));
     let text_area_widget = RwSignal::new(text_area_widget);

@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{use_router, Route, Router};
-use rooibos::dom::{col, focus_id, focus_next, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
@@ -20,10 +20,6 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let child2_id = RwSignal::new(0);
-
-    Effect::new(move |_| {
-        focus_next();
-    });
 
     col![Router::new().routes([
         Route::new("/", child0),

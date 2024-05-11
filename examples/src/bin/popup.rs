@@ -2,8 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::Popup;
-use rooibos::dom::{focus_next, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::dom::{overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
@@ -21,10 +20,6 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let show_popup = RwSignal::new(false);
-
-    Effect::new(move |_| {
-        focus_next();
-    });
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {

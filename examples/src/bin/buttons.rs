@@ -2,8 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{container, Button};
-use rooibos::dom::{col, focus_next, signal, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::dom::{col, signal, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::Signal;
@@ -21,10 +20,6 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    Effect::new(move |_| {
-        focus_next();
-    });
-
     col![counter_button(), counter_button()]
 }
 

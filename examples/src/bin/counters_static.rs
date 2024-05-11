@@ -1,8 +1,7 @@
 use std::error::Error;
 use std::io;
 
-use rooibos::dom::{col, focus_next, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::dom::{col, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
@@ -39,9 +38,5 @@ fn counter(id: u32, constraint: Constraint) -> impl Render {
 }
 
 fn app() -> impl Render {
-    Effect::new(move |_| {
-        focus_next();
-    });
-
     col![{ (0..5).map(|i| counter(i, Length(2))).collect::<Vec<_>>() }]
 }
