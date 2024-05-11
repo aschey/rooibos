@@ -29,12 +29,14 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
     };
     let block = RwSignal::new(Block::default().padding(default_padding));
 
+    let update_count = move |change: i32| set_count.update(|c| *c += change);
+
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Up {
-            set_count.update(|c| *c += 1);
+            update_count(1);
         }
         if key_event.code == KeyCode::Down {
-            set_count.update(|c| *c -= 1);
+            update_count(-1);
         }
     };
 
@@ -43,6 +45,7 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
         .on_focus(move |_| block.set(Block::bordered().blue()))
         .on_blur(move |_| block.set(Block::default().padding(default_padding)))
         .on_key_down(key_down)
+        .on_click(move |_, _| update_count(1))
         .focusable(true)
         .id(id.to_string())
 }

@@ -18,13 +18,16 @@ async fn main() -> Result<()> {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
+    let update_count = move || set_count.update(|c| *c += 1);
+
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
-            set_count.update(|c| *c += 1);
+            update_count();
         }
     };
 
     widget_ref!(format!("count {}", count.get()))
         .focusable(true)
         .on_key_down(key_down)
+        .on_click(move |_, _| update_count())
 }
