@@ -32,3 +32,6 @@ tokio = { version = "1.37.0", default-features = false, features = [
     "macros",
     "rt-multi-thread",
 ] }
+
+[features]
+nightly = ["reactive_graph/nightly", "tachys/nightly"]

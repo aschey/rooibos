@@ -2,17 +2,19 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ratatui::layout::Position;
+use ratatui::layout::{Constraint, Position};
 use ratatui::text::Text;
 use ratatui::Frame;
 use reactive_graph::signal::ReadSignal;
+use reactive_graph::traits::Get;
+use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use slotmap::SlotMap;
 use tachys::prelude::*;
 use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{widget, Event, KeyCode, KeyEventKind, KeyModifiers, NewExt};
+use crate::{signal, widget_ref, Event, EventData, KeyCode, KeyEventKind, KeyModifiers, NewExt};
 
 mod any_view;
 mod children;
@@ -47,6 +49,62 @@ static NODE_ID: AtomicU32 = AtomicU32::new(1);
 
 pub(crate) fn next_node_id() -> u32 {
     NODE_ID.fetch_add(1, Ordering::SeqCst)
+}
+
+pub trait Constrainable: Sized {
+    fn constraint<S>(self, constraint: S) -> Self
+    where
+        S: Into<MaybeSignal<Constraint>>;
+
+    fn length<S>(self, length: S) -> Self
+    where
+        S: Into<MaybeSignal<u16>>,
+    {
+        let length = length.into();
+        self.constraint(signal!(Constraint::Length(length.get())))
+    }
+
+    fn percentage<S>(self, percentage: S) -> Self
+    where
+        S: Into<MaybeSignal<u16>>,
+    {
+        let percentage = percentage.into();
+        self.constraint(signal!(Constraint::Percentage(percentage.get())))
+    }
+
+    fn max<S>(self, max: S) -> Self
+    where
+        S: Into<MaybeSignal<u16>>,
+    {
+        let max = max.into();
+        self.constraint(signal!(Constraint::Max(max.get())))
+    }
+
+    fn min<S>(self, min: S) -> Self
+    where
+        S: Into<MaybeSignal<u16>>,
+    {
+        let min = min.into();
+        self.constraint(signal!(Constraint::Min(min.get())))
+    }
+
+    fn fill<S>(self, fill: S) -> Self
+    where
+        S: Into<MaybeSignal<u16>>,
+    {
+        let fill = fill.into();
+        self.constraint(signal!(Constraint::Fill(fill.get())))
+    }
+
+    fn ratio<S1, S2>(self, from: S1, to: S2) -> Self
+    where
+        S1: Into<MaybeSignal<u32>>,
+        S2: Into<MaybeSignal<u32>>,
+    {
+        let from = from.into();
+        let to = to.into();
+        self.constraint(signal!(Constraint::Ratio(from.get(), to.get())))
+    }
 }
 
 #[derive(Debug)]
@@ -159,11 +217,11 @@ impl Renderer for RooibosDom {
 
     fn create_text_node(text: &str) -> Self::Text {
         let text = text.to_owned();
-        widget!(Text::new(text.clone())).inner()
+        widget_ref!(Text::new(text.clone())).inner()
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        widget!(Text::new("")).inner()
+        widget_ref!(Text::new("")).inner()
     }
 
     fn set_text(node: &Self::Text, text: &str) {
@@ -430,15 +488,25 @@ pub fn send_event(event: Event) {
                     } else if let Some(key) = state.focused_key() {
                         match key_event.kind {
                             KeyEventKind::Press | KeyEventKind::Repeat => {
-                                if let Some(on_key_down) =
-                                    &mut nodes[key].event_handlers.on_key_down
-                                {
-                                    on_key_down.borrow_mut()(key_event);
+                                let node = &mut nodes[key];
+                                if let Some(on_key_down) = &mut node.event_handlers.on_key_down {
+                                    on_key_down.borrow_mut()(
+                                        key_event,
+                                        EventData {
+                                            rect: *node.rect.borrow(),
+                                        },
+                                    );
                                 }
                             }
                             KeyEventKind::Release => {
-                                if let Some(on_key_up) = &mut nodes[key].event_handlers.on_key_up {
-                                    on_key_up.borrow_mut()(key_event);
+                                let node = &mut nodes[key];
+                                if let Some(on_key_up) = &mut node.event_handlers.on_key_up {
+                                    on_key_up.borrow_mut()(
+                                        key_event,
+                                        EventData {
+                                            rect: *node.rect.borrow(),
+                                        },
+                                    );
                                 }
                             }
                         }
@@ -449,16 +517,21 @@ pub fn send_event(event: Event) {
                 Event::FocusLost => todo!(),
                 Event::Mouse(mouse_event) => match mouse_event.kind {
                     crate::MouseEventKind::Down(_) => {
-                        let current = nodes.keys().find(|k| {
-                            nodes[*k].rect.borrow().contains(Position {
+                        let current = nodes.keys().find_map(|k| {
+                            let rect = nodes[k].rect.borrow();
+                            if rect.contains(Position {
                                 x: mouse_event.column,
                                 y: mouse_event.row,
-                            }) && nodes[*k].event_handlers.on_click.is_some()
-                        });
-                        if let Some(current) = current {
-                            if let Some(on_click) = &mut nodes[current].event_handlers.on_click {
-                                on_click.borrow_mut()(mouse_event);
+                            }) {
+                                let node = &nodes[k];
+                                if let Some(on_click) = &node.event_handlers.on_click {
+                                    return Some((on_click, rect));
+                                }
                             }
+                            None
+                        });
+                        if let Some((on_click, rect)) = current {
+                            on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
                         }
                     }
                     crate::MouseEventKind::Up(_) => {}
@@ -481,8 +554,8 @@ pub fn send_event(event: Event) {
                     crate::MouseEventKind::ScrollLeft => {}
                     crate::MouseEventKind::ScrollRight => {}
                 },
-                Event::Paste(_) => todo!(),
-                Event::Resize(_, _) => todo!(),
+                Event::Paste(_) => {}
+                Event::Resize(_, _) => {}
             };
             None
         })

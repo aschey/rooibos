@@ -12,7 +12,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{next_node_id, notify, KeyEvent, MouseEvent, RooibosDom};
+use crate::{next_node_id, notify, Constrainable, EventData, KeyEvent, MouseEvent, RooibosDom};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
 
@@ -85,25 +85,6 @@ impl DomWidget {
         self.inner.clone()
     }
 
-    pub fn constraint<S>(self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
-
-        let effect = RenderEffect::new({
-            let constraint = constraint.into();
-            let constraint_rc = constraint_rc.clone();
-            move |_| {
-                *constraint_rc.borrow_mut() = constraint.get();
-                notify();
-            }
-        });
-        self.inner.set_constraint(constraint_rc);
-        self.inner.add_data(effect);
-        self
-    }
-
     pub fn id(self, id: impl Into<NodeId>) -> Self {
         self.inner.set_id(id);
         self
@@ -130,7 +111,7 @@ impl DomWidget {
 
     pub fn on_key_down<F>(self, handler: F) -> Self
     where
-        F: FnMut(KeyEvent) + 'static,
+        F: FnMut(KeyEvent, EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_key_down(handler));
@@ -140,7 +121,7 @@ impl DomWidget {
 
     pub fn on_key_up<F>(self, handler: F) -> Self
     where
-        F: FnMut(KeyEvent) + 'static,
+        F: FnMut(KeyEvent, EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_key_up(handler));
@@ -149,7 +130,7 @@ impl DomWidget {
 
     pub fn on_focus<F>(self, handler: F) -> Self
     where
-        F: FnMut() + 'static,
+        F: FnMut(EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
@@ -158,7 +139,7 @@ impl DomWidget {
 
     pub fn on_blur<F>(self, handler: F) -> Self
     where
-        F: FnMut() + 'static,
+        F: FnMut(EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
@@ -167,10 +148,31 @@ impl DomWidget {
 
     pub fn on_click<F>(self, handler: F) -> Self
     where
-        F: FnMut(MouseEvent) + 'static,
+        F: FnMut(MouseEvent, EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_click(handler));
+        self
+    }
+}
+
+impl Constrainable for DomWidget {
+    fn constraint<S>(self, constraint: S) -> Self
+    where
+        S: Into<MaybeSignal<Constraint>>,
+    {
+        let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
+
+        let effect = RenderEffect::new({
+            let constraint = constraint.into();
+            let constraint_rc = constraint_rc.clone();
+            move |_| {
+                *constraint_rc.borrow_mut() = constraint.get();
+                notify();
+            }
+        });
+        self.inner.set_constraint(constraint_rc);
+        self.inner.add_data(effect);
         self
     }
 }

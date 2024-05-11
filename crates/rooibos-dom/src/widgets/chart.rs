@@ -1,6 +1,6 @@
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
-use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType};
+use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType, WidgetRef};
 
 use crate::{DomWidget, MakeBuilder};
 
@@ -122,8 +122,8 @@ impl<'a> Styled for ChartProps<'a> {
 
 impl<'a> MakeBuilder for ChartProps<'a> {}
 
-impl<'a> Widget for ChartProps<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
+impl<'a> WidgetRef for ChartProps<'a> {
+    fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let mut chart = Chart::new(
             self.datasets
                 .iter()
@@ -131,14 +131,20 @@ impl<'a> Widget for ChartProps<'a> {
                 .collect(),
         )
         .style(self.style)
-        .x_axis(self.x_axis)
-        .y_axis(self.y_axis)
+        .x_axis(self.x_axis.clone())
+        .y_axis(self.y_axis.clone())
         .hidden_legend_constraints(self.hidden_legend_constraints);
-        if let Some(block) = self.block {
+        if let Some(block) = self.block.clone() {
             chart = chart.block(block);
         }
 
         chart.render(area, buf)
+    }
+}
+
+impl<'a> Widget for ChartProps<'a> {
+    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
+        self.render_ref(area, buf)
     }
 }
 

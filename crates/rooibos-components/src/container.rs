@@ -1,20 +1,13 @@
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::prelude::*;
 
-#[component]
-pub fn Container<M>(
-    #[prop(children)] children: M,
-    #[prop(into)] h_constraint: MaybeSignal<Constraint>,
-    #[prop(into)] v_constraint: MaybeSignal<Constraint>,
+pub fn container<M>(
+    h_constraint: impl Into<MaybeSignal<Constraint>>,
+    v_constraint: impl Into<MaybeSignal<Constraint>>,
+    children: M,
 ) -> impl Render
 where
     M: RenderAny + 'static,
 {
-    view! {
-        <row v:constraint=v_constraint>
-            <col v:constraint=h_constraint>
-                {children}
-            </col>
-        </row>
-    }
+    row![col![children].constraint(h_constraint)].constraint(v_constraint)
 }

@@ -2,63 +2,78 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::prelude::*;
 
-use crate::{Show, ShowProps};
-#[component]
-fn PopupInner<M>(
-    #[prop(children)] children: M,
+use crate::Show;
+
+fn popup_inner<M>(
     percent_x: MaybeSignal<u16>,
     percent_y: MaybeSignal<u16>,
-    #[prop(default=None)] constraint: Option<Constraint>,
+    constraint: Option<MaybeSignal<Constraint>>,
+    children: M,
 ) -> impl Render
 where
     M: RenderAny + 'static,
 {
-    let inverse_y = Signal::derive(move || (100 - percent_y.get()) / 2);
-    let inverse_x = Signal::derive(move || (100 - percent_x.get()) / 2);
+    let inverse_y = signal!((100 - percent_y.get()) / 2);
+    let inverse_x = signal!((100 - percent_x.get()) / 2);
 
-    view! {
-        <col v:constraint=constraint.unwrap_or_default()>
-            <row v:percentage=inverse_y.get() />
-            <row v:percentage=percent_y.get()>
-                <col v:percentage=inverse_x.get() />
-                <col v:percentage=percent_x.get()>
-                    <overlay>
-                        <clear/>
-                        {children}
-                    </overlay>
-                </col>
-                <col v:percentage=inverse_x.get() />
-            </row>
-            <row v:percentage=inverse_y.get() />
-        </col>
+    col![
+        row![].percentage(inverse_y),
+        row![
+            col![].percentage(inverse_x),
+            col![overlay![widget_ref!(Clear), children]].percentage(percent_x)
+        ]
+        .percentage(percent_y),
+    ]
+    .constraint(constraint.unwrap_or_default().get())
+}
+
+#[derive(Default)]
+pub struct Popup {
+    percent_x: MaybeSignal<u16>,
+    percent_y: MaybeSignal<u16>,
+    constraint: Option<MaybeSignal<Constraint>>,
+}
+
+impl Popup {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn percent_x(mut self, val: impl Into<MaybeSignal<u16>>) -> Self {
+        self.percent_x = val.into();
+        self
+    }
+
+    pub fn percent_y(mut self, val: impl Into<MaybeSignal<u16>>) -> Self {
+        self.percent_y = val.into();
+        self
+    }
+
+    pub fn render<M, W, F>(self, visible: W, mut children: F) -> impl IntoView
+    where
+        F: FnMut() -> M + Send + Sync + 'static,
+        M: RenderAny + Send + Sync + 'static,
+        W: Fn() -> bool + Send + Sync + 'static,
+    {
+        let Popup {
+            percent_x,
+            percent_y,
+            constraint,
+        } = self;
+
+        Show::new().render(visible, move || {
+            let children = children();
+            popup_inner(percent_x, percent_y, constraint, children)
+        })
     }
 }
 
-#[component]
-pub fn Popup<M, W, F>(
-    #[prop(children)] mut children: F,
-    visible: W,
-    #[prop(into)] percent_x: MaybeSignal<u16>,
-    #[prop(into)] percent_y: MaybeSignal<u16>,
-    #[prop(default=None)] constraint: Option<Constraint>,
-) -> impl IntoView
-where
-    F: FnMut() -> M + Send + 'static,
-    M: RenderAny + 'static,
-    W: Fn() -> bool + Send + Sync + 'static,
-{
-    view! {
-        <Show
-            when=visible
-        >
-            {move || {
-                let children = children();
-                view! {
-                    <PopupInner percent_x=percent_x percent_y=percent_y constraint=constraint>
-                        {children}
-                    </PopupInner>
-                }
-            }}
-        </Show>
+impl Constrainable for Popup {
+    fn constraint<S>(mut self, constraint: S) -> Self
+    where
+        S: Into<MaybeSignal<Constraint>>,
+    {
+        self.constraint = Some(constraint.into());
+        self
     }
 }

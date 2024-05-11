@@ -1,65 +1,85 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::Duration;
 
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
+use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::prelude::*;
 use rooibos_runtime::{delay, supports_key_up};
 
-#[component]
-pub fn Button<F, M, C>(#[prop(children)] children: F, mut on_click: C) -> impl Render
-where
-    C: FnMut() + Clone + 'static,
-    F: Fn() -> M + 'static,
-    M: Into<Text<'static>> + 'static,
-{
-    let border_color = RwSignal::new(Color::Gray);
+pub struct Button {
+    on_click: Rc<RefCell<dyn FnMut()>>,
+}
 
-    let mut on_enter = move || {
-        border_color.set(Color::Green);
+impl Default for Button {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
-        if !supports_key_up() {
-            delay(Duration::from_millis(50), async move {
-                border_color.set(Color::Blue);
-            });
+impl Button {
+    pub fn new() -> Self {
+        Self {
+            on_click: Rc::new(RefCell::new(|| {})),
         }
-        on_click()
-    };
+    }
 
-    let mut on_enter_ = on_enter.clone();
+    pub fn on_click<C>(mut self, on_click: C) -> Self
+    where
+        C: FnMut() + Clone + 'static,
+    {
+        self.on_click = Rc::new(RefCell::new(on_click));
+        self
+    }
 
-    let key_up = move |key_event: KeyEvent| {
-        if !supports_key_up() {
-            return;
-        }
-        if key_event.code == KeyCode::Enter {
-            border_color.set(Color::Blue);
-        }
-    };
-    view! {
-        <paragraph
-            v:focusable
-            on:focus=move || {
+    pub fn render<M>(self, children: M) -> impl Render
+    where
+        M: Into<MaybeSignal<Text<'static>>> + 'static,
+    {
+        let Self { on_click } = self;
+        let border_color = RwSignal::new(Color::Gray);
+
+        let on_enter = move || {
+            border_color.set(Color::Green);
+
+            if !supports_key_up() {
+                delay(Duration::from_millis(50), async move {
+                    border_color.set(Color::Blue);
+                });
+            }
+            on_click.borrow_mut()()
+        };
+
+        let on_enter_ = on_enter.clone();
+
+        let key_up = move |key_event: KeyEvent, _| {
+            if !supports_key_up() {
+                return;
+            }
+            if key_event.code == KeyCode::Enter {
                 border_color.set(Color::Blue);
             }
-            on:blur=move || {
-                border_color.set(Color::Gray);
+        };
+        let children = children.into();
+        widget_ref!(
+            Paragraph::new(children.get())
+                .block(
+                    Block::bordered()
+                        .border_type(BorderType::Rounded)
+                        .border_style(Style::default().fg(border_color.get()))
+                )
+                .centered()
+        )
+        .focusable(true)
+        .on_click(move |_, _| on_enter_())
+        .on_focus(move |_| border_color.set(Color::Blue))
+        .on_blur(move |_| border_color.set(Color::Gray))
+        .on_key_down(move |key_event, _| {
+            if key_event.code == KeyCode::Enter {
+                on_enter()
             }
-            on:key_down=move |key_event| { if key_event.code == KeyCode::Enter { on_enter() }}
-            on:key_up=key_up
-            on:click=move |_| on_enter_()
-            block=prop! {
-                <Block
-                    borders=Borders::ALL
-                    border_type=BorderType::Rounded
-                    border_style=prop! {
-                        <Style
-                            fg=border_color.get()
-                        /> }
-                    />
-                }
-            alignment=Alignment::Center
-        >
-            {children()}
-        </paragraph>
+        })
+        .on_key_up(key_up)
     }
 }

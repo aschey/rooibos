@@ -3,29 +3,38 @@ use reactive_graph::computed::Memo;
 use reactive_graph::traits::Get;
 use rooibos_dom::prelude::*;
 
-#[component]
-pub fn Show<C, W>(
-    /// The children will be shown whenever the condition in the `when` closure returns `true`.
-    #[prop(children, into)]
-    mut children: TypedChildrenMut<C>,
-    /// A closure that returns a bool that determines whether this thing runs
-    when: W,
-    /// A closure that returns what gets rendered if the when statement is false. By default this
-    /// is the empty view.
-    #[prop(optional, into)]
+pub struct Show {
     fallback: ViewFn,
-) -> impl IntoView
-where
-    C: IntoView + 'static,
-    W: Fn() -> bool + Send + Sync + 'static,
-{
-    let memoized_when = Memo::new(move |_| when());
-    let mut children = children.into_inner();
-    move || {
-        if memoized_when.get() {
-            Either::Left(children())
-        } else {
-            Either::Right(fallback.run())
+}
+
+impl Default for Show {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Show {
+    pub fn new() -> Self {
+        Self {
+            fallback: (|| {}).into(),
+        }
+    }
+
+    pub fn render<C, W>(self, when: W, children: impl Into<TypedChildrenMut<C>>) -> impl IntoView
+    where
+        C: IntoView + 'static,
+        W: Fn() -> bool + Send + Sync + 'static,
+    {
+        let Self { fallback } = self;
+        let memoized_when = Memo::new(move |_| when());
+
+        let mut children = children.into().into_inner();
+        move || {
+            if memoized_when.get() {
+                Either::Left(children())
+            } else {
+                Either::Right(fallback.run())
+            }
         }
     }
 }

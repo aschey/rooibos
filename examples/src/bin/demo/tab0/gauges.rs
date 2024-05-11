@@ -8,8 +8,7 @@ use rooibos::reactive::traits::{Get, Update};
 use crate::random::{RandomData, RandomDistribution};
 use crate::Tick;
 
-#[component]
-pub(crate) fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+pub(crate) fn gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let (progress, set_progress) = signal(0.0);
 
     let tick = use_context::<Tick>().unwrap();
@@ -31,63 +30,51 @@ pub(crate) fn Gauges(enhanced_graphics: bool, constraint: Constraint) -> impl Re
         seq
     });
 
-    view! {
-        <col v:constraint=constraint>
-            <DemoGauge
-                constraint=Length(2)
-                enhanced_graphics=enhanced_graphics
-                progress=progress/>
-            <DemoSparkline
-                constraint=Length(3)
-                enhanced_graphics=enhanced_graphics/>
-            <DemoLineGauge
-                constraint=Length(1)
-                enhanced_graphics=enhanced_graphics progress=progress/>
-        </col>
-    }
+    col![
+        demo_gauge(enhanced_graphics, progress, Length(2)),
+        demo_sparkline(enhanced_graphics, Length(3)),
+        demo_line_gauge(enhanced_graphics, progress, Length(2))
+    ]
+    .block(Block::bordered().title("Graphs"))
+    .constraint(constraint)
 }
 
-#[component]
-fn DemoGauge(
+fn demo_gauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
     constraint: Constraint,
 ) -> impl Render {
-    view! {
-        <gauge
-            v:constraint=constraint
-            block=prop!(<Block title="Gauge:"/>)
-            gauge_style=prop!(<Style magenta on_black italic bold/>)
-            use_unicode=enhanced_graphics
-            label=format!("{:.2}%", progress.get() * 100.0)
-            ratio=progress.get()
-        />
-    }
+    widget_ref!(
+        Gauge::default()
+            .block(Block::new().title("Gauge:"))
+            .gauge_style(Style::new().magenta().on_black().italic().bold())
+            .use_unicode(enhanced_graphics)
+            .label(format!("{:.2}%", progress.get() * 100.0))
+            .ratio(progress.get())
+    )
+    .constraint(constraint)
 }
 
-#[component]
-fn DemoLineGauge(
+fn demo_line_gauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
     constraint: Constraint,
 ) -> impl Render {
-    view! {
-        <lineGauge
-            v:constraint=constraint
-            block=prop!(<Block title="LineGauge:"/>)
-            gauge_style=prop!(<Style magenta/>)
-            line_set=if enhanced_graphics {
+    widget_ref!(
+        LineGauge::default()
+            .block(Block::new().title("LineGauge:"))
+            .gauge_style(Style::new().magenta())
+            .line_set(if enhanced_graphics {
                 symbols::line::THICK
             } else {
                 symbols::line::NORMAL
-            }
-            ratio=progress.get()
-        />
-    }
+            })
+            .ratio(progress.get())
+    )
+    .constraint(constraint)
 }
 
-#[component]
-fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+fn demo_sparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let mut rand_signal = RandomDistribution::new(0, 100);
     let sparkline_points = rand_signal.by_ref().take(300).collect();
     let sparkline_signal = RwSignal::new(RandomData {
@@ -109,17 +96,16 @@ fn DemoSparkline(enhanced_graphics: bool, constraint: Constraint) -> impl Render
         seq
     });
 
-    view! {
-        <sparkline
-            v:constraint=constraint
-            block=prop!(<Block title="Sparkline:"/>)
-            green
-            data=sparkline_signal.get().points
-            bar_set=if enhanced_graphics {
+    widget_ref!(
+        SparklineProps::default()
+            .block(Block::new().title("Sparkline:"))
+            .green()
+            .data(sparkline_signal.get().points)
+            .bar_set(if enhanced_graphics {
                 symbols::bar::NINE_LEVELS
             } else {
                 symbols::bar::THREE_LEVELS
-            }
-        />
-    }
+            })
+    )
+    .constraint(constraint)
 }

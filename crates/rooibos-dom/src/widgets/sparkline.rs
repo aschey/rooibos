@@ -1,6 +1,6 @@
 use ratatui::prelude::*;
 use ratatui::style::{Style, Styled};
-use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget};
+use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget, WidgetRef};
 use ratatui::{symbols, Frame};
 
 use crate::{DomWidget, MakeBuilder};
@@ -43,9 +43,15 @@ impl<'a> SparklineProps<'a> {
     }
 }
 
+impl<'a> WidgetRef for SparklineProps<'a> {
+    fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
+        self.inner.clone().data(&self.data).render(area, buf)
+    }
+}
+
 impl<'a> Widget for SparklineProps<'a> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        self.inner.data(&self.data).render(area, buf)
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        self.render_ref(area, buf)
     }
 }
 
@@ -67,7 +73,7 @@ pub fn sparkline(props: impl Fn() -> SparklineProps<'static> + 'static) -> DomWi
     DomWidget::new("sparkline", move || {
         let props = props();
         move |frame: &mut Frame, rect: Rect| {
-            frame.render_widget(props.clone(), rect);
+            frame.render_widget(&props, rect);
         }
     })
 }

@@ -28,7 +28,7 @@ fn App() -> impl Render {
 #[render_ref(true)]
 struct MyCustomWidget<'a> {
     paragraph: Paragraph<'a>,
-    tabs: Tabs<'a>,
+    tabs: rooibos::prelude::prelude::Tabs<'a>,
 }
 
 impl<'a> Default for MyCustomWidget<'a> {
@@ -40,7 +40,7 @@ impl<'a> Default for MyCustomWidget<'a> {
 impl<'a> MyCustomWidget<'a> {
     fn new() -> Self {
         Self {
-            tabs: Tabs::new(vec!["Tab1", "Tab2", "Tab3"]),
+            tabs: rooibos::prelude::prelude::Tabs::new(vec!["Tab1", "Tab2", "Tab3"]),
             paragraph: Default::default(),
         }
     }

@@ -5,42 +5,33 @@ use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::run;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(|| view!(<App/>));
+    mount(app);
     run().await?;
     Ok(())
 }
 
-#[component]
-fn App() -> impl Render {
+fn app() -> impl Render {
     Effect::new(move |_| {
         focus_next();
     });
 
-    view! {
-        <col>
-            <CounterButton/>
-            <CounterButton/>
-        </col>
-    }
+    col![counter_button(), counter_button()]
 }
 
-#[component]
-fn CounterButton() -> impl Render {
+fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
-
-    view! {
-        <Container h_constraint=Length(20) v_constraint=Length(5)>
-            {view! {
-                <Button on_click=move || set_count.update(|c| *c +=1)>
-                    {move || format!("count {}", count.get())}
-                </Button>
-            }}
-        </Container>
-    }
+    container(
+        Length(20),
+        Length(5),
+        Button::new()
+            .on_click(move || set_count.update(|c| *c += 1))
+            .render(signal!(Text::from(format!("count {}", count.get())))),
+    )
 }

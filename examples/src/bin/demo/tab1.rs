@@ -1,12 +1,11 @@
-use rooibos::prelude::canvas::{Circle, Context, Map, MapResolution, Rectangle};
+use rooibos::prelude::canvas::{Canvas, Circle, Context, Map, MapResolution, Rectangle};
 use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Get;
 
-#[component]
-pub(crate) fn Tab1() -> impl Render {
+pub(crate) fn tab1() -> impl Render {
     let servers = RwSignal::new(vec![
         Server {
             name: "NorthAmerica-1",
@@ -34,17 +33,10 @@ pub(crate) fn Tab1() -> impl Render {
         },
     ]);
 
-    view! {
-        <row>
-            <DemoTable
-                constraint=Percentage(30)
-                servers=servers/>
-            <DemoMap
-                constraint=Percentage(70)
-                enhanced_graphics=true
-                servers=servers/>
-        </row>
-    }
+    row![
+        col![demo_table(servers)].percentage(30),
+        col![demo_map(servers, true)].percentage(70)
+    ]
 }
 
 #[derive(Clone)]
@@ -55,50 +47,34 @@ pub struct Server<'a> {
     pub status: &'a str,
 }
 
-#[component]
-fn DemoTable(servers: RwSignal<Vec<Server<'static>>>, constraint: Constraint) -> impl Render {
+fn demo_table(servers: RwSignal<Vec<Server<'static>>>) -> impl Render {
     let rows = Memo::new(move |_| {
         servers
             .get()
             .into_iter()
             .map(|s| {
                 let style = if s.status == "Up" {
-                    prop!(<Style green/>)
+                    Style::new().green()
                 } else {
-                    prop!(<Style red rapid_blink crossed_out/>)
+                    Style::new().red().rapid_blink().crossed_out()
                 };
-                prop!(<Row style=style>{vec![s.name, s.location, s.status]}</Row>)
+                Row::new(vec![s.name, s.location, s.status]).style(style)
             })
             .collect::<Vec<_>>()
     });
-    view! {
-        <table
-            v:constraint=constraint
-            header=prop! {
-                <Row yellow bottom_margin=1>
-                    "Server"
-                    "Location"
-                    "Status"
-                </Row>
-            }
-            block=prop!(<Block title="Servers" borders=Borders::ALL/>)
-        >
-            {rows.get()}
-            {[
-                Length(15),
-                Length(15),
-                Length(10),
-            ]}
-        </table>
-    }
+
+    widget_ref!(
+        Table::new(rows.get(), [Length(15), Length(15), Length(10),])
+            .header(
+                Row::new(vec!["Server", "Location", "Status"])
+                    .yellow()
+                    .bottom_margin(1)
+            )
+            .block(Block::bordered().title("Servers"))
+    )
 }
 
-#[component]
-fn DemoMap(
-    servers: RwSignal<Vec<Server<'static>>>,
-    enhanced_graphics: bool,
-    constraint: Constraint,
-) -> impl Render {
+fn demo_map(servers: RwSignal<Vec<Server<'static>>>, enhanced_graphics: bool) -> impl Render {
     let paint_map = move |ctx: &mut Context<'_>| {
         let servers = servers.get();
         ctx.draw(&Map {
@@ -136,25 +112,20 @@ fn DemoMap(
             } else {
                 Color::Red
             };
-            ctx.print(
-                server.coords.1,
-                server.coords.0,
-                Span::styled("X", Style::default().fg(color)),
-            );
+            ctx.print(server.coords.1, server.coords.0, "X".fg(color));
         }
     };
-    view! {
-        <canvas
-            v:constraint=constraint
-            block=prop!(<Block title="world" borders=Borders::ALL/>)
-            paint=paint_map
-            marker=if enhanced_graphics {
+
+    widget_ref!(
+        Canvas::default()
+            .block(Block::bordered().title("World"))
+            .paint(paint_map)
+            .marker(if enhanced_graphics {
                 symbols::Marker::Braille
             } else {
                 symbols::Marker::Dot
-            }
-            x_bounds=[-180.0, 180.0]
-            y_bounds=[-90.0, 90.0]
-        />
-    }
+            })
+            .x_bounds([-180.0, 180.0])
+            .y_bounds([-90.0, 90.0])
+    )
 }

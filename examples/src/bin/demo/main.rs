@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 
+use rooibos::components::Tabs;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::provide_context;
@@ -17,9 +18,9 @@ use tracing_subscriber::fmt::Layer;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::EnvFilter;
 
-use crate::tab0::{Tab0, Tab0Props};
-use crate::tab1::{Tab1, Tab1Props};
-use crate::tab2::{Tab2, Tab2Props};
+use crate::tab0::tab0;
+use crate::tab1::tab1;
+use crate::tab2::tab2;
 
 mod random;
 mod tab0;
@@ -63,7 +64,7 @@ async fn main() -> Result<()> {
         })
         .init();
 
-    mount(|| view!(<App/>));
+    mount(app);
     run().await?;
     guard.stop().await.unwrap();
     Ok(())
@@ -72,8 +73,7 @@ async fn main() -> Result<()> {
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct Tick(ReadSignal<u32>);
 
-#[component]
-fn App() -> impl Render {
+fn app() -> impl Render {
     let (tick, set_tick) = signal(0);
     provide_context(Tick(tick));
 
@@ -87,24 +87,18 @@ fn App() -> impl Render {
         }
     });
 
-    view! {
-        <col v:length=3>
-            <HeaderTabs/>
-        </col>
-
-    }
+    col![header_tabs()].length(3)
 }
 
 const TAB0: &str = "Tab0";
 const TAB1: &str = "Tab1";
 const TAB2: &str = "Tab2";
 
-#[component]
-fn HeaderTabs() -> impl Render {
+fn header_tabs() -> impl Render {
     let (focused_tab, set_focused_tab) = signal(0);
 
     let titles = [TAB0, TAB1, TAB2];
-    let focused_title = Signal::derive(move || titles[focused_tab.get()].to_string());
+    let focused_title = signal!(titles[focused_tab.get()].to_string());
 
     let update_current_tab = move |change: i32| {
         set_focused_tab.update(|f| {
@@ -133,34 +127,19 @@ fn HeaderTabs() -> impl Render {
 
     let tab_header = |title: &'static str| prop!(<Line><Span green>{title}</Span></Line>);
 
-    view! {
-        <col>
-            <Tabs
-                padding=1
-                block=prop!(<Block borders=Borders::ALL title="Demo"/>)
-                highlight_style=prop!(<Style yellow/>)
-                current_tab=focused_title
-            >
-                <Tab
-                    header=tab_header(TAB0)
-                    value = TAB0.to_string()
-                >
-                    {move || any_view!(<Tab0/>)}
-                </Tab>
-                <Tab
-                    header=tab_header(TAB1)
-                    value = TAB1.to_string()
-                >
-                    {move || any_view!(<Tab1/>)}
-                </Tab>
-                <Tab
-                    header=tab_header(TAB2)
-                    value = TAB2.to_string()
-                >
-                    {move || any_view!(<Tab2/>)}
-                </Tab>
-            </Tabs>
-
-        </col>
-    }
+    col![
+        Tabs::new()
+            .padding(1)
+            .block(Block::bordered().title("Demo"))
+            .highlight_style(Style::new().yellow())
+            .on_change(move |i, _| set_focused_tab.set(i))
+            .render(
+                focused_title,
+                vec![
+                    Tab::new(tab_header(TAB0), TAB0.to_string(), tab0),
+                    Tab::new(tab_header(TAB1), TAB1.to_string(), tab1),
+                    Tab::new(tab_header(TAB2), TAB2.to_string(), tab2)
+                ]
+            )
+    ]
 }

@@ -16,3 +16,6 @@ rooibos-dom = { path = "../rooibos-dom" }
 rooibos-runtime = { path = "../rooibos-runtime" }
 url = "2"
 derivative = "2"
+
+[features]
+nightly = ["reactive_graph/nightly", "tachys/nightly"]

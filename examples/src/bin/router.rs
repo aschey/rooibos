@@ -10,59 +10,45 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(|| view!(<App/>));
+    mount(app);
     run().await?;
     Ok(())
 }
 
-#[component]
-fn App() -> impl Render {
+fn app() -> impl Render {
     let child2_id = RwSignal::new(0);
 
     Effect::new(move |_| {
         focus_next();
     });
 
-    view! {
-        <col>
-            <Router>
-                <Route path="/">
-                    {move || view!(<Child0/>)}
-                </Route>
-                <Route path="/child1">
-                    {move || view!(<Child1 child2_id=child2_id/>)}
-                </Route>
-                <Route path="/child2/{id}">
-                    {move || view!(<Child2/>)}
-                </Route>
-        </Router>
-    </col>
-    }
+    col![Router::new().routes([
+        Route::new("/", child0),
+        Route::new("/child1", move || child1(child2_id)),
+        Route::new("/child2/{id}", child2)
+    ])]
 }
 
-#[component]
-fn Child0() -> impl Render {
+fn child0() -> impl Render {
     let router = use_router();
 
     Effect::new(move |_| {
         focus_id("child0");
     });
 
-    let key_down = move |key_event: KeyEvent| {
+    let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
             router.push("/child1?id=1");
         }
     };
 
-    view! {
-        <paragraph v:id="child0" v:focusable on:key_down=key_down>
-            "child0"
-        </paragraph>
-    }
+    widget_ref!(Paragraph::new("child0"))
+        .focusable(true)
+        .on_key_down(key_down)
+        .id("child0")
 }
 
-#[component]
-fn Child1(child2_id: RwSignal<i32>) -> impl Render {
+fn child1(child2_id: RwSignal<i32>) -> impl Render {
     let router = use_router();
     let id = router.use_query("id");
 
@@ -70,22 +56,20 @@ fn Child1(child2_id: RwSignal<i32>) -> impl Render {
         focus_id("child1");
     });
 
-    let key_down = move |key_event: KeyEvent| {
+    let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
             router.push(format!("/child2/{}", child2_id.get_untracked()));
             child2_id.update(|id| *id += 1);
         }
     };
 
-    view! {
-        <paragraph v:id="child1" v:focusable on:key_down=key_down>
-            {format!("child1 id={}", id.get().unwrap())}
-        </paragraph>
-    }
+    widget_ref!(Paragraph::new(format!("child1 id={}", id.get().unwrap())))
+        .focusable(true)
+        .on_key_down(key_down)
+        .id("child1")
 }
 
-#[component]
-fn Child2() -> impl Render {
+fn child2() -> impl Render {
     let router = use_router();
     let id = router.use_param("id");
 
@@ -93,15 +77,14 @@ fn Child2() -> impl Render {
         focus_id("child2");
     });
 
-    let key_down = move |key_event: KeyEvent| {
+    let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
             router.pop();
         }
     };
 
-    view! {
-        <paragraph v:id="child2" v:focusable on:key_down=key_down>
-            {format!("child2 id={}", id.get().unwrap())}
-        </paragraph>
-    }
+    widget_ref!(Paragraph::new(format!("child2 id={}", id.get().unwrap())))
+        .focusable(true)
+        .on_key_down(key_down)
+        .id("child2")
 }

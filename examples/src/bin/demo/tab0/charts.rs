@@ -1,4 +1,3 @@
-use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -11,8 +10,7 @@ use rooibos::runtime::use_keypress;
 use crate::random::RandomData;
 use crate::Tick;
 
-#[component]
-pub(crate) fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+pub(crate) fn charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
     let show_chart = RwSignal::new(true);
 
     let term_signal = use_keypress();
@@ -24,30 +22,22 @@ pub(crate) fn Charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
         }
     });
 
-    view! {
-        <row v:constraint=constraint>
-            <col
-                v:constraint = Signal::derive(move ||
-                    Percentage(if show_chart.get() { 50 } else { 100 }))>
-                <row v:percentage=50>
-                    <col v:percentage=50>
-                        <TaskList/>
-                    </col>
-                    <col v:percentage=50>
-                        <Logs/>
-                    </col>
-                </row>
-                <row v:percentage=50>
-                    <DemoBarChart enhanced_graphics=enhanced_graphics/>
-                </row>
-            </col>
-            <col
-                v:constraint = Signal::derive(move ||
-                    Percentage(if show_chart.get() { 50 } else { 0 }))>
-                <DemoChart enhanced_graphics=enhanced_graphics/>
-            </col>
-        </row>
-    }
+    let percentage1 = signal!(if show_chart.get() { 50 } else { 100 });
+    let percentage2 = signal!(100 - percentage1.get());
+
+    row![
+        col![
+            row![
+                col![task_list()].percentage(50),
+                col![logs()].percentage(50)
+            ]
+            .percentage(50),
+            row![demo_bar_chart(enhanced_graphics)]
+        ]
+        .percentage(percentage1),
+        col![demo_chart(enhanced_graphics)].percentage(percentage2)
+    ]
+    .constraint(constraint)
 }
 
 #[derive(Clone)]
@@ -78,8 +68,7 @@ impl Iterator for SinData {
     }
 }
 
-#[component]
-fn DemoChart(enhanced_graphics: bool) -> impl Render {
+fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let mut sin1_data = SinData::new(0.2, 3.0, 18.0);
     let sin1 = RwSignal::new(RandomData::<SinData> {
         points: sin1_data.by_ref().take(100).collect(),
@@ -116,73 +105,48 @@ fn DemoChart(enhanced_graphics: bool) -> impl Render {
     let window_start = Memo::new(move |_| window.get()[0]);
     let window_end = Memo::new(move |_| window.get()[1]);
 
-    view! {
-        <chart
-            block=prop! {
-                <Block
-                    title=prop! {
-                        <Span cyan bold>
-                            "Chart"
-                        </Span>
-                    }
-                    borders=Borders::ALL
-                />
-            }
-            x_axis=prop! {
-                <Axis
-                    title="X Axis"
-                    gray
-                    bounds=window.get()
-                    labels=vec![
-                        prop! {
-                            <Span bold>
-                                {window_start.get().to_string()}
-                            </Span>
-                        },
-                        prop! {
-                            <Span>{
-                                ((window_start.get() + window_end.get()) / 2.0).to_string()
-                            }</Span>
-                        },
-                        prop! {
-                            <Span bold>
-                                {window_end.get().to_string()}
-                            </Span>
-                        },
-                    ]
-                />
-            }
-            y_axis=prop! {
-                <Axis
-                    title="Y Axis"
-                    gray
-                    bounds=[-20.0, 20.0]
-                    labels=vec![
-                        prop!(<Span bold>"-20"</Span>),
-                        prop!(<Span>"0"</Span>),
-                        prop!(<Span bold>"20"</Span>)
-                    ]
-                />
-            }
-        >
-            <DatasetOwned
-                name="data2"
-                marker=symbols::Marker::Dot
-                cyan
-                data=sin1.get().points
-            />
-            <DatasetOwned
-                name="data3"
-                marker=if enhanced_graphics {
+    widget_ref!(
+        ChartProps::new(vec![
+            DatasetOwned::default()
+                .name("data2")
+                .marker(symbols::Marker::Dot)
+                .cyan()
+                .data(sin1.get().points),
+            DatasetOwned::default()
+                .name("data3")
+                .marker(if enhanced_graphics {
                     symbols::Marker::Braille
                 } else {
                     symbols::Marker::Dot
-                }
-                yellow
-                data=sin2.get().points
-            />
-        </chart>
-    }
+                })
+                .yellow()
+                .data(sin2.get().points)
+        ])
+        .block(Block::bordered().title(Span::new("Chart").cyan().bold()))
+        .x_axis(
+            Axis::default()
+                .title("X Axis")
+                .gray()
+                .bounds(window.get())
+                .labels(vec![
+                    Span::new(window_start.get().to_string()),
+                    Span::new(((window_start.get() + window_end.get()) / 2.0).to_string()),
+                    Span::new(window_end.get().to_string())
+                ])
+                .bold()
+        )
+        .y_axis(
+            Axis::default()
+                .title("Y Axis")
+                .gray()
+                .bounds([-20.0, 20.0])
+                .labels(vec![
+                    Span::new("-20").bold(),
+                    Span::new("  0"),
+                    Span::new(" 20").bold()
+                ])
+        )
+    )
 }
 
 const EVENTS: [(&str, u64); 24] = [
@@ -212,8 +176,7 @@ const EVENTS: [(&str, u64); 24] = [
     ("B24", 5),
 ];
 
-#[component]
-fn DemoBarChart(enhanced_graphics: bool) -> impl Render {
+fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
     let bar_chart_data = RwSignal::new(EVENTS.to_vec());
 
     let tick = use_context::<Tick>().unwrap();
@@ -256,8 +219,7 @@ const TASKS: [&str; 24] = [
     "Item20", "Item21", "Item22", "Item23", "Item24",
 ];
 
-#[component]
-fn TaskList() -> impl Render {
+fn task_list() -> impl Render {
     let selected_task = RwSignal::<Option<usize>>::new(None);
 
     let update_current_task = move |change: i32| {
@@ -281,24 +243,13 @@ fn TaskList() -> impl Render {
         }
     });
 
-    view! {
-        <statefulList
-            v:state= move || prop!(<ListState with_selected=selected_task.get()/>)
-            block=prop!(<Block borders=Borders::ALL title="List"/>)
-            highlight_style=prop!(<Style bold/>)
-            highlight_symbol="> "
-        > {
-            TASKS
-                .map(|t| {
-                    prop! {
-                        <ListItem>
-                            <><Line><Span>{t}</Span></Line></>
-                        </ListItem>
-                    }
-                })
-            }
-        </statefulList>
-    }
+    stateful_widget!(
+        List::new(TASKS.map(|t| ListItem::new(Line::new(Span::new(t)))))
+            .block(Block::bordered().title("List"))
+            .highlight_style(Style::new().bold())
+            .highlight_symbol("> "),
+        ListState::default().with_selected(selected_task.get())
+    )
 }
 
 const LOGS: [(&str, &str); 26] = [
@@ -330,8 +281,7 @@ const LOGS: [(&str, &str); 26] = [
     ("Event26", "INFO"),
 ];
 
-#[component]
-fn Logs() -> impl Render {
+fn logs() -> impl Render {
     let log_data = RwSignal::new(LOGS.to_vec());
 
     let tick = use_context::<Tick>().unwrap();
@@ -370,21 +320,13 @@ fn Logs() -> impl Render {
             .collect::<Vec<_>>()
     });
 
-    view! {
-        <list
-            block=prop!(<Block borders=Borders::ALL title="Logs"/>)
-        > {
-            logs.get().iter().map(|(evt, level, style)| {
-                prop! {
-                    <ListItem>
-                        <Line>
-                            <Span style=*style>{format!("{level:<9}")}</Span>
-                            <Span>{*evt}</Span>
-                        </Line>
-                    </ListItem>
-                }
-            })
-        }
-        </list>
-    }
+    widget_ref!(
+        List::new(logs.get().iter().map(|(evt, level, style)| {
+            ListItem::new(Line::new(vec![
+                Span::styled(format!("{level:<9}"), *style),
+                Span::new(*evt),
+            ]))
+        }))
+        .block(Block::bordered().title("Logs"))
+    )
 }

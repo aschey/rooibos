@@ -10,28 +10,25 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(|| view!(<Counter/>));
+    mount(counter);
     run().await?;
     Ok(())
 }
 
-#[component]
-fn Counter() -> impl Render {
+fn counter() -> impl Render {
     let (count, set_count) = signal(0);
 
     Effect::new(move |_| {
         focus_next();
     });
 
-    let key_down = move |key_event: KeyEvent| {
+    let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
             set_count.update(|c| *c += 1);
         }
     };
 
-    view! {
-        <paragraph v:focusable on:key_down=key_down>
-            {format!("count {}", count.get())}
-        </paragraph>
-    }
+    widget_ref!(Paragraph::new(format!("count {}", count.get())))
+        .focusable(true)
+        .on_key_down(key_down)
 }

@@ -18,18 +18,34 @@ pub type ChildrenFn = Arc<dyn Fn() -> AnyView + Send + Sync>;
 pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView + Send + Sync>;
 
 // This is to still support components that accept `Box<dyn Fn() -> AnyView>` as a children.
-type BoxedChildrenFn = Box<dyn Fn() -> AnyView>;
+pub type BoxedChildrenFn = Box<dyn Fn() -> AnyView>;
+
+pub type BoxedChildrenFnMut = Box<dyn FnMut() -> AnyView>;
 
 pub trait ToChildren<F> {
     fn to_children(f: F) -> Self;
 }
 
-pub trait IntoChildrenMut {
-    fn into_children_mut(self) -> ChildrenFnMut;
+pub trait IntoChildrenFnMut {
+    fn into_children_fn_mut(self) -> ChildrenFnMut;
+}
+
+pub trait IntoChildrenFn {
+    fn into_children_fn(self) -> ChildrenFn;
 }
 
 pub trait IntoChildren {
-    fn into_children(self) -> ChildrenFn;
+    fn into_children(self) -> Children;
+}
+
+impl<F, C> IntoChildren for F
+where
+    F: FnOnce() -> C + 'static,
+    C: RenderAny + 'static,
+{
+    fn into_children(self) -> Children {
+        Box::new(move || self().into_any())
+    }
 }
 
 impl<F, C> ToChildren<F> for Children
@@ -54,22 +70,22 @@ where
     }
 }
 
-impl<F, C> IntoChildrenMut for F
+impl<F, C> IntoChildrenFnMut for F
 where
     F: FnMut() -> C + Send + Sync + 'static,
     C: IntoAny,
 {
-    fn into_children_mut(mut self) -> ChildrenFnMut {
+    fn into_children_fn_mut(mut self) -> ChildrenFnMut {
         Box::new(move || self().into_any())
     }
 }
 
-impl<F, C> IntoChildren for F
+impl<F, C> IntoChildrenFn for F
 where
     F: Fn() -> C + Send + Sync + 'static,
     C: IntoAny,
 {
-    fn into_children(self) -> ChildrenFn {
+    fn into_children_fn(self) -> ChildrenFn {
         Arc::new(move || self().into_any())
     }
 }
@@ -175,11 +191,11 @@ where
 
 /// A typed equivalent to [`ChildrenMut`], which takes a generic but preserves type information to
 /// allow the compiler to optimize the view more effectively.
-pub struct TypedChildrenMut<T>(Box<dyn FnMut() -> View<T> + Send>);
+pub struct TypedChildrenMut<T>(Box<dyn FnMut() -> View<T> + Send + Sync>);
 
 impl<F, T> From<F> for TypedChildrenMut<T>
 where
-    F: FnMut() -> T + Send + 'static,
+    F: FnMut() -> T + Send + Sync + 'static,
     T: RenderAny,
 {
     fn from(mut value: F) -> Self {
@@ -201,7 +217,7 @@ impl<T> TypedChildrenMut<T> {
 
 impl<F, C> ToChildren<F> for TypedChildrenMut<C>
 where
-    F: FnMut() -> C + Send + 'static,
+    F: FnMut() -> C + Send + Sync + 'static,
     C: IntoView,
 {
     #[inline]

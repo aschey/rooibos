@@ -3,20 +3,23 @@ use reactive_graph::owner::{provide_context, use_context, StoredValue};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Update};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::typed_builder::TypedBuilder;
-use rooibos_dom::{AnyViewState, ChildrenFnMut, DomNode, IntoChildrenMut, IntoView, RooibosDom};
-use rooibos_dom_macros::{component, ComponentChildren};
+use rooibos_dom::{signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use url::Url;
 
-#[derive(TypedBuilder, ComponentChildren)]
 pub struct Route {
-    #[builder(setter(transform = |p: impl Into<String>| p.into()))]
     path: String,
-    #[children]
-    #[builder(setter(transform = |p: impl IntoChildrenMut| p.into_children_mut()))]
     children: ChildrenFnMut,
+}
+
+impl Route {
+    pub fn new(path: impl Into<String>, children: impl IntoChildrenFnMut) -> Self {
+        Self {
+            path: path.into(),
+            children: children.into_children_fn_mut(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -51,7 +54,7 @@ impl RouteContext {
         let router = self.router.get().unwrap();
         let param = param.into();
         let current_route = self.current_route;
-        Signal::derive(move || {
+        signal!({
             let route = current_route.get();
 
             let params = router.at(route.path()).unwrap().params;
@@ -62,15 +65,13 @@ impl RouteContext {
     pub fn use_query(&self, query: impl Into<String>) -> Signal<Option<String>> {
         let route = self.current_route.get();
         let query = query.into();
-        Signal::derive(move || {
-            route.query_pairs().find_map(|q| {
-                if q.0 == query {
-                    Some(q.1.to_string())
-                } else {
-                    None
-                }
-            })
-        })
+        signal!(route.query_pairs().find_map(|q| {
+            if q.0 == query {
+                Some(q.1.to_string())
+            } else {
+                None
+            }
+        }))
     }
 }
 
@@ -83,7 +84,7 @@ fn init_router(initial: String) {
     let context = RouteContext {
         history,
         router: StoredValue::new(matchit::Router::new()),
-        current_route: Signal::derive(move || {
+        current_route: signal!({
             let h = history.get();
             h.last().cloned().unwrap()
         }),
@@ -95,6 +96,31 @@ fn init_router(initial: String) {
 pub struct Router {
     routes: Vec<Route>,
     initial: String,
+}
+
+impl Default for Router {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Router {
+    pub fn new() -> Self {
+        Self {
+            routes: Vec::default(),
+            initial: "/".to_string(),
+        }
+    }
+
+    pub fn routes(mut self, routes: impl Into<Vec<Route>>) -> Self {
+        self.routes = routes.into();
+        self
+    }
+
+    pub fn initial(mut self, initial: impl Into<String>) -> Self {
+        self.initial = initial.into();
+        self
+    }
 }
 
 pub struct RouterState {
@@ -179,12 +205,4 @@ impl Render<RooibosDom> for Router {
     }
 
     fn rebuild(self, _state: &mut Self::State) {}
-}
-
-#[component]
-pub fn Router(
-    #[prop(children)] routes: Vec<Route>,
-    #[prop(into, default = "/".to_owned())] initial: String,
-) -> impl IntoView {
-    Router { routes, initial }
 }

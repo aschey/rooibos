@@ -5,6 +5,7 @@ mod mouse;
 pub(crate) use event_handler::*;
 pub use key::*;
 pub use mouse::*;
+use ratatui::layout::Rect;
 
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Hash)]
 pub enum Event {
@@ -35,4 +36,8 @@ impl From<crossterm::event::Event> for Event {
             crossterm::event::Event::Resize(cols, rows) => Event::Resize(cols, rows),
         }
     }
+}
+
+pub struct EventData {
+    pub rect: Rect,
 }

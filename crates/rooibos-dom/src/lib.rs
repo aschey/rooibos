@@ -11,6 +11,13 @@ pub use rooibos_dom_macros::*;
 pub use typed_builder;
 pub use widgets::*;
 
+#[macro_export]
+macro_rules! signal {
+    ($($x:tt)*) => {
+        Signal::derive(move || $($x)*)
+    };
+}
+
 pub mod prelude {
     pub use ratatui::layout::*;
     pub use ratatui::prelude::{Buffer, Constraint};

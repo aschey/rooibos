@@ -1,68 +1,54 @@
 use rooibos::prelude::Constraint::*;
 use rooibos::prelude::*;
 
-use crate::tab0::charts::{Charts, ChartsProps};
-use crate::tab0::gauges::{Gauges, GaugesProps};
+use crate::tab0::charts::charts;
+use crate::tab0::gauges::gauges;
 
 mod charts;
 mod gauges;
 
-#[component]
-pub(crate) fn Tab0() -> impl Render {
-    view! {
-        <col>
-            <Gauges constraint=Length(9) enhanced_graphics=true/>
-            <Charts constraint=Min(8) enhanced_graphics=true/>
-            <Footer constraint=Length(7) />
-        </col>
-    }
+pub(crate) fn tab0() -> impl Render {
+    col![
+        gauges(true, Length(9)),
+        charts(true, Min(8)),
+        footer(Length(7))
+    ]
 }
 
-#[component]
-fn Footer(constraint: Constraint) -> impl Render {
-    view! {
-        <paragraph
-            v:constraint=constraint
-            block=prop! {
-                <Block
-                    borders=Borders::ALL
-                    title=prop! {
-                        <Span magenta bold>
-                            "Footer"
-                        </Span>
-                    }/>
-                }
-            wrap=prop!(<Wrap trim=true/>)
-        >
-            <Line>
-                "This is a paragraph with several lines.
-                You can change style your text the way
-                you want"             
-            </Line>
-            <Line>""</Line>
-            <Line>
-                <Span>"For example: "</Span>
-                <Span red>"under"</Span>
-                <Span>" "</Span>
-                <Span green>"the"</Span>
-                <Span>" "</Span>
-                <Span blue>"rainbow"</Span>
-                <Span>"."</Span>
-            </Line>
-            <Line>
-                <Span>"Oh and if you didn't "</Span>
-                <Span italic>"notice"</Span>
-                <Span>" you can "</Span>
-                <Span bold>"automatically"</Span>
-                <Span>" "</Span>
-                <Span reversed>"wrap"</Span>
-                <Span>" your "</Span>
-                <Span underlined>"text"</Span>
-                <Span>"."</Span>
-            </Line>
-            <Line>
-                "One more thing is that it should display unicode characters: 10€"
-            </Line>
-        </paragraph>
-    }
+fn footer(constraint: Constraint) -> impl Render {
+    widget_ref!(
+        Paragraph::new(vec![
+            Line::new(
+                "This is a paragraph with several lines. You can style your text the way you want"
+            ),
+            Line::new(""),
+            Line::new(vec![
+                Span::new("For example: "),
+                Span::new("under").red(),
+                Span::new(" "),
+                Span::new("the").green(),
+                Span::new(" "),
+                Span::new("rainbow").blue(),
+                Span::new(".")
+            ]),
+            Line::new(vec![
+                Span::new("Oh and if you didn't "),
+                Span::new("notice").italic(),
+                Span::new(" you can "),
+                Span::new("automatically").bold(),
+                Span::new(" "),
+                Span::new("wrap").reversed(),
+                Span::new(" your "),
+                Span::new("text").underlined(),
+                Span::new(".")
+            ]),
+            Line::new("One more thing is that it should display unicode characters: 10€")
+        ])
+        .block(
+            Block::bordered()
+                .title("Footer".magenta())
+                .add_modifier(Modifier::BOLD)
+        )
+    )
+    .constraint(constraint)
 }

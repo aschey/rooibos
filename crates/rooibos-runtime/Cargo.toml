@@ -21,3 +21,4 @@ ratatui = { version = "0.26", default-features = false }
 [features]
 default = ["crossterm"]
 crossterm = ["dep:crossterm"]
+nightly = ["reactive_graph/nightly"]

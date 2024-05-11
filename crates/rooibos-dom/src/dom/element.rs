@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use next_tuple::NextTuple;
 use ratatui::layout::{Constraint, Flex};
+use ratatui::widgets::Block;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
@@ -11,7 +12,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{notify, RenderAny, RooibosDom};
+use crate::{notify, Constrainable, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<C> {
@@ -28,25 +29,6 @@ where
             inner: self.inner,
             children: self.children.next_tuple(child),
         }
-    }
-
-    pub fn constraint<S>(self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
-
-        let effect = RenderEffect::new({
-            let constraint = constraint.into();
-            let constraint_rc = constraint_rc.clone();
-            move |_| {
-                *constraint_rc.borrow_mut() = constraint.get();
-                notify();
-            }
-        });
-        self.inner.set_constraint(constraint_rc);
-        self.inner.add_data(effect);
-        self
     }
 
     pub fn id(self, id: impl Into<NodeId>) -> Self {
@@ -98,6 +80,44 @@ where
                 notify();
             }
         });
+        self.inner.add_data(effect);
+        self
+    }
+
+    pub fn block<S>(self, block: S) -> Self
+    where
+        S: Into<MaybeSignal<Block<'static>>>,
+    {
+        let layout_props = self.inner.layout_props();
+        let effect = RenderEffect::new({
+            let block = block.into();
+            move |_| {
+                layout_props.borrow_mut().block = Some(block.get());
+
+                notify();
+            }
+        });
+        self.inner.add_data(effect);
+        self
+    }
+}
+
+impl<C> Constrainable for Element<C> {
+    fn constraint<S>(self, constraint: S) -> Self
+    where
+        S: Into<MaybeSignal<Constraint>>,
+    {
+        let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
+
+        let effect = RenderEffect::new({
+            let constraint = constraint.into();
+            let constraint_rc = constraint_rc.clone();
+            move |_| {
+                *constraint_rc.borrow_mut() = constraint.get();
+                notify();
+            }
+        });
+        self.inner.set_constraint(constraint_rc);
         self.inner.add_data(effect);
         self
     }

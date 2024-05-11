@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use derivative::Derivative;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
+use ratatui::widgets::Block;
 use ratatui::Frame;
 use slotmap::{new_key_type, SlotMap};
 use tachys::view::Render;
@@ -63,12 +64,13 @@ pub(crate) struct NodeTypeStructure {
     pub(crate) children: Option<String>,
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Default)]
+#[derive(PartialEq, Eq, Clone, Default)]
 pub(crate) struct LayoutProps {
     pub(crate) direction: Direction,
     pub(crate) flex: Flex,
     pub(crate) margin: u16,
     pub(crate) spacing: u16,
+    pub(crate) block: Option<Block<'static>>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -87,11 +89,13 @@ impl NodeType {
                     flex,
                     margin,
                     spacing,
-                } = *layout_props.borrow();
+                    block,
+                } = layout_props.borrow().clone();
                 NodeTypeStructure {
                     name: "Layout",
                     attrs: Some(format!(
-                        "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}"
+                        "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}, \
+                         block={block:?}"
                     )),
                     children: None,
                 }
@@ -118,12 +122,13 @@ impl Debug for NodeType {
                     direction,
                     flex,
                     margin,
+                    block,
                     spacing,
-                } = *layout_props.borrow();
+                } = layout_props.borrow().clone();
                 write!(
                     f,
                     "Layout(direction={direction}, flex={flex}, margin={margin}, \
-                     spacing={spacing})"
+                     spacing={spacing}, block={block:?})"
                 )
             }
             NodeType::Overlay => write!(f, "Overlay"),
@@ -174,10 +179,17 @@ impl DomNodeInner {
                 let LayoutProps {
                     direction,
                     flex,
-                    margin,
+                    mut margin,
                     spacing,
-                } = *layout_props.borrow();
-
+                    block,
+                } = layout_props.borrow().clone();
+                if let Some(block) = block {
+                    // Need margin to prevent block from rendering over the content
+                    if margin < 1 {
+                        margin = 1;
+                    }
+                    frame.render_widget_ref(block, rect);
+                };
                 let layout = Layout::default()
                     .direction(direction)
                     .flex(flex)

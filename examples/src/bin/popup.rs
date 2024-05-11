@@ -10,44 +10,40 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(|| view!(<App/>));
+    mount(app);
     run().await?;
     Ok(())
 }
 
-#[component]
-fn App() -> impl Render {
+fn app() -> impl Render {
     let show_popup = RwSignal::new(false);
 
     Effect::new(move |_| {
         focus_next();
     });
 
-    let key_down = move |key_event: KeyEvent| {
+    let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
             show_popup.update(|p| *p = !*p);
         }
     };
 
-    view! {
-        <overlay v:length=6>
-            <paragraph
-                v:focusable
-                block=prop!(<Block borders=Borders::ALL/>)
-                on:key_down=key_down
-            >
-                <Line>"text1"</Line>
-                <Line>"text2"</Line>
-                <Line>"text3"</Line>
-                <Line>"text4"</Line>
-            </paragraph>
-            <Popup percent_x=50 percent_y=50 visible=move || show_popup.get()>
-                {move || view! {
-                    <paragraph v:length=3 block=prop!(<Block borders=Borders::ALL/>)>
-                        "popup text"
-                    </paragraph>
-                }}
-            </Popup>
-        </overlay>
-    }
+    overlay![
+        widget_ref!(
+            Paragraph::new(vec![
+                Line::new("text1"),
+                Line::new("text2"),
+                Line::new("text3"),
+                Line::new("text4")
+            ])
+            .block(Block::bordered())
+        )
+        .focusable(true)
+        .on_key_down(key_down),
+        Popup::default().percent_x(50).percent_y(50).render(
+            move || show_popup.get(),
+            move || widget_ref!(Paragraph::new("popup text").block(Block::bordered()))
+                .constraint(Constraint::Length(3))
+        )
+    ]
 }

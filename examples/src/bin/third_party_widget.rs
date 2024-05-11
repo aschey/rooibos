@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::hash::Hash;
 
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
@@ -10,39 +9,14 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-mod prelude {
-    use rooibos::dom::make_builder;
-
-    #[make_builder(suffix = "Demo")]
-    pub(crate) trait DemoMakeBuilder {}
-}
-use prelude::*;
-
-impl_widget!(
-    Tree,
-    visibility=pub,
-    generics=<'a, Identifier: Clone + Eq + Hash + Default + 'static>,
-    make_builder=DemoMakeBuilder,
-    render_ref=false
-);
-
-impl_stateful_widget!(
-    Tree,
-    visibility=pub,
-    generics=<'a, Identifier: Clone + Eq + Hash + 'static>,
-    state_generics=<Identifier: Clone + Eq + Hash>,
-    render_ref=false
-);
-
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(|| view!(<App/>));
+    mount(app);
     run().await?;
     Ok(())
 }
 
-#[component]
-fn App() -> impl Render {
+fn app() -> impl Render {
     let state = RwSignal::new(TreeState::default());
     let tree = RwSignal::new(vec![
         TreeItem::new_leaf("a", "a"),
@@ -68,43 +42,40 @@ fn App() -> impl Render {
         focus_next();
     });
 
-    let key_down = move |key_event: KeyEvent| match key_event.code {
+    let key_down = move |key_event: KeyEvent, _| match key_event.code {
         KeyCode::Char('\n' | ' ') => {
-            state.update(|mut s| {
+            state.update(|s| {
                 s.toggle_selected();
             });
         }
-        KeyCode::Left => state.update(|mut s| {
+        KeyCode::Left => state.update(|s| {
             s.key_left();
         }),
-        KeyCode::Right => state.update(|mut s| {
+        KeyCode::Right => state.update(|s| {
             s.key_right();
         }),
-        KeyCode::Down => state.update(|mut s| {
+        KeyCode::Down => state.update(|s| {
             s.key_down(&tree.get());
         }),
-        KeyCode::Up => state.update(|mut s| {
+        KeyCode::Up => state.update(|s| {
             s.key_up(&tree.get());
         }),
-        KeyCode::Home => state.update(|mut s| {
+        KeyCode::Home => state.update(|s| {
             s.select_first(&tree.get());
         }),
-        KeyCode::End => state.update(|mut s| {
+        KeyCode::End => state.update(|s| {
             s.select_last(&tree.get());
         }),
         _ => {}
     };
 
-    view! {
-        <statefulTree
-            unwrap
-            block=prop!(<Block borders=Borders::ALL title="Tree Widget"/>)
-            highlight_style=prop!(<Style black on_green bold/>)
-            v:focusable
-            v:state=move || state.get()
-            on:key_down=key_down
-        >
-            {tree.get()}
-        </statefulTree>
-    }
+    stateful_widget!(
+        Tree::new(tree.get())
+            .unwrap()
+            .block(Block::bordered().title("Tree Widget"))
+            .highlight_style(Style::default().black().on_green().bold()),
+        state.get()
+    )
+    .on_key_down(key_down)
+    .focusable(true)
 }

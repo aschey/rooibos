@@ -5,6 +5,7 @@ use reactive_graph::traits::Set;
 use slotmap::SlotMap;
 
 use super::dom_node::{DomNodeInner, DomNodeKey, NodeId};
+use crate::EventData;
 
 pub(crate) struct DomState {
     focused: ReadSignal<Option<NodeId>>,
@@ -44,15 +45,20 @@ impl DomState {
         nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>,
     ) {
         if let Some(focused_key) = self.focused_key {
-            if let Some(on_blur) = &mut nodes[focused_key].event_handlers.on_blur {
-                on_blur.borrow_mut()();
+            let node = &mut nodes[focused_key];
+            if let Some(on_blur) = &mut node.event_handlers.on_blur {
+                on_blur.borrow_mut()(EventData {
+                    rect: *node.rect.borrow(),
+                });
             }
         }
         self.focused_key = Some(node_key);
         let node = &mut nodes[node_key];
         self.set_focused.set(node.id.to_owned());
         if let Some(on_focused) = &mut node.event_handlers.on_focus {
-            on_focused.borrow_mut()();
+            on_focused.borrow_mut()(EventData {
+                rect: *node.rect.borrow(),
+            });
         }
     }
 
