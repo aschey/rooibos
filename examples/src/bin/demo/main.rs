@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::time::Duration;
 
-use rooibos::components::Tabs;
+use rooibos::components::TabView;
 use rooibos::prelude::*;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::provide_context;
@@ -125,10 +125,10 @@ fn header_tabs() -> impl Render {
         }
     });
 
-    let tab_header = |title: &'static str| prop!(<Line><Span green>{title}</Span></Line>);
+    let tab_header = |title: &'static str| Line::from(title.green());
 
     col![
-        Tabs::new()
+        TabView::new()
             .padding(1)
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())

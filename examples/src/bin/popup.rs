@@ -31,10 +31,10 @@ fn app() -> impl Render {
     overlay![
         widget_ref!(
             Paragraph::new(vec![
-                Line::new("text1"),
-                Line::new("text2"),
-                Line::new("text3"),
-                Line::new("text4")
+                Line::from("text1"),
+                Line::from("text2"),
+                Line::from("text3"),
+                Line::from("text4")
             ])
             .block(Block::bordered())
         )

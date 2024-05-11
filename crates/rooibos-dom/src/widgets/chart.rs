@@ -2,8 +2,6 @@ use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, Chart, Dataset, GraphType, WidgetRef};
 
-use crate::{DomWidget, MakeBuilder};
-
 #[derive(Clone, Default)]
 pub struct DatasetOwned<'a> {
     inner: Dataset<'a>,
@@ -42,8 +40,6 @@ impl<'a> DatasetOwned<'a> {
         self
     }
 }
-
-impl<'a> MakeBuilder for DatasetOwned<'a> {}
 
 impl<'a> Styled for DatasetOwned<'a> {
     type Item = Self;
@@ -120,8 +116,6 @@ impl<'a> Styled for ChartProps<'a> {
     }
 }
 
-impl<'a> MakeBuilder for ChartProps<'a> {}
-
 impl<'a> WidgetRef for ChartProps<'a> {
     fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let mut chart = Chart::new(
@@ -146,11 +140,4 @@ impl<'a> Widget for ChartProps<'a> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         self.render_ref(area, buf)
     }
-}
-
-pub fn chart(props: impl Fn() -> ChartProps<'static> + 'static) -> DomWidget {
-    DomWidget::new("chart", move || {
-        let props = props();
-        move |frame: &mut Frame, rect: Rect| frame.render_widget(props.clone(), rect)
-    })
 }

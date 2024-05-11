@@ -1,9 +1,7 @@
 use ratatui::prelude::*;
 use ratatui::style::{Style, Styled};
+use ratatui::symbols;
 use ratatui::widgets::{Block, RenderDirection, Sparkline, Widget, WidgetRef};
-use ratatui::{symbols, Frame};
-
-use crate::{DomWidget, MakeBuilder};
 
 #[derive(Clone, Default)]
 pub struct SparklineProps<'a> {
@@ -65,15 +63,4 @@ impl<'a> Styled for SparklineProps<'a> {
     fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
         self.style(style.into())
     }
-}
-
-impl MakeBuilder for SparklineProps<'_> {}
-
-pub fn sparkline(props: impl Fn() -> SparklineProps<'static> + 'static) -> DomWidget {
-    DomWidget::new("sparkline", move || {
-        let props = props();
-        move |frame: &mut Frame, rect: Rect| {
-            frame.render_widget(&props, rect);
-        }
-    })
 }

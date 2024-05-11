@@ -13,7 +13,6 @@ tachys = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec
 ] }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a" }
 ratatui = { version = "0.26", features = ["unstable"] }
-rooibos-dom-macros = { path = "../rooibos-dom-macros" }
 slotmap = "1"
 typed-builder = "0.18.1"
 indexmap = "2.2.5"

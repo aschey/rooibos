@@ -122,16 +122,16 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
                 .yellow()
                 .data(sin2.get().points)
         ])
-        .block(Block::bordered().title(Span::new("Chart").cyan().bold()))
+        .block(Block::bordered().title(Span::from("Chart").cyan().bold()))
         .x_axis(
             Axis::default()
                 .title("X Axis")
                 .gray()
                 .bounds(window.get())
                 .labels(vec![
-                    Span::new(window_start.get().to_string()),
-                    Span::new(((window_start.get() + window_end.get()) / 2.0).to_string()),
-                    Span::new(window_end.get().to_string())
+                    Span::from(window_start.get().to_string()),
+                    Span::from(((window_start.get() + window_end.get()) / 2.0).to_string()),
+                    Span::from(window_end.get().to_string())
                 ])
                 .bold()
         )
@@ -141,9 +141,9 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
                 .gray()
                 .bounds([-20.0, 20.0])
                 .labels(vec![
-                    Span::new("-20").bold(),
-                    Span::new("  0"),
-                    Span::new(" 20").bold()
+                    Span::from("-20").bold(),
+                    Span::from("  0"),
+                    Span::from(" 20").bold()
                 ])
         )
     )
@@ -195,22 +195,21 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
         seq
     });
 
-    view! {
-        <barChart
-            block=prop!(<Block borders=Borders::ALL title="Bar chart"/>)
-            data=&bar_chart_data.get()
-            bar_width=3
-            bar_gap=2
-            bar_set=if enhanced_graphics {
+    widget_ref!(
+        BarChart::default()
+            .block(Block::bordered().title("Bar chart"))
+            .data(&bar_chart_data.get())
+            .bar_width(3)
+            .bar_gap(2)
+            .bar_set(if enhanced_graphics {
                 symbols::bar::NINE_LEVELS
             } else {
                 symbols::bar::THREE_LEVELS
-            }
-            value_style=prop!(<Style black on_green italic/>)
-            label_style=prop!(<Style yellow/>)
-            bar_style=prop!(<Style green/>)
-        />
-    }
+            })
+            .value_style(Style::new().black().on_green().italic())
+            .label_style(Style::new().yellow())
+            .bar_style(Style::new().green())
+    )
 }
 
 const TASKS: [&str; 24] = [
@@ -244,7 +243,7 @@ fn task_list() -> impl Render {
     });
 
     stateful_widget!(
-        List::new(TASKS.map(|t| ListItem::new(Line::new(Span::new(t)))))
+        List::new(TASKS.map(|t| ListItem::new(Span::from(t))))
             .block(Block::bordered().title("List"))
             .highlight_style(Style::new().bold())
             .highlight_symbol("> "),
@@ -322,9 +321,9 @@ fn logs() -> impl Render {
 
     widget_ref!(
         List::new(logs.get().iter().map(|(evt, level, style)| {
-            ListItem::new(Line::new(vec![
+            ListItem::new(Line::from(vec![
                 Span::styled(format!("{level:<9}"), *style),
-                Span::new(*evt),
+                Span::from(*evt),
             ]))
         }))
         .block(Block::bordered().title("Logs"))

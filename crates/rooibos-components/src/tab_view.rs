@@ -23,14 +23,14 @@ impl Tab {
     }
 }
 
-pub struct Tabs {
+pub struct TabView {
     block: MaybeProp<Block<'static>>,
     padding: MaybeProp<u16>,
     highlight_style: MaybeSignal<Style>,
     on_change: Box<dyn FnMut(usize, &str)>,
 }
 
-impl Default for Tabs {
+impl Default for TabView {
     fn default() -> Self {
         Self {
             on_change: Box::new(move |_, _| {}),
@@ -41,7 +41,7 @@ impl Default for Tabs {
     }
 }
 
-impl Tabs {
+impl TabView {
     pub fn new() -> Self {
         Self::default()
     }
@@ -126,7 +126,7 @@ impl Tabs {
 
         col![
             widget_ref!({
-                let headers = TabHeadersProps::new(headers.get())
+                let headers = Tabs::new(headers.get())
                     .select(cur_tab.get().unwrap().1)
                     .highlight_style(highlight_style.get());
                 if let Some(block) = block.get() {

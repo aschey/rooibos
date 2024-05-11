@@ -7,7 +7,6 @@ extern crate self as rooibos_dom;
 
 pub use dom::*;
 pub use events::*;
-pub use rooibos_dom_macros::*;
 pub use typed_builder;
 pub use widgets::*;
 

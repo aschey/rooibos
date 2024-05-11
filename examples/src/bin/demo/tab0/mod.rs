@@ -18,31 +18,31 @@ pub(crate) fn tab0() -> impl Render {
 fn footer(constraint: Constraint) -> impl Render {
     widget_ref!(
         Paragraph::new(vec![
-            Line::new(
+            Line::from(
                 "This is a paragraph with several lines. You can style your text the way you want"
             ),
-            Line::new(""),
-            Line::new(vec![
-                Span::new("For example: "),
-                Span::new("under").red(),
-                Span::new(" "),
-                Span::new("the").green(),
-                Span::new(" "),
-                Span::new("rainbow").blue(),
-                Span::new(".")
+            Line::from(""),
+            Line::from(vec![
+                Span::from("For example: "),
+                Span::from("under").red(),
+                Span::from(" "),
+                Span::from("the").green(),
+                Span::from(" "),
+                Span::from("rainbow").blue(),
+                Span::from(".")
             ]),
-            Line::new(vec![
-                Span::new("Oh and if you didn't "),
-                Span::new("notice").italic(),
-                Span::new(" you can "),
-                Span::new("automatically").bold(),
-                Span::new(" "),
-                Span::new("wrap").reversed(),
-                Span::new(" your "),
-                Span::new("text").underlined(),
-                Span::new(".")
+            Line::from(vec![
+                Span::from("Oh and if you didn't "),
+                Span::from("notice").italic(),
+                Span::from(" you can "),
+                Span::from("automatically").bold(),
+                Span::from(" "),
+                Span::from("wrap").reversed(),
+                Span::from(" your "),
+                Span::from("text").underlined(),
+                Span::from(".")
             ]),
-            Line::new("One more thing is that it should display unicode characters: 10€")
+            Line::from("One more thing is that it should display unicode characters: 10€")
         ])
         .block(
             Block::bordered()

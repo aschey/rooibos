@@ -11,7 +11,6 @@ tachys = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a" }
 either_of = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a" }
 matchit = "0.8"
-rooibos-dom-macros = { path = "../rooibos-dom-macros" }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-runtime = { path = "../rooibos-runtime" }
 url = "2"
