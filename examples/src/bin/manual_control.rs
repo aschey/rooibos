@@ -8,7 +8,6 @@ use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{
     setup_terminal, start, tick, RuntimeSettings, TerminalSettings, TickResult,
 };
-use rooibos::tui::widgets::Paragraph;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -45,7 +44,7 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new(format!("count {}", count.get())))
+    widget_ref!(format!("count {}", count.get()))
         .focusable(true)
         .on_key_down(key_down)
 }
