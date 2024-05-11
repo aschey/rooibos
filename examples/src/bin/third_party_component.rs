@@ -1,11 +1,12 @@
 use std::error::Error;
+use std::io::Stdout;
 
-use rooibos::dom::{focus_next, mount, DomWidget, KeyEvent, Render};
+use rooibos::dom::{focus_next, DomWidget, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::MaybeSignal;
-use rooibos::runtime::run;
+use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::layout::Rect;
 use rooibos::tui::widgets::Block;
 use rooibos::tui::Frame;
@@ -15,12 +16,12 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(text_view);
-    run().await?;
+    start(RuntimeSettings::default(), app);
+    run::<Stdout>(TerminalSettings::default()).await?;
     Ok(())
 }
 
-fn text_view() -> impl Render {
+fn app() -> impl Render {
     Effect::new(move |_| {
         focus_next();
     });

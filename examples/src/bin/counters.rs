@@ -1,11 +1,12 @@
 use std::error::Error;
+use std::io::Stdout;
 
 use rooibos::components::for_each;
-use rooibos::dom::{col, focus_next, mount, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, focus_next, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::{run, start, use_keypress, RuntimeSettings, TerminalSettings};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
@@ -14,8 +15,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(counters);
-    run().await?;
+    start(RuntimeSettings::default(), app);
+    run::<Stdout>(TerminalSettings::default()).await?;
     Ok(())
 }
 
@@ -46,7 +47,7 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
         .id(id.to_string())
 }
 
-fn counters() -> impl Render {
+fn app() -> impl Render {
     let (n_counters, set_n_counters) = signal(5);
 
     Effect::new(move |_| {

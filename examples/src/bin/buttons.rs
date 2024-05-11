@@ -1,12 +1,13 @@
 use std::error::Error;
+use std::io::Stdout;
 
 use rooibos::components::{container, Button};
-use rooibos::dom::{col, focus_next, mount, signal, Render};
+use rooibos::dom::{col, focus_next, signal, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::Signal;
-use rooibos::runtime::run;
+use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::text::Text;
 
@@ -14,8 +15,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(app);
-    run().await?;
+    start(RuntimeSettings::default(), app);
+    run::<Stdout>(TerminalSettings::default()).await?;
     Ok(())
 }
 

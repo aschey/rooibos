@@ -1,10 +1,11 @@
 use std::error::Error;
+use std::io;
 
-use rooibos::dom::{col, focus_next, mount, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, focus_next, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::run;
+use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::widgets::Block;
@@ -13,8 +14,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(counters);
-    run().await?;
+    start(RuntimeSettings::default(), app);
+    run::<io::Stdout>(TerminalSettings::default()).await?;
     Ok(())
 }
 
@@ -37,7 +38,7 @@ fn counter(id: u32, constraint: Constraint) -> impl Render {
         .on_key_down(key_down)
 }
 
-fn counters() -> impl Render {
+fn app() -> impl Render {
     Effect::new(move |_| {
         focus_next();
     });

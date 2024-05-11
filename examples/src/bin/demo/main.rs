@@ -1,14 +1,15 @@
 use std::error::Error;
+use std::io::Stdout;
 use std::time::Duration;
 
 use rooibos::components::{Tab, TabView};
-use rooibos::dom::{col, mount, signal, Constrainable, KeyCode, Render};
+use rooibos::dom::{col, signal, Constrainable, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::reactive::wrappers::read::Signal;
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::{run, start, use_keypress, RuntimeSettings, TerminalSettings};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::Line;
 use rooibos::tui::widgets::Block;
@@ -67,8 +68,8 @@ async fn main() -> Result<()> {
         })
         .init();
 
-    mount(app);
-    run().await?;
+    start(RuntimeSettings::default(), app);
+    run::<Stdout>(TerminalSettings::default()).await?;
     guard.stop().await.unwrap();
     Ok(())
 }

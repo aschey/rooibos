@@ -1,5 +1,5 @@
 use std::future::Future;
-use std::io::{self, stdout, Stdout};
+use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::panic::{set_hook, take_hook};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
@@ -9,7 +9,7 @@ use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent, KeyModifiers,
     KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
-use crossterm::execute;
+use crossterm::queue;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
     LeaveAlternateScreen,
@@ -20,13 +20,17 @@ use ratatui::Terminal;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
-use rooibos_dom::{dom_update_receiver, render_dom, send_event, DomUpdateReceiver, Event};
+use rooibos_dom::{
+    dom_update_receiver, mount, render_dom, send_event, DomUpdateReceiver, Event, Render,
+};
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tokio::task::{self, spawn_local};
 
+type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
 static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::Event>> = OnceLock::new();
 static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
+static RESTORE_TERMINAL: OnceLock<std::sync::Mutex<Box<RestoreFn>>> = OnceLock::new();
 
 async fn read_input(quit_tx: mpsc::Sender<()>, term_tx: broadcast::Sender<rooibos_dom::Event>) {
     let mut event_reader = crossterm::event::EventStream::new().fuse();
@@ -61,17 +65,48 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     res
 }
 
-pub async fn init<T, F>(f: F) -> T
+pub async fn init_executor<T, F>(f: F) -> T
 where
     F: Future<Output = T>,
 {
     any_spawner::Executor::init_tokio().unwrap();
-    CURRENT_RUNTIME
-        .set(Mutex::new(Runtime::initialize()))
-        .unwrap();
 
     let local = task::LocalSet::new();
     local.run_until(f).await
+}
+
+pub struct RuntimeSettings {
+    enable_input_reader: bool,
+}
+
+impl Default for RuntimeSettings {
+    fn default() -> Self {
+        Self {
+            enable_input_reader: true,
+        }
+    }
+}
+
+impl RuntimeSettings {
+    pub fn enable_input_reader(mut self, enable: bool) -> Self {
+        self.enable_input_reader = enable;
+        self
+    }
+}
+
+pub fn init(settings: RuntimeSettings) {
+    CURRENT_RUNTIME
+        .set(Mutex::new(Runtime::initialize(settings)))
+        .unwrap();
+}
+
+pub fn start<F, M>(settings: RuntimeSettings, f: F)
+where
+    F: FnOnce() -> M + 'static,
+    M: Render,
+{
+    init(settings);
+    mount(f);
 }
 
 #[derive(Debug)]
@@ -82,7 +117,7 @@ struct Runtime {
 }
 
 impl Runtime {
-    fn initialize() -> Self {
+    fn initialize(settings: RuntimeSettings) -> Self {
         let (quit_tx, quit_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
         TERM_TX.set(term_event_tx.clone()).unwrap();
@@ -93,7 +128,10 @@ impl Runtime {
             supports_keyboard_enhancement().unwrap_or(false),
             Ordering::Relaxed,
         );
-        tokio::spawn(async move { read_input(quit_tx, term_event_tx).await });
+        if settings.enable_input_reader {
+            tokio::spawn(async move { read_input(quit_tx, term_event_tx).await });
+        }
+
         Self {
             dom_update_rx,
             quit_rx,
@@ -148,27 +186,59 @@ pub fn supports_key_up() -> bool {
     SUPPORTS_KEYBOARD_ENHANCEMENT.load(Ordering::Relaxed)
 }
 
-pub fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<Stdout>>> {
-    execute!(
-        stdout(),
-        EnterAlternateScreen,
-        PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all()),
-        EnableMouseCapture
-    )?;
+pub fn setup_terminal<W>(settings: TerminalSettings<W>) -> io::Result<Terminal<CrosstermBackend<W>>>
+where
+    W: Write + 'static,
+{
+    let mut writer = (settings.get_writer)();
+
+    if settings.alternate_screen {
+        queue!(writer, EnterAlternateScreen)?;
+    }
+    if settings.mouse_capture {
+        queue!(writer, EnableMouseCapture)?;
+    }
+    if settings.keyboard_enhancement {
+        queue!(
+            writer,
+            PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
+        )?;
+    } else {
+        SUPPORTS_KEYBOARD_ENHANCEMENT.store(false, Ordering::Relaxed);
+    }
+    writer.flush()?;
 
     enable_raw_mode()?;
-    let terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
+    let terminal = Terminal::new(CrosstermBackend::new(writer))?;
+
+    *RESTORE_TERMINAL
+        .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
+        .lock()
+        .unwrap() = Box::new(move || {
+        let mut writer = (settings.get_writer)();
+
+        if settings.keyboard_enhancement {
+            queue!(writer, PopKeyboardEnhancementFlags)?;
+        }
+
+        if settings.mouse_capture {
+            queue!(writer, DisableMouseCapture)?;
+        }
+
+        if settings.alternate_screen {
+            queue!(writer, LeaveAlternateScreen)?;
+        }
+        writer.flush()?;
+        disable_raw_mode()?;
+        Ok::<_, io::Error>(())
+    });
     Ok(terminal)
 }
 
 pub fn restore_terminal() -> io::Result<()> {
-    execute!(
-        stdout(),
-        PopKeyboardEnhancementFlags,
-        DisableMouseCapture,
-        LeaveAlternateScreen
-    )?;
-    disable_raw_mode()?;
+    if let Some(restore) = RESTORE_TERMINAL.get() {
+        let _ = restore.lock().unwrap()();
+    }
     Ok(())
 }
 
@@ -180,8 +250,62 @@ pub fn set_panic_hook() {
     }));
 }
 
-pub async fn run() -> io::Result<()> {
-    let mut terminal = setup_terminal()?;
+pub struct TerminalSettings<W> {
+    alternate_screen: bool,
+    mouse_capture: bool,
+    keyboard_enhancement: bool,
+    get_writer: Box<dyn Fn() -> W + Send>,
+}
+
+impl Default for TerminalSettings<Stdout> {
+    fn default() -> Self {
+        Self {
+            alternate_screen: true,
+            mouse_capture: true,
+            keyboard_enhancement: true,
+            get_writer: Box::new(stdout),
+        }
+    }
+}
+
+impl Default for TerminalSettings<Stderr> {
+    fn default() -> Self {
+        Self {
+            alternate_screen: true,
+            mouse_capture: true,
+            keyboard_enhancement: true,
+            get_writer: Box::new(stderr),
+        }
+    }
+}
+
+impl<W> TerminalSettings<W> {
+    pub fn alternate_screen(mut self, alternate_screen: bool) -> Self {
+        self.alternate_screen = alternate_screen;
+        self
+    }
+
+    pub fn mouse_capture(mut self, mouse_capture: bool) -> Self {
+        self.mouse_capture = mouse_capture;
+        self
+    }
+
+    pub fn keyboard_enhancement(mut self, keyboard_enhancement: bool) -> Self {
+        self.keyboard_enhancement = keyboard_enhancement;
+        self
+    }
+
+    pub fn writer(mut self, get_writer: impl Fn() -> W + Send + 'static) -> Self {
+        self.get_writer = Box::new(get_writer);
+        self
+    }
+}
+
+pub async fn run<W>(settings: TerminalSettings<W>) -> io::Result<()>
+where
+    W: Write + 'static,
+{
+    let mut terminal = setup_terminal(settings)?;
     terminal.draw(render_dom)?;
     loop {
         let tick_result = tick().await;

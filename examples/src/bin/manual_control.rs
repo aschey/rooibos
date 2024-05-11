@@ -1,11 +1,13 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{focus_next, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{focus_next, render_dom, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::{
+    setup_terminal, start, tick, RuntimeSettings, TerminalSettings, TickResult,
+};
 use rooibos::tui::widgets::Paragraph;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -13,8 +15,21 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 #[rooibos::main]
 async fn main() -> Result<()> {
     start(RuntimeSettings::default(), app);
-    run::<Stdout>(TerminalSettings::default()).await?;
-    Ok(())
+    let mut terminal = setup_terminal::<Stdout>(TerminalSettings::default())?;
+
+    terminal.draw(render_dom)?;
+    loop {
+        let tick_result = tick().await;
+        match tick_result {
+            TickResult::Redraw => {
+                terminal.draw(render_dom)?;
+            }
+            TickResult::Exit => {
+                return Ok(());
+            }
+            TickResult::Continue => {}
+        }
+    }
 }
 
 fn app() -> impl Render {

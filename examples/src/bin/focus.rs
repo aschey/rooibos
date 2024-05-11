@@ -1,19 +1,20 @@
 use std::error::Error;
+use std::io::Stdout;
 
 use rooibos::dom::{
-    col, focus_next, focus_prev, mount, row, use_focus, widget_ref, Constrainable, KeyCode, Render,
+    col, focus_next, focus_prev, row, use_focus, widget_ref, Constrainable, KeyCode, Render,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
-use rooibos::runtime::{run, use_keypress};
+use rooibos::runtime::{run, start, use_keypress, RuntimeSettings, TerminalSettings};
 use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    mount(app);
-    run().await?;
+    start(RuntimeSettings::default(), app);
+    run::<Stdout>(TerminalSettings::default()).await?;
     Ok(())
 }
 

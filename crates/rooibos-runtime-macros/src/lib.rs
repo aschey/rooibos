@@ -37,7 +37,7 @@ pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
 
         #[::tokio::main(#attrs)]
         async fn ___async_main(#inputs) #output {
-            #runtime::init(#func_copy_ident(#func_param_idents)).await
+            #runtime::init_executor(#func_copy_ident(#func_param_idents)).await
         }
 
         #func_copy
