@@ -13,7 +13,7 @@ use tachys::view::Render;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
-use super::{with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
+use super::{with_nodes, with_nodes_mut, with_state_mut};
 use crate::{next_node_id, DomWidgetNode, EventHandlers, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -145,7 +145,7 @@ pub(crate) struct DomNodeInner {
     pub(crate) constraint: Rc<RefCell<Constraint>>,
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
-    pub(crate) before_pending: Vec<DomNodeKey>,
+    // pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) focusable: Rc<RefCell<bool>>,
     #[derivative(Debug = "ignore")]
@@ -254,7 +254,7 @@ impl DomNode {
             constraint: Rc::new(RefCell::new(fragment.constraint)),
             children: vec![],
             parent: None,
-            before_pending: vec![],
+            // before_pending: vec![],
             focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
             event_handlers: fragment.event_handlers,
@@ -271,8 +271,8 @@ impl DomNode {
             node_type: fragment.node_type,
             constraint: Rc::new(RefCell::new(fragment.constraint)),
             children: vec![],
-            parent: None,
-            before_pending: vec![],
+            parent: self.get_parent_key(),
+            // before_pending: vec![],
             focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
             event_handlers: fragment.event_handlers,
@@ -328,30 +328,29 @@ impl DomNode {
         self.key
     }
 
+    pub(crate) fn get_parent_key(&self) -> Option<DomNodeKey> {
+        with_nodes(|n| n[self.key].parent)
+    }
+
     pub(crate) fn get_parent(&self) -> Option<DomNode> {
-        DOM_NODES.with(|n| {
-            let n = n.borrow();
-            n[self.key].parent.map(|p| DomNode { key: p })
-        })
+        with_nodes(|n| n[self.key].parent.map(|p| DomNode { key: p }))
     }
 
     pub(crate) fn append_child(&self, node: &DomNode) {
-        DOM_NODES.with(|d| {
-            let mut d = d.borrow_mut();
-
+        with_nodes_mut(|mut d| {
             d[node.key].parent = Some(self.key);
             d[self.key].children.push(node.key);
 
-            let pending: Vec<_> = d[node.key].before_pending.drain(..).collect();
-            for p in pending {
-                let self_index = d[self.key]
-                    .children
-                    .iter()
-                    .position(|c| c == &node.key)
-                    .unwrap();
-                d[self.key].children.insert(self_index, p);
-                d[p].parent = Some(self.key);
-            }
+            // let pending: Vec<_> = d[node.key].before_pending.drain(..).collect();
+            // for p in pending {
+            //     let self_index = d[self.key]
+            //         .children
+            //         .iter()
+            //         .position(|c| c == &node.key)
+            //         .unwrap();
+            //     d[self.key].children.insert(self_index, p);
+            //     d[p].parent = Some(self.key);
+            // }
         });
     }
 
