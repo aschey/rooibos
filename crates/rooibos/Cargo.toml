@@ -5,7 +5,9 @@ edition = "2021"
 
 [dependencies]
 rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "f34b9915c4dbda5ec871a60e6ea943283cad179a" }
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "a4623caa9bedeefb9b8896722f9bac751180dea5", features = [
+    "tracing",
+] }
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
 rooibos-components = { path = "../rooibos-components" }

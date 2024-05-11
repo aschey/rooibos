@@ -51,7 +51,7 @@ impl RouteContext {
     }
 
     pub fn use_param(&self, param: impl Into<String>) -> Signal<Option<String>> {
-        let router = self.router.get().unwrap();
+        let router = self.router.get_value();
         let param = param.into();
         let current_route = self.current_route;
         signal!({
@@ -168,7 +168,7 @@ impl Render<RooibosDom> for Router {
         });
 
         RenderEffect::new(move |prev: Option<RouterState>| {
-            let router = router_ctx.router.get().unwrap();
+            let router = router_ctx.router.get_value();
             let cur = router_ctx.current_route();
             let path = cur.path();
             let index = *router.at(path).unwrap().value;

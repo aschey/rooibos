@@ -1,6 +1,6 @@
 use rooibos::dom::{col, row, widget_ref, Constrainable, Render};
 use rooibos::reactive::computed::Memo;
-use rooibos::reactive::signal::RwSignal;
+use rooibos::reactive::owner::StoredValue;
 use rooibos::reactive::traits::Get;
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Color, Style, Stylize};
@@ -9,7 +9,7 @@ use rooibos::tui::widgets::canvas::{self, Canvas, Circle, Context, Map, MapResol
 use rooibos::tui::widgets::{Block, Row, Table};
 
 pub(crate) fn tab1() -> impl Render {
-    let servers = RwSignal::new(vec![
+    let servers = StoredValue::new(vec![
         Server {
             name: "NorthAmerica-1",
             location: "New York City",
@@ -50,10 +50,10 @@ pub struct Server<'a> {
     pub status: &'a str,
 }
 
-fn demo_table(servers: RwSignal<Vec<Server<'static>>>) -> impl Render {
+fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
     let rows = Memo::new(move |_| {
         servers
-            .get()
+            .get_value()
             .into_iter()
             .map(|s| {
                 let style = if s.status == "Up" {
@@ -77,9 +77,9 @@ fn demo_table(servers: RwSignal<Vec<Server<'static>>>) -> impl Render {
     )
 }
 
-fn demo_map(servers: RwSignal<Vec<Server<'static>>>, enhanced_graphics: bool) -> impl Render {
+fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool) -> impl Render {
     let paint_map = move |ctx: &mut Context<'_>| {
-        let servers = servers.get();
+        let servers = servers.get_value();
         ctx.draw(&Map {
             color: Color::White,
             resolution: MapResolution::High,

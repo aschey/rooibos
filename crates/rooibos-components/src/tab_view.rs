@@ -120,14 +120,11 @@ impl TabView {
         self
     }
 
-    pub fn render<S>(
+    pub fn render(
         self,
-        current_tab: S,
+        current_tab: impl Into<Signal<String>>,
         children: impl Into<MaybeSignal<Vec<Tab>>>,
-    ) -> impl Render
-    where
-        S: Get<Value = String> + Clone + Send + Sync + 'static,
-    {
+    ) -> impl Render {
         let Self {
             block,
             padding,
@@ -138,22 +135,25 @@ impl TabView {
             fit,
         } = self;
         let children: MaybeSignal<Vec<Tab>> = children.into();
-        let children = signal!(children.get());
 
-        let current_tab = signal!(current_tab.get());
+        let current_tab = current_tab.into();
 
-        let cur_tab = signal!({
-            let current_tab = current_tab.get();
-            children.get().iter().enumerate().find_map(|(i, c)| {
-                if c.value == current_tab {
-                    Some((c.children.clone(), i))
-                } else {
-                    None
-                }
+        let cur_tab = {
+            let children = children.clone();
+            signal!({
+                let current_tab = current_tab.get();
+                children.get().iter().enumerate().find_map(|(i, c)| {
+                    if c.value == current_tab {
+                        Some((c.children.clone(), i))
+                    } else {
+                        None
+                    }
+                })
             })
-        });
+        };
 
         let headers = {
+            let children = children.clone();
             signal!({
                 let cur_tab = cur_tab.get().unwrap().1;
                 let highlight_style = highlight_style.get();
@@ -177,7 +177,12 @@ impl TabView {
                             )
                         } else {
                             if i == cur_tab {
-                                header = header.style(highlight_style);
+                                let spans: Vec<_> = header
+                                    .spans
+                                    .into_iter()
+                                    .map(|s| s.set_style(highlight_style))
+                                    .collect();
+                                header = Line::from(spans);
                             }
 
                             header
