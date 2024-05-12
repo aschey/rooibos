@@ -33,8 +33,6 @@ mod tab2;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-const NUM_TABS: usize = 3;
-
 #[rooibos::main]
 async fn main() -> Result<()> {
     let (ipc_writer, mut guard) = tilia::Writer::new(1024, move || {
@@ -106,7 +104,7 @@ fn header_tabs() -> impl Render {
 
     let update_current_tab = move |change: i32| {
         set_focused_tab.update(|f| {
-            let next = (*f as i32 + change).rem_euclid(NUM_TABS as i32);
+            let next = (*f as i32 + change).rem_euclid(titles.len() as i32);
             *f = next as usize;
         });
     };

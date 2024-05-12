@@ -215,23 +215,21 @@ impl TabView {
             let mut total_len = 1u16;
             for (i, child) in children.iter().enumerate() {
                 let header = child.header.get();
-                let decorator = child
+                let decorator_area = child
                     .decorator
                     .as_ref()
-                    .map(|d| d.get())
-                    .unwrap_or_default();
+                    .map(|d| (d.get().width() + 2) as u16)
+                    .unwrap_or(0);
                 let header_area = header.width() as u16 + 2;
-                let decorator_area = decorator.width() as u16 + 2;
+
                 if col_offset <= (total_len + header_area) {
                     if child.value != current_tab.get() {
                         on_change(i, &child.value);
                     }
-
                     break;
                 }
                 if col_offset <= (total_len + header_area + decorator_area) {
                     on_decorator_click(i, &child.value);
-
                     break;
                 }
                 total_len += header_area + decorator_area + 1;
