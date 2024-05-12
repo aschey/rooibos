@@ -8,7 +8,7 @@ use crate::{DomNode, RenderAny, RooibosDom};
 #[derive(Debug)]
 pub struct AnyView {
     type_id: TypeId,
-    value: Box<dyn Any>,
+    value: Box<dyn Any + Send>,
     build: fn(Box<dyn Any>) -> AnyViewState,
     rebuild: fn(TypeId, Box<dyn Any>, &mut AnyViewState),
 }
@@ -78,11 +78,12 @@ where
 
 impl<T> IntoAny for T
 where
+    T: Send,
     T: RenderAny + 'static,
     T::State: 'static,
 {
     fn into_any(self) -> AnyView {
-        let value = Box::new(self) as Box<dyn Any>;
+        let value = Box::new(self) as Box<dyn Any + Send>;
 
         let build = |value: Box<dyn Any>| {
             let value = value

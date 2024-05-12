@@ -251,7 +251,7 @@ impl Renderer for RooibosDom {
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
-        unmount_child(child.key());
+        unmount_child(child.key(), true);
         Some(child.clone())
     }
 
@@ -260,7 +260,7 @@ impl Renderer for RooibosDom {
     }
 
     fn remove(node: &Self::Node) {
-        unmount_child(node.key());
+        unmount_child(node.key(), true);
     }
 
     fn get_parent(node: &Self::Node) -> Option<Self::Node> {
@@ -294,7 +294,7 @@ impl AsRef<DomNode> for DomNode {
 
 impl Mountable<RooibosDom> for DomNode {
     fn unmount(&mut self) {
-        unmount_child(self.key())
+        unmount_child(self.key(), false)
     }
 
     fn mount(
@@ -329,15 +329,18 @@ fn mount_child(parent: &DomNode, child: &DomNode) -> DomNodeKey {
 fn cleanup_removed_nodes(
     node: &DomNodeKey,
     nodes: &mut RefMut<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    remove: bool,
 ) {
     with_state_mut(|s| {
         s.remove_focusable(node);
     });
     let children = nodes[*node].children.clone();
     for child in children {
-        cleanup_removed_nodes(&child, nodes);
+        cleanup_removed_nodes(&child, nodes, remove);
     }
-    nodes.remove(*node);
+    if remove {
+        nodes.remove(*node);
+    }
 }
 
 // fn disconnect_child(child: DomNodeKey) {
@@ -364,15 +367,15 @@ fn cleanup_removed_nodes(
 //     }
 // }
 
-fn unmount_child(child: DomNodeKey) {
+fn unmount_child(child: DomNodeKey, cleanup: bool) {
     with_nodes_mut(|mut d| {
         let child_node = &d[child];
         if let Some(parent) = child_node.parent {
             let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
             d[parent].children.remove(child_pos);
         }
-
-        cleanup_removed_nodes(&child, &mut d);
+        d[child].parent = None;
+        cleanup_removed_nodes(&child, &mut d, cleanup);
     });
     notify();
 }

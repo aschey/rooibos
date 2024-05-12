@@ -5,6 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::OnceLock;
 use std::time::Duration;
 
+use any_spawner::Executor;
 use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent, KeyModifiers,
     KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
@@ -136,7 +137,7 @@ impl Runtime {
             Ordering::Relaxed,
         );
         if settings.enable_input_reader {
-            tokio::spawn(async move { read_input(quit_tx, term_event_tx).await });
+            Executor::spawn(async move { read_input(quit_tx, term_event_tx).await });
         }
 
         Self {
@@ -172,7 +173,7 @@ pub async fn tick() -> TickResult {
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     let mut term_rx = TERM_TX.get().expect("runtime not initialized").subscribe();
     let (term_signal, set_term_signal) = signal(None);
-    tokio::spawn(async move {
+    Executor::spawn(async move {
         // TODO: this doesn't work?
         // if term_signal.is_disposed() {
         //     return;

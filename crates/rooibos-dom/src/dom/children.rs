@@ -41,7 +41,7 @@ pub trait IntoChildren {
 impl<F, C> IntoChildren for F
 where
     F: FnOnce() -> C + 'static,
-    C: RenderAny + 'static,
+    C: RenderAny + Send + 'static,
 {
     fn into_children(self) -> Children {
         Box::new(move || self().into_any())
@@ -175,6 +175,16 @@ pub struct TypedChildren<T>(Box<dyn FnOnce() -> View<T> + Send>);
 impl<T> TypedChildren<T> {
     pub fn into_inner(self) -> impl FnOnce() -> View<T> + Send {
         self.0
+    }
+}
+
+impl<F, T> From<F> for TypedChildren<T>
+where
+    F: FnOnce() -> T + Send + Sync + 'static,
+    T: RenderAny,
+{
+    fn from(value: F) -> Self {
+        Self(Box::new(move || value().into_view()))
     }
 }
 
