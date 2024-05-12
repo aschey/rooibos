@@ -21,16 +21,27 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let focused = RwSignal::new("tab1".to_string());
+
     let tabs = RwSignal::new(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1").decorator(Line::from("✕".red())),
         Tab::new(Line::from("Tab2"), "tab2", move || "tab2").decorator(Line::from("✕".red())),
     ]);
+
     let next_tab = RwSignal::new(3);
 
-    let remove_tab = move |i: usize, _: &str| {
+    let remove_tab = move |i: usize, tab: &str| {
         tabs.update(|t| {
             t.remove(i);
         });
+        if focused.get() == tab {
+            let tabs = tabs.get();
+            if tabs.is_empty() {
+                focused.set("");
+                return;
+            }
+            let new_idx = (i as isize - 1).max(0);
+            focused.set(tabs[new_idx as usize].get_value().to_string());
+        }
     };
 
     row![
@@ -60,6 +71,10 @@ fn app() -> impl Render {
                             );
                             next_tab.update(|t| *t += 1);
                         });
+                        let tabs = tabs.get();
+                        if tabs.len() == 1 {
+                            focused.set(tabs[0].get_value().to_string());
+                        }
                     })
                     .render(Text::from("+".green()))
             ]

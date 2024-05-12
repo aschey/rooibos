@@ -6,8 +6,8 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoChildrenFn, MouseEvent,
-    Render,
+    col, signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny, IntoChildrenFn,
+    MouseEvent, Render,
 };
 
 #[derive(Clone)]
@@ -155,7 +155,10 @@ impl TabView {
         let headers = {
             let children = children.clone();
             signal!({
-                let cur_tab = cur_tab.get().unwrap().1;
+                let cur_tab = cur_tab.get();
+                let Some((_, cur_tab)) = cur_tab else {
+                    return vec![];
+                };
                 let highlight_style = highlight_style.get();
                 children
                     .get()
@@ -195,6 +198,9 @@ impl TabView {
         let headers_len = signal!({
             let headers = headers.get();
             let len = headers.len();
+            if len == 0 {
+                return 0;
+            }
             // title length + 2 spaces per title + number of dividers (number of tabs - 1)
             // + outside borders (2)
             headers.iter().map(|t| (t.width() + 2) as u16).sum::<u16>() + (len as u16 - 1) + 2
@@ -242,7 +248,7 @@ impl TabView {
             widget_ref!({
                 let headers = Tabs::new(headers.get())
                     .highlight_style(Style::default())
-                    .select(cur_tab.get().unwrap().1);
+                    .select(cur_tab.get().map(|t| t.1).unwrap_or(0));
                 if let Some(block) = block.get() {
                     headers.block(block)
                 } else {
@@ -251,7 +257,10 @@ impl TabView {
             })
             .on_click(on_click)
             .length(length),
-            move || cur_tab.get().unwrap().0()
+            move || cur_tab
+                .get()
+                .map(|c| c.0())
+                .unwrap_or_else(|| ().into_any())
         ]
         .constraint(constraint)
     }
