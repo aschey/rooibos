@@ -1,6 +1,6 @@
 use reactive_graph::effect::RenderEffect;
-use reactive_graph::owner::{provide_context, use_context, StoredValue};
-use reactive_graph::signal::RwSignal;
+use reactive_graph::owner::{provide_context, use_context, Owner, StoredValue};
+use reactive_graph::signal::{signal, WriteSignal};
 use reactive_graph::traits::{Get, Update};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::{signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom};
@@ -24,7 +24,7 @@ impl Route {
 
 #[derive(Clone)]
 pub struct RouteContext {
-    history: RwSignal<Vec<Url>>,
+    set_history: WriteSignal<Vec<Url>>,
     current_route: Signal<Url>,
     router: StoredValue<matchit::Router<usize>>,
 }
@@ -35,13 +35,13 @@ impl RouteContext {
             .base_url(Some(&"app://".parse().unwrap()))
             .parse(route.as_ref())
             .unwrap();
-        self.history.update(|h| {
+        self.set_history.update(|h| {
             h.push(url);
         });
     }
 
     pub fn pop(&self) {
-        self.history.update(|h| {
+        self.set_history.update(|h| {
             h.pop();
         });
     }
@@ -50,7 +50,7 @@ impl RouteContext {
         self.current_route.get()
     }
 
-    pub fn use_param(&self, param: impl Into<String>) -> Signal<Option<String>> {
+    pub fn try_use_param(&self, param: impl Into<String>) -> Signal<Option<String>> {
         let router = self.router.get_value();
         let param = param.into();
         let current_route = self.current_route;
@@ -62,16 +62,29 @@ impl RouteContext {
         })
     }
 
-    pub fn use_query(&self, query: impl Into<String>) -> Signal<Option<String>> {
-        let route = self.current_route.get();
+    pub fn use_param(&self, param: impl Into<String>) -> Signal<String> {
+        let param = self.try_use_param(param);
+        signal!(param.get().unwrap())
+    }
+
+    pub fn try_use_query(&self, query: impl Into<String>) -> Signal<Option<String>> {
         let query = query.into();
-        signal!(route.query_pairs().find_map(|q| {
-            if q.0 == query {
-                Some(q.1.to_string())
-            } else {
-                None
-            }
-        }))
+        let current_route = self.current_route;
+        signal!({
+            let route = current_route.get();
+            route.query_pairs().find_map(|q| {
+                if q.0 == query {
+                    Some(q.1.to_string())
+                } else {
+                    None
+                }
+            })
+        })
+    }
+
+    pub fn use_query(&self, query: impl Into<String>) -> Signal<String> {
+        let query = self.try_use_query(query);
+        signal!(query.get().unwrap())
     }
 }
 
@@ -80,9 +93,9 @@ pub fn use_router() -> RouteContext {
 }
 
 fn init_router(initial: String) {
-    let history = RwSignal::new(vec![]);
+    let (history, set_history) = signal(vec![]);
     let context = RouteContext {
-        history,
+        set_history,
         router: StoredValue::new(matchit::Router::new()),
         current_route: signal!({
             let h = history.get();
@@ -167,21 +180,23 @@ impl Render<RooibosDom> for Router {
             }
         });
 
+        let parent = Owner::current().expect("no reactive owner");
+
         RenderEffect::new(move |prev: Option<RouterState>| {
             let router = router_ctx.router.get_value();
             let cur = router_ctx.current_route();
             let path = cur.path();
             let index = *router.at(path).unwrap().value;
-            let view = (routes[index].children)();
+
             if let Some(mut router_state) = prev {
                 if index == router_state.index {
-                    view.rebuild(&mut router_state.state);
                     RouterState {
                         state: router_state.state,
                         index,
                         parent: router_state.parent,
                     }
                 } else {
+                    let view = parent.with(|| (routes[index].children)());
                     router_state.state.unmount();
                     let mut new = view.build();
                     if let Some(parent) = &router_state.parent {
@@ -195,6 +210,7 @@ impl Render<RooibosDom> for Router {
                     }
                 }
             } else {
+                let view = parent.with(|| (routes[index].children)());
                 RouterState {
                     state: view.build(),
                     index,

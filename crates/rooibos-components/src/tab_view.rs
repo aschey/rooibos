@@ -3,7 +3,7 @@ use ratatui::layout::Constraint::*;
 use ratatui::style::{Style, Styled};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use reactive_graph::traits::{Get, GetUntracked};
+use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
     col, signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoChildrenFn, MouseEvent,
@@ -136,7 +136,7 @@ impl TabView {
         } = self;
         let children: MaybeSignal<Vec<Tab>> = children.into();
 
-        let current_tab = current_tab.into();
+        let current_tab: Signal<String> = current_tab.into();
 
         let cur_tab = {
             let children = children.clone();
@@ -211,19 +211,19 @@ impl TabView {
         let on_click = move |mouse_event: MouseEvent, event_data: EventData| {
             let start_col = event_data.rect.x;
             let col_offset = mouse_event.column - start_col;
-            let children = children.get_untracked();
+            let children = children.get();
             let mut total_len = 1u16;
             for (i, child) in children.iter().enumerate() {
-                let header = child.header.get_untracked();
+                let header = child.header.get();
                 let decorator = child
                     .decorator
                     .as_ref()
-                    .map(|d| d.get_untracked())
+                    .map(|d| d.get())
                     .unwrap_or_default();
                 let header_area = header.width() as u16 + 2;
                 let decorator_area = decorator.width() as u16 + 2;
                 if col_offset <= (total_len + header_area) {
-                    if child.value != current_tab.get_untracked() {
+                    if child.value != current_tab.get() {
                         on_change(i, &child.value);
                     }
 

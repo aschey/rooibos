@@ -47,6 +47,8 @@ impl DomState {
         if let Some(focused_key) = self.focused_key {
             let node = &mut nodes[focused_key];
             if let Some(on_blur) = &mut node.event_handlers.on_blur {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
                 on_blur.borrow_mut()(EventData {
                     rect: *node.rect.borrow(),
                 });
@@ -56,6 +58,8 @@ impl DomState {
         let node = &mut nodes[node_key];
         self.set_focused.set(node.id.to_owned());
         if let Some(on_focused) = &mut node.event_handlers.on_focus {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
             on_focused.borrow_mut()(EventData {
                 rect: *node.rect.borrow(),
             });

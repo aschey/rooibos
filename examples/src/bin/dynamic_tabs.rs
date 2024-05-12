@@ -4,7 +4,7 @@ use std::io::Stdout;
 use rooibos::components::{Button, Tab, TabView};
 use rooibos::dom::{col, row, Constrainable, Render};
 use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{GetUntracked, Set, Update};
+use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::{Line, Text};
@@ -49,7 +49,7 @@ fn app() -> impl Render {
                 Button::new()
                     .on_click(move || {
                         tabs.update(|t| {
-                            let num = next_tab.get_untracked();
+                            let num = next_tab.get();
                             t.push(
                                 Tab::new(
                                     Line::from(format!("Tab{num}")),

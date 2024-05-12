@@ -5,6 +5,7 @@ use tachys::view::{Mountable, Render};
 
 use crate::{DomNode, RenderAny, RooibosDom};
 
+#[derive(Debug)]
 pub struct AnyView {
     type_id: TypeId,
     value: Box<dyn Any>,

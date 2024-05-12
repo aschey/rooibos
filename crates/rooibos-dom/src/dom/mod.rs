@@ -496,6 +496,10 @@ pub fn send_event(event: Event) {
                             KeyEventKind::Press | KeyEventKind::Repeat => {
                                 let node = &mut nodes[key];
                                 if let Some(on_key_down) = &mut node.event_handlers.on_key_down {
+                                    #[cfg(debug_assertions)]
+                                    let _guard =
+                                        reactive_graph::diagnostics::SpecialNonReactiveZone::enter(
+                                        );
                                     on_key_down.borrow_mut()(
                                         key_event,
                                         EventData {
@@ -507,6 +511,10 @@ pub fn send_event(event: Event) {
                             KeyEventKind::Release => {
                                 let node = &mut nodes[key];
                                 if let Some(on_key_up) = &mut node.event_handlers.on_key_up {
+                                    #[cfg(debug_assertions)]
+                                    let _guard =
+                                        reactive_graph::diagnostics::SpecialNonReactiveZone::enter(
+                                        );
                                     on_key_up.borrow_mut()(
                                         key_event,
                                         EventData {
@@ -537,6 +545,9 @@ pub fn send_event(event: Event) {
                             None
                         });
                         if let Some((on_click, rect)) = current {
+                            #[cfg(debug_assertions)]
+                            let _guard =
+                                reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
                             on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
                         }
                     }

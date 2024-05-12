@@ -5,7 +5,7 @@ use rooibos::components::{use_router, Route, Router};
 use rooibos::dom::{col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, GetUntracked, Update};
+use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::widgets::Paragraph;
 
@@ -57,12 +57,12 @@ fn child1(child2_id: RwSignal<i32>) -> impl Render {
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
-            router.push(format!("/child2/{}", child2_id.get_untracked()));
+            router.push(format!("/child2/{}", child2_id.get()));
             child2_id.update(|id| *id += 1);
         }
     };
 
-    widget_ref!(Paragraph::new(format!("child1 id={}", id.get().unwrap())))
+    widget_ref!(Paragraph::new(format!("child1 id={}", id.get())))
         .focusable(true)
         .on_key_down(key_down)
         .id("child1")
@@ -82,7 +82,7 @@ fn child2() -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new(format!("child2 id={}", id.get().unwrap())))
+    widget_ref!(Paragraph::new(format!("child2 id={}", id.get())))
         .focusable(true)
         .on_key_down(key_down)
         .id("child2")
