@@ -4,19 +4,20 @@ use std::io::Stdout;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::{col, row, suspense, widget_ref, Constrainable, Render, Suspend};
+use rooibos::dom::{
+    col, error_boundary, row, suspense, widget_ref, Constrainable, Errors, Render, Suspend,
+};
 use rooibos::reactive::computed::AsyncDerived;
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Set};
+use rooibos::reactive::signal::{signal, ArcRwSignal};
+use rooibos::reactive::traits::{Get, Set, With};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::style::Stylize;
-use rooibos::tui::text::{Line, Text};
+use rooibos::tui::text::{Line, Span, Text};
+use rooibos::tui::widgets::Paragraph;
 use serde::Deserialize;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
-
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result<(), Box<dyn Error>> {
     start(RuntimeSettings::default(), app);
     run::<Stdout>(TerminalSettings::default()).await?;
 
@@ -27,6 +28,19 @@ fn app() -> impl Render {
     let (id, set_id) = signal(1);
 
     let character = AsyncDerived::new(move || fetch_next(id.get()));
+
+    let fallback = move |errors: ArcRwSignal<Errors>| {
+        let error_list = move || {
+            errors.with(|errors| {
+                errors
+                    .iter()
+                    .map(|(_, e)| Span::from(e.to_string()))
+                    .collect::<Vec<_>>()
+            })
+        };
+
+        widget_ref!(Paragraph::new(Line::from(error_list())))
+    };
 
     col![
         row![
@@ -42,29 +56,31 @@ fn app() -> impl Render {
         .length(3),
         row![col![suspense(
             move || widget_ref!(Line::from("Loading...".gray())),
-            move || {
-                Suspend(async move {
-                    let character = character.await;
-                    widget_ref!(Line::from(character.clone().green()))
-                })
-            }
+            move || error_boundary(
+                move || {
+                    Suspend(async move {
+                        character
+                            .await
+                            .map(|c| widget_ref!(Line::from(c.clone().green())))
+                    })
+                },
+                fallback
+            )
         )]]
     ]
 }
 
 #[derive(Deserialize)]
 struct Response {
-    name: Option<String>,
+    name: String,
 }
 
-async fn fetch_next(id: i32) -> String {
+async fn fetch_next(id: i32) -> rooibos::dom::Result<String> {
     let res = Client::new()
         .get(format!("https://swapi.dev/api/people/{id}"))
         .send()
-        .await
-        .unwrap()
+        .await?
         .json::<Response>()
-        .await
-        .unwrap();
-    res.name.unwrap_or_else(|| "N/A".to_string())
+        .await?;
+    Ok(res.name)
 }

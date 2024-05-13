@@ -25,6 +25,7 @@ tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
 bitflags = "2"
 derivative = "2"
 futures = "0.3.30"
+rustc-hash = "1"
 
 [dev-dependencies]
 any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "49066758ecc6329ab21a9b5e5248ec60d747c6d3", features = [
