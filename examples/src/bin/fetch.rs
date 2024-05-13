@@ -43,7 +43,12 @@ fn app() -> impl Render {
         .length(3),
         row![col![suspense(
             move || widget_ref!(Line::from("Loading...".gray())),
-            move || { Suspend(async move { character.await }) }
+            move || {
+                Suspend(async move {
+                    let character = character.await;
+                    widget_ref!(Line::from(character.clone().green()))
+                })
+            }
         )]]
         .length(3)
     ]

@@ -184,5 +184,10 @@ impl Render<RooibosDom> for DomWidget {
         self.inner
     }
 
-    fn rebuild(self, _state: &mut Self::State) {}
+    fn rebuild(mut self, state: &mut Self::State) {
+        if &self.inner != state {
+            self.inner.replace_node(state);
+            notify();
+        }
+    }
 }

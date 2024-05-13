@@ -321,6 +321,24 @@ impl DomNode {
         with_nodes_mut(|mut n| n[self.key] = inner);
     }
 
+    pub(crate) fn replace_node(&mut self, node: &DomNode) {
+        with_nodes_mut(|mut n| {
+            let current = n[self.key].clone();
+            let new = &mut n[node.key];
+
+            new.name = current.name;
+            new.node_type = current.node_type;
+            new.constraint = current.constraint;
+            new.focusable = current.focusable;
+            new.id = current.id;
+            new.event_handlers = current.event_handlers;
+            new.data = current.data;
+            new.rect = current.rect;
+        });
+        unmount_child(self.key, true);
+        self.key = node.key;
+    }
+
     pub(crate) fn add_data(&self, data: impl Any) {
         with_nodes_mut(|mut n| n[self.key].data.push(Rc::new(data)));
     }
