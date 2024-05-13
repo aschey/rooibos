@@ -154,6 +154,24 @@ impl DomWidget {
             .update_event_handlers(|event_handlers| event_handlers.on_click(handler));
         self
     }
+
+    pub fn on_mouse_enter<F>(self, handler: F) -> Self
+    where
+        F: FnMut(EventData) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_mouse_enter(handler));
+        self
+    }
+
+    pub fn on_mouse_leave<F>(self, handler: F) -> Self
+    where
+        F: FnMut(EventData) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_mouse_leave(handler));
+        self
+    }
 }
 
 impl Constrainable for DomWidget {

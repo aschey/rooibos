@@ -11,6 +11,7 @@ pub(crate) struct DomState {
     focused: ReadSignal<Option<NodeId>>,
     set_focused: WriteSignal<Option<NodeId>>,
     focused_key: Option<DomNodeKey>,
+    hovered_key: Option<DomNodeKey>,
     focusable_nodes: Vec<DomNodeKey>,
 }
 
@@ -21,6 +22,7 @@ impl Default for DomState {
             focused,
             set_focused,
             focused_key: None,
+            hovered_key: None,
             focusable_nodes: vec![],
         }
     }
@@ -33,6 +35,10 @@ impl DomState {
 
     pub(crate) fn focused_key(&self) -> Option<DomNodeKey> {
         self.focused_key
+    }
+
+    pub(crate) fn hovered_key(&self) -> Option<DomNodeKey> {
+        self.hovered_key
     }
 
     pub(crate) fn focusable_nodes(&self) -> &Vec<DomNodeKey> {
@@ -61,6 +67,32 @@ impl DomState {
             #[cfg(debug_assertions)]
             let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
             on_focused.borrow_mut()(EventData {
+                rect: *node.rect.borrow(),
+            });
+        }
+    }
+
+    pub(crate) fn set_hovered(
+        &mut self,
+        node_key: DomNodeKey,
+        nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>,
+    ) {
+        if let Some(hovered_key) = self.hovered_key {
+            let node = &mut nodes[hovered_key];
+            if let Some(on_mouse_leave) = &mut node.event_handlers.on_mouse_leave {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                on_mouse_leave.borrow_mut()(EventData {
+                    rect: *node.rect.borrow(),
+                });
+            }
+        }
+        self.hovered_key = Some(node_key);
+        let node = &mut nodes[node_key];
+        if let Some(on_mouse_enter) = &mut node.event_handlers.on_mouse_enter {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            on_mouse_enter.borrow_mut()(EventData {
                 rect: *node.rect.borrow(),
             });
         }

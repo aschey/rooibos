@@ -58,6 +58,7 @@ impl Button {
             constraint,
         } = self;
         let border_color = RwSignal::new(Color::Gray);
+        let border_type = RwSignal::new(BorderType::Rounded);
 
         let on_enter = move || {
             border_color.set(Color::Green);
@@ -85,13 +86,15 @@ impl Button {
             Paragraph::new(children.get())
                 .block(
                     Block::bordered()
-                        .border_type(BorderType::Rounded)
+                        .border_type(border_type.get())
                         .border_style(Style::default().fg(border_color.get()))
                 )
                 .centered()
         )
         .constraint(constraint)
         .focusable(true)
+        .on_mouse_enter(move |_| border_type.set(BorderType::Double))
+        .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
         .on_click(move |_, _| on_enter_())
         .on_focus(move |_| border_color.set(Color::Blue))
         .on_blur(move |_| border_color.set(Color::Gray))

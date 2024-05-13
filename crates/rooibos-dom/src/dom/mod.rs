@@ -544,6 +544,9 @@ pub fn send_event(event: Event) {
                             if state.focused_key() != Some(current) {
                                 state.set_focused(current, &mut nodes);
                             }
+                            if state.hovered_key() != Some(current) {
+                                state.set_hovered(current, &mut nodes)
+                            }
                         }
                     }
                     crate::MouseEventKind::ScrollDown => {}

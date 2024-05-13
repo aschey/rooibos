@@ -16,6 +16,8 @@ pub(crate) struct EventHandlers {
     pub(crate) on_focus: Option<EventFn>,
     pub(crate) on_blur: Option<EventFn>,
     pub(crate) on_click: Option<MouseEventFn>,
+    pub(crate) on_mouse_enter: Option<EventFn>,
+    pub(crate) on_mouse_leave: Option<EventFn>,
 }
 
 impl EventHandlers {
@@ -56,6 +58,22 @@ impl EventHandlers {
         F: FnMut(MouseEvent, EventData) + 'static,
     {
         self.on_click = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub(crate) fn on_mouse_enter<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(EventData) + 'static,
+    {
+        self.on_mouse_enter = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub(crate) fn on_mouse_leave<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(EventData) + 'static,
+    {
+        self.on_mouse_leave = Some(Rc::new(RefCell::new(handler)));
         self
     }
 }
