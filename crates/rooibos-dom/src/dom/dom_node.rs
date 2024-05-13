@@ -79,6 +79,7 @@ pub(crate) enum NodeType {
     Layout(Rc<RefCell<LayoutProps>>),
     Overlay,
     Widget(DomWidgetNode),
+    Placeholder,
 }
 
 impl NodeType {
@@ -111,6 +112,11 @@ impl NodeType {
                 attrs: None,
                 children: Some(format!("{widget:?}")),
             },
+            NodeType::Placeholder => NodeTypeStructure {
+                name: "Placeholder",
+                attrs: None,
+                children: None,
+            },
         }
     }
 }
@@ -134,6 +140,7 @@ impl Debug for NodeType {
             }
             NodeType::Overlay => write!(f, "Overlay"),
             NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
+            NodeType::Placeholder => write!(f, "Placeholder"),
         }
     }
 }
@@ -199,8 +206,7 @@ impl DomNodeInner {
                     .constraints(constraints);
 
                 let chunks = layout.split(rect);
-                self.children
-                    .iter()
+                self.renderable_children(dom_nodes)
                     .zip(chunks.iter())
                     .for_each(|(key, chunk)| {
                         dom_nodes[*key].render(
@@ -217,7 +223,7 @@ impl DomNodeInner {
             NodeType::Overlay => {
                 let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
                 let chunks = parent_layout.split(rect);
-                self.children.iter().for_each(|key| {
+                self.renderable_children(dom_nodes).for_each(|key| {
                     dom_nodes[*key].render(
                         frame,
                         chunks[0],
@@ -234,7 +240,17 @@ impl DomNodeInner {
                 widget.render(frame, chunks[0]);
                 *self.rect.borrow_mut() = chunks[0];
             }
+            NodeType::Placeholder => {}
         }
+    }
+
+    fn renderable_children<'a>(
+        &'a self,
+        dom_nodes: &'a Ref<'a, SlotMap<DomNodeKey, DomNodeInner>>,
+    ) -> impl Iterator<Item = &DomNodeKey> {
+        self.children
+            .iter()
+            .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Placeholder))
     }
 }
 
@@ -282,6 +298,27 @@ impl DomNode {
     // pub(crate) fn from_key(key: DomNodeKey) -> Self {
     //     Self { key }
     // }
+
+    pub(crate) fn placeholder() -> Self {
+        let inner = DomNodeInner {
+            name: "Placeholder".to_string(),
+            node_type: NodeType::Placeholder,
+            constraint: Default::default(),
+            children: vec![],
+            parent: None,
+            // before_pending: vec![],
+            focusable: Default::default(),
+            id: None,
+            event_handlers: Default::default(),
+            data: vec![],
+            rect: Default::default(),
+        };
+        let key = with_nodes_mut(|mut n| n.insert(inner));
+        Self {
+            key,
+            unmounted: false,
+        }
+    }
 
     pub(crate) fn from_fragment(fragment: DocumentFragment) -> Self {
         let inner = DomNodeInner {

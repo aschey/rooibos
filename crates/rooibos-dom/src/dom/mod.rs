@@ -222,7 +222,7 @@ impl Renderer for RooibosDom {
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        widget_ref!(Text::from("")).inner()
+        DomNode::placeholder()
     }
 
     fn set_text(node: &Self::Text, text: &str) {
