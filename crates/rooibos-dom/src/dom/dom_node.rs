@@ -9,11 +9,12 @@ use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::widgets::Block;
 use ratatui::Frame;
 use slotmap::{new_key_type, SlotMap};
-use tachys::view::Render;
+use tachys::renderer::Renderer;
+use tachys::view::{Mountable, Render};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
-use super::{with_nodes, with_nodes_mut, with_state_mut};
+use super::{mount_child, unmount_child, with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
 use crate::{next_node_id, DomWidgetNode, EventHandlers, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -237,11 +238,46 @@ impl DomNodeInner {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct DomNode {
     key: DomNodeKey,
+    unmounted: bool,
 }
 
+impl Mountable<RooibosDom> for DomNode {
+    fn unmount(&mut self) {
+        unmount_child(self.key(), false);
+        self.unmounted = true;
+    }
+
+    fn mount(
+        &mut self,
+        parent: &<RooibosDom as Renderer>::Element,
+        _marker: Option<&<RooibosDom as Renderer>::Node>,
+    ) {
+        mount_child(parent, self);
+        self.unmounted = false;
+    }
+
+    fn insert_before_this(
+        &self,
+        parent: &<RooibosDom as Renderer>::Element,
+        child: &mut dyn Mountable<RooibosDom>,
+    ) -> bool {
+        child.mount(parent, Some(self));
+        true
+    }
+}
+
+impl Drop for DomNode {
+    fn drop(&mut self) {
+        // The thread-local may already have been destroyed
+        // We can check using try_with to prevent errors here
+        if self.unmounted && DOM_NODES.try_with(|_| {}).is_ok() {
+            unmount_child(self.key, true);
+        }
+    }
+}
 impl DomNode {
     // pub(crate) fn from_key(key: DomNodeKey) -> Self {
     //     Self { key }
@@ -262,7 +298,10 @@ impl DomNode {
             rect: Rc::new(RefCell::new(Rect::default())),
         };
         let key = with_nodes_mut(|mut n| n.insert(inner));
-        Self { key }
+        Self {
+            key,
+            unmounted: false,
+        }
     }
 
     pub(crate) fn replace_fragment(&self, fragment: DocumentFragment) {
@@ -333,7 +372,12 @@ impl DomNode {
     }
 
     pub(crate) fn get_parent(&self) -> Option<DomNode> {
-        with_nodes(|n| n[self.key].parent.map(|p| DomNode { key: p }))
+        with_nodes(|n| {
+            n[self.key].parent.map(|p| DomNode {
+                key: p,
+                unmounted: false,
+            })
+        })
     }
 
     pub(crate) fn append_child(&self, node: &DomNode) {

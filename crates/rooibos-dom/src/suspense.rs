@@ -15,14 +15,16 @@ use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
 use tachys::view::iterators::OptionState;
 use tachys::view::{Mountable, Render};
 
-use crate::{DomNode, IntoView, RenderAny, RooibosDom, TypedChildren, ViewFnOnce};
+use crate::{AnyView, DomNode, IntoView, RenderAny, RooibosDom, ViewFnOnce};
 
-pub fn suspense<Chil>(fallback: ViewFnOnce, children: TypedChildren<Chil>) -> impl IntoView
+pub fn suspense<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl IntoView
 where
-    Chil: RenderAny + Send + 'static,
+    F: Fn() -> R,
+    R: RenderAny,
+    SuspenseBoundary<false, AnyView, F>: IntoView,
 {
-    let fallback = fallback.run();
-    let children = children.into_inner()();
+    let fallback = fallback.into().run();
+
     let tasks = ArcRwSignal::new(SlotMap::<DefaultKey, ()>::new());
     provide_context(SuspenseContext {
         tasks: tasks.clone(),
@@ -35,15 +37,13 @@ where
     }
 }
 
-pub fn transition<Chil>(
-    fallback: impl Into<ViewFnOnce>,
-    children: impl Into<TypedChildren<Chil>>,
-) -> impl RenderAny
+pub fn transition<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl RenderAny
 where
-    Chil: RenderAny + Send + 'static,
+    F: Fn() -> R,
+    R: RenderAny,
+    SuspenseBoundary<true, AnyView, F>: IntoView,
 {
     let fallback = fallback.into().run();
-    let children = children.into().into_inner()();
     let tasks = ArcRwSignal::new(SlotMap::<DefaultKey, ()>::new());
     provide_context(SuspenseContext {
         tasks: tasks.clone(),

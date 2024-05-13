@@ -292,33 +292,10 @@ impl AsRef<DomNode> for DomNode {
     }
 }
 
-impl Mountable<RooibosDom> for DomNode {
-    fn unmount(&mut self) {
-        unmount_child(self.key(), false)
-    }
-
-    fn mount(
-        &mut self,
-        parent: &<RooibosDom as Renderer>::Element,
-        _marker: Option<&<RooibosDom as Renderer>::Node>,
-    ) {
-        mount_child(parent, self);
-    }
-
-    fn insert_before_this(
-        &self,
-        parent: &<RooibosDom as Renderer>::Element,
-        child: &mut dyn Mountable<RooibosDom>,
-    ) -> bool {
-        child.mount(parent, Some(self));
-        true
-    }
-}
-
-pub enum MountKind<'a> {
-    Before(&'a DomNode),
-    Append(&'a DomNode),
-}
+// pub enum MountKind<'a> {
+//     Before(&'a DomNode),
+//     Append(&'a DomNode),
+// }
 
 fn mount_child(parent: &DomNode, child: &DomNode) -> DomNodeKey {
     parent.append_child(child);
