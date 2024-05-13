@@ -35,7 +35,6 @@ fn app() -> impl Render {
                     .on_click(move || {
                         set_id.set(rand::thread_rng().gen_range(1..80));
                     })
-                    .length(3)
                     .render(Text::from("fetch next")),
             ]
             .length(20)
@@ -50,7 +49,6 @@ fn app() -> impl Render {
                 })
             }
         )]]
-        .length(3)
     ]
 }
 
