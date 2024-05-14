@@ -98,6 +98,20 @@ impl DomState {
         }
     }
 
+    pub(crate) fn remove_hovered(&mut self, nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>) {
+        if let Some(node_key) = self.hovered_key {
+            let node = &mut nodes[node_key];
+            if let Some(on_mouse_leave) = &mut node.event_handlers.on_mouse_leave {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                on_mouse_leave.borrow_mut()(EventData {
+                    rect: *node.rect.borrow(),
+                });
+            }
+        }
+        self.hovered_key = None;
+    }
+
     pub(crate) fn remove_focusable(&mut self, key: &DomNodeKey) {
         if self.focused_key == Some(*key) {
             self.focused_key = None;
