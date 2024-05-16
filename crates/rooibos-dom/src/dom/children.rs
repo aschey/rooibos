@@ -1,26 +1,40 @@
 use std::fmt::{self, Debug};
 use std::sync::Arc;
 
-use super::any_view::AnyView;
-use crate::dom::any_view::IntoAny;
-use crate::{IntoView, RenderAny, View};
+use tachys::view::fragment::{Fragment, IntoFragment};
+
+use crate::{AnyView, IntoAny, IntoView, RenderAny, RooibosDom, View};
 
 /// The most common type for the `children` property on components,
 /// which can only be called once.
-pub type Children = Box<dyn FnOnce() -> AnyView>;
+///
+/// This does not support iterating over individual nodes within the children.
+/// To iterate over children, use [`ChildrenFragment`].
+pub type Children = Box<dyn FnOnce() -> AnyView + Send>;
+
+/// A type for the `children` property on components that can be called only once,
+/// and provides a collection of all the children passed to this component.
+pub type ChildrenFragment = Box<dyn FnOnce() -> Fragment<RooibosDom> + Send>;
 
 /// A type for the `children` property on components that can be called
 /// more than once.
 pub type ChildrenFn = Arc<dyn Fn() -> AnyView + Send + Sync>;
 
+/// A type for the `children` property on components that can be called more than once,
+/// and provides a collection of all the children passed to this component.
+pub type ChildrenFragmentFn = Arc<dyn Fn() -> Fragment<RooibosDom> + Send>;
+
 /// A type for the `children` property on components that can be called
 /// more than once, but may mutate the children.
-pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView + Send + Sync>;
+pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView + Send>;
+
+/// A type for the `children` property on components that can be called more than once,
+/// but may mutate the children, and provides a collection of all the children
+/// passed to this component.
+pub type ChildrenFragmentMut = Box<dyn FnMut() -> Fragment<RooibosDom> + Send>;
 
 // This is to still support components that accept `Box<dyn Fn() -> AnyView>` as a children.
-pub type BoxedChildrenFn = Box<dyn Fn() -> AnyView>;
-
-pub type BoxedChildrenFnMut = Box<dyn FnMut() -> AnyView>;
+type BoxedChildrenFn = Box<dyn Fn() -> AnyView + Send>;
 
 pub trait ToChildren<F> {
     fn to_children(f: F) -> Self;
@@ -40,7 +54,7 @@ pub trait IntoChildren {
 
 impl<F, C> IntoChildren for F
 where
-    F: FnOnce() -> C + 'static,
+    F: FnOnce() -> C + Send + 'static,
     C: RenderAny + Send + 'static,
 {
     fn into_children(self) -> Children {
@@ -92,7 +106,7 @@ where
 
 impl<F, C> ToChildren<F> for ChildrenFnMut
 where
-    F: Fn() -> C + Send + Sync + 'static,
+    F: Fn() -> C + Send + 'static,
     C: RenderAny + Send + 'static,
 {
     #[inline]
@@ -103,12 +117,45 @@ where
 
 impl<F, C> ToChildren<F> for BoxedChildrenFn
 where
-    F: Fn() -> C + 'static,
+    F: Fn() -> C + Send + 'static,
     C: RenderAny + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
         Box::new(move || f().into_any())
+    }
+}
+
+impl<F, C> ToChildren<F> for ChildrenFragment
+where
+    F: FnOnce() -> C + Send + 'static,
+    C: IntoFragment<RooibosDom>,
+{
+    #[inline]
+    fn to_children(f: F) -> Self {
+        Box::new(move || f().into_fragment())
+    }
+}
+
+impl<F, C> ToChildren<F> for ChildrenFragmentFn
+where
+    F: Fn() -> C + Send + 'static,
+    C: IntoFragment<RooibosDom>,
+{
+    #[inline]
+    fn to_children(f: F) -> Self {
+        Arc::new(move || f().into_fragment())
+    }
+}
+
+impl<F, C> ToChildren<F> for ChildrenFragmentMut
+where
+    F: FnMut() -> C + Send + 'static,
+    C: IntoFragment<RooibosDom>,
+{
+    #[inline]
+    fn to_children(mut f: F) -> Self {
+        Box::new(move || f().into_fragment())
     }
 }
 
@@ -201,7 +248,7 @@ where
 
 /// A typed equivalent to [`ChildrenMut`], which takes a generic but preserves type information to
 /// allow the compiler to optimize the view more effectively.
-pub struct TypedChildrenMut<T>(Box<dyn FnMut() -> View<T> + Send + Sync>);
+pub struct TypedChildrenMut<T>(Box<dyn FnMut() -> View<T> + Send>);
 
 impl<F, T> From<F> for TypedChildrenMut<T>
 where
@@ -227,7 +274,7 @@ impl<T> TypedChildrenMut<T> {
 
 impl<F, C> ToChildren<F> for TypedChildrenMut<C>
 where
-    F: FnMut() -> C + Send + Sync + 'static,
+    F: FnMut() -> C + Send + 'static,
     C: IntoView,
 {
     #[inline]

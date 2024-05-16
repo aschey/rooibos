@@ -7,10 +7,10 @@ edition = "2021"
 crossterm = { version = "0.27", features = ["event-stream"], optional = true }
 futures-util = "0.3"
 rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "49066758ecc6329ab21a9b5e5248ec60d747c6d3", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "64d2b33f9321c0c19c06b6cdc33433a0e06db113", features = [
     "tracing",
 ] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "49066758ecc6329ab21a9b5e5248ec60d747c6d3", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "64d2b33f9321c0c19c06b6cdc33433a0e06db113", features = [
     "tokio",
 ] }
 tokio = { version = "1.37.0", default-features = false, features = [
