@@ -2,13 +2,12 @@ use std::error::Error;
 use std::io::Stdout;
 use std::time::Duration;
 
-use rooibos::components::{Tab, TabView};
-use rooibos::dom::{col, derive_signal, Constrainable, KeyCode, Render};
-use rooibos::reactive::effect::Effect;
+use rooibos::components::{Tab, TabList, TabView};
+use rooibos::dom::{col, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::owner::provide_context;
-use rooibos::reactive::signal::{signal, ReadSignal};
-use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{run, start, use_keypress, RuntimeSettings, TerminalSettings};
+use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
+use rooibos::reactive::traits::{Get, Set};
+use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::Line;
@@ -97,51 +96,40 @@ const TAB1: &str = "Tab1";
 const TAB2: &str = "Tab2";
 
 fn header_tabs() -> impl Render {
-    let (focused_tab, set_focused_tab) = signal(0);
-
-    let titles = [TAB0, TAB1, TAB2];
-    let focused_title = derive_signal!(titles[focused_tab.get()].to_string());
-
-    let update_current_tab = move |change: i32| {
-        set_focused_tab.update(|f| {
-            let next = (*f as i32 + change).rem_euclid(titles.len() as i32);
-            *f = next as usize;
-        });
-    };
-
-    let previous_tab = move || update_current_tab(-1);
-    let next_tab = move || update_current_tab(1);
-
-    let term_signal = use_keypress();
-    Effect::new(move |_| {
-        if let Some(term_signal) = term_signal.get() {
-            match term_signal.code {
-                KeyCode::Left => {
-                    previous_tab();
-                }
-                KeyCode::Right => {
-                    next_tab();
-                }
-                _ => {}
-            }
-        }
-    });
+    let focused = RwSignal::new(TAB0.to_string());
 
     let tab_header = |title: &'static str| Line::from(title.green());
+
+    let tabs = RwSignal::new(TabList(vec![
+        Tab::new(tab_header(TAB0), TAB0.to_string(), tab0),
+        Tab::new(tab_header(TAB1), TAB1.to_string(), tab1),
+        Tab::new(tab_header(TAB2), TAB2.to_string(), tab2),
+    ]));
+
+    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+        let tabs = tabs.get();
+        match key_event.code {
+            KeyCode::Left => {
+                if let Some(prev) = tabs.prev_tab(&focused.get()) {
+                    focused.set(prev.get_value());
+                }
+            }
+            KeyCode::Right => {
+                if let Some(next) = tabs.next_tab(&focused.get()) {
+                    focused.set(next.get_value());
+                }
+            }
+            _ => {}
+        }
+    };
 
     col![
         TabView::new()
             .header_constraint(Length(3))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
-            .on_change(move |i, _| set_focused_tab.set(i))
-            .render(
-                focused_title,
-                vec![
-                    Tab::new(tab_header(TAB0), TAB0.to_string(), tab0),
-                    Tab::new(tab_header(TAB1), TAB1.to_string(), tab1),
-                    Tab::new(tab_header(TAB2), TAB2.to_string(), tab2)
-                ]
-            )
+            .on_key_down(on_key_down)
+            .on_title_click(move |_, tab| focused.set(tab))
+            .render(focused, tabs)
     ]
 }

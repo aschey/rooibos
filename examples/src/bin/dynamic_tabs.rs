@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::components::{Button, Tab, TabView};
-use rooibos::dom::{col, row, Constrainable, Render};
+use rooibos::components::{Button, Tab, TabList, TabView};
+use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
@@ -23,10 +23,10 @@ async fn main() -> Result<()> {
 fn app() -> impl Render {
     let focused = RwSignal::new("tab1".to_string());
 
-    let tabs = RwSignal::new(vec![
+    let tabs = RwSignal::new(TabList(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1").decorator(Line::from("✕".red())),
         Tab::new(Line::from("Tab2"), "tab2", move || "tab2").decorator(Line::from("✕".red())),
-    ]);
+    ]));
 
     let next_tab = RwSignal::new(3);
 
@@ -45,16 +45,34 @@ fn app() -> impl Render {
         }
     };
 
+    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+        let tabs = tabs.get();
+        match key_event.code {
+            KeyCode::Left => {
+                if let Some(prev) = tabs.prev_tab(&focused.get()) {
+                    focused.set(prev.get_value());
+                }
+            }
+            KeyCode::Right => {
+                if let Some(next) = tabs.next_tab(&focused.get()) {
+                    focused.set(next.get_value());
+                }
+            }
+            _ => {}
+        }
+    };
+
     row![
         TabView::new()
             .header_constraint(Length(3))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .fit(true)
-            .on_change(move |_, tab| {
+            .on_title_click(move |_, tab| {
                 focused.set(tab);
             })
             .on_decorator_click(remove_tab)
+            .on_key_down(on_key_down)
             .render(focused, tabs),
         col![
             row![

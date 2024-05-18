@@ -24,7 +24,7 @@ impl Route {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct RouteContext {
     set_history: WriteSignal<Vec<Url>>,
     current_route: Signal<Url>,
@@ -38,13 +38,22 @@ impl RouteContext {
             .parse(route.as_ref())
             .unwrap();
         self.set_history.update(|h| {
+            // prevent storing duplicate history entries
+            if let Some(last) = h.last() {
+                if *last == url {
+                    return;
+                }
+            }
             h.push(url);
         });
     }
 
     pub fn pop(&self) {
         self.set_history.update(|h| {
-            h.pop();
+            // ensure we always have the initial history entry
+            if h.len() > 1 {
+                h.pop();
+            }
         });
     }
 

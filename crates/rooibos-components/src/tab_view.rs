@@ -1,13 +1,16 @@
+use std::ops::{Deref, DerefMut};
+
 use ratatui::layout::Constraint;
 use ratatui::layout::Constraint::*;
 use ratatui::style::{Style, Styled};
+use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
     col, derive_signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny, IntoChildrenFn,
-    MouseEvent, Render,
+    KeyEvent, MouseEvent, Render,
 };
 
 #[derive(Clone)]
@@ -16,6 +19,49 @@ pub struct Tab {
     decorator: Option<MaybeSignal<Line<'static>>>,
     value: String,
     children: ChildrenFn,
+}
+
+#[derive(Clone)]
+pub struct TabList(pub Vec<Tab>);
+
+impl Deref for TabList {
+    type Target = Vec<Tab>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for TabList {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl TabList {
+    pub fn next_tab(&self, focused: &str) -> Option<&Tab> {
+        if self.is_empty() {
+            return None;
+        }
+        let current = self.iter().position(|t| t.value == focused).unwrap();
+        if current == self.len() - 1 {
+            self.first()
+        } else {
+            Some(&self[current + 1])
+        }
+    }
+
+    pub fn prev_tab(&self, focused: &str) -> Option<&Tab> {
+        if self.is_empty() {
+            return None;
+        }
+        let current = self.iter().position(|t| t.value == focused).unwrap();
+        if current == 0 {
+            self.last()
+        } else {
+            Some(&self[current - 1])
+        }
+    }
 }
 
 impl Tab {
@@ -52,8 +98,9 @@ pub struct TabView {
     block: MaybeProp<Block<'static>>,
     highlight_style: MaybeSignal<Style>,
     style: MaybeSignal<Style>,
-    on_change: Box<OnChangeFn>,
+    on_title_click: Box<OnChangeFn>,
     on_decorator_click: Box<OnChangeFn>,
+    on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
     constraint: MaybeSignal<Constraint>,
     fit: MaybeSignal<bool>,
     divider: MaybeSignal<Span<'static>>,
@@ -63,14 +110,15 @@ pub struct TabView {
 impl Default for TabView {
     fn default() -> Self {
         Self {
-            on_change: Box::new(move |_, _| {}),
+            on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: Box::new(move |_, _| {}),
+            on_key_down: Box::new(move |_, _| {}),
             block: Default::default(),
             highlight_style: Default::default(),
             style: Default::default(),
             constraint: Default::default(),
             fit: false.into(),
-            divider: Default::default(),
+            divider: Span::raw(symbols::line::VERTICAL).into(),
             header_constraint: Constraint::Length(1).into(),
         }
     }
@@ -124,8 +172,13 @@ impl TabView {
         self
     }
 
-    pub fn on_change(mut self, on_change: impl FnMut(usize, &str) + 'static) -> Self {
-        self.on_change = Box::new(on_change);
+    pub fn on_title_click(mut self, on_title_click: impl FnMut(usize, &str) + 'static) -> Self {
+        self.on_title_click = Box::new(on_title_click);
+        self
+    }
+
+    pub fn on_key_down(mut self, on_key_down: impl FnMut(KeyEvent, EventData) + 'static) -> Self {
+        self.on_key_down = Box::new(on_key_down);
         self
     }
 
@@ -140,21 +193,22 @@ impl TabView {
     pub fn render(
         self,
         current_tab: impl Into<Signal<String>>,
-        children: impl Into<MaybeSignal<Vec<Tab>>>,
+        children: impl Into<MaybeSignal<TabList>>,
     ) -> impl Render {
         let Self {
             block,
             highlight_style,
             style,
-            mut on_change,
+            mut on_title_click,
             mut on_decorator_click,
+            on_key_down,
             constraint,
             fit,
             header_constraint,
             divider,
         } = self;
-        let children: MaybeSignal<Vec<Tab>> = children.into();
 
+        let children: MaybeSignal<TabList> = children.into();
         let current_tab: Signal<String> = current_tab.into();
 
         let cur_tab = {
@@ -214,15 +268,23 @@ impl TabView {
             })
         };
 
+        let divider_width = {
+            let divider = divider.clone();
+            derive_signal!(divider.get().width())
+        };
+
         let headers_len = derive_signal!({
             let headers = headers.get();
+            let divider_width = divider_width.get() as u16;
             let len = headers.len();
             if len == 0 {
                 return 0;
             }
             // title length + 2 spaces per title + number of dividers (number of tabs - 1)
             // + outside borders (2)
-            headers.iter().map(|t| (t.width() + 2) as u16).sum::<u16>() + (len as u16 - 1) + 2
+            headers.iter().map(|t| (t.width() + 2) as u16).sum::<u16>()
+                + ((len as u16 - 1) * divider_width)
+                + 2
         });
 
         let constraint = derive_signal!({
@@ -237,6 +299,7 @@ impl TabView {
             let start_col = event_data.rect.x;
             let col_offset = mouse_event.column - start_col;
             let children = children.get();
+            let divider_width = divider_width.get() as u16;
             let mut total_len = 1u16;
             for (i, child) in children.iter().enumerate() {
                 let header = child.header.get();
@@ -249,7 +312,7 @@ impl TabView {
 
                 if col_offset <= (total_len + header_area) {
                     if child.value != current_tab.get() {
-                        on_change(i, &child.value);
+                        on_title_click(i, &child.value);
                     }
                     break;
                 }
@@ -257,7 +320,7 @@ impl TabView {
                     on_decorator_click(i, &child.value);
                     break;
                 }
-                total_len += header_area + decorator_area + 1;
+                total_len += header_area + decorator_area + divider_width;
             }
         };
 
@@ -274,7 +337,9 @@ impl TabView {
                     headers
                 }
             })
+            .focusable(true)
             .on_click(on_click)
+            .on_key_down(on_key_down)
             .constraint(header_constraint.get()),
             move || cur_tab
                 .get()
