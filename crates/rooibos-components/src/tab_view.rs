@@ -97,6 +97,7 @@ type OnChangeFn = dyn FnMut(usize, &str);
 pub struct TabView {
     block: MaybeProp<Block<'static>>,
     highlight_style: MaybeSignal<Style>,
+    decorator_highlight_style: MaybeSignal<Style>,
     style: MaybeSignal<Style>,
     on_title_click: Box<OnChangeFn>,
     on_decorator_click: Box<OnChangeFn>,
@@ -115,6 +116,7 @@ impl Default for TabView {
             on_key_down: Box::new(move |_, _| {}),
             block: Default::default(),
             highlight_style: Default::default(),
+            decorator_highlight_style: Default::default(),
             style: Default::default(),
             constraint: Default::default(),
             fit: false.into(),
@@ -154,6 +156,14 @@ impl TabView {
 
     pub fn highlight_style(mut self, highlight_style: impl Into<MaybeSignal<Style>>) -> Self {
         self.highlight_style = highlight_style.into();
+        self
+    }
+
+    pub fn decorator_highlight_style(
+        mut self,
+        decorator_highlight_style: impl Into<MaybeSignal<Style>>,
+    ) -> Self {
+        self.decorator_highlight_style = decorator_highlight_style.into();
         self
     }
 
@@ -198,6 +208,7 @@ impl TabView {
         let Self {
             block,
             highlight_style,
+            decorator_highlight_style,
             style,
             mut on_title_click,
             mut on_decorator_click,
@@ -233,6 +244,7 @@ impl TabView {
                     return vec![];
                 };
                 let highlight_style = highlight_style.get();
+                let decorator_highlight_style = decorator_highlight_style.get();
                 children
                     .get()
                     .iter()
@@ -242,15 +254,18 @@ impl TabView {
 
                         if let Some(decorator) = &t.decorator {
                             let mut spans = header.spans;
+                            let mut decorator_spans = decorator.get().spans;
                             if i == cur_tab {
                                 spans = spans
                                     .into_iter()
                                     .map(|s| s.set_style(highlight_style))
                                     .collect();
+                                decorator_spans = decorator_spans
+                                    .into_iter()
+                                    .map(|s| s.set_style(decorator_highlight_style))
+                                    .collect();
                             }
-                            Line::from(
-                                [spans, vec![Span::from("  ")], decorator.get().spans].concat(),
-                            )
+                            Line::from([spans, vec![Span::from("  ")], decorator_spans].concat())
                         } else {
                             if i == cur_tab {
                                 let spans: Vec<_> = header
