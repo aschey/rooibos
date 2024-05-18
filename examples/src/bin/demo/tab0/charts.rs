@@ -1,12 +1,12 @@
 use rooibos::dom::{
-    col, row, signal, stateful_widget, widget_ref, Chart, Constrainable, Dataset, KeyCode, Render,
+    col, derive_signal, row, stateful_widget, widget_ref, Chart, Constrainable, Dataset, KeyCode,
+    Render,
 };
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::use_keypress;
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
@@ -29,8 +29,8 @@ pub(crate) fn charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
         }
     });
 
-    let percentage1 = signal!(if show_chart.get() { 50 } else { 100 });
-    let percentage2 = signal!(100 - percentage1.get());
+    let percentage1 = derive_signal!(if show_chart.get() { 50 } else { 100 });
+    let percentage2 = derive_signal!(100 - percentage1.get());
 
     row![
         col![

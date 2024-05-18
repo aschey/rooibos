@@ -7,14 +7,14 @@ use ratatui::text::Text;
 use ratatui::Frame;
 use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
-use reactive_graph::wrappers::read::{MaybeSignal, Signal};
+use reactive_graph::wrappers::read::MaybeSignal;
 use slotmap::SlotMap;
 use tachys::prelude::*;
 use tachys::renderer::CastFrom;
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{signal, widget_ref, Event, EventData, KeyCode, KeyEventKind, KeyModifiers};
+use crate::{derive_signal, widget_ref, Event, EventData, KeyCode, KeyEventKind, KeyModifiers};
 
 mod any_view;
 mod children;
@@ -61,7 +61,7 @@ pub trait Constrainable: Sized {
         S: Into<MaybeSignal<u16>>,
     {
         let length = length.into();
-        self.constraint(signal!(Constraint::Length(length.get())))
+        self.constraint(derive_signal!(Constraint::Length(length.get())))
     }
 
     fn percentage<S>(self, percentage: S) -> Self
@@ -69,7 +69,7 @@ pub trait Constrainable: Sized {
         S: Into<MaybeSignal<u16>>,
     {
         let percentage = percentage.into();
-        self.constraint(signal!(Constraint::Percentage(percentage.get())))
+        self.constraint(derive_signal!(Constraint::Percentage(percentage.get())))
     }
 
     fn max<S>(self, max: S) -> Self
@@ -77,7 +77,7 @@ pub trait Constrainable: Sized {
         S: Into<MaybeSignal<u16>>,
     {
         let max = max.into();
-        self.constraint(signal!(Constraint::Max(max.get())))
+        self.constraint(derive_signal!(Constraint::Max(max.get())))
     }
 
     fn min<S>(self, min: S) -> Self
@@ -85,7 +85,7 @@ pub trait Constrainable: Sized {
         S: Into<MaybeSignal<u16>>,
     {
         let min = min.into();
-        self.constraint(signal!(Constraint::Min(min.get())))
+        self.constraint(derive_signal!(Constraint::Min(min.get())))
     }
 
     fn fill<S>(self, fill: S) -> Self
@@ -93,7 +93,7 @@ pub trait Constrainable: Sized {
         S: Into<MaybeSignal<u16>>,
     {
         let fill = fill.into();
-        self.constraint(signal!(Constraint::Fill(fill.get())))
+        self.constraint(derive_signal!(Constraint::Fill(fill.get())))
     }
 
     fn ratio<S1, S2>(self, from: S1, to: S2) -> Self
@@ -103,7 +103,7 @@ pub trait Constrainable: Sized {
     {
         let from = from.into();
         let to = to.into();
-        self.constraint(signal!(Constraint::Ratio(from.get(), to.get())))
+        self.constraint(derive_signal!(Constraint::Ratio(from.get(), to.get())))
     }
 }
 

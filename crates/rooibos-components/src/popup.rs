@@ -1,9 +1,9 @@
 use ratatui::layout::Constraint;
 use ratatui::widgets::Clear;
 use reactive_graph::traits::Get;
-use reactive_graph::wrappers::read::{MaybeSignal, Signal};
+use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    col, overlay, row, signal, widget_ref, Constrainable, IntoView, Render, RenderAny,
+    col, derive_signal, overlay, row, widget_ref, Constrainable, IntoView, Render, RenderAny,
 };
 
 use crate::Show;
@@ -17,8 +17,8 @@ fn popup_inner<M>(
 where
     M: RenderAny + 'static,
 {
-    let inverse_y = signal!((100 - percent_y.get()) / 2);
-    let inverse_x = signal!((100 - percent_x.get()) / 2);
+    let inverse_y = derive_signal!((100 - percent_y.get()) / 2);
+    let inverse_x = derive_signal!((100 - percent_x.get()) / 2);
 
     col![
         row![].percentage(inverse_y),

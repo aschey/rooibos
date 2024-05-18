@@ -6,7 +6,7 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny, IntoChildrenFn,
+    col, derive_signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny, IntoChildrenFn,
     MouseEvent, Render,
 };
 
@@ -50,12 +50,14 @@ type OnChangeFn = dyn FnMut(usize, &str);
 
 pub struct TabView {
     block: MaybeProp<Block<'static>>,
-    padding: MaybeProp<u16>,
     highlight_style: MaybeSignal<Style>,
+    style: MaybeSignal<Style>,
     on_change: Box<OnChangeFn>,
     on_decorator_click: Box<OnChangeFn>,
     constraint: MaybeSignal<Constraint>,
     fit: MaybeSignal<bool>,
+    divider: MaybeSignal<Span<'static>>,
+    header_constraint: MaybeSignal<Constraint>,
 }
 
 impl Default for TabView {
@@ -63,11 +65,13 @@ impl Default for TabView {
         Self {
             on_change: Box::new(move |_, _| {}),
             on_decorator_click: Box::new(move |_, _| {}),
-            padding: Default::default(),
             block: Default::default(),
             highlight_style: Default::default(),
+            style: Default::default(),
             constraint: Default::default(),
             fit: false.into(),
+            divider: Default::default(),
+            header_constraint: Constraint::Length(1).into(),
         }
     }
 }
@@ -92,8 +96,11 @@ impl TabView {
         self
     }
 
-    pub fn padding(mut self, padding: impl Into<MaybeProp<u16>>) -> Self {
-        self.padding = padding.into();
+    pub fn header_constraint(
+        mut self,
+        header_constraint: impl Into<MaybeSignal<Constraint>>,
+    ) -> Self {
+        self.header_constraint = header_constraint.into();
         self
     }
 
@@ -102,8 +109,18 @@ impl TabView {
         self
     }
 
+    pub fn style(mut self, style: impl Into<MaybeSignal<Style>>) -> Self {
+        self.style = style.into();
+        self
+    }
+
     pub fn fit(mut self, fit: impl Into<MaybeSignal<bool>>) -> Self {
         self.fit = fit.into();
+        self
+    }
+
+    pub fn divider(mut self, divider: impl Into<MaybeSignal<Span<'static>>>) -> Self {
+        self.divider = divider.into();
         self
     }
 
@@ -127,12 +144,14 @@ impl TabView {
     ) -> impl Render {
         let Self {
             block,
-            padding,
             highlight_style,
+            style,
             mut on_change,
             mut on_decorator_click,
             constraint,
             fit,
+            header_constraint,
+            divider,
         } = self;
         let children: MaybeSignal<Vec<Tab>> = children.into();
 
@@ -140,7 +159,7 @@ impl TabView {
 
         let cur_tab = {
             let children = children.clone();
-            signal!({
+            derive_signal!({
                 let current_tab = current_tab.get();
                 children.get().iter().enumerate().find_map(|(i, c)| {
                     if c.value == current_tab {
@@ -154,7 +173,7 @@ impl TabView {
 
         let headers = {
             let children = children.clone();
-            signal!({
+            derive_signal!({
                 let cur_tab = cur_tab.get();
                 let Some((_, cur_tab)) = cur_tab else {
                     return vec![];
@@ -195,7 +214,7 @@ impl TabView {
             })
         };
 
-        let headers_len = signal!({
+        let headers_len = derive_signal!({
             let headers = headers.get();
             let len = headers.len();
             if len == 0 {
@@ -206,7 +225,7 @@ impl TabView {
             headers.iter().map(|t| (t.width() + 2) as u16).sum::<u16>() + (len as u16 - 1) + 2
         });
 
-        let constraint = signal!({
+        let constraint = derive_signal!({
             if fit.get() {
                 Length(headers_len.get())
             } else {
@@ -242,11 +261,11 @@ impl TabView {
             }
         };
 
-        let length = signal!(padding.get().unwrap_or(0) * 2 + 1);
-
         col![
             widget_ref!({
                 let headers = Tabs::new(headers.get())
+                    .divider(divider.get())
+                    .style(style.get())
                     .highlight_style(Style::default())
                     .select(cur_tab.get().map(|t| t.1).unwrap_or(0));
                 if let Some(block) = block.get() {
@@ -256,7 +275,7 @@ impl TabView {
                 }
             })
             .on_click(on_click)
-            .length(length),
+            .constraint(header_constraint.get()),
             move || cur_tab
                 .get()
                 .map(|c| c.0())

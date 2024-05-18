@@ -6,6 +6,7 @@ use rooibos::dom::{col, row, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
+use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::Line;
 use rooibos::tui::widgets::Block;
@@ -39,7 +40,7 @@ fn tabs() -> impl Render {
 
     row![
         TabView::new()
-            .padding(1)
+            .header_constraint(Length(3))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .fit(true)

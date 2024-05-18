@@ -2,10 +2,9 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{container, Button};
-use rooibos::dom::{col, signal, Render};
+use rooibos::dom::{col, derive_signal, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::text::Text;
@@ -30,6 +29,6 @@ fn counter_button() -> impl Render {
         Length(5),
         Button::new()
             .on_click(move || set_count.update(|c| *c += 1))
-            .render(signal!(Text::from(format!("count {}", count.get())))),
+            .render(derive_signal!(Text::from(format!("count {}", count.get())))),
     )
 }

@@ -3,7 +3,9 @@ use reactive_graph::owner::{provide_context, use_context, Owner, StoredValue};
 use reactive_graph::signal::{signal, WriteSignal};
 use reactive_graph::traits::{Get, Update};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::{signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom};
+use rooibos_dom::{
+    derive_signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom,
+};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use url::Url;
@@ -54,7 +56,7 @@ impl RouteContext {
         let router = self.router.get_value();
         let param = param.into();
         let current_route = self.current_route;
-        signal!({
+        derive_signal!({
             let route = current_route.get();
 
             let params = router.at(route.path()).unwrap().params;
@@ -64,13 +66,13 @@ impl RouteContext {
 
     pub fn use_param(&self, param: impl Into<String>) -> Signal<String> {
         let param = self.try_use_param(param);
-        signal!(param.get().unwrap())
+        derive_signal!(param.get().unwrap())
     }
 
     pub fn try_use_query(&self, query: impl Into<String>) -> Signal<Option<String>> {
         let query = query.into();
         let current_route = self.current_route;
-        signal!({
+        derive_signal!({
             let route = current_route.get();
             route.query_pairs().find_map(|q| {
                 if q.0 == query {
@@ -84,12 +86,12 @@ impl RouteContext {
 
     pub fn use_query(&self, query: impl Into<String>) -> Signal<String> {
         let query = self.try_use_query(query);
-        signal!(query.get().unwrap())
+        derive_signal!(query.get().unwrap())
     }
 }
 
 pub fn use_router() -> RouteContext {
-    use_context::<RouteContext>().unwrap()
+    use_context::<RouteContext>().expect("use_router called outside of router context")
 }
 
 fn init_router(initial: String) {
@@ -97,7 +99,7 @@ fn init_router(initial: String) {
     let context = RouteContext {
         set_history,
         router: StoredValue::new(matchit::Router::new()),
-        current_route: signal!({
+        current_route: derive_signal!({
             let h = history.get();
             h.last().cloned().unwrap()
         }),

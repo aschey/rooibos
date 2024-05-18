@@ -3,13 +3,13 @@ use std::io::Stdout;
 use std::time::Duration;
 
 use rooibos::components::{Tab, TabView};
-use rooibos::dom::{col, signal, Constrainable, KeyCode, Render};
+use rooibos::dom::{col, derive_signal, Constrainable, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::{run, start, use_keypress, RuntimeSettings, TerminalSettings};
+use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::Line;
 use rooibos::tui::widgets::Block;
@@ -100,7 +100,7 @@ fn header_tabs() -> impl Render {
     let (focused_tab, set_focused_tab) = signal(0);
 
     let titles = [TAB0, TAB1, TAB2];
-    let focused_title = signal!(titles[focused_tab.get()].to_string());
+    let focused_title = derive_signal!(titles[focused_tab.get()].to_string());
 
     let update_current_tab = move |change: i32| {
         set_focused_tab.update(|f| {
@@ -131,7 +131,7 @@ fn header_tabs() -> impl Render {
 
     col![
         TabView::new()
-            .padding(1)
+            .header_constraint(Length(3))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .on_change(move |i, _| set_focused_tab.set(i))
