@@ -22,6 +22,7 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let focused = RwSignal::new("tab1".to_string());
+    let tabs_block = RwSignal::new(Block::bordered().title("Demo"));
 
     let tabs = RwSignal::new(TabList(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1").decorator(Line::from("✕".red())),
@@ -47,6 +48,7 @@ fn app() -> impl Render {
 
     let on_key_down = move |key_event: KeyEvent, _: EventData| {
         let tabs = tabs.get();
+
         match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_tab(&focused.get()) {
@@ -58,6 +60,15 @@ fn app() -> impl Render {
                     focused.set(next.get_value());
                 }
             }
+            KeyCode::Char('d') => {
+                let focused = focused.get();
+                let (i, tab) = tabs
+                    .iter()
+                    .enumerate()
+                    .find(|(_, t)| t.get_value() == focused)
+                    .unwrap();
+                remove_tab(i, tab.get_value());
+            }
             _ => {}
         }
     };
@@ -65,11 +76,17 @@ fn app() -> impl Render {
     row![
         TabView::new()
             .header_constraint(Length(3))
-            .block(Block::bordered().title("Demo"))
+            .block(tabs_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
             .on_title_click(move |_, tab| {
                 focused.set(tab);
+            })
+            .on_focus(move |_| {
+                tabs_block.set(Block::bordered().title("Demo").blue());
+            })
+            .on_blur(move |_| {
+                tabs_block.set(Block::bordered().title("Demo"));
             })
             .on_decorator_click(remove_tab)
             .on_key_down(on_key_down)

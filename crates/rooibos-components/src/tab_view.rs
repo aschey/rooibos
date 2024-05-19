@@ -97,10 +97,10 @@ type OnChangeFn = dyn FnMut(usize, &str);
 pub struct TabView {
     block: MaybeProp<Block<'static>>,
     highlight_style: MaybeSignal<Style>,
-    decorator_highlight_style: MaybeSignal<Style>,
+    decorator_highlight_style: Option<MaybeSignal<Style>>,
     style: MaybeSignal<Style>,
     on_title_click: Box<OnChangeFn>,
-    on_decorator_click: Box<OnChangeFn>,
+    on_decorator_click: Option<Box<OnChangeFn>>,
     on_focus: Box<dyn FnMut(EventData)>,
     on_blur: Box<dyn FnMut(EventData)>,
     on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
@@ -114,7 +114,7 @@ impl Default for TabView {
     fn default() -> Self {
         Self {
             on_title_click: Box::new(move |_, _| {}),
-            on_decorator_click: Box::new(move |_, _| {}),
+            on_decorator_click: None,
             on_key_down: Box::new(move |_, _| {}),
             on_focus: Box::new(move |_| {}),
             on_blur: Box::new(move |_| {}),
@@ -167,7 +167,7 @@ impl TabView {
         mut self,
         decorator_highlight_style: impl Into<MaybeSignal<Style>>,
     ) -> Self {
-        self.decorator_highlight_style = decorator_highlight_style.into();
+        self.decorator_highlight_style = Some(decorator_highlight_style.into());
         self
     }
 
@@ -210,7 +210,7 @@ impl TabView {
         mut self,
         on_decorator_click: impl FnMut(usize, &str) + 'static,
     ) -> Self {
-        self.on_decorator_click = Box::new(on_decorator_click);
+        self.on_decorator_click = Some(Box::new(on_decorator_click));
         self
     }
 
@@ -260,7 +260,7 @@ impl TabView {
                     return vec![];
                 };
                 let highlight_style = highlight_style.get();
-                let decorator_highlight_style = decorator_highlight_style.get();
+                let decorator_highlight_style = decorator_highlight_style.map(|s| s.get());
                 children
                     .get()
                     .iter()
@@ -276,10 +276,12 @@ impl TabView {
                                     .into_iter()
                                     .map(|s| s.set_style(highlight_style))
                                     .collect();
-                                decorator_spans = decorator_spans
-                                    .into_iter()
-                                    .map(|s| s.set_style(decorator_highlight_style))
-                                    .collect();
+                                if let Some(decorator_highlight_style) = decorator_highlight_style {
+                                    decorator_spans = decorator_spans
+                                        .into_iter()
+                                        .map(|s| s.set_style(decorator_highlight_style))
+                                        .collect();
+                                }
                             }
                             Line::from([spans, vec![Span::from("  ")], decorator_spans].concat())
                         } else {
@@ -348,7 +350,11 @@ impl TabView {
                     break;
                 }
                 if col_offset <= (total_len + header_area + decorator_area) {
-                    on_decorator_click(i, &child.value);
+                    if let Some(on_decorator_click) = on_decorator_click.as_mut() {
+                        on_decorator_click(i, &child.value);
+                    } else {
+                        on_title_click(i, &child.value);
+                    }
                     break;
                 }
                 total_len += header_area + decorator_area + divider_width;
