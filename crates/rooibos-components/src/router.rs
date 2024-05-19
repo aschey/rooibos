@@ -1,7 +1,7 @@
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::owner::{provide_context, use_context, Owner, StoredValue};
 use reactive_graph::signal::{signal, WriteSignal};
-use reactive_graph::traits::{Get, Update};
+use reactive_graph::traits::{Get, Update, With};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::{
     derive_signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom,
@@ -67,7 +67,6 @@ impl RouteContext {
         let current_route = self.current_route;
         derive_signal!({
             let route = current_route.get();
-
             let params = router.at(route.path()).unwrap().params;
             params.get(&param).map(|s| s.to_owned())
         })
@@ -82,13 +81,14 @@ impl RouteContext {
         let query = query.into();
         let current_route = self.current_route;
         derive_signal!({
-            let route = current_route.get();
-            route.query_pairs().find_map(|q| {
-                if q.0 == query {
-                    Some(q.1.to_string())
-                } else {
-                    None
-                }
+            current_route.with(|r| {
+                r.query_pairs().find_map(|q| {
+                    if q.0 == query {
+                        Some(q.1.to_string())
+                    } else {
+                        None
+                    }
+                })
             })
         })
     }
@@ -108,10 +108,7 @@ fn init_router(initial: String) {
     let context = RouteContext {
         set_history,
         router: StoredValue::new(matchit::Router::new()),
-        current_route: derive_signal!({
-            let h = history.get();
-            h.last().cloned().unwrap()
-        }),
+        current_route: derive_signal!(history.with(|h| h.last().cloned().unwrap())),
     };
     context.push(initial);
     provide_context(context);

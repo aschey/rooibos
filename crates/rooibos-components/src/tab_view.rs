@@ -6,7 +6,7 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use reactive_graph::traits::Get;
+use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
     col, derive_signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny, IntoChildrenFn,
@@ -242,12 +242,14 @@ impl TabView {
             let children = children.clone();
             derive_signal!({
                 let current_tab = current_tab.get();
-                children.get().iter().enumerate().find_map(|(i, c)| {
-                    if c.value == current_tab {
-                        Some((c.children.clone(), i))
-                    } else {
-                        None
-                    }
+                children.with(|c| {
+                    c.iter().enumerate().find_map(|(i, c)| {
+                        if c.value == current_tab {
+                            Some((c.children.clone(), i))
+                        } else {
+                            None
+                        }
+                    })
                 })
             })
         };
@@ -261,43 +263,47 @@ impl TabView {
                 };
                 let highlight_style = highlight_style.get();
                 let decorator_highlight_style = decorator_highlight_style.map(|s| s.get());
-                children
-                    .get()
-                    .iter()
-                    .enumerate()
-                    .map(|(i, t)| {
-                        let mut header = t.header.get();
+                children.with(|c| {
+                    c.iter()
+                        .enumerate()
+                        .map(|(i, t)| {
+                            let mut header = t.header.get();
 
-                        if let Some(decorator) = &t.decorator {
-                            let mut spans = header.spans;
-                            let mut decorator_spans = decorator.get().spans;
-                            if i == cur_tab {
-                                spans = spans
-                                    .into_iter()
-                                    .map(|s| s.set_style(highlight_style))
-                                    .collect();
-                                if let Some(decorator_highlight_style) = decorator_highlight_style {
-                                    decorator_spans = decorator_spans
+                            if let Some(decorator) = &t.decorator {
+                                let mut spans = header.spans;
+                                let mut decorator_spans = decorator.get().spans;
+                                if i == cur_tab {
+                                    spans = spans
                                         .into_iter()
-                                        .map(|s| s.set_style(decorator_highlight_style))
+                                        .map(|s| s.set_style(highlight_style))
                                         .collect();
+                                    if let Some(decorator_highlight_style) =
+                                        decorator_highlight_style
+                                    {
+                                        decorator_spans = decorator_spans
+                                            .into_iter()
+                                            .map(|s| s.set_style(decorator_highlight_style))
+                                            .collect();
+                                    }
                                 }
-                            }
-                            Line::from([spans, vec![Span::from("  ")], decorator_spans].concat())
-                        } else {
-                            if i == cur_tab {
-                                let spans: Vec<_> = header
-                                    .spans
-                                    .into_iter()
-                                    .map(|s| s.set_style(highlight_style))
-                                    .collect();
-                                header = Line::from(spans);
-                            }
+                                Line::from(
+                                    [spans, vec![Span::from("  ")], decorator_spans].concat(),
+                                )
+                            } else {
+                                if i == cur_tab {
+                                    let spans: Vec<_> = header
+                                        .spans
+                                        .into_iter()
+                                        .map(|s| s.set_style(highlight_style))
+                                        .collect();
+                                    header = Line::from(spans);
+                                }
 
-                            header
-                        }
-                    })
-                    .collect::<Vec<_>>()
+                                header
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
             })
         };
 
@@ -307,17 +313,19 @@ impl TabView {
         };
 
         let headers_len = derive_signal!({
-            let headers = headers.get();
+            let headers_len = headers.with(|h| h.len());
             let divider_width = divider_width.get() as u16;
-            let len = headers.len();
-            if len == 0 {
+
+            if headers_len == 0 {
                 return 0;
             }
             // title length + 2 spaces per title + number of dividers (number of tabs - 1)
             // + outside borders (2)
-            headers.iter().map(|t| (t.width() + 2) as u16).sum::<u16>()
-                + ((len as u16 - 1) * divider_width)
-                + 2
+            headers.with(|h| {
+                h.iter().map(|t| (t.width() + 2) as u16).sum::<u16>()
+                    + ((headers_len as u16 - 1) * divider_width)
+                    + 2
+            })
         });
 
         let constraint = derive_signal!({
@@ -331,34 +339,36 @@ impl TabView {
         let on_click = move |mouse_event: MouseEvent, event_data: EventData| {
             let start_col = event_data.rect.x;
             let col_offset = mouse_event.column - start_col;
-            let children = children.get();
+
             let divider_width = divider_width.get() as u16;
             let mut total_len = 1u16;
-            for (i, child) in children.iter().enumerate() {
-                let header = child.header.get();
-                let decorator_area = child
-                    .decorator
-                    .as_ref()
-                    .map(|d| (d.get().width() + 2) as u16)
-                    .unwrap_or(0);
-                let header_area = header.width() as u16 + 2;
+            children.with(|c| {
+                for (i, child) in c.iter().enumerate() {
+                    let header = child.header.get();
+                    let decorator_area = child
+                        .decorator
+                        .as_ref()
+                        .map(|d| (d.get().width() + 2) as u16)
+                        .unwrap_or(0);
+                    let header_area = header.width() as u16 + 2;
 
-                if col_offset <= (total_len + header_area) {
-                    if child.value != current_tab.get() {
-                        on_title_click(i, &child.value);
+                    if col_offset <= (total_len + header_area) {
+                        if child.value != current_tab.get() {
+                            on_title_click(i, &child.value);
+                        }
+                        break;
                     }
-                    break;
-                }
-                if col_offset <= (total_len + header_area + decorator_area) {
-                    if let Some(on_decorator_click) = on_decorator_click.as_mut() {
-                        on_decorator_click(i, &child.value);
-                    } else {
-                        on_title_click(i, &child.value);
+                    if col_offset <= (total_len + header_area + decorator_area) {
+                        if let Some(on_decorator_click) = on_decorator_click.as_mut() {
+                            on_decorator_click(i, &child.value);
+                        } else {
+                            on_title_click(i, &child.value);
+                        }
+                        break;
                     }
-                    break;
+                    total_len += header_area + decorator_area + divider_width;
                 }
-                total_len += header_area + decorator_area + divider_width;
-            }
+            });
         };
 
         col![
