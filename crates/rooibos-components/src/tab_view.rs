@@ -101,6 +101,8 @@ pub struct TabView {
     style: MaybeSignal<Style>,
     on_title_click: Box<OnChangeFn>,
     on_decorator_click: Box<OnChangeFn>,
+    on_focus: Box<dyn FnMut(EventData)>,
+    on_blur: Box<dyn FnMut(EventData)>,
     on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
     constraint: MaybeSignal<Constraint>,
     fit: MaybeSignal<bool>,
@@ -114,6 +116,8 @@ impl Default for TabView {
             on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: Box::new(move |_, _| {}),
             on_key_down: Box::new(move |_, _| {}),
+            on_focus: Box::new(move |_| {}),
+            on_blur: Box::new(move |_| {}),
             block: Default::default(),
             highlight_style: Default::default(),
             decorator_highlight_style: Default::default(),
@@ -192,6 +196,16 @@ impl TabView {
         self
     }
 
+    pub fn on_focus(mut self, on_focus: impl FnMut(EventData) + 'static) -> Self {
+        self.on_focus = Box::new(on_focus);
+        self
+    }
+
+    pub fn on_blur(mut self, on_blur: impl FnMut(EventData) + 'static) -> Self {
+        self.on_blur = Box::new(on_blur);
+        self
+    }
+
     pub fn on_decorator_click(
         mut self,
         on_decorator_click: impl FnMut(usize, &str) + 'static,
@@ -212,6 +226,8 @@ impl TabView {
             style,
             mut on_title_click,
             mut on_decorator_click,
+            on_focus,
+            on_blur,
             on_key_down,
             constraint,
             fit,
@@ -355,6 +371,8 @@ impl TabView {
             .focusable(true)
             .on_click(on_click)
             .on_key_down(on_key_down)
+            .on_focus(on_focus)
+            .on_blur(on_blur)
             .constraint(header_constraint.get()),
             move || cur_tab
                 .get()

@@ -506,9 +506,8 @@ pub fn send_event(event: Event) {
                         }
                     }
                 }
-
-                Event::FocusGained => todo!(),
-                Event::FocusLost => todo!(),
+                Event::FocusGained => {}
+                Event::FocusLost => {}
                 Event::Mouse(mouse_event) => match mouse_event.kind {
                     crate::MouseEventKind::Down(_) => {
                         let current = nodes.keys().find_map(|k| {
@@ -557,7 +556,9 @@ pub fn send_event(event: Event) {
                     crate::MouseEventKind::ScrollRight => {}
                 },
                 Event::Paste(_) => {}
-                Event::Resize(_, _) => {}
+                Event::Resize(_, _) => {
+                    notify();
+                }
             };
             None
         })

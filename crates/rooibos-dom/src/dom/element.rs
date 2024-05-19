@@ -12,7 +12,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{notify, Constrainable, RenderAny, RooibosDom};
+use crate::{notify, Constrainable, EventData, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<C> {
@@ -30,7 +30,9 @@ where
             children: self.children.next_tuple(child),
         }
     }
+}
 
+impl<C> Element<C> {
     pub fn id(self, id: impl Into<NodeId>) -> Self {
         self.inner.set_id(id);
         self
@@ -98,6 +100,43 @@ where
             }
         });
         self.inner.add_data(effect);
+        self
+    }
+
+    pub fn focusable<S>(self, focusable: S) -> Self
+    where
+        S: Into<MaybeSignal<bool>>,
+    {
+        let focusable_rc = Rc::new(RefCell::new(false));
+
+        let effect = RenderEffect::new({
+            let focusable = focusable.into();
+            let focusable_rc = focusable_rc.clone();
+            move |_| {
+                *focusable_rc.borrow_mut() = focusable.get();
+                notify();
+            }
+        });
+        self.inner.set_focusable(focusable_rc);
+        self.inner.add_data(effect);
+        self
+    }
+
+    pub fn on_focus<F>(self, handler: F) -> Self
+    where
+        F: FnMut(EventData) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
+        self
+    }
+
+    pub fn on_blur<F>(self, handler: F) -> Self
+    where
+        F: FnMut(EventData) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
         self
     }
 }
