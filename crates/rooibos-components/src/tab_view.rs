@@ -110,6 +110,11 @@ pub struct TabView {
     header_constraint: MaybeSignal<Constraint>,
 }
 
+enum ClickAction<'a> {
+    Decorator(usize, String, &'a mut Box<OnChangeFn>),
+    Title(usize, String),
+}
+
 impl Default for TabView {
     fn default() -> Self {
         Self {
@@ -342,7 +347,10 @@ impl TabView {
 
             let divider_width = divider_width.get() as u16;
             let mut total_len = 1u16;
-            children.with(|c| {
+            let current_tab = current_tab.get();
+            // Event handlers could access the children object so we shouldn't invoke them until
+            // we're out of the with() block
+            let action = children.with(|c| {
                 for (i, child) in c.iter().enumerate() {
                     let header = child.header.get();
                     let decorator_area = child
@@ -353,22 +361,36 @@ impl TabView {
                     let header_area = header.width() as u16 + 2;
 
                     if col_offset <= (total_len + header_area) {
-                        if child.value != current_tab.get() {
-                            on_title_click(i, &child.value);
+                        if child.value != current_tab {
+                            return Some(ClickAction::Title(i, child.value.clone()));
                         }
                         break;
                     }
-                    if col_offset <= (total_len + header_area + decorator_area) {
+                    if col_offset < (total_len + header_area + decorator_area) {
                         if let Some(on_decorator_click) = on_decorator_click.as_mut() {
-                            on_decorator_click(i, &child.value);
+                            return Some(ClickAction::Decorator(
+                                i,
+                                child.value.clone(),
+                                on_decorator_click,
+                            ));
                         } else {
-                            on_title_click(i, &child.value);
+                            return Some(ClickAction::Title(i, child.value.clone()));
                         }
-                        break;
                     }
                     total_len += header_area + decorator_area + divider_width;
                 }
+                None
             });
+
+            match action {
+                Some(ClickAction::Decorator(i, value, on_decorator_click)) => {
+                    on_decorator_click(i, &value);
+                }
+                Some(ClickAction::Title(i, value)) => {
+                    on_title_click(i, &value);
+                }
+                None => {}
+            }
         };
 
         col![
