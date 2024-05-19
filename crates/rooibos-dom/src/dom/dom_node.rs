@@ -145,7 +145,28 @@ impl Debug for NodeType {
     }
 }
 
-#[derive(Clone, Derivative)]
+pub(crate) trait AnyMountable: Mountable<RooibosDom> + Any {
+    fn as_any(&mut self) -> &mut dyn Any;
+}
+
+impl<T> AnyMountable for T
+where
+    T: Mountable<RooibosDom> + Any,
+{
+    fn as_any(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub(crate) struct ChildState {
+    #[derivative(Debug = "ignore")]
+    pub(crate) mountable: Box<dyn AnyMountable>,
+    pub(crate) parent: DomNode,
+}
+
+#[derive(Derivative)]
 #[derivative(Debug)]
 pub(crate) struct DomNodeInner {
     pub(crate) node_type: NodeType,
@@ -160,6 +181,8 @@ pub(crate) struct DomNodeInner {
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
     data: Vec<Rc<dyn Any>>,
+    #[derivative(Debug = "ignore")]
+    child_state: Option<ChildState>,
 }
 
 impl DomNodeInner {
@@ -312,6 +335,7 @@ impl DomNode {
             event_handlers: Default::default(),
             data: vec![],
             rect: Default::default(),
+            child_state: None,
         };
         let key = with_nodes_mut(|mut n| n.insert(inner));
         Self {
@@ -333,6 +357,7 @@ impl DomNode {
             event_handlers: fragment.event_handlers,
             data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
+            child_state: None,
         };
         let key = with_nodes_mut(|mut n| n.insert(inner));
         Self {
@@ -354,23 +379,33 @@ impl DomNode {
             event_handlers: fragment.event_handlers,
             data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
+            child_state: None,
         };
         with_nodes_mut(|mut n| n[self.key] = inner);
     }
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|mut n| {
-            let current = n[self.key].clone();
+            let current = &n[self.key];
+            let name = current.name.clone();
+            let node_type = current.node_type.clone();
+            let constraint = current.constraint.clone();
+            let focusable = current.focusable.clone();
+            let id = current.id.clone();
+            let event_handlers = current.event_handlers.clone();
+            let data = current.data.clone();
+            let rect = current.rect.clone();
+
             let new = &mut n[node.key];
 
-            new.name = current.name;
-            new.node_type = current.node_type;
-            new.constraint = current.constraint;
-            new.focusable = current.focusable;
-            new.id = current.id;
-            new.event_handlers = current.event_handlers;
-            new.data = current.data;
-            new.rect = current.rect;
+            new.name = name;
+            new.node_type = node_type;
+            new.constraint = constraint;
+            new.focusable = focusable;
+            new.id = id;
+            new.event_handlers = event_handlers;
+            new.data = data;
+            new.rect = rect;
         });
         unmount_child(self.key, true);
         self.key = node.key;
@@ -378,6 +413,14 @@ impl DomNode {
 
     pub(crate) fn add_data(&self, data: impl Any) {
         with_nodes_mut(|mut n| n[self.key].data.push(Rc::new(data)));
+    }
+
+    pub(crate) fn take_child_state(&self) -> ChildState {
+        with_nodes_mut(|mut n| n[self.key].child_state.take().unwrap())
+    }
+
+    pub(crate) fn set_child_state(&self, state: ChildState) {
+        with_nodes_mut(|mut n| n[self.key].child_state = Some(state));
     }
 
     // pub(crate) fn set_name(&self, name: impl Into<String>) {

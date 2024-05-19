@@ -199,7 +199,7 @@ where
     W: Write + 'static,
 {
     let mut writer = (settings.get_writer)();
-
+    enable_raw_mode()?;
     if settings.alternate_screen {
         queue!(writer, EnterAlternateScreen)?;
     }
@@ -216,8 +216,8 @@ where
     }
     writer.flush()?;
 
-    enable_raw_mode()?;
-    let terminal = Terminal::new(CrosstermBackend::new(writer))?;
+    let mut terminal = Terminal::new(CrosstermBackend::new(writer))?;
+    terminal.clear()?;
 
     *RESTORE_TERMINAL
         .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
@@ -238,6 +238,7 @@ where
         }
         writer.flush()?;
         disable_raw_mode()?;
+
         Ok::<_, io::Error>(())
     });
     Ok(terminal)

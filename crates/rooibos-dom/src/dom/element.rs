@@ -12,7 +12,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{notify, Constrainable, EventData, RenderAny, RooibosDom};
+use crate::{notify, ChildState, Constrainable, EventData, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<C> {
@@ -229,12 +229,32 @@ where
     type State = DomNode;
 
     fn build(self) -> Self::State {
-        let mut children = self.children.build();
-        children.mount(&self.inner, None);
+        let mut children_state = self.children.build();
+        children_state.mount(&self.inner, None);
         // Store children output to prevent drop effects from occurring
-        self.inner.add_data(children);
+        self.inner.set_child_state(ChildState {
+            mountable: Box::new(children_state),
+            parent: self.inner.clone(),
+        });
         self.inner
     }
 
-    fn rebuild(self, _state: &mut Self::State) {}
+    fn rebuild(self, state: &mut Self::State) {
+        let mut child_state = state.take_child_state();
+
+        let child_mountable = child_state
+            .mountable
+            .as_any()
+            .downcast_mut::<Children::State>();
+
+        if let Some(s) = child_mountable {
+            self.children.rebuild(s);
+        } else if &self.inner != state {
+            child_state.mountable.unmount();
+            let mut new = self.build();
+            new.mount(&child_state.parent, None);
+        }
+
+        state.set_child_state(child_state);
+    }
 }
