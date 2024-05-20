@@ -6,15 +6,20 @@ use rooibos::dom::{
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
-use rooibos::runtime::{run, start, use_keypress, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{start, use_keypress, RuntimeSettings};
 use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    start(RuntimeSettings::default(), app);
-    run::<Stdout>(TerminalSettings::default()).await?;
+    let handle = start(
+        RuntimeSettings::default(),
+        CrosstermBackend::<Stdout>::default(),
+        app,
+    );
+    handle.run().await?;
     Ok(())
 }
 

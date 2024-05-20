@@ -5,7 +5,8 @@ use rooibos::components::ListView;
 use rooibos::dom::Render;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Set;
-use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{start, RuntimeSettings};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
 
@@ -13,8 +14,12 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    start(RuntimeSettings::default(), app);
-    run::<Stdout>(TerminalSettings::default()).await?;
+    let handle = start(
+        RuntimeSettings::default(),
+        CrosstermBackend::<Stdout>::default(),
+        app,
+    );
+    handle.run().await?;
     Ok(())
 }
 

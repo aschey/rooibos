@@ -12,17 +12,6 @@ pub struct MouseEvent {
     pub modifiers: KeyModifiers,
 }
 
-impl From<crossterm::event::MouseEvent> for MouseEvent {
-    fn from(value: crossterm::event::MouseEvent) -> Self {
-        Self {
-            kind: value.kind.into(),
-            column: value.column,
-            row: value.row,
-            modifiers: value.modifiers.into(),
-        }
-    }
-}
-
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum MouseEventKind {
     /// Pressed mouse button. Contains the button that was pressed.
@@ -43,21 +32,6 @@ pub enum MouseEventKind {
     ScrollRight,
 }
 
-impl From<crossterm::event::MouseEventKind> for MouseEventKind {
-    fn from(value: crossterm::event::MouseEventKind) -> Self {
-        match value {
-            crossterm::event::MouseEventKind::Down(button) => MouseEventKind::Down(button.into()),
-            crossterm::event::MouseEventKind::Up(button) => MouseEventKind::Up(button.into()),
-            crossterm::event::MouseEventKind::Drag(button) => MouseEventKind::Drag(button.into()),
-            crossterm::event::MouseEventKind::Moved => MouseEventKind::Moved,
-            crossterm::event::MouseEventKind::ScrollDown => MouseEventKind::ScrollDown,
-            crossterm::event::MouseEventKind::ScrollUp => MouseEventKind::ScrollUp,
-            crossterm::event::MouseEventKind::ScrollLeft => MouseEventKind::ScrollLeft,
-            crossterm::event::MouseEventKind::ScrollRight => MouseEventKind::ScrollRight,
-        }
-    }
-}
-
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
 pub enum MouseButton {
     /// Left mouse button.
@@ -66,14 +40,5 @@ pub enum MouseButton {
     Right,
     /// Middle mouse button.
     Middle,
-}
-
-impl From<crossterm::event::MouseButton> for MouseButton {
-    fn from(value: crossterm::event::MouseButton) -> Self {
-        match value {
-            crossterm::event::MouseButton::Left => MouseButton::Left,
-            crossterm::event::MouseButton::Right => MouseButton::Right,
-            crossterm::event::MouseButton::Middle => MouseButton::Middle,
-        }
-    }
+    Unknown,
 }

@@ -4,16 +4,19 @@ use std::io::Stdout;
 use rooibos::dom::{render_dom, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{
-    setup_terminal, start, tick, RuntimeSettings, TerminalSettings, TickResult,
-};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{start, tick, RuntimeSettings, TickResult};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    start(RuntimeSettings::default(), app);
-    let mut terminal = setup_terminal::<Stdout>(TerminalSettings::default())?;
+    let handle = start(
+        RuntimeSettings::default(),
+        CrosstermBackend::<Stdout>::default(),
+        app,
+    );
+    let mut terminal = handle.setup_terminal()?;
 
     terminal.draw(render_dom)?;
     loop {

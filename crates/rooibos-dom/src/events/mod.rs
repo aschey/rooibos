@@ -1,6 +1,10 @@
+#[cfg(feature = "crossterm")]
+mod crossterm;
 mod event_handler;
 mod key;
 mod mouse;
+#[cfg(feature = "termion")]
+mod termion;
 
 pub(crate) use event_handler::*;
 pub use key::*;
@@ -23,19 +27,7 @@ pub enum Event {
     /// An resize event with new dimensions after resize (columns, rows).
     /// **Note** that resize events can occur in batches.
     Resize(u16, u16),
-}
-
-impl From<crossterm::event::Event> for Event {
-    fn from(value: crossterm::event::Event) -> Self {
-        match value {
-            crossterm::event::Event::FocusGained => Event::FocusGained,
-            crossterm::event::Event::FocusLost => Event::FocusLost,
-            crossterm::event::Event::Key(key_event) => Event::Key(key_event.into()),
-            crossterm::event::Event::Mouse(mouse_event) => Event::Mouse(mouse_event.into()),
-            crossterm::event::Event::Paste(value) => Event::Paste(value),
-            crossterm::event::Event::Resize(cols, rows) => Event::Resize(cols, rows),
-        }
-    }
+    Unknown,
 }
 
 pub struct EventData {

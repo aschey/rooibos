@@ -508,6 +508,7 @@ pub fn send_event(event: Event) {
                 }
                 Event::FocusGained => {}
                 Event::FocusLost => {}
+                Event::Unknown => {}
                 Event::Mouse(mouse_event) => match mouse_event.kind {
                     crate::MouseEventKind::Down(_) => {
                         let current = nodes.keys().find_map(|k| {

@@ -21,8 +21,10 @@ tokio = { version = "1.37.0", default-features = false, features = [
 ratatui = { version = "0.26", default-features = false }
 tap = "1"
 tracing = "0.1"
+termion = { version = "4", optional = true }
 
 [features]
-default = ["crossterm"]
-crossterm = ["dep:crossterm"]
+default = ["crossterm", "termion"]
+crossterm = ["dep:crossterm", "ratatui/crossterm"]
+termion = ["dep:termion", "ratatui/termion"]
 nightly = ["reactive_graph/nightly"]

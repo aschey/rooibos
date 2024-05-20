@@ -5,15 +5,20 @@ use rooibos::components::Button;
 use rooibos::dom::{col, derive_signal, row, Constrainable, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{start, RuntimeSettings};
 use rooibos::tui::text::Text;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    start(RuntimeSettings::default(), app);
-    run::<Stdout>(TerminalSettings::default()).await?;
+    let handle = start(
+        RuntimeSettings::default(),
+        CrosstermBackend::<Stdout>::default(),
+        app,
+    );
+    handle.run().await?;
     Ok(())
 }
 

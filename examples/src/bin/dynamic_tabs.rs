@@ -5,7 +5,8 @@ use rooibos::components::{Button, Tab, TabList, TabView};
 use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{start, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::{Line, Text};
@@ -15,8 +16,12 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    start(RuntimeSettings::default(), app);
-    run::<Stdout>(TerminalSettings::default()).await?;
+    let handle = start(
+        RuntimeSettings::default(),
+        CrosstermBackend::<Stdout>::default(),
+        app,
+    );
+    handle.run().await?;
     Ok(())
 }
 

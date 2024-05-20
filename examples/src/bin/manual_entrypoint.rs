@@ -4,7 +4,8 @@ use std::io::Stdout;
 use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{execute, init_executor, run, start, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{execute, init_executor, start, RuntimeSettings};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -15,8 +16,12 @@ fn main() -> Result<()> {
 #[tokio::main()]
 async fn async_main() -> Result<()> {
     init_executor(async {
-        start(RuntimeSettings::default(), app);
-        run::<Stdout>(TerminalSettings::default()).await?;
+        let handle = start(
+            RuntimeSettings::default(),
+            CrosstermBackend::<Stdout>::default(),
+            app,
+        );
+        handle.run().await?;
         Ok(())
     })
     .await

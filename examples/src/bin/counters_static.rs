@@ -4,7 +4,8 @@ use std::io::Stdout;
 use rooibos::dom::{col, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::{run, start, RuntimeSettings, TerminalSettings};
+use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::{start, RuntimeSettings};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
@@ -13,8 +14,12 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    start(RuntimeSettings::default(), app);
-    run::<Stdout>(TerminalSettings::default()).await?;
+    let handle = start(
+        RuntimeSettings::default(),
+        CrosstermBackend::<Stdout>::default(),
+        app,
+    );
+    handle.run().await?;
     Ok(())
 }
 
