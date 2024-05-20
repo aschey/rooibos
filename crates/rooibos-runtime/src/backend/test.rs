@@ -1,3 +1,6 @@
+use std::pin::Pin;
+
+use futures_util::Future;
 use ratatui::Terminal;
 
 use super::Backend;
@@ -22,9 +25,11 @@ impl Backend for TestBackend {
         true
     }
 
-    async fn read_input(
+    fn read_input(
+        &self,
         _: tokio::sync::mpsc::Sender<()>,
         _: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
-    ) {
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+        Box::pin(async move {})
     }
 }

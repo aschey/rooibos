@@ -1,4 +1,6 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
+use std::pin::Pin;
+use std::time::{Duration, Instant};
 
 use crossterm::cursor::Show;
 use crossterm::event::{
@@ -10,7 +12,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
     LeaveAlternateScreen,
 };
-use futures_util::StreamExt;
+use futures_util::{Future, StreamExt};
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use tracing::warn;
@@ -22,6 +24,7 @@ pub struct TerminalSettings<W> {
     mouse_capture: bool,
     keyboard_enhancement: bool,
     viewport: Viewport,
+    hover_debounce: Duration,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
@@ -32,6 +35,7 @@ impl Default for TerminalSettings<Stdout> {
             mouse_capture: true,
             keyboard_enhancement: true,
             viewport: Viewport::default(),
+            hover_debounce: Duration::from_millis(20),
             get_writer: Box::new(stdout),
         }
     }
@@ -44,6 +48,7 @@ impl Default for TerminalSettings<Stderr> {
             mouse_capture: true,
             keyboard_enhancement: true,
             viewport: Viewport::default(),
+            hover_debounce: Duration::from_millis(20),
             get_writer: Box::new(stderr),
         }
     }
@@ -62,6 +67,11 @@ impl<W> TerminalSettings<W> {
 
     pub fn keyboard_enhancement(mut self, keyboard_enhancement: bool) -> Self {
         self.keyboard_enhancement = keyboard_enhancement;
+        self
+    }
+
+    pub fn hover_debounce(mut self, hover_debounce: Duration) -> Self {
+        self.hover_debounce = hover_debounce;
         self
     }
 
@@ -157,26 +167,57 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         }
     }
 
-    async fn read_input(
+    fn read_input(
+        &self,
         quit_tx: tokio::sync::mpsc::Sender<()>,
         term_tx: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
-    ) {
-        let mut event_reader = crossterm::event::EventStream::new().fuse();
-        while let Some(Ok(event)) = event_reader.next().await {
-            if let event::Event::Key(key_event) = event {
-                let KeyEvent {
-                    code, modifiers, ..
-                } = key_event;
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+        let hover_debounce = self.settings.hover_debounce.as_millis();
+        Box::pin(async move {
+            let mut event_reader = crossterm::event::EventStream::new().fuse();
 
-                if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
-                    let _ = quit_tx
-                        .send(())
-                        .await
-                        .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                    break;
+            let mut last_move_time = Instant::now();
+            let mut pending_move = None;
+            loop {
+                let send_next_move = tokio::time::sleep(Duration::from_millis(
+                    hover_debounce.saturating_sub((Instant::now() - last_move_time).as_millis())
+                        as u64,
+                ));
+
+                tokio::select! {
+                    next_event = event_reader.next() => {
+                        match next_event {
+                            Some(Ok(event::Event::Key(KeyEvent {
+                                code, modifiers, ..
+                            }))) if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') => {
+                                let _ = quit_tx
+                                    .send(())
+                                    .await
+                                    .tap_err(|e| warn!("error sending quit signal {e:?}"));
+                                return;
+                            }
+                            Some(Ok(
+                                mouse_event @ event::Event::Mouse(event::MouseEvent {
+                                    kind: event::MouseEventKind::Moved,
+                                    ..
+                                }),
+                            )) => {
+                                pending_move = Some(mouse_event);
+                                last_move_time = Instant::now();
+                            }
+                            Some(Ok(event)) => {
+                                term_tx.send(event.into()).ok();
+                            }
+                            _ => {
+                                return;
+                            }
+                        }
+                    }
+                    _ = send_next_move, if pending_move.is_some() => {
+                        term_tx.send(pending_move.take().unwrap().into()).ok();
+                    }
                 }
             }
-            term_tx.send(event.into()).ok();
-        }
+        })
     }
 }

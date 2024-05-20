@@ -1,4 +1,5 @@
-use std::io::{self};
+use std::io;
+use std::pin::Pin;
 #[cfg(feature = "crossterm")]
 pub mod crossterm;
 #[cfg(feature = "termion")]
@@ -19,7 +20,8 @@ pub trait Backend: Send {
     fn supports_keyboard_enhancement(&self) -> bool;
 
     fn read_input(
+        &self,
         quit_tx: mpsc::Sender<()>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-    ) -> impl Future<Output = ()> + Send;
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>>;
 }

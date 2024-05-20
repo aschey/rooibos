@@ -1,6 +1,8 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::os::fd::AsFd;
+use std::pin::Pin;
 
+use futures_util::Future;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use termion::event;
@@ -74,23 +76,28 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         false
     }
 
-    async fn read_input(
+    fn read_input(
+        &self,
         quit_tx: tokio::sync::mpsc::Sender<()>,
         term_tx: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
-    ) {
-        spawn_blocking(move || {
-            let stdin = io::stdin();
-            for event in stdin.events().flatten() {
-                if let event::Event::Key(key) = event {
-                    if key == event::Key::Ctrl('c') {
-                        let _ = quit_tx
-                            .try_send(())
-                            .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                        break;
+    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+        Box::pin(async move {
+            spawn_blocking(move || {
+                let stdin = io::stdin();
+                for event in stdin.events().flatten() {
+                    if let event::Event::Key(key) = event {
+                        if key == event::Key::Ctrl('c') {
+                            let _ = quit_tx
+                                .try_send(())
+                                .tap_err(|e| warn!("error sending quit signal {e:?}"));
+                            break;
+                        }
                     }
+                    term_tx.send(event.into()).ok();
                 }
-                term_tx.send(event.into()).ok();
-            }
-        });
+            })
+            .await
+            .unwrap();
+        })
     }
 }

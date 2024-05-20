@@ -109,8 +109,10 @@ impl Runtime {
         // We need to query this info before reading events
         SUPPORTS_KEYBOARD_ENHANCEMENT
             .store(backend.supports_keyboard_enhancement(), Ordering::Relaxed);
+
         if settings.enable_input_reader {
-            Executor::spawn(async move { B::read_input(quit_tx, term_event_tx).await });
+            let input_reader = backend.read_input(quit_tx, term_event_tx);
+            Executor::spawn(input_reader);
         }
 
         Self {
