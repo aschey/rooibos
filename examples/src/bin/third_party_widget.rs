@@ -80,5 +80,4 @@ fn app() -> impl Render {
         state.get()
     )
     .on_key_down(key_down)
-    .focusable(true)
 }

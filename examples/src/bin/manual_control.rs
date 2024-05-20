@@ -42,7 +42,5 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(format!("count {}", count.get()))
-        .focusable(true)
-        .on_key_down(key_down)
+    widget_ref!(format!("count {}", count.get())).on_key_down(key_down)
 }

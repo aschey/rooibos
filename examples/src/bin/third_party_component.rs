@@ -37,9 +37,7 @@ fn app() -> impl Render {
         });
     };
 
-    text_area(text_area_widget)
-        .focusable(true)
-        .on_key_down(key_down)
+    text_area(text_area_widget).on_key_down(key_down)
 }
 
 fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget {

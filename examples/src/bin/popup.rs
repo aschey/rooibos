@@ -42,7 +42,6 @@ fn app() -> impl Render {
             ])
             .block(Block::bordered())
         )
-        .focusable(true)
         .on_key_down(key_down),
         Popup::default().percent_x(50).percent_y(50).render(
             move || show_popup.get(),

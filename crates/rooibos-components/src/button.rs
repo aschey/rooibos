@@ -92,7 +92,6 @@ impl Button {
                 .centered()
         )
         .constraint(constraint)
-        .focusable(true)
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
         .on_click(move |_, _| on_enter_())

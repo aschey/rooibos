@@ -49,7 +49,6 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
         .on_blur(move |_| block.set(Block::default().padding(default_padding)))
         .on_key_down(key_down)
         .on_click(move |_, _| update_count(1))
-        .focusable(true)
         .id(id.to_string())
 }
 

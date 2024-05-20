@@ -52,7 +52,6 @@ impl ListView {
                 ListState::default().with_selected(selected.get())
             )
         }
-        .focusable(true)
         .on_click(move |mouse_event, event_data| {
             let clicked_item = items.with(|items| {
                 let start_row = event_data.rect.y;

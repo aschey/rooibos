@@ -47,7 +47,6 @@ fn child0() -> impl Render {
     };
 
     widget_ref!(Paragraph::new("child0"))
-        .focusable(true)
         .on_key_down(key_down)
         .id("child0")
 }
@@ -68,7 +67,6 @@ fn child1(child2_id: RwSignal<i32>) -> impl Render {
     };
 
     widget_ref!(Paragraph::new(format!("child1 id={}", id.get())))
-        .focusable(true)
         .on_key_down(key_down)
         .id("child1")
 }
@@ -88,7 +86,6 @@ fn child2() -> impl Render {
     };
 
     widget_ref!(Paragraph::new(format!("child2 id={}", id.get())))
-        .focusable(true)
         .on_key_down(key_down)
         .id("child2")
 }

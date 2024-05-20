@@ -109,38 +109,42 @@ impl DomWidget {
         self
     }
 
-    pub fn on_key_down<F>(self, handler: F) -> Self
+    pub fn on_key_down<F>(mut self, handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData) + 'static,
     {
+        self = self.focusable(true);
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_key_down(handler));
 
         self
     }
 
-    pub fn on_key_up<F>(self, handler: F) -> Self
+    pub fn on_key_up<F>(mut self, handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData) + 'static,
     {
+        self = self.focusable(true);
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_key_up(handler));
         self
     }
 
-    pub fn on_focus<F>(self, handler: F) -> Self
+    pub fn on_focus<F>(mut self, handler: F) -> Self
     where
         F: FnMut(EventData) + 'static,
     {
+        self = self.focusable(true);
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
         self
     }
 
-    pub fn on_blur<F>(self, handler: F) -> Self
+    pub fn on_blur<F>(mut self, handler: F) -> Self
     where
         F: FnMut(EventData) + 'static,
     {
+        self = self.focusable(true);
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
         self
