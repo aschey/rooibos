@@ -22,3 +22,4 @@ nightly = [
 ]
 crossterm = ["rooibos-dom/crossterm", "rooibos-runtime/crossterm"]
 termion = ["rooibos-dom/termion", "rooibos-runtime/termion"]
+default = ["crossterm"]

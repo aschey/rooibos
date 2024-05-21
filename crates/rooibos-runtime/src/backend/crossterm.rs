@@ -4,8 +4,9 @@ use std::time::{Duration, Instant};
 
 use crossterm::cursor::Show;
 use crossterm::event::{
-    self, DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEvent, KeyModifiers,
-    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyEvent, KeyModifiers,
+    KeyboardEnhancementFlags, MouseEvent, MouseEventKind, PopKeyboardEnhancementFlags,
+    PushKeyboardEnhancementFlags,
 };
 use crossterm::queue;
 use crossterm::terminal::{
@@ -15,6 +16,7 @@ use crossterm::terminal::{
 use futures_util::{Future, StreamExt};
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
+use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
 
 use super::Backend;
@@ -83,27 +85,31 @@ impl<W> TerminalSettings<W> {
 
 pub struct CrosstermBackend<W: Write> {
     settings: TerminalSettings<W>,
+    supports_keyboard_enhancement: bool,
 }
 
 impl<W: Write> CrosstermBackend<W> {
     pub fn new(settings: TerminalSettings<W>) -> Self {
-        Self { settings }
+        Self {
+            supports_keyboard_enhancement: if settings.keyboard_enhancement {
+                supports_keyboard_enhancement().unwrap_or(false)
+            } else {
+                false
+            },
+            settings,
+        }
     }
 }
 
 impl Default for CrosstermBackend<Stdout> {
     fn default() -> Self {
-        Self {
-            settings: Default::default(),
-        }
+        Self::new(TerminalSettings::default())
     }
 }
 
 impl Default for CrosstermBackend<Stderr> {
     fn default() -> Self {
-        Self {
-            settings: Default::default(),
-        }
+        Self::new(TerminalSettings::default())
     }
 }
 
@@ -119,7 +125,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         if self.settings.mouse_capture {
             queue!(writer, EnableMouseCapture)?;
         }
-        if self.settings.keyboard_enhancement {
+        if self.supports_keyboard_enhancement {
             queue!(
                 writer,
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
@@ -141,7 +147,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     fn restore_terminal(&self) -> io::Result<()> {
         let mut writer = (self.settings.get_writer)();
 
-        if self.settings.keyboard_enhancement {
+        if self.supports_keyboard_enhancement {
             queue!(writer, PopKeyboardEnhancementFlags)?;
         }
 
@@ -160,21 +166,17 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
-        if self.settings.keyboard_enhancement {
-            supports_keyboard_enhancement().unwrap_or(false)
-        } else {
-            false
-        }
+        self.supports_keyboard_enhancement
     }
 
     fn read_input(
         &self,
-        quit_tx: tokio::sync::mpsc::Sender<()>,
-        term_tx: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
+        quit_tx: mpsc::Sender<()>,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         let hover_debounce = self.settings.hover_debounce.as_millis();
         Box::pin(async move {
-            let mut event_reader = crossterm::event::EventStream::new().fuse();
+            let mut event_reader = EventStream::new().fuse();
 
             let mut last_move_time = Instant::now();
             let mut pending_move = None;
@@ -187,7 +189,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                 tokio::select! {
                     next_event = event_reader.next() => {
                         match next_event {
-                            Some(Ok(event::Event::Key(KeyEvent {
+                            Some(Ok(Event::Key(KeyEvent {
                                 code, modifiers, ..
                             }))) if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') => {
                                 let _ = quit_tx
@@ -197,8 +199,8 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                                 return;
                             }
                             Some(Ok(
-                                mouse_event @ event::Event::Mouse(event::MouseEvent {
-                                    kind: event::MouseEventKind::Moved,
+                                mouse_event @ Event::Mouse(MouseEvent {
+                                    kind: MouseEventKind::Moved,
                                     ..
                                 }),
                             )) => {

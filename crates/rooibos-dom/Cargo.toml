@@ -44,4 +44,4 @@ tokio = { version = "1.37.0", default-features = false, features = [
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
 crossterm = ["dep:crossterm"]
 termion = ["dep:termion"]
-default = ["crossterm", "termion"]
+default = ["crossterm"]

@@ -24,7 +24,7 @@ tracing = "0.1"
 termion = { version = "4", optional = true }
 
 [features]
-default = ["crossterm", "termion"]
+default = ["crossterm"]
 crossterm = ["dep:crossterm", "ratatui/crossterm"]
 termion = ["dep:termion", "ratatui/termion"]
 nightly = ["reactive_graph/nightly"]
