@@ -10,7 +10,7 @@ use reactive_graph::owner::{provide_context, use_context};
 use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Update, With, Writeable};
 use slotmap::{DefaultKey, SlotMap};
-use tachys::reactive_graph::RenderEffectState;
+use tachys::reactive_graph::{OwnedView, RenderEffectState};
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
 use tachys::view::iterators::OptionState;
 use tachys::view::{Mountable, Render};
@@ -30,11 +30,11 @@ where
         tasks: tasks.clone(),
     });
     let none_pending = ArcMemo::new(move |_| tasks.with(SlotMap::is_empty));
-    SuspenseBoundary::<false, _, _> {
+    OwnedView::new(SuspenseBoundary::<false, _, _> {
         none_pending,
         fallback,
         children,
-    }
+    })
 }
 
 pub fn transition<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl RenderAny
@@ -49,11 +49,11 @@ where
         tasks: tasks.clone(),
     });
     let none_pending = ArcMemo::new(move |_| tasks.with(SlotMap::is_empty));
-    SuspenseBoundary::<true, _, _> {
+    OwnedView::new(SuspenseBoundary::<true, _, _> {
         none_pending,
         fallback,
         children,
-    }
+    })
 }
 
 pub struct SuspenseBoundary<const TRANSITION: bool, Fal, Chil> {

@@ -9,8 +9,7 @@ use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use slotmap::SlotMap;
-use tachys::prelude::*;
-use tachys::renderer::CastFrom;
+use tachys::renderer::{CastFrom, Renderer};
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
