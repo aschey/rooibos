@@ -76,6 +76,8 @@ pub struct TabView {
     fit: MaybeSignal<bool>,
     divider: MaybeSignal<Span<'static>>,
     header_constraint: MaybeSignal<Constraint>,
+    padding_left: MaybeSignal<Line<'static>>,
+    padding_right: MaybeSignal<Line<'static>>,
 }
 
 enum ClickAction<'a> {
@@ -99,6 +101,8 @@ impl Default for TabView {
             fit: false.into(),
             divider: Span::raw(symbols::line::VERTICAL).into(),
             header_constraint: Constraint::Length(1).into(),
+            padding_left: Line::from(" ").into(),
+            padding_right: Line::from(" ").into(),
         }
     }
 }
@@ -187,6 +191,16 @@ impl TabView {
         self
     }
 
+    pub fn padding_left(mut self, padding_left: impl Into<MaybeSignal<Line<'static>>>) -> Self {
+        self.padding_left = padding_left.into();
+        self
+    }
+
+    pub fn padding_right(mut self, padding_right: impl Into<MaybeSignal<Line<'static>>>) -> Self {
+        self.padding_right = padding_right.into();
+        self
+    }
+
     pub fn render(
         self,
         current_tab: impl Into<Signal<String>>,
@@ -206,6 +220,8 @@ impl TabView {
             fit,
             header_constraint,
             divider,
+            padding_left,
+            padding_right,
         } = self;
 
         let children: MaybeSignal<TabList> = children.into();
@@ -282,7 +298,17 @@ impl TabView {
 
         let divider_width = {
             let divider = divider.clone();
-            derive_signal!(divider.get().width())
+            derive_signal!(divider.with(|d| d.width()))
+        };
+
+        let padding_width_left = {
+            let padding_left = padding_left.clone();
+            derive_signal!(padding_left.with(|p| p.width()))
+        };
+
+        let padding_width_right = {
+            let padding_right = padding_right.clone();
+            derive_signal!(padding_right.with(|p| p.width()))
         };
 
         let headers_len = derive_signal!({
@@ -292,10 +318,13 @@ impl TabView {
             if headers_len == 0 {
                 return 0;
             }
-            // title length + 2 spaces per title + number of dividers (number of tabs - 1)
+            let padding_width = padding_width_left.get() + padding_width_right.get();
+            // title length + padding length + number of dividers (number of tabs - 1)
             // + outside borders (2)
             headers.with(|h| {
-                h.iter().map(|t| (t.width() + 2) as u16).sum::<u16>()
+                h.iter()
+                    .map(|t| (t.width() + padding_width) as u16)
+                    .sum::<u16>()
                     + ((headers_len as u16 - 1) * divider_width)
                     + 2
             })
@@ -316,6 +345,8 @@ impl TabView {
             let divider_width = divider_width.get() as u16;
             let mut total_len = 1u16;
             let current_tab = current_tab.get();
+            let padding_width_left = padding_width_left.get() as u16;
+            let padding_width_right = padding_width_right.get() as u16;
             // Event handlers could access the children object so we shouldn't invoke them until
             // we're out of the with() block
             let action = children.with(|c| {
@@ -326,7 +357,7 @@ impl TabView {
                         .as_ref()
                         .map(|d| (d.get().width() + 2) as u16)
                         .unwrap_or(0);
-                    let header_area = header.width() as u16 + 2;
+                    let header_area = header.width() as u16 + padding_width_left;
 
                     if col_offset <= (total_len + header_area) {
                         if child.value != current_tab {
@@ -345,7 +376,7 @@ impl TabView {
                             return Some(ClickAction::Title(i, child.value.clone()));
                         }
                     }
-                    total_len += header_area + decorator_area + divider_width;
+                    total_len += header_area + decorator_area + divider_width + padding_width_right;
                 }
                 None
             });
@@ -367,7 +398,8 @@ impl TabView {
                     .divider(divider.get())
                     .style(style.get())
                     .highlight_style(Style::default())
-                    .select(cur_tab.get().map(|t| t.1).unwrap_or(0));
+                    .select(cur_tab.get().map(|t| t.1).unwrap_or(0))
+                    .padding(padding_left.get(), padding_right.get());
                 if let Some(block) = block.get() {
                     headers.block(block)
                 } else {
