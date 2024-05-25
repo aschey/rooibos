@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::components::{Tab, TabList, TabView};
+use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
@@ -29,7 +29,7 @@ fn app() -> impl Render {
     let focused = RwSignal::new("tab1".to_string());
     let tab_block = RwSignal::new(Block::bordered().title("Demo"));
 
-    let tabs = RwSignal::new(TabList(vec![
+    let tabs = RwSignal::new(KeyedWrappingList::<Tab>(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1"),
         Tab::new(Line::from("Tab2"), "tab2", inner_tabs),
         Tab::new(Line::from("Tab3"), "tab3", move || "tab3"),
@@ -39,12 +39,12 @@ fn app() -> impl Render {
         let tabs = tabs.get();
         match key_event.code {
             KeyCode::Left => {
-                if let Some(prev) = tabs.prev_tab(&focused.get()) {
+                if let Some(prev) = tabs.prev_item(&focused.get()) {
                     focused.set(prev.get_value());
                 }
             }
             KeyCode::Right => {
-                if let Some(next) = tabs.next_tab(&focused.get()) {
+                if let Some(next) = tabs.next_item(&focused.get()) {
                     focused.set(next.get_value());
                 }
             }
@@ -80,7 +80,7 @@ fn inner_tabs() -> impl Render {
     let focused_tab = RwSignal::new("tab1".to_string());
     let tab_block = RwSignal::new(Block::bordered().title("Inner"));
 
-    let tabs = RwSignal::new(TabList(vec![
+    let tabs = RwSignal::new(KeyedWrappingList::<Tab>(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1"),
         Tab::new(Line::from("Tab2"), "tab2", move || "tab2"),
     ]));
@@ -89,12 +89,12 @@ fn inner_tabs() -> impl Render {
         let tabs = tabs.get();
         match key_event.code {
             KeyCode::Left => {
-                if let Some(prev) = tabs.prev_tab(&focused_tab.get()) {
+                if let Some(prev) = tabs.prev_item(&focused_tab.get()) {
                     focused_tab.set(prev.get_value());
                 }
             }
             KeyCode::Right => {
-                if let Some(next) = tabs.next_tab(&focused_tab.get()) {
+                if let Some(next) = tabs.next_item(&focused_tab.get()) {
                     focused_tab.set(next.get_value());
                 }
             }

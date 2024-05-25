@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "0cfc32ad36c7a2f8ff2c5280d94d81026d37d0f7", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f", features = [
     "tracing",
     "effects",
 ] }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "0cfc32ad36c7a2f8ff2c5280d94d81026d37d0f7", features = [
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f", features = [
     "reactive_graph",
 ] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "0cfc32ad36c7a2f8ff2c5280d94d81026d37d0f7" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "0cfc32ad36c7a2f8ff2c5280d94d81026d37d0f7" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f" }
 matchit = "0.8"
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-runtime = { path = "../rooibos-runtime" }

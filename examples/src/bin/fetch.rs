@@ -60,13 +60,13 @@ fn app() -> impl Render {
         ]
         .length(3),
         row![col![suspense(
-            move || widget_ref!(Line::from("Loading...".gray())),
+            move || widget_ref!(Line::from(" Loading...".gray())),
             move || error_boundary(
                 move || {
                     Suspend(async move {
                         character
                             .await
-                            .map(|c| widget_ref!(Line::from(c.clone().green())))
+                            .map(|c| widget_ref!(Line::from(format!(" {c}").green())))
                     })
                 },
                 fallback

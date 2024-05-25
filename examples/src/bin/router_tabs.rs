@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::components::{use_router, Button, Route, Router, Tab, TabList, TabView};
+use rooibos::components::{use_router, Button, KeyedWrappingList, Route, Router, Tab, TabView};
 use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
@@ -37,7 +37,7 @@ fn tabs() -> impl Render {
     let count = RwSignal::new(0);
     let current_route = router.use_param("id");
 
-    let tabs = TabList(vec![
+    let tabs = KeyedWrappingList(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1"),
         Tab::new(Line::from("Tab2"), "tab2", move || "tab2"),
         Tab::new(Line::from("Tab3"), "tab3", move || "tab3"),
@@ -47,12 +47,12 @@ fn tabs() -> impl Render {
         let tabs = tabs.clone();
         move |key_event: KeyEvent, _: EventData| match key_event.code {
             KeyCode::Left => {
-                if let Some(prev) = tabs.prev_tab(&current_route.get()) {
+                if let Some(prev) = tabs.prev_item(&current_route.get()) {
                     router.push(format!("/tabs/{}", prev.get_value()));
                 }
             }
             KeyCode::Right => {
-                if let Some(next) = tabs.next_tab(&current_route.get()) {
+                if let Some(next) = tabs.next_item(&current_route.get()) {
                     router.push(format!("/tabs/{}", next.get_value()));
                 }
             }

@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::components::{Button, Tab, TabList, TabView};
+use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
@@ -29,7 +29,7 @@ fn app() -> impl Render {
     let focused = RwSignal::new("tab1".to_string());
     let tabs_block = RwSignal::new(Block::bordered().title("Demo"));
 
-    let tabs = RwSignal::new(TabList(vec![
+    let tabs = RwSignal::new(KeyedWrappingList(vec![
         Tab::new(Line::from("Tab1"), "tab1", move || "tab1").decorator(Line::from("✕".red())),
         Tab::new(Line::from("Tab2"), "tab2", move || "tab2").decorator(Line::from("✕".red())),
     ]));
@@ -56,12 +56,12 @@ fn app() -> impl Render {
 
         match key_event.code {
             KeyCode::Left => {
-                if let Some(prev) = tabs.prev_tab(&focused.get()) {
+                if let Some(prev) = tabs.prev_item(&focused.get()) {
                     focused.set(prev.get_value());
                 }
             }
             KeyCode::Right => {
-                if let Some(next) = tabs.next_tab(&focused.get()) {
+                if let Some(next) = tabs.next_item(&focused.get()) {
                     focused.set(next.get_value());
                 }
             }

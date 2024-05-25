@@ -1,5 +1,3 @@
-use std::ops::{Deref, DerefMut};
-
 use ratatui::layout::Constraint;
 use ratatui::layout::Constraint::*;
 use ratatui::style::{Style, Styled};
@@ -13,55 +11,17 @@ use rooibos_dom::{
     KeyEvent, MouseEvent, Render,
 };
 
+use crate::wrapping_list::KeyedWrappingList;
+use crate::Keyed;
+
+pub type TabList = KeyedWrappingList<Tab>;
+
 #[derive(Clone)]
 pub struct Tab {
     header: MaybeSignal<Line<'static>>,
     decorator: Option<MaybeSignal<Line<'static>>>,
     value: String,
     children: ChildrenFn,
-}
-
-#[derive(Clone)]
-pub struct TabList(pub Vec<Tab>);
-
-impl Deref for TabList {
-    type Target = Vec<Tab>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for TabList {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl TabList {
-    pub fn next_tab(&self, focused: &str) -> Option<&Tab> {
-        if self.is_empty() {
-            return None;
-        }
-        let current = self.iter().position(|t| t.value == focused).unwrap();
-        if current == self.len() - 1 {
-            self.first()
-        } else {
-            Some(&self[current + 1])
-        }
-    }
-
-    pub fn prev_tab(&self, focused: &str) -> Option<&Tab> {
-        if self.is_empty() {
-            return None;
-        }
-        let current = self.iter().position(|t| t.value == focused).unwrap();
-        if current == 0 {
-            self.last()
-        } else {
-            Some(&self[current - 1])
-        }
-    }
 }
 
 impl Tab {
@@ -88,6 +48,14 @@ impl Tab {
     }
 
     pub fn get_value(&self) -> &str {
+        &self.value
+    }
+}
+
+impl Keyed for Tab {
+    type Key = String;
+
+    fn key(&self) -> &Self::Key {
         &self.value
     }
 }
