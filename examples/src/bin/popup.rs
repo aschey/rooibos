@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::Popup;
-use rooibos::dom::{overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -45,7 +45,11 @@ fn app() -> impl Render {
         .on_key_down(key_down),
         Popup::default().percent_x(50).percent_y(50).render(
             move || show_popup.get(),
-            move || widget_ref!(Paragraph::new("popup text").block(Block::bordered())).length(3)
+            move || col![
+                col![].fill(1),
+                widget_ref!(Paragraph::new("popup text").block(Block::bordered())).length(3),
+                col![].fill(1),
+            ]
         )
     ]
 }

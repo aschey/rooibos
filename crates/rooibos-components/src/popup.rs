@@ -24,9 +24,11 @@ where
         row![].percentage(inverse_y),
         row![
             col![].percentage(inverse_x),
-            col![overlay![widget_ref!(Clear), children]].percentage(percent_x)
+            col![overlay![widget_ref!(Clear), children]].percentage(percent_x),
+            col![].percentage(inverse_x),
         ]
         .percentage(percent_y),
+        row![].percentage(inverse_y)
     ]
     .constraint(constraint.unwrap_or_default().get())
 }

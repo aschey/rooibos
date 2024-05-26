@@ -2,7 +2,7 @@ use rooibos::dom::{col, widget_ref, Constrainable, Render};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::text::{Line, Span};
-use rooibos::tui::widgets::{Block, Paragraph};
+use rooibos::tui::widgets::{Block, Paragraph, Wrap};
 
 use crate::tab0::charts::charts;
 use crate::tab0::gauges::gauges;
@@ -52,6 +52,7 @@ fn footer(constraint: Constraint) -> impl Render {
                 .title("Footer".magenta())
                 .add_modifier(Modifier::BOLD)
         )
+        .wrap(Wrap { trim: true })
     )
     .constraint(constraint)
 }

@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use ratatui::layout::{Constraint, Position};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
 use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
@@ -382,7 +382,7 @@ pub fn print_dom() -> Paragraph<'static> {
     let lines = with_root(|dom| {
         with_nodes(|nodes| print_dom_inner(&nodes, dom.as_ref().unwrap().key(), ""))
     });
-    Paragraph::new(lines.clone())
+    Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
 }
 
 fn print_dom_inner(
@@ -393,6 +393,10 @@ fn print_dom_inner(
     let node = &dom_ref[key];
     let NodeTypeStructure { name, attrs } = node.node_type.structure();
     let node_name = node.name.clone();
+    if node_name == "Placeholder" {
+        return vec![];
+    }
+
     let mut line = format!(
         "{indent}<{node_name} type={name} key={key:?} parent={:?}",
         node.parent
