@@ -230,14 +230,15 @@ impl TabView {
         let cur_tab = {
             let children = children.clone();
             derive_signal!({
-                let current_tab = current_tab.get();
-                children.with(|c| {
-                    c.iter().enumerate().find_map(|(i, c)| {
-                        if c.value == current_tab {
-                            Some((c.children.clone(), i))
-                        } else {
-                            None
-                        }
+                current_tab.with(|current_tab| {
+                    children.with(|c| {
+                        c.iter().enumerate().find_map(|(i, c)| {
+                            if &c.value == current_tab {
+                                Some((c.children.clone(), i))
+                            } else {
+                                None
+                            }
+                        })
                     })
                 })
             })
@@ -351,13 +352,13 @@ impl TabView {
             // we're out of the with() block
             let action = children.with(|c| {
                 for (i, child) in c.iter().enumerate() {
-                    let header = child.header.get();
+                    let header_width = child.header.with(|h| h.width() as u16);
                     let decorator_area = child
                         .decorator
                         .as_ref()
-                        .map(|d| (d.get().width() + 2) as u16)
+                        .map(|d| (d.with(|d| d.width()) + 2) as u16)
                         .unwrap_or(0);
-                    let header_area = header.width() as u16 + padding_width_left;
+                    let header_area = header_width + padding_width_left;
 
                     if col_offset <= (total_len + header_area) {
                         if child.value != current_tab {

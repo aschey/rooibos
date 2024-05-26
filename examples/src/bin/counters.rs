@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::for_each;
-use rooibos::dom::{col, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, row, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
@@ -45,13 +45,16 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
-        .constraint(constraint)
-        .on_focus(move |_| block.set(Block::bordered().blue()))
-        .on_blur(move |_| block.set(Block::default().padding(default_padding)))
-        .on_key_down(key_down)
-        .on_click(move |_, _| update_count(1))
-        .id(id.to_string())
+    row![
+        widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
+            .length(10)
+            .on_focus(move |_| block.set(Block::bordered().blue()))
+            .on_blur(move |_| block.set(Block::default().padding(default_padding)))
+            .on_key_down(key_down)
+            .on_click(move |_, _| update_count(1))
+            .id(id.to_string())
+    ]
+    .constraint(constraint)
 }
 
 fn app() -> impl Render {

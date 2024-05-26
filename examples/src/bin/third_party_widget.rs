@@ -1,13 +1,15 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{stateful_widget, KeyCode, KeyEvent, Render};
+use rooibos::dom::{DomWidget, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{start, RuntimeSettings};
+use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
+use rooibos::tui::Frame;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -58,26 +60,35 @@ fn app() -> impl Render {
             s.key_right();
         }),
         KeyCode::Down => state.update(|s| {
-            s.key_down(&tree.get());
+            s.key_down();
         }),
         KeyCode::Up => state.update(|s| {
-            s.key_up(&tree.get());
+            s.key_up();
         }),
         KeyCode::Home => state.update(|s| {
-            s.select_first(&tree.get());
+            s.select_first();
         }),
         KeyCode::End => state.update(|s| {
-            s.select_last(&tree.get());
+            s.select_last();
         }),
         _ => {}
     };
 
-    stateful_widget!(
-        Tree::new(tree.get())
-            .unwrap()
-            .block(Block::bordered().title("Tree Widget"))
-            .highlight_style(Style::default().black().on_green().bold()),
-        state.get()
-    )
+    DomWidget::new("TreeView", move || {
+        let tree = tree.get();
+        state.track();
+        move |frame: &mut Frame, rect: Rect| {
+            state.update_untracked(|s| {
+                frame.render_stateful_widget(
+                    Tree::new(&tree)
+                        .unwrap()
+                        .block(Block::bordered().title("Tree Widget"))
+                        .highlight_style(Style::default().black().on_green().bold()),
+                    rect,
+                    s,
+                );
+            })
+        }
+    })
     .on_key_down(key_down)
 }
