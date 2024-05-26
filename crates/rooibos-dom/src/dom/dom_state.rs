@@ -112,9 +112,13 @@ impl DomState {
         self.hovered_key = None;
     }
 
-    pub(crate) fn remove_focusable(&mut self, key: &DomNodeKey) {
+    pub(crate) fn cleanup_before_remove(&mut self, key: &DomNodeKey) {
         if self.focused_key == Some(*key) {
             self.focused_key = None;
+            self.set_focused.set(None);
+        }
+        if self.hovered_key == Some(*key) {
+            self.hovered_key = None;
         }
         if let Some(pos) = self.focusable_nodes.iter().position(|n| n == key) {
             self.focusable_nodes.remove(pos);

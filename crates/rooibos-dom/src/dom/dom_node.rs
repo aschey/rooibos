@@ -280,7 +280,9 @@ pub struct DomNode {
 
 impl Mountable<RooibosDom> for DomNode {
     fn unmount(&mut self) {
-        unmount_child(self.key(), false);
+        with_nodes_mut(|mut nodes| {
+            unmount_child(self.key(), &mut nodes, false);
+        });
         self.unmounted = true;
     }
 
@@ -306,9 +308,11 @@ impl Mountable<RooibosDom> for DomNode {
 impl Drop for DomNode {
     fn drop(&mut self) {
         // The thread-local may already have been destroyed
-        // We can check using try_with to prevent errors here
+        // We need to check using try_with to prevent a panic here
         if self.unmounted && DOM_NODES.try_with(|_| {}).is_ok() {
-            unmount_child(self.key, true);
+            with_nodes_mut(|mut nodes| {
+                unmount_child(self.key, &mut nodes, true);
+            })
         }
     }
 }
@@ -380,8 +384,8 @@ impl DomNode {
     }
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
-        with_nodes_mut(|mut n| {
-            let current = &n[self.key];
+        with_nodes_mut(|mut nodes| {
+            let current = &nodes[self.key];
             let name = current.name.clone();
             let node_type = current.node_type.clone();
             let constraint = current.constraint.clone();
@@ -391,7 +395,7 @@ impl DomNode {
             let data = current.data.clone();
             let rect = current.rect.clone();
 
-            let new = &mut n[node.key];
+            let new = &mut nodes[node.key];
 
             new.name = name;
             new.node_type = node_type;
@@ -401,8 +405,9 @@ impl DomNode {
             new.event_handlers = event_handlers;
             new.data = data;
             new.rect = rect;
+            unmount_child(self.key, &mut nodes, true);
         });
-        unmount_child(self.key, true);
+
         self.key = node.key;
     }
 

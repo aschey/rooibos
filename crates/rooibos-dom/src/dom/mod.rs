@@ -251,16 +251,21 @@ impl Renderer for RooibosDom {
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
-        unmount_child(child.key(), true);
+        with_nodes_mut(|mut nodes| {
+            unmount_child(child.key(), &mut nodes, true);
+        });
+
         Some(child.clone())
     }
 
-    fn clear_children(_parent: &Self::Element) {
-        todo!()
+    fn clear_children(parent: &Self::Element) {
+        clear_children(parent.key())
     }
 
     fn remove(node: &Self::Node) {
-        unmount_child(node.key(), true);
+        with_nodes_mut(|mut nodes| {
+            unmount_child(node.key(), &mut nodes, true);
+        });
     }
 
     fn get_parent(node: &Self::Node) -> Option<Self::Node> {
@@ -309,7 +314,8 @@ fn cleanup_removed_nodes(
     remove: bool,
 ) {
     with_state_mut(|s| {
-        s.remove_focusable(node);
+        s.cleanup_before_remove(node);
+        s.remove_hovered(nodes)
     });
     let children = nodes[*node].children.clone();
     for child in children {
@@ -344,16 +350,31 @@ fn cleanup_removed_nodes(
 //     }
 // }
 
-fn unmount_child(child: DomNodeKey, cleanup: bool) {
-    with_nodes_mut(|mut d| {
-        let child_node = &d[child];
-        if let Some(parent) = child_node.parent {
-            let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
-            d[parent].children.remove(child_pos);
+fn clear_children(parent: DomNodeKey) {
+    with_nodes_mut(|mut nodes| {
+        let children = nodes[parent].children.clone();
+        for child in children {
+            unmount_child(child, &mut nodes, true);
         }
-        d[child].parent = None;
-        cleanup_removed_nodes(&child, &mut d, cleanup);
     });
+}
+
+fn unmount_child(
+    child: DomNodeKey,
+    nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>,
+    cleanup: bool,
+) {
+    let child_node = &nodes[child];
+    if let Some(parent) = child_node.parent {
+        let child_pos = nodes[parent]
+            .children
+            .iter()
+            .position(|c| c == &child)
+            .unwrap();
+        nodes[parent].children.remove(child_pos);
+    }
+    nodes[child].parent = None;
+    cleanup_removed_nodes(&child, nodes, cleanup);
     notify();
 }
 
