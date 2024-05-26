@@ -47,7 +47,7 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
 
     row![
         widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
-            .length(10)
+            .length(15)
             .on_focus(move |_| block.set(Block::bordered().blue()))
             .on_blur(move |_| block.set(Block::default().padding(default_padding)))
             .on_key_down(key_down)

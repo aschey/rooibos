@@ -62,7 +62,6 @@ new_key_type! {pub(crate) struct DomNodeKey; }
 pub(crate) struct NodeTypeStructure {
     pub(crate) name: &'static str,
     pub(crate) attrs: Option<String>,
-    pub(crate) children: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Clone, Default)]
@@ -99,23 +98,19 @@ impl NodeType {
                         "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}, \
                          block={block:?}"
                     )),
-                    children: None,
                 }
             }
             NodeType::Overlay => NodeTypeStructure {
                 name: "Overlay",
                 attrs: None,
-                children: None,
             },
-            NodeType::Widget(widget) => NodeTypeStructure {
+            NodeType::Widget(_) => NodeTypeStructure {
                 name: "Widget",
                 attrs: None,
-                children: Some(format!("{widget:?}")),
             },
             NodeType::Placeholder => NodeTypeStructure {
                 name: "Placeholder",
                 attrs: None,
-                children: None,
             },
         }
     }

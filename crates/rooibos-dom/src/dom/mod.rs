@@ -1,9 +1,9 @@
 use std::cell::{Ref, RefCell, RefMut};
-use std::io;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use ratatui::layout::{Constraint, Position};
-use ratatui::text::Text;
+use ratatui::text::{Line, Text};
+use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
@@ -125,6 +125,7 @@ thread_local! {
         RefCell::new(tx)
     };
     static INITIAL_RENDER: AtomicBool = const { AtomicBool::new(true) };
+    static PRINT_DOM: AtomicBool = const { AtomicBool::new(false) };
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {
@@ -356,50 +357,42 @@ fn unmount_child(child: DomNodeKey, cleanup: bool) {
     notify();
 }
 
-pub fn print_dom<W: io::Write>(writer: &mut W) -> io::Result<()> {
-    with_root(|dom| {
-        with_nodes(|nodes| {
-            print_dom_inner(writer, &nodes, dom.as_ref().unwrap().key(), "")?;
-            Ok(())
-        })
-    })
+pub fn print_dom() -> Paragraph<'static> {
+    let lines = with_root(|dom| {
+        with_nodes(|nodes| print_dom_inner(&nodes, dom.as_ref().unwrap().key(), ""))
+    });
+    Paragraph::new(lines.clone())
 }
 
-fn print_dom_inner<W: io::Write>(
-    writer: &mut W,
+fn print_dom_inner(
     dom_ref: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
     key: DomNodeKey,
     indent: &str,
-) -> io::Result<()> {
+) -> Vec<Line<'static>> {
     let node = &dom_ref[key];
-    let NodeTypeStructure {
-        name,
-        attrs,
-        children,
-    } = node.node_type.structure();
+    let NodeTypeStructure { name, attrs } = node.node_type.structure();
     let node_name = node.name.clone();
-    write!(
-        writer,
+    let mut line = format!(
         "{indent}<{node_name} type={name} key={key:?} parent={:?}",
         node.parent
-    )?;
+    );
+
     if let Some(attrs) = attrs {
-        write!(writer, " {attrs}")?;
+        line += &format!(" {attrs}");
     }
-    write!(writer, " constraint={}", node.constraint.borrow().clone())?;
+    line += &format!(" constraint={}>", node.constraint.borrow().clone());
 
-    writeln!(writer, ">")?;
-    if let Some(children) = children {
-        writeln!(writer, "{indent}  {children}")?;
-    }
+    let mut lines = vec![Line::from(line)];
+
     let child_indent = format!("{indent}  ");
+
     for key in &node.children {
-        print_dom_inner(writer, dom_ref, *key, &child_indent)?;
+        lines.append(&mut print_dom_inner(dom_ref, *key, &child_indent));
     }
 
-    writeln!(writer, "{indent}</{node_name}>")?;
+    lines.push(Line::from(format!("{indent}</{node_name}>")));
 
-    Ok(())
+    lines
 }
 
 pub(crate) fn notify() {
@@ -422,11 +415,15 @@ pub fn unmount() {
 }
 
 pub fn render_dom(frame: &mut Frame) {
-    with_root(|d| d.as_ref().unwrap().render(frame, frame.size()));
+    if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
+        frame.render_widget(print_dom(), frame.size());
+    } else {
+        with_root(|d| d.as_ref().unwrap().render(frame, frame.size()));
 
-    // Focus the first node after the initial render
-    if INITIAL_RENDER.with(|f| f.swap(false, Ordering::Relaxed)) {
-        focus_next();
+        // Focus the first node after the initial render
+        if INITIAL_RENDER.with(|f| f.swap(false, Ordering::Relaxed)) {
+            focus_next();
+        }
     }
 }
 
@@ -470,6 +467,11 @@ pub fn send_event(event: Event) {
                         } else {
                             return Some(Focus::Next);
                         }
+                    } else if key_event.code == KeyCode::Char('p')
+                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
+                    {
+                        PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
+                        notify();
                     } else if let Some(key) = state.focused_key() {
                         match key_event.kind {
                             KeyEventKind::Press | KeyEventKind::Repeat => {
