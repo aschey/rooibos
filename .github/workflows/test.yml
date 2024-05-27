@@ -2,8 +2,11 @@ on: [push]
 name: CI
 jobs:
   test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     name: Run tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
