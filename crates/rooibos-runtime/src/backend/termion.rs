@@ -96,13 +96,12 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                             let _ = signal_tx
                                 .try_send(SignalMode::Suspend)
                                 .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                            break;
+                            continue;
                         }
-                        _ => {
-                            term_tx.send(event.into()).ok();
-                        }
+                        _ => {}
                     }
                 }
+                term_tx.send(event.into()).ok();
             }
         })
         .await
