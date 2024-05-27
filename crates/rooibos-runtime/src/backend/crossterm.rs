@@ -188,23 +188,27 @@ impl<W: Write> Backend for CrosstermBackend<W> {
             tokio::select! {
                 next_event = event_reader.next() => {
                     match next_event {
-                        Some(Ok(Event::Key(KeyEvent {
-                            code, modifiers, ..
-                        }))) if modifiers.contains(KeyModifiers::CONTROL)
-                            && matches!(code, KeyCode::Char('c' | 'z')) =>
-                        {
-                            if code == KeyCode::Char('c') {
+                        Some(Ok(
+                            event @ Event::Key(KeyEvent {
+                                code, modifiers, ..
+                            }),
+                        )) => {
+                            if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
                                 let _ = signal_tx
                                     .send(SignalMode::Terminate)
                                     .await
-                                    .tap_err(|e| warn!("error sending signal {e:?}"));
-                                return;
-                            } else {
+                                    .tap_err(|_| warn!("error sending terminate signal"));
+                            } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
+                            {
                                 let _ = signal_tx
                                     .send(SignalMode::Suspend)
                                     .await
-                                    .tap_err(|e| warn!("error sending signal {e:?}"));
-                            };
+                                    .tap_err(|_| warn!("error sending suspend signal"));
+                            } else {
+                                let _ = term_tx
+                                    .send(event.into())
+                                    .tap_err(|_| warn!("error sending terminal event"));
+                            }
                         }
                         Some(Ok(
                             mouse_event @ Event::Mouse(MouseEvent {

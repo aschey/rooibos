@@ -93,15 +93,19 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                             break;
                         }
                         event::Key::Ctrl('z') => {
-                            let _ = signal_tx
-                                .try_send(SignalMode::Suspend)
-                                .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                            continue;
+                            if cfg!(unix) {
+                                let _ = signal_tx
+                                    .try_send(SignalMode::Suspend)
+                                    .tap_err(|e| warn!("error sending quit signal {e:?}"));
+                                continue;
+                            }
                         }
                         _ => {}
                     }
                 }
-                term_tx.send(event.into()).ok();
+                let _ = term_tx
+                    .send(event.into())
+                    .tap_err(|e| warn!("error sending terminal event {e:?}"));
             }
         })
         .await
