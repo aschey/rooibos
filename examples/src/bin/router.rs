@@ -7,19 +7,19 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{start, RuntimeSettings};
+use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::widgets::Paragraph;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let handle = start(
+    let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
         app,
     );
-    handle.run().await?;
+    runtime.run().await?;
     Ok(())
 }
 

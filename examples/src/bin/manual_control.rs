@@ -5,28 +5,28 @@ use rooibos::dom::{render_dom, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{start, tick, RuntimeSettings, TickResult};
+use rooibos::runtime::{Runtime, RuntimeSettings, TickResult};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let handle = start(
+    let mut runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
         app,
     );
-    let mut terminal = handle.setup_terminal()?;
+    let mut terminal = runtime.setup_terminal()?;
 
     terminal.draw(render_dom)?;
     loop {
-        let tick_result = tick().await;
+        let tick_result = runtime.tick().await;
         match tick_result {
             TickResult::Redraw => {
                 terminal.draw(render_dom)?;
             }
             TickResult::Restart => {
-                terminal = handle.setup_terminal()?;
+                terminal = runtime.setup_terminal()?;
                 terminal.draw(render_dom)?;
             }
             TickResult::Exit => {

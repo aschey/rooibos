@@ -6,7 +6,7 @@ use rooibos::dom::{col, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, R
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{start, RuntimeSettings};
+use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::text::Line;
 use rooibos::tui::widgets::{Block, Paragraph};
 
@@ -14,12 +14,12 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let handle = start(
+    let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
         app,
     );
-    handle.run().await?;
+    runtime.run().await?;
     Ok(())
 }
 

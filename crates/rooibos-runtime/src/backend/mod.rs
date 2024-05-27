@@ -1,10 +1,10 @@
-use std::io;
-use std::pin::Pin;
 #[cfg(feature = "crossterm")]
 pub mod crossterm;
 #[cfg(feature = "termion")]
 pub mod termion;
 pub mod test;
+
+use std::io;
 
 use futures_util::Future;
 use ratatui::Terminal;
@@ -25,5 +25,5 @@ pub trait Backend: Send + Sync {
         &self,
         signal_tx: mpsc::Sender<SignalMode>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>>;
+    ) -> impl Future<Output = ()> + Send;
 }

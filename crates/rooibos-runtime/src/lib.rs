@@ -19,13 +19,12 @@ use rooibos_dom::{
     dom_update_receiver, mount, render_dom, send_event, DomUpdateReceiver, Event, Render,
 };
 use tap::TapFallible;
-use tokio::sync::{broadcast, mpsc, Mutex};
+use tokio::sync::{broadcast, mpsc};
 use tokio::task::{self, spawn_local};
 use tracing::error;
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
-static CURRENT_RUNTIME: OnceLock<Mutex<Runtime>> = OnceLock::new();
 static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::Event>> = OnceLock::new();
 static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
 static RESTORE_TERMINAL: OnceLock<std::sync::Mutex<Box<RestoreFn>>> = OnceLock::new();
@@ -76,30 +75,12 @@ impl RuntimeSettings {
     }
 }
 
-pub fn init<B: Backend>(settings: RuntimeSettings, backend: &B) {
-    CURRENT_RUNTIME
-        .set(Mutex::new(Runtime::initialize(settings, backend)))
-        .expect("init called more than once");
-}
-
-pub fn start<F, M, B>(settings: RuntimeSettings, backend: B, f: F) -> RuntimeHandle<B>
-where
-    B: Backend,
-    F: FnOnce() -> M + 'static,
-    M: Render,
-{
-    init(settings, &backend);
-    mount(f);
-    RuntimeHandle {
-        backend: Arc::new(backend),
-    }
-}
-
 #[derive(Debug)]
-struct Runtime {
+pub struct Runtime<B: Backend> {
     signal_rx: mpsc::Receiver<SignalMode>,
     dom_update_rx: DomUpdateReceiver,
     term_event_rx: broadcast::Receiver<rooibos_dom::Event>,
+    backend: Arc<B>,
 }
 
 pub enum SignalMode {
@@ -108,8 +89,13 @@ pub enum SignalMode {
     Resume,
 }
 
-impl Runtime {
-    fn initialize<B: Backend>(settings: RuntimeSettings, backend: &B) -> Self {
+impl<B: Backend + 'static> Runtime<B> {
+    pub fn initialize<F, M>(settings: RuntimeSettings, backend: B, f: F) -> Self
+    where
+        F: FnOnce() -> M + 'static,
+        M: Render,
+    {
+        let backend = Arc::new(backend);
         let (signal_tx, signal_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
         TERM_TX
@@ -122,8 +108,11 @@ impl Runtime {
             .store(backend.supports_keyboard_enhancement(), Ordering::Relaxed);
 
         if settings.enable_input_reader {
-            let input_reader = backend.read_input(signal_tx.clone(), term_event_tx);
-            Executor::spawn(input_reader);
+            let backend = backend.clone();
+            let signal_tx = signal_tx.clone();
+            Executor::spawn(async move {
+                backend.read_input(signal_tx, term_event_tx).await;
+            });
         }
 
         Executor::spawn(async move {
@@ -156,14 +145,49 @@ impl Runtime {
             }
         });
 
+        mount(f);
         Self {
             dom_update_rx,
             signal_rx,
             term_event_rx,
+            backend,
         }
     }
 
-    async fn tick(&mut self) -> TickResult {
+    pub fn setup_terminal(&self) -> io::Result<Terminal<B::TuiBackend>> {
+        let terminal = self.backend.setup_terminal()?;
+        let backend = self.backend.clone();
+
+        *RESTORE_TERMINAL
+            .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
+            .lock()
+            .expect("lock poisoned") = Box::new(move || backend.restore_terminal());
+
+        Ok(terminal)
+    }
+
+    pub async fn run(mut self) -> io::Result<()> {
+        let mut terminal = self.setup_terminal()?;
+        terminal.draw(render_dom)?;
+        loop {
+            let tick_result = self.tick().await;
+            match tick_result {
+                TickResult::Redraw => {
+                    terminal.draw(render_dom)?;
+                }
+                TickResult::Restart => {
+                    terminal = self.setup_terminal()?;
+                    terminal.draw(render_dom)?;
+                }
+                TickResult::Exit => {
+                    return Ok(());
+                }
+                TickResult::Continue => {}
+            }
+        }
+    }
+
+    pub async fn tick(&mut self) -> TickResult {
         tokio::select! {
             signal = self.signal_rx.recv() => {
                 match signal {
@@ -194,11 +218,6 @@ impl Runtime {
             }
         }
     }
-}
-
-pub async fn tick() -> TickResult {
-    let rt = CURRENT_RUNTIME.get().expect("runtime not initialized");
-    rt.lock().await.tick().await
 }
 
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
@@ -238,51 +257,6 @@ pub fn set_panic_hook() {
         let _ = restore_terminal();
         original_hook(panic_info);
     }));
-}
-
-pub struct RuntimeHandle<B>
-where
-    B: Backend,
-{
-    backend: Arc<B>,
-}
-
-impl<B> RuntimeHandle<B>
-where
-    B: Backend + 'static,
-{
-    pub fn setup_terminal(&self) -> io::Result<Terminal<B::TuiBackend>> {
-        let terminal = self.backend.setup_terminal()?;
-        let backend = self.backend.clone();
-
-        *RESTORE_TERMINAL
-            .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
-            .lock()
-            .expect("lock poisoned") = Box::new(move || backend.restore_terminal());
-
-        Ok(terminal)
-    }
-
-    pub async fn run(self) -> io::Result<()> {
-        let mut terminal = self.setup_terminal()?;
-        terminal.draw(render_dom)?;
-        loop {
-            let tick_result = tick().await;
-            match tick_result {
-                TickResult::Redraw => {
-                    terminal.draw(render_dom)?;
-                }
-                TickResult::Restart => {
-                    terminal = self.setup_terminal()?;
-                    terminal.draw(render_dom)?;
-                }
-                TickResult::Exit => {
-                    return Ok(());
-                }
-                TickResult::Continue => {}
-            }
-        }
-    }
 }
 
 pub fn delay<F>(duration: Duration, f: F)

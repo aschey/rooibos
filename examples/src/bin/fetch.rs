@@ -11,7 +11,7 @@ use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
 use rooibos::reactive::traits::{Get, Set, With};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{start, RuntimeSettings};
+use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::style::Stylize;
 use rooibos::tui::text::{Line, Span, Text};
 use rooibos::tui::widgets::Paragraph;
@@ -19,12 +19,12 @@ use serde::Deserialize;
 
 #[rooibos::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let handle = start(
+    let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
         app,
     );
-    handle.run().await?;
+    runtime.run().await?;
 
     Ok(())
 }

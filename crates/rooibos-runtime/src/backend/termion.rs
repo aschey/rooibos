@@ -1,18 +1,18 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::os::fd::AsFd;
-use std::pin::Pin;
 
-use futures_util::Future;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use termion::event;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
+use tokio::sync::{broadcast, mpsc};
 use tokio::task::spawn_blocking;
 use tracing::warn;
 
 use super::Backend;
+use crate::SignalMode;
 
 pub struct TermionBackend<W: Write + AsFd> {
     settings: TerminalSettings<W>,
@@ -76,28 +76,36 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         false
     }
 
-    fn read_input(
+    async fn read_input(
         &self,
-        quit_tx: tokio::sync::mpsc::Sender<()>,
-        term_tx: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
-        Box::pin(async move {
-            spawn_blocking(move || {
-                let stdin = io::stdin();
-                for event in stdin.events().flatten() {
-                    if let event::Event::Key(key) = event {
-                        if key == event::Key::Ctrl('c') {
-                            let _ = quit_tx
-                                .try_send(())
+        signal_tx: mpsc::Sender<SignalMode>,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
+    ) {
+        spawn_blocking(move || {
+            let stdin = io::stdin();
+            for event in stdin.events().flatten() {
+                if let event::Event::Key(key) = event {
+                    match key {
+                        event::Key::Ctrl('c') => {
+                            let _ = signal_tx
+                                .try_send(SignalMode::Terminate)
                                 .tap_err(|e| warn!("error sending quit signal {e:?}"));
                             break;
                         }
+                        event::Key::Ctrl('z') => {
+                            let _ = signal_tx
+                                .try_send(SignalMode::Suspend)
+                                .tap_err(|e| warn!("error sending quit signal {e:?}"));
+                            break;
+                        }
+                        _ => {
+                            term_tx.send(event.into()).ok();
+                        }
                     }
-                    term_tx.send(event.into()).ok();
                 }
-            })
-            .await
-            .unwrap();
+            }
         })
+        .await
+        .unwrap();
     }
 }

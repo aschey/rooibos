@@ -8,7 +8,7 @@ use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{start, RuntimeSettings};
+use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::text::Line;
@@ -66,12 +66,12 @@ async fn main() -> Result<()> {
         })
         .init();
 
-    let handle = start(
+    let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
         app,
     );
-    handle.run().await?;
+    runtime.run().await?;
     guard.stop().await.unwrap();
     Ok(())
 }

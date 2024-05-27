@@ -1,5 +1,4 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
-use std::pin::Pin;
 use std::time::{Duration, Instant};
 
 use crossterm::cursor::{Hide, Show};
@@ -13,7 +12,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
     LeaveAlternateScreen,
 };
-use futures_util::{Future, StreamExt};
+use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
@@ -171,66 +170,63 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         self.supports_keyboard_enhancement
     }
 
-    fn read_input(
+    async fn read_input(
         &self,
         signal_tx: mpsc::Sender<SignalMode>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-    ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
+    ) {
         let hover_debounce = self.settings.hover_debounce.as_millis();
-        Box::pin(async move {
-            let mut event_reader = EventStream::new().fuse();
+        let mut event_reader = EventStream::new().fuse();
 
-            let mut last_move_time = Instant::now();
-            let mut pending_move = None;
-            loop {
-                let send_next_move = tokio::time::sleep(Duration::from_millis(
-                    hover_debounce.saturating_sub((Instant::now() - last_move_time).as_millis())
-                        as u64,
-                ));
+        let mut last_move_time = Instant::now();
+        let mut pending_move = None;
+        loop {
+            let send_next_move = tokio::time::sleep(Duration::from_millis(
+                hover_debounce.saturating_sub((Instant::now() - last_move_time).as_millis()) as u64,
+            ));
 
-                tokio::select! {
-                    next_event = event_reader.next() => {
-                        match next_event {
-                            Some(Ok(Event::Key(KeyEvent {
-                                code, modifiers, ..
-                            }))) if modifiers.contains(KeyModifiers::CONTROL)
-                                && matches!(code, KeyCode::Char('c' | 'z')) =>
-                            {
-                                if code == KeyCode::Char('c') {
-                                    let _ = signal_tx
-                                        .send(SignalMode::Terminate)
-                                        .await
-                                        .tap_err(|e| warn!("error sending signal {e:?}"));
-                                    return;
-                                } else {
-                                    let _ = signal_tx
-                                        .send(SignalMode::Suspend)
-                                        .await
-                                        .tap_err(|e| warn!("error sending signal {e:?}"));
-                                };
-                            }
-                            Some(Ok(
-                                mouse_event @ Event::Mouse(MouseEvent {
-                                    kind: MouseEventKind::Moved,
-                                    ..
-                                }),
-                            )) => {
-                                pending_move = Some(mouse_event);
-                                last_move_time = Instant::now();
-                            }
-                            Some(Ok(event)) => {
-                                term_tx.send(event.into()).ok();
-                            }
-                            _ => {
+            tokio::select! {
+                next_event = event_reader.next() => {
+                    match next_event {
+                        Some(Ok(Event::Key(KeyEvent {
+                            code, modifiers, ..
+                        }))) if modifiers.contains(KeyModifiers::CONTROL)
+                            && matches!(code, KeyCode::Char('c' | 'z')) =>
+                        {
+                            if code == KeyCode::Char('c') {
+                                let _ = signal_tx
+                                    .send(SignalMode::Terminate)
+                                    .await
+                                    .tap_err(|e| warn!("error sending signal {e:?}"));
                                 return;
-                            }
+                            } else {
+                                let _ = signal_tx
+                                    .send(SignalMode::Suspend)
+                                    .await
+                                    .tap_err(|e| warn!("error sending signal {e:?}"));
+                            };
+                        }
+                        Some(Ok(
+                            mouse_event @ Event::Mouse(MouseEvent {
+                                kind: MouseEventKind::Moved,
+                                ..
+                            }),
+                        )) => {
+                            pending_move = Some(mouse_event);
+                            last_move_time = Instant::now();
+                        }
+                        Some(Ok(event)) => {
+                            term_tx.send(event.into()).ok();
+                        }
+                        _ => {
+                            return;
                         }
                     }
-                    _ = send_next_move, if pending_move.is_some() => {
-                        term_tx.send(pending_move.take().unwrap().into()).ok();
-                    }
+                }
+                _ = send_next_move, if pending_move.is_some() => {
+                    term_tx.send(pending_move.take().unwrap().into()).ok();
                 }
             }
-        })
+        }
     }
 }
