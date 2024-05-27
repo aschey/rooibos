@@ -5,7 +5,7 @@ pub trait Keyed {
     fn key(&self) -> &Self::Key;
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KeyedWrappingList<T>(pub Vec<T>);
 
 impl<T> Deref for KeyedWrappingList<T> {
@@ -51,7 +51,7 @@ where
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct WrappingList<T>(pub Vec<T>);
 
 impl<T> Deref for WrappingList<T> {

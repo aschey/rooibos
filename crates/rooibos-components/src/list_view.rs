@@ -1,34 +1,36 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
 use reactive_graph::traits::{Get, With};
-use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal};
+use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{stateful_widget, EventData, KeyEvent, Render};
 
 use crate::WrappingList;
 
-type ItemSelectFn = dyn FnMut(usize, &ListItem);
+type ItemSelectFn<T> = dyn FnMut(usize, &T);
 
-pub type ListItems<'a> = WrappingList<ListItem<'a>>;
-
-pub struct ListView {
+pub struct ListView<T> {
     style: MaybeSignal<Style>,
-    on_item_click: Box<ItemSelectFn>,
+    on_item_click: Box<ItemSelectFn<T>>,
     on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
+    on_focus: Box<dyn FnMut(EventData)>,
+    on_blur: Box<dyn FnMut(EventData)>,
     highlight_style: MaybeSignal<Style>,
-    block: MaybeProp<Block<'static>>,
+    block: Option<MaybeSignal<Block<'static>>>,
     direction: MaybeSignal<ListDirection>,
     highlight_spacing: MaybeSignal<HighlightSpacing>,
-    highlight_symbol: MaybeProp<&'static str>,
+    highlight_symbol: Option<MaybeSignal<&'static str>>,
     repeat_highlight_symbol: MaybeSignal<bool>,
     scroll_padding: MaybeSignal<usize>,
 }
 
-impl Default for ListView {
+impl<T> Default for ListView<T> {
     fn default() -> Self {
         Self {
             style: Default::default(),
             on_item_click: Box::new(move |_, _| {}),
             on_key_down: Box::new(move |_, _| {}),
+            on_focus: Box::new(move |_| {}),
+            on_blur: Box::new(move |_| {}),
             highlight_style: Style::default().into(),
             block: Default::default(),
             direction: Default::default(),
@@ -40,7 +42,7 @@ impl Default for ListView {
     }
 }
 
-impl ListView {
+impl<T> ListView<T> {
     pub fn new() -> Self {
         Self::default()
     }
@@ -50,7 +52,7 @@ impl ListView {
         self
     }
 
-    pub fn on_item_click(mut self, on_item_click: impl FnMut(usize, &ListItem) + 'static) -> Self {
+    pub fn on_item_click(mut self, on_item_click: impl FnMut(usize, &T) + 'static) -> Self {
         self.on_item_click = Box::new(on_item_click);
         self
     }
@@ -60,13 +62,23 @@ impl ListView {
         self
     }
 
+    pub fn on_focus(mut self, on_focus: impl FnMut(EventData) + 'static) -> Self {
+        self.on_focus = Box::new(on_focus);
+        self
+    }
+
+    pub fn on_blur(mut self, on_blur: impl FnMut(EventData) + 'static) -> Self {
+        self.on_blur = Box::new(on_blur);
+        self
+    }
+
     pub fn highlight_style(mut self, highlight_style: impl Into<MaybeSignal<Style>>) -> Self {
         self.highlight_style = highlight_style.into();
         self
     }
 
-    pub fn block(mut self, block: impl Into<MaybeProp<Block<'static>>>) -> Self {
-        self.block = block.into();
+    pub fn block(mut self, block: impl Into<MaybeSignal<Block<'static>>>) -> Self {
+        self.block = Some(block.into());
         self
     }
 
@@ -99,12 +111,17 @@ impl ListView {
     pub fn render(
         self,
         selected: impl Into<MaybeSignal<Option<usize>>>,
-        items: impl Into<MaybeSignal<ListItems<'static>>>,
-    ) -> impl Render {
+        items: impl Into<MaybeSignal<WrappingList<T>>>,
+    ) -> impl Render
+    where
+        T: Into<ListItem<'static>> + Clone + Send + Sync + 'static,
+    {
         let Self {
             style,
             mut on_item_click,
             on_key_down,
+            on_focus,
+            on_blur,
             highlight_style,
             block,
             direction,
@@ -113,24 +130,24 @@ impl ListView {
             repeat_highlight_symbol,
             scroll_padding,
         } = self;
-        let items: MaybeSignal<ListItems> = items.into();
+        let items: MaybeSignal<WrappingList<T>> = items.into();
         let selected: MaybeSignal<Option<usize>> = selected.into();
         {
             let items = items.clone();
             stateful_widget!(
                 {
-                    let mut list = List::new(items.get().0)
+                    let mut list = List::new(items.get().0.into_iter().map(Into::into))
                         .highlight_style(highlight_style.get())
                         .direction(direction.get())
                         .highlight_spacing(highlight_spacing.get())
                         .repeat_highlight_symbol(repeat_highlight_symbol.get())
                         .scroll_padding(scroll_padding.get())
                         .style(style.get());
-                    if let Some(block) = block.get() {
-                        list = list.block(block);
+                    if let Some(block) = &block {
+                        list = list.block(block.get());
                     }
-                    if let Some(highlight_symbol) = highlight_symbol.get() {
-                        list = list.highlight_symbol(highlight_symbol);
+                    if let Some(highlight_symbol) = highlight_symbol {
+                        list = list.highlight_symbol(highlight_symbol.get());
                     }
                     list
                 },
@@ -143,7 +160,7 @@ impl ListView {
                 let row_offset = mouse_event.row - start_row;
                 let mut total_height = 0u16;
                 for (i, item) in items.iter().enumerate() {
-                    let item_height = item.height() as u16;
+                    let item_height = item.clone().into().height() as u16;
                     if row_offset < (total_height + item_height) {
                         return Some((i, item.clone()));
                     }
@@ -157,5 +174,7 @@ impl ListView {
             }
         })
         .on_key_down(on_key_down)
+        .on_focus(on_focus)
+        .on_blur(on_blur)
     }
 }
