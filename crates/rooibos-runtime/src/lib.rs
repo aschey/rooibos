@@ -139,7 +139,7 @@ impl Runtime {
             .unwrap();
 
             #[cfg(windows)]
-            let mut signals = Signals::new([Signal::Int])?;
+            let mut signals = Signals::new([Signal::Int]).unwrap();
 
             while let Some(Ok(signal)) = signals.next().await {
                 match signal {
