@@ -2,7 +2,7 @@ use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::pin::Pin;
 use std::time::{Duration, Instant};
 
-use crossterm::cursor::Show;
+use crossterm::cursor::{Hide, Show};
 use crossterm::event::{
     DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyEvent, KeyModifiers,
     KeyboardEnhancementFlags, MouseEvent, MouseEventKind, PopKeyboardEnhancementFlags,
@@ -20,6 +20,7 @@ use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
 
 use super::Backend;
+use crate::SignalMode;
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -119,6 +120,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
         let mut writer = (self.settings.get_writer)();
         enable_raw_mode()?;
+        queue!(writer, Hide)?;
         if self.settings.alternate_screen {
             queue!(writer, EnterAlternateScreen)?;
         }
@@ -171,7 +173,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn read_input(
         &self,
-        quit_tx: mpsc::Sender<()>,
+        signal_tx: mpsc::Sender<SignalMode>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         let hover_debounce = self.settings.hover_debounce.as_millis();
@@ -191,12 +193,21 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                         match next_event {
                             Some(Ok(Event::Key(KeyEvent {
                                 code, modifiers, ..
-                            }))) if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') => {
-                                let _ = quit_tx
-                                    .send(())
-                                    .await
-                                    .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                                return;
+                            }))) if modifiers.contains(KeyModifiers::CONTROL)
+                                && matches!(code, KeyCode::Char('c' | 'z')) =>
+                            {
+                                if code == KeyCode::Char('c') {
+                                    let _ = signal_tx
+                                        .send(SignalMode::Terminate)
+                                        .await
+                                        .tap_err(|e| warn!("error sending signal {e:?}"));
+                                    return;
+                                } else {
+                                    let _ = signal_tx
+                                        .send(SignalMode::Suspend)
+                                        .await
+                                        .tap_err(|e| warn!("error sending signal {e:?}"));
+                                };
                             }
                             Some(Ok(
                                 mouse_event @ Event::Mouse(MouseEvent {

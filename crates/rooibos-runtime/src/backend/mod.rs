@@ -10,7 +10,9 @@ use futures_util::Future;
 use ratatui::Terminal;
 use tokio::sync::{broadcast, mpsc};
 
-pub trait Backend: Send {
+use crate::SignalMode;
+
+pub trait Backend: Send + Sync {
     type TuiBackend: ratatui::backend::Backend;
 
     fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>>;
@@ -21,7 +23,7 @@ pub trait Backend: Send {
 
     fn read_input(
         &self,
-        quit_tx: mpsc::Sender<()>,
+        signal_tx: mpsc::Sender<SignalMode>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send>>;
 }

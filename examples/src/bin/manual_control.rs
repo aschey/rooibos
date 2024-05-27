@@ -25,6 +25,10 @@ async fn main() -> Result<()> {
             TickResult::Redraw => {
                 terminal.draw(render_dom)?;
             }
+            TickResult::Restart => {
+                terminal = handle.setup_terminal()?;
+                terminal.draw(render_dom)?;
+            }
             TickResult::Exit => {
                 return Ok(());
             }

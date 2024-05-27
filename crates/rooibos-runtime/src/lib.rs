@@ -4,11 +4,13 @@ use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use any_spawner::Executor;
+use async_signal::{Signal, Signals};
 use backend::Backend;
+use futures_util::StreamExt;
 use ratatui::Terminal;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
@@ -32,6 +34,7 @@ static RESTORE_TERMINAL: OnceLock<std::sync::Mutex<Box<RestoreFn>>> = OnceLock::
 pub enum TickResult {
     Continue,
     Redraw,
+    Restart,
     Exit,
 }
 
@@ -87,19 +90,27 @@ where
 {
     init(settings, &backend);
     mount(f);
-    RuntimeHandle { backend }
+    RuntimeHandle {
+        backend: Arc::new(backend),
+    }
 }
 
 #[derive(Debug)]
 struct Runtime {
-    quit_rx: mpsc::Receiver<()>,
+    signal_rx: mpsc::Receiver<SignalMode>,
     dom_update_rx: DomUpdateReceiver,
     term_event_rx: broadcast::Receiver<rooibos_dom::Event>,
 }
 
+pub enum SignalMode {
+    Terminate,
+    Suspend,
+    Resume,
+}
+
 impl Runtime {
     fn initialize<B: Backend>(settings: RuntimeSettings, backend: &B) -> Self {
-        let (quit_tx, quit_rx) = mpsc::channel(32);
+        let (signal_tx, signal_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
         TERM_TX
             .set(term_event_tx.clone())
@@ -111,21 +122,66 @@ impl Runtime {
             .store(backend.supports_keyboard_enhancement(), Ordering::Relaxed);
 
         if settings.enable_input_reader {
-            let input_reader = backend.read_input(quit_tx, term_event_tx);
+            let input_reader = backend.read_input(signal_tx.clone(), term_event_tx);
             Executor::spawn(input_reader);
         }
 
+        Executor::spawn(async move {
+            #[cfg(unix)]
+            // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+            let mut signals = Signals::new([
+                Signal::Term,
+                Signal::Quit,
+                Signal::Int,
+                Signal::Tstp,
+                Signal::Cont,
+            ])
+            .unwrap();
+
+            #[cfg(windows)]
+            let mut signals = Signals::new([Signal::Int])?;
+
+            while let Some(Ok(signal)) = signals.next().await {
+                match signal {
+                    Signal::Tstp => {
+                        let _ = signal_tx.send(SignalMode::Suspend).await;
+                    }
+                    Signal::Cont => {
+                        let _ = signal_tx.send(SignalMode::Resume).await;
+                    }
+                    _ => {
+                        let _ = signal_tx.send(SignalMode::Terminate).await;
+                    }
+                }
+            }
+        });
+
         Self {
             dom_update_rx,
-            quit_rx,
+            signal_rx,
             term_event_rx,
         }
     }
 
     async fn tick(&mut self) -> TickResult {
         tokio::select! {
-            _ = self.quit_rx.recv() => {
-                TickResult::Exit
+            signal = self.signal_rx.recv() => {
+                match signal {
+                    Some(SignalMode::Suspend) => {
+                        restore_terminal().unwrap();
+                        #[cfg(unix)]
+                        signal_hook::low_level::emulate_default_handler(Signal::Tstp as i32).unwrap();
+                        TickResult::Continue
+                    }
+                    Some(SignalMode::Resume) => {
+                        #[cfg(unix)]
+                        signal_hook::low_level::emulate_default_handler(Signal::Cont as i32).unwrap();
+                        TickResult::Restart
+                    }
+                    Some(SignalMode::Terminate) | None => {
+                        TickResult::Exit
+                    }
+                }
             }
             _ = self.dom_update_rx.changed() => {
                 TickResult::Redraw
@@ -188,20 +244,21 @@ pub struct RuntimeHandle<B>
 where
     B: Backend,
 {
-    backend: B,
+    backend: Arc<B>,
 }
 
 impl<B> RuntimeHandle<B>
 where
     B: Backend + 'static,
 {
-    pub fn setup_terminal(self) -> io::Result<Terminal<B::TuiBackend>> {
+    pub fn setup_terminal(&self) -> io::Result<Terminal<B::TuiBackend>> {
         let terminal = self.backend.setup_terminal()?;
+        let backend = self.backend.clone();
 
         *RESTORE_TERMINAL
             .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
             .lock()
-            .expect("lock poisoned") = Box::new(move || self.backend.restore_terminal());
+            .expect("lock poisoned") = Box::new(move || backend.restore_terminal());
 
         Ok(terminal)
     }
@@ -213,6 +270,10 @@ where
             let tick_result = tick().await;
             match tick_result {
                 TickResult::Redraw => {
+                    terminal.draw(render_dom)?;
+                }
+                TickResult::Restart => {
+                    terminal = self.setup_terminal()?;
                     terminal.draw(render_dom)?;
                 }
                 TickResult::Exit => {

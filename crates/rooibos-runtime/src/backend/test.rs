@@ -4,6 +4,7 @@ use futures_util::Future;
 use ratatui::Terminal;
 
 use super::Backend;
+use crate::SignalMode;
 
 pub struct TestBackend {
     width: u16,
@@ -27,7 +28,7 @@ impl Backend for TestBackend {
 
     fn read_input(
         &self,
-        _: tokio::sync::mpsc::Sender<()>,
+        _: tokio::sync::mpsc::Sender<SignalMode>,
         _: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
     ) -> Pin<Box<dyn Future<Output = ()> + Send>> {
         Box::pin(async move {})
