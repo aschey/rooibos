@@ -4,9 +4,7 @@ use std::io::Stdout;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::{
-    col, error_boundary, row, suspense, widget_ref, Constrainable, Errors, Render, Suspend,
-};
+use rooibos::dom::{col, row, suspense, widget_ref, Constrainable, Errors, Render, Suspend};
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
 use rooibos::reactive::traits::{Get, Set, With};
@@ -59,18 +57,12 @@ fn app() -> impl Render {
             .length(20)
         ]
         .length(3),
-        row![col![suspense(
-            move || widget_ref!(Line::from(" Loading...".gray())),
-            move || error_boundary(
-                move || {
-                    Suspend(async move {
-                        character
-                            .await
-                            .map(|c| widget_ref!(Line::from(format!(" {c}").green())))
-                    })
-                },
-                fallback
-            )
+        row![col![suspense!(
+            widget_ref!(Line::from(" Loading...".gray())),
+            character
+                .await
+                .map(|c| widget_ref!(Line::from(format!(" {c}").green()))),
+            fallback
         )]]
     ]
 }

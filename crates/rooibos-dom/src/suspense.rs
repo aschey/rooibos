@@ -18,6 +18,26 @@ use tachys::view::{Mountable, Render};
 
 use crate::{AnyView, DomNode, IntoView, RenderAny, RooibosDom, ViewFnOnce};
 
+#[macro_export]
+macro_rules! suspense {
+    ($fallback:expr, $sus:expr, $errors:expr) => {
+        $crate::suspense(
+            move || $fallback,
+            move || $crate::error_boundary(move || Suspend(async move { $sus }), $errors),
+        )
+    };
+}
+
+#[macro_export]
+macro_rules! transition {
+    ($fallback:expr, $sus:expr, $errors:expr) => {
+        $crate::transition(
+            move || $fallback,
+            move || $crate::error_boundary(move || Suspend(async move { $sus }), $errors),
+        )
+    };
+}
+
 pub fn suspense<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl IntoView
 where
     F: Fn() -> R,
@@ -107,14 +127,6 @@ pub trait FutureViewExt: Sized {
 }
 
 impl<F> FutureViewExt for F where F: Future + Sized {}
-
-/* // TODO remove in favor of Suspend()?
-#[macro_export]
-macro_rules! suspend {
-    ($fut:expr) => {
-        move || $crate::prelude::FutureViewExt::wait(async move { $fut })
-    };
-}*/
 
 pub struct Suspend<Fut>(pub Fut);
 
