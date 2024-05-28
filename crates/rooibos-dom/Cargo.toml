@@ -7,19 +7,19 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.27", optional = true }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
     "tracing",
     "effects",
 ] }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f", features = [
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
     "reactive_graph",
 ] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
     "tokio",
 ] }
 
-throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f" }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f" }
+throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198" }
 ratatui = { version = "0.26", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
@@ -30,17 +30,6 @@ rustc-hash = "1"
 
 [target.'cfg(unix)'.dependencies]
 termion = { version = "4", optional = true }
-
-[dev-dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "0b58a2ccf46c820bb02d29f5e2fb15c426f9446f", features = [
-    "tokio",
-] }
-ctor = "0.2.7"
-tokio = { version = "1.37.0", default-features = false, features = [
-    "sync",
-    "macros",
-    "rt-multi-thread",
-] }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
