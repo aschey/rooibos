@@ -5,10 +5,11 @@ use std::rc::Rc;
 
 use any_spawner::Executor;
 use futures::FutureExt;
+use reactive_graph::computed::suspense::SuspenseContext;
 use reactive_graph::computed::{ArcMemo, ScopedFuture};
 use reactive_graph::owner::{provide_context, use_context};
 use reactive_graph::signal::ArcRwSignal;
-use reactive_graph::traits::{Get, Update, With, Writeable};
+use reactive_graph::traits::{Get, With};
 use slotmap::{DefaultKey, SlotMap};
 use tachys::reactive_graph::{OwnedView, RenderEffectState};
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
@@ -94,36 +95,6 @@ where
     }
 
     fn rebuild(self, _state: &mut Self::State) {}
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct SuspenseContext {
-    pub tasks: ArcRwSignal<SlotMap<DefaultKey, ()>>,
-}
-
-impl SuspenseContext {
-    pub fn task_id(&self) -> TaskHandle {
-        let key = self.tasks.write().insert(());
-        TaskHandle {
-            tasks: self.tasks.clone(),
-            key,
-        }
-    }
-}
-
-/// A unique identifier that removes itself from the set of tasks when it is dropped.
-#[derive(Debug)]
-pub(crate) struct TaskHandle {
-    tasks: ArcRwSignal<SlotMap<DefaultKey, ()>>,
-    key: DefaultKey,
-}
-
-impl Drop for TaskHandle {
-    fn drop(&mut self) {
-        self.tasks.update(|tasks| {
-            tasks.remove(self.key);
-        });
-    }
 }
 
 pub trait FutureViewExt: Sized {
