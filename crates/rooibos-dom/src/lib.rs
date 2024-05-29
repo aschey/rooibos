@@ -7,6 +7,9 @@ mod widgets;
 pub use dom::*;
 pub use error_boundary::*;
 pub use events::*;
+#[doc(hidden)]
+pub use ratatui::widgets as __widgets;
+#[doc(hidden)]
 pub use reactive_graph as __reactive;
 pub use suspense::*;
 pub use throw_error::*;

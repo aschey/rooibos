@@ -8,7 +8,7 @@ use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::text::Line;
-use rooibos::tui::widgets::{Block, Clear, Paragraph};
+use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 

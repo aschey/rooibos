@@ -221,13 +221,13 @@ macro_rules! overlay {
 #[macro_export]
 macro_rules! clear {
     () => (
-        $crate::overlay($crate::widget_ref!(Clear))
+        $crate::overlay($crate::widget_ref!($crate::__widgets::Clear))
     );
     ($x:expr) => (
-        $crate::overlay(($crate::widget_ref!(Clear),$x,))
+        $crate::overlay(($crate::widget_ref!($crate::__widgets::Clear),$x,))
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::overlay(($crate::widget_ref!(Clear),$($x),+))
+        $crate::overlay(($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
     );
 }
 
