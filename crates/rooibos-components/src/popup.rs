@@ -1,10 +1,7 @@
 use ratatui::layout::Constraint;
-use ratatui::widgets::Clear;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{
-    col, derive_signal, overlay, row, widget_ref, Constrainable, IntoView, Render, RenderAny,
-};
+use rooibos_dom::{col, derive_signal, row, Constrainable, IntoView, Render, RenderAny};
 
 use crate::Show;
 
@@ -24,7 +21,7 @@ where
         row![].percentage(inverse_y),
         row![
             col![].percentage(inverse_x),
-            col![overlay![widget_ref!(Clear), children]].percentage(percent_x),
+            col![children].percentage(percent_x),
             col![].percentage(inverse_x),
         ]
         .percentage(percent_y),

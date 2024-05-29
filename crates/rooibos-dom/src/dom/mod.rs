@@ -1,7 +1,7 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
-use ratatui::layout::{Constraint, Position};
+use ratatui::layout::{Constraint, Position, Rect};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::{Paragraph, Wrap};
 use ratatui::Frame;
@@ -124,8 +124,8 @@ thread_local! {
         let (tx, _) = watch::channel(());
         RefCell::new(tx)
     };
-    static INITIAL_RENDER: AtomicBool = const { AtomicBool::new(true) };
     static PRINT_DOM: AtomicBool = const { AtomicBool::new(false) };
+    static PENDING_RESIZE: AtomicBool = const { AtomicBool::new(true) };
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {
@@ -304,7 +304,7 @@ impl AsRef<DomNode> for DomNode {
 
 fn mount_child(parent: &DomNode, child: &DomNode) -> DomNodeKey {
     parent.append_child(child);
-    notify();
+    refresh_dom();
     child.key()
 }
 
@@ -375,7 +375,7 @@ fn unmount_child(
     }
     nodes[child].parent = None;
     cleanup_removed_nodes(&child, nodes, cleanup);
-    notify();
+    refresh_dom();
 }
 
 pub fn print_dom() -> Paragraph<'static> {
@@ -420,7 +420,7 @@ fn print_dom_inner(
     lines
 }
 
-pub(crate) fn notify() {
+pub fn refresh_dom() {
     DOM_UPDATE_TX.with(|tx| tx.borrow().send(()).ok());
 }
 
@@ -440,15 +440,15 @@ pub fn unmount() {
 }
 
 pub fn render_dom(frame: &mut Frame) {
-    if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
-        frame.render_widget(print_dom(), frame.size());
-    } else {
-        with_root(|d| d.as_ref().unwrap().render(frame, frame.size()));
+    let size = frame.size();
+    if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
+        with_state(|s| s.set_window_size(size));
+    }
 
-        // Focus the first node after the initial render
-        if INITIAL_RENDER.with(|f| f.swap(false, Ordering::Relaxed)) {
-            focus_next();
-        }
+    if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
+        frame.render_widget(print_dom(), size);
+    } else {
+        with_root(|d| d.as_ref().unwrap().render(frame, size));
     }
 }
 
@@ -472,8 +472,12 @@ pub fn focus(id: impl Into<NodeId>) {
     }
 }
 
-pub fn focused_node() -> ReadSignal<Option<NodeId>> {
-    with_state(|d| d.focused())
+pub fn use_focused_node() -> ReadSignal<Option<NodeId>> {
+    with_state(|s| s.focused())
+}
+
+pub fn use_window_size() -> ReadSignal<Rect> {
+    with_state(|s| s.window_size())
 }
 
 enum Focus {
@@ -496,7 +500,7 @@ pub fn send_event(event: Event) {
                         && key_event.modifiers.contains(KeyModifiers::CONTROL)
                     {
                         PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
-                        notify();
+                        refresh_dom();
                     } else if let Some(key) = state.focused_key() {
                         match key_event.kind {
                             KeyEventKind::Press | KeyEventKind::Repeat => {
@@ -584,7 +588,8 @@ pub fn send_event(event: Event) {
                 },
                 Event::Paste(_) => {}
                 Event::Resize(_, _) => {
-                    notify();
+                    PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
+                    refresh_dom();
                 }
             };
             None

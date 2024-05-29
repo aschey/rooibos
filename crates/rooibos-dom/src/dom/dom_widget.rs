@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use ratatui::layout::{Constraint, Rect};
 use ratatui::Frame;
+use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
@@ -12,7 +13,9 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{next_node_id, notify, Constrainable, EventData, KeyEvent, MouseEvent, RooibosDom};
+use crate::{
+    next_node_id, refresh_dom, Constrainable, EventData, KeyEvent, MouseEvent, RooibosDom,
+};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
 
@@ -55,7 +58,7 @@ impl DomWidgetNode {
             let rc_f = rc_f.clone();
             move |_| {
                 (*rc_f.borrow_mut()) = Box::new((f)());
-                notify();
+                refresh_dom();
             }
         });
         Self {
@@ -97,11 +100,12 @@ impl DomWidget {
         let focusable_rc = Rc::new(RefCell::new(false));
 
         let effect = RenderEffect::new({
-            let focusable = focusable.into();
             let focusable_rc = focusable_rc.clone();
+            let focusable = focusable.into();
+            let focusable = Memo::new(move |_| focusable.get());
             move |_| {
                 *focusable_rc.borrow_mut() = focusable.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.set_focusable(focusable_rc);
@@ -176,6 +180,15 @@ impl DomWidget {
             .update_event_handlers(|event_handlers| event_handlers.on_mouse_leave(handler));
         self
     }
+
+    pub fn on_size_change<F>(self, handler: F) -> Self
+    where
+        F: FnMut(Rect) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_size_change(handler));
+        self
+    }
 }
 
 impl Constrainable for DomWidget {
@@ -186,11 +199,12 @@ impl Constrainable for DomWidget {
         let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
 
         let effect = RenderEffect::new({
-            let constraint = constraint.into();
             let constraint_rc = constraint_rc.clone();
+            let constraint = constraint.into();
+            let constraint = Memo::new(move |_| constraint.get());
             move |_| {
                 *constraint_rc.borrow_mut() = constraint.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.set_constraint(constraint_rc);
@@ -209,7 +223,7 @@ impl Render<RooibosDom> for DomWidget {
     fn rebuild(mut self, state: &mut Self::State) {
         if &self.inner != state {
             self.inner.replace_node(state);
-            notify();
+            refresh_dom();
         }
     }
 }

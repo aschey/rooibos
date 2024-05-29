@@ -1,3 +1,4 @@
+use std::any::type_name;
 use std::error::Error;
 use std::io::Stdout;
 
@@ -74,7 +75,7 @@ fn app() -> impl Render {
         _ => {}
     };
 
-    DomWidget::new("TreeView", move || {
+    DomWidget::new(type_name::<Tree<&str>>(), move || {
         let tree = tree.get();
         state.track();
         move |frame: &mut Frame, rect: Rect| {

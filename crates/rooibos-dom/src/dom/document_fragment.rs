@@ -75,4 +75,16 @@ impl DocumentFragment {
             event_handlers: Default::default(),
         }
     }
+
+    pub(crate) fn absolute(pos: Rc<RefCell<(u16, u16)>>) -> Self {
+        Self {
+            node_type: NodeType::Absolute(pos),
+            constraint: Constraint::default(),
+            flex: Flex::default(),
+            name: "absolute".to_string(),
+            focusable: false,
+            id: None,
+            event_handlers: Default::default(),
+        }
+    }
 }

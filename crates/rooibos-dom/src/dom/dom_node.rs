@@ -77,6 +77,7 @@ pub(crate) struct LayoutProps {
 pub(crate) enum NodeType {
     Layout(Rc<RefCell<LayoutProps>>),
     Overlay,
+    Absolute(Rc<RefCell<(u16, u16)>>),
     Widget(DomWidgetNode),
     Placeholder,
 }
@@ -98,6 +99,13 @@ impl NodeType {
                         "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}, \
                          block={block:?}"
                     )),
+                }
+            }
+            NodeType::Absolute(pos) => {
+                let (x, y) = *pos.borrow();
+                NodeTypeStructure {
+                    name: "Absolute",
+                    attrs: Some(format!("x={x} y={y}")),
                 }
             }
             NodeType::Overlay => NodeTypeStructure {
@@ -132,6 +140,10 @@ impl Debug for NodeType {
                     "Layout(direction={direction}, flex={flex}, margin={margin}, \
                      spacing={spacing}, block={block:?})"
                 )
+            }
+            NodeType::Absolute(pos) => {
+                let (x, y) = *pos.borrow();
+                write!(f, "Absolute(x={x} y={y})")
             }
             NodeType::Overlay => write!(f, "Overlay"),
             NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
@@ -169,7 +181,6 @@ pub(crate) struct DomNodeInner {
     pub(crate) constraint: Rc<RefCell<Constraint>>,
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
-    // pub(crate) before_pending: Vec<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) focusable: Rc<RefCell<bool>>,
     #[derivative(Debug = "ignore")]
@@ -180,17 +191,30 @@ pub(crate) struct DomNodeInner {
     child_state: Option<ChildState>,
 }
 
+struct RenderProps<'a, 'b> {
+    frame: &'a mut Frame<'b>,
+    rect: Rect,
+    window: Rect,
+    key: DomNodeKey,
+    dom_nodes: &'a Ref<'a, SlotMap<DomNodeKey, DomNodeInner>>,
+    dom_state: &'a mut DomState,
+    parent_layout: Layout,
+}
+
 impl DomNodeInner {
-    fn render(
-        &self,
-        frame: &mut Frame,
-        rect: Rect,
-        key: DomNodeKey,
-        dom_nodes: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
-        dom_state: &mut DomState,
-        parent_layout: Layout,
-    ) {
+    fn render(&self, props: RenderProps) {
+        let RenderProps {
+            frame,
+            rect,
+            window,
+            key,
+            dom_nodes,
+            dom_state,
+            parent_layout,
+        } = props;
+        let prev_rect = *self.rect.borrow();
         *self.rect.borrow_mut() = rect;
+
         if *self.focusable.borrow() {
             dom_state.add_focusable(key);
         }
@@ -227,29 +251,45 @@ impl DomNodeInner {
                 self.renderable_children(dom_nodes)
                     .zip(chunks.iter())
                     .for_each(|(key, chunk)| {
-                        dom_nodes[*key].render(
+                        dom_nodes[*key].render(RenderProps {
                             frame,
-                            *chunk,
-                            *key,
+                            rect: *chunk,
+                            window,
+                            key: *key,
                             dom_nodes,
                             dom_state,
-                            Layout::default(),
-                        );
+                            parent_layout: Layout::default(),
+                        });
                     });
             }
-
             NodeType::Overlay => {
                 let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
                 let chunks = parent_layout.split(rect);
                 self.renderable_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(
+                    dom_nodes[*key].render(RenderProps {
                         frame,
-                        chunks[0],
-                        *key,
+                        rect: chunks[0],
+                        window,
+                        key: *key,
                         dom_nodes,
                         dom_state,
-                        parent_layout.clone(),
-                    );
+                        parent_layout: parent_layout.clone(),
+                    });
+                });
+            }
+            NodeType::Absolute(pos) => {
+                let (x, y) = *pos.borrow();
+                let rect = Rect::new(x, y, window.width - x, window.height - y);
+                self.renderable_children(dom_nodes).for_each(|key| {
+                    dom_nodes[*key].render(RenderProps {
+                        frame,
+                        rect,
+                        window,
+                        key: *key,
+                        dom_nodes,
+                        dom_state,
+                        parent_layout: parent_layout.clone(),
+                    });
                 });
             }
             NodeType::Widget(widget) => {
@@ -259,6 +299,13 @@ impl DomNodeInner {
                 *self.rect.borrow_mut() = chunks[0];
             }
             NodeType::Placeholder => {}
+        }
+
+        let rect = *self.rect.borrow();
+        if rect != prev_rect {
+            if let Some(on_size_change) = &dom_nodes[key].event_handlers.on_size_change {
+                on_size_change.borrow_mut()(rect);
+            }
         }
     }
 
@@ -512,19 +559,20 @@ impl DomNode {
     // }
 
     pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
-        with_nodes(|d| {
+        with_nodes(|nodes| {
             with_state_mut(|state| {
                 state.clear_focusables();
-                let constraint = *d[self.key].constraint.borrow();
+                let constraint = *nodes[self.key].constraint.borrow();
 
-                d[self.key].render(
+                nodes[self.key].render(RenderProps {
                     frame,
                     rect,
-                    self.key,
-                    &d,
-                    state,
-                    Layout::default().constraints([constraint]),
-                );
+                    window: rect,
+                    key: self.key,
+                    dom_nodes: &nodes,
+                    dom_state: state,
+                    parent_layout: Layout::default().constraints([constraint]),
+                });
             });
         });
     }

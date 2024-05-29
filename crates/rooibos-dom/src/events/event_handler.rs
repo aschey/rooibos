@@ -1,13 +1,14 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use ratatui::layout::Rect;
+
 use crate::{EventData, KeyEvent, MouseEvent};
 
 pub(crate) type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent, EventData)>>;
-
 pub(crate) type MouseEventFn = Rc<RefCell<dyn FnMut(MouseEvent, EventData)>>;
-
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData)>>;
+pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 
 #[derive(Clone, Default)]
 pub(crate) struct EventHandlers {
@@ -18,6 +19,7 @@ pub(crate) struct EventHandlers {
     pub(crate) on_click: Option<MouseEventFn>,
     pub(crate) on_mouse_enter: Option<EventFn>,
     pub(crate) on_mouse_leave: Option<EventFn>,
+    pub(crate) on_size_change: Option<SizeChangeFn>,
 }
 
 impl EventHandlers {
@@ -74,6 +76,14 @@ impl EventHandlers {
         F: FnMut(EventData) + 'static,
     {
         self.on_mouse_leave = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub(crate) fn on_size_change<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(Rect) + 'static,
+    {
+        self.on_size_change = Some(Rc::new(RefCell::new(handler)));
         self
     }
 }

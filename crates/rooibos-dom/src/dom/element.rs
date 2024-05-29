@@ -3,8 +3,9 @@ use std::fmt::Debug;
 use std::rc::Rc;
 
 use next_tuple::NextTuple;
-use ratatui::layout::{Constraint, Flex};
+use ratatui::layout::{Constraint, Flex, Rect};
 use ratatui::widgets::Block;
+use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
@@ -12,7 +13,7 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{notify, ChildState, Constrainable, EventData, RenderAny, RooibosDom};
+use crate::{refresh_dom, ChildState, Constrainable, EventData, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<C> {
@@ -45,9 +46,10 @@ impl<C> Element<C> {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
             let margin = margin.into();
+            let margin = Memo::new(move |_| margin.get());
             move |_| {
                 layout_props.borrow_mut().margin = margin.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.add_data(effect);
@@ -61,9 +63,10 @@ impl<C> Element<C> {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
             let flex = flex.into();
+            let flex = Memo::new(move |_| flex.get());
             move |_| {
                 layout_props.borrow_mut().flex = flex.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.add_data(effect);
@@ -77,9 +80,10 @@ impl<C> Element<C> {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
             let spacing = spacing.into();
+            let spacing = Memo::new(move |_| spacing.get());
             move |_| {
                 layout_props.borrow_mut().spacing = spacing.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.add_data(effect);
@@ -93,10 +97,11 @@ impl<C> Element<C> {
         let layout_props = self.inner.layout_props();
         let effect = RenderEffect::new({
             let block = block.into();
+            let block = Memo::new(move |_| block.get());
             move |_| {
                 layout_props.borrow_mut().block = Some(block.get());
 
-                notify();
+                refresh_dom();
             }
         });
         self.inner.add_data(effect);
@@ -111,10 +116,11 @@ impl<C> Element<C> {
 
         let effect = RenderEffect::new({
             let focusable = focusable.into();
+            let focusable = Memo::new(move |_| focusable.get());
             let focusable_rc = focusable_rc.clone();
             move |_| {
                 *focusable_rc.borrow_mut() = focusable.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.set_focusable(focusable_rc);
@@ -139,6 +145,15 @@ impl<C> Element<C> {
             .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
         self
     }
+
+    pub fn on_size_change<F>(self, handler: F) -> Self
+    where
+        F: FnMut(Rect) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_size_change(handler));
+        self
+    }
 }
 
 impl<C> Constrainable for Element<C> {
@@ -149,11 +164,13 @@ impl<C> Constrainable for Element<C> {
         let constraint_rc = Rc::new(RefCell::new(Constraint::default()));
 
         let effect = RenderEffect::new({
-            let constraint = constraint.into();
             let constraint_rc = constraint_rc.clone();
+            let constraint = constraint.into();
+            let constraint = Memo::new(move |_| constraint.get());
+
             move |_| {
                 *constraint_rc.borrow_mut() = constraint.get();
-                notify();
+                refresh_dom();
             }
         });
         self.inner.set_constraint(constraint_rc);
@@ -201,6 +218,32 @@ macro_rules! overlay {
     );
 }
 
+#[macro_export]
+macro_rules! clear {
+    () => (
+        $crate::overlay($crate::widget_ref!(Clear))
+    );
+    ($x:expr) => (
+        $crate::overlay(($crate::widget_ref!(Clear),$x,))
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::overlay(($crate::widget_ref!(Clear),$($x),+))
+    );
+}
+
+#[macro_export]
+macro_rules! absolute {
+    ($x:expr) => (
+        $crate::absolute($x,())
+    );
+    ($x:expr, $y:expr) => (
+        $crate::absolute($x,($y,))
+    );
+    ($x:expr, $($y:expr),+ $(,)?) => (
+        $crate::absolute($x,($($y),+))
+    );
+}
+
 pub fn row<C>(children: C) -> Element<C> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::row()),
@@ -220,6 +263,23 @@ pub fn overlay<C>(children: C) -> Element<C> {
         inner: DomNode::from_fragment(DocumentFragment::overlay()),
         children,
     }
+}
+
+pub fn absolute<C>(pos: impl Into<MaybeSignal<(u16, u16)>>, children: C) -> Element<C> {
+    let pos_rc = Rc::new(RefCell::new((0, 0)));
+
+    let effect = RenderEffect::new({
+        let pos_rc = pos_rc.clone();
+        let pos = pos.into();
+        let pos = Memo::new(move |_| pos.get());
+        move |_| {
+            *pos_rc.borrow_mut() = pos.get();
+            refresh_dom();
+        }
+    });
+    let inner = DomNode::from_fragment(DocumentFragment::absolute(pos_rc));
+    inner.add_data(effect);
+    Element { inner, children }
 }
 
 impl<Children> Render<RooibosDom> for Element<Children>

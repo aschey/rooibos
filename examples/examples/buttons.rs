@@ -29,12 +29,10 @@ fn app() -> impl Render {
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
     row![
-        col![
-            Button::new()
-                .on_click(move || set_count.update(|c| *c += 1))
-                .render(derive_signal!(Text::from(format!("count {}", count.get()))))
-        ]
-        .length(20)
+        Button::new()
+            .length(20)
+            .on_click(move || set_count.update(|c| *c += 1))
+            .render(derive_signal!(Text::from(format!("count {}", count.get()))))
     ]
     .length(3)
 }

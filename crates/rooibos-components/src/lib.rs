@@ -1,5 +1,6 @@
 mod button;
 mod for_loop;
+mod input;
 mod list_view;
 mod popup;
 mod router;
@@ -9,6 +10,7 @@ mod wrapping_list;
 
 pub use button::*;
 pub use for_loop::*;
+pub use input::*;
 pub use list_view::*;
 pub use popup::*;
 pub use router::*;

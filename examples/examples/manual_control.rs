@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{render_dom, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{focus_next, render_dom, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -19,6 +19,7 @@ async fn main() -> Result<()> {
     let mut terminal = runtime.setup_terminal()?;
 
     terminal.draw(render_dom)?;
+    focus_next();
     loop {
         let tick_result = runtime.tick().await;
         match tick_result {

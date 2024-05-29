@@ -16,7 +16,8 @@ use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
 use rooibos_dom::{
-    dom_update_receiver, mount, render_dom, send_event, DomUpdateReceiver, Event, Render,
+    dom_update_receiver, focus_next, mount, render_dom, send_event, DomUpdateReceiver, Event,
+    Render,
 };
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
@@ -169,6 +170,7 @@ impl<B: Backend + 'static> Runtime<B> {
     pub async fn run(mut self) -> io::Result<()> {
         let mut terminal = self.setup_terminal()?;
         terminal.draw(render_dom)?;
+        focus_next();
         loop {
             let tick_result = self.tick().await;
             match tick_result {

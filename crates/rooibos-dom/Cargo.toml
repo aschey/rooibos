@@ -7,19 +7,15 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.27", optional = true }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
+reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "tracing",
     "effects",
 ] }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
-    "reactive_graph",
-] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
-    "tokio",
-] }
+tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
+any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
 
-throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198" }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198" }
+throw_error = { path = "../../../leptos/any_error" }
+next_tuple = { path = "../../../leptos/next_tuple" }
 ratatui = { version = "0.26", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }

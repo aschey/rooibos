@@ -4,21 +4,24 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
+reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "tracing",
     "effects",
 ] }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198", features = [
-    "reactive_graph",
-] }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "46f5f8762b04b6964d521eb399366c882ceab198" }
+crossterm = { version = "0.27", optional = true }
+tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
+next_tuple = { path = "../../../leptos/next_tuple" }
+either_of = { path = "../../../leptos/either_of" }
 matchit = "0.8"
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-runtime = { path = "../rooibos-runtime" }
 url = "2"
 derivative = "2"
 ratatui = { version = "0.26", default-features = false }
+tui-textarea = { version = "0.4", default-features = false }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
+crossterm = ["dep:crossterm", "tui-textarea/crossterm"]
+termion = ["tui-textarea/termion"]
+input-search = ["tui-textarea/search"]

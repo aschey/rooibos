@@ -1,5 +1,6 @@
 use std::cell::RefMut;
 
+use ratatui::layout::Rect;
 use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
 use reactive_graph::traits::Set;
 use slotmap::SlotMap;
@@ -8,6 +9,8 @@ use super::dom_node::{DomNodeInner, DomNodeKey, NodeId};
 use crate::EventData;
 
 pub(crate) struct DomState {
+    window_size: ReadSignal<Rect>,
+    set_window_size: WriteSignal<Rect>,
     focused: ReadSignal<Option<NodeId>>,
     set_focused: WriteSignal<Option<NodeId>>,
     focused_key: Option<DomNodeKey>,
@@ -18,7 +21,10 @@ pub(crate) struct DomState {
 impl Default for DomState {
     fn default() -> Self {
         let (focused, set_focused) = signal(None);
+        let (window_size, set_window_size) = signal(Rect::default());
         Self {
+            window_size,
+            set_window_size,
             focused,
             set_focused,
             focused_key: None,
@@ -39,6 +45,14 @@ impl DomState {
 
     pub(crate) fn hovered_key(&self) -> Option<DomNodeKey> {
         self.hovered_key
+    }
+
+    pub(crate) fn window_size(&self) -> ReadSignal<Rect> {
+        self.window_size
+    }
+
+    pub(crate) fn set_window_size(&self, size: Rect) {
+        self.set_window_size.set(size);
     }
 
     pub(crate) fn focusable_nodes(&self) -> &Vec<DomNodeKey> {

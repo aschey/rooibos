@@ -2,13 +2,13 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::Popup;
-use rooibos::dom::{col, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{clear, col, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::text::Line;
-use rooibos::tui::widgets::{Block, Paragraph};
+use rooibos::tui::widgets::{Block, Clear, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -47,7 +47,10 @@ fn app() -> impl Render {
             move || show_popup.get(),
             move || col![
                 col![].fill(1),
-                widget_ref!(Paragraph::new("popup text").block(Block::bordered())).length(3),
+                clear![widget_ref!(
+                    Paragraph::new("popup text").block(Block::bordered())
+                )]
+                .length(3),
                 col![].fill(1),
             ]
         )
