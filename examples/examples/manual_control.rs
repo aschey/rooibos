@@ -33,6 +33,9 @@ async fn main() -> Result<()> {
             TickResult::Exit => {
                 return Ok(());
             }
+            TickResult::Command(command) => {
+                runtime.handle_terminal_command(command, &mut terminal)?;
+            }
             TickResult::Continue => {}
         }
     }

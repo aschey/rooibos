@@ -1,11 +1,12 @@
 use std::error::Error;
 use std::io::Stdout;
+use std::time::Duration;
 
 use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::{insert_before, Runtime, RuntimeSettings};
 use rooibos::tui::Viewport;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -31,6 +32,13 @@ fn app() -> impl Render {
             update_count();
         }
     };
+
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            insert_before(1, "test");
+        }
+    });
 
     widget_ref!(format!("count {}", count.get()))
         .on_key_down(key_down)

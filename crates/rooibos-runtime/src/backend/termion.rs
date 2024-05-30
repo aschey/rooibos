@@ -80,6 +80,20 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
+    fn enter_alt_screen(&self) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "termion backend does not support alt screen toggle",
+        ))
+    }
+
+    fn leave_alt_screen(&self) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "termion backend does not support alt screen toggle",
+        ))
+    }
+
     async fn read_input(
         &self,
         signal_tx: mpsc::Sender<SignalMode>,

@@ -1,17 +1,18 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::time::{Duration, Instant};
 
-use crossterm::cursor::{Hide, Show};
+use crossterm::cursor::{DisableBlinking, Hide, Show};
 use crossterm::event::{
-    DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode, KeyEvent, KeyModifiers,
+    DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
+    EnableFocusChange, EnableMouseCapture, Event, EventStream, KeyCode, KeyEvent, KeyModifiers,
     KeyboardEnhancementFlags, MouseEvent, MouseEventKind, PopKeyboardEnhancementFlags,
     PushKeyboardEnhancementFlags,
 };
-use crossterm::queue;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
     LeaveAlternateScreen,
 };
+use crossterm::{execute, queue};
 use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
@@ -25,6 +26,8 @@ pub struct TerminalSettings<W> {
     alternate_screen: bool,
     mouse_capture: bool,
     keyboard_enhancement: bool,
+    focus_change: bool,
+    bracketed_paste: bool,
     viewport: Viewport,
     hover_debounce: Duration,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
@@ -36,6 +39,8 @@ impl Default for TerminalSettings<Stdout> {
             alternate_screen: true,
             mouse_capture: true,
             keyboard_enhancement: true,
+            focus_change: true,
+            bracketed_paste: true,
             viewport: Viewport::default(),
             hover_debounce: Duration::from_millis(20),
             get_writer: Box::new(stdout),
@@ -49,6 +54,8 @@ impl Default for TerminalSettings<Stderr> {
             alternate_screen: true,
             mouse_capture: true,
             keyboard_enhancement: true,
+            focus_change: true,
+            bracketed_paste: true,
             viewport: Viewport::default(),
             hover_debounce: Duration::from_millis(20),
             get_writer: Box::new(stderr),
@@ -64,6 +71,16 @@ impl<W> TerminalSettings<W> {
 
     pub fn mouse_capture(mut self, mouse_capture: bool) -> Self {
         self.mouse_capture = mouse_capture;
+        self
+    }
+
+    pub fn focus_change(mut self, focus_change: bool) -> Self {
+        self.focus_change = focus_change;
+        self
+    }
+
+    pub fn bracketed_paste(mut self, bracketed_paste: bool) -> Self {
+        self.bracketed_paste = bracketed_paste;
         self
     }
 
@@ -134,6 +151,13 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         if self.settings.mouse_capture {
             queue!(writer, EnableMouseCapture)?;
         }
+        if self.settings.focus_change {
+            queue!(writer, EnableFocusChange)?;
+        }
+        if self.settings.bracketed_paste {
+            queue!(writer, EnableBracketedPaste)?;
+        }
+
         if self.supports_keyboard_enhancement {
             queue!(
                 writer,
@@ -155,15 +179,19 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn restore_terminal(&self) -> io::Result<()> {
         let mut writer = (self.settings.get_writer)();
-
+        queue!(writer, DisableBlinking)?;
         if self.supports_keyboard_enhancement {
             queue!(writer, PopKeyboardEnhancementFlags)?;
         }
-
         if self.settings.mouse_capture {
             queue!(writer, DisableMouseCapture)?;
         }
-
+        if self.settings.focus_change {
+            queue!(writer, DisableFocusChange)?;
+        }
+        if self.settings.bracketed_paste {
+            queue!(writer, DisableBracketedPaste)?;
+        }
         if self.settings.alternate_screen {
             queue!(writer, LeaveAlternateScreen)?;
         }
@@ -172,6 +200,16 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         disable_raw_mode()?;
 
         Ok(())
+    }
+
+    fn enter_alt_screen(&self) -> io::Result<()> {
+        let mut writer = (self.settings.get_writer)();
+        execute!(writer, EnterAlternateScreen)
+    }
+
+    fn leave_alt_screen(&self) -> io::Result<()> {
+        let mut writer = (self.settings.get_writer)();
+        execute!(writer, LeaveAlternateScreen)
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {

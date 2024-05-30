@@ -11,6 +11,8 @@ use any_spawner::Executor;
 use async_signal::{Signal, Signals};
 use backend::Backend;
 use futures_util::StreamExt;
+use ratatui::text::Text;
+use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
@@ -27,14 +29,23 @@ use tracing::error;
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
 static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::Event>> = OnceLock::new();
+static TERM_COMMAND_TX: OnceLock<mpsc::Sender<TerminalCommand>> = OnceLock::new();
 static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
 static RESTORE_TERMINAL: OnceLock<std::sync::Mutex<Box<RestoreFn>>> = OnceLock::new();
+
+#[derive(Clone, PartialEq, Eq)]
+pub enum TerminalCommand {
+    InsertBefore { height: u16, text: Text<'static> },
+    EnterAltScreen,
+    LeaveAltScreen,
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum TickResult {
     Continue,
     Redraw,
     Restart,
+    Command(TerminalCommand),
     Exit,
 }
 
@@ -89,6 +100,7 @@ pub struct Runtime<B: Backend> {
     settings: RuntimeSettings,
     signal_tx: mpsc::Sender<SignalMode>,
     signal_rx: mpsc::Receiver<SignalMode>,
+    term_command_rx: mpsc::Receiver<TerminalCommand>,
     term_event_tx: broadcast::Sender<Event>,
     dom_update_rx: DomUpdateReceiver,
     term_event_rx: broadcast::Receiver<rooibos_dom::Event>,
@@ -110,8 +122,12 @@ impl<B: Backend + 'static> Runtime<B> {
         let backend = Arc::new(backend);
         let (signal_tx, signal_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
+        let (term_command_tx, term_command_rx) = mpsc::channel(32);
         TERM_TX
             .set(term_event_tx.clone())
+            .expect("runtime initialized more than once");
+        TERM_COMMAND_TX
+            .set(term_command_tx)
             .expect("runtime initialized more than once");
         let dom_update_rx = dom_update_receiver();
 
@@ -154,6 +170,7 @@ impl<B: Backend + 'static> Runtime<B> {
 
         mount(f);
         Self {
+            term_command_rx,
             term_event_tx,
             signal_tx,
             settings,
@@ -211,9 +228,36 @@ impl<B: Backend + 'static> Runtime<B> {
                     }
                     return Ok(());
                 }
+                TickResult::Command(command) => {
+                    self.handle_terminal_command(command, &mut terminal)?;
+                }
                 TickResult::Continue => {}
             }
         }
+    }
+
+    pub fn handle_terminal_command(
+        &self,
+        command: TerminalCommand,
+        terminal: &mut Terminal<B::TuiBackend>,
+    ) -> io::Result<()> {
+        match command {
+            TerminalCommand::InsertBefore { height, text } => {
+                terminal.insert_before(height, |buf| {
+                    Paragraph::new(text).render(buf.area, buf);
+                })?;
+            }
+            TerminalCommand::EnterAltScreen => {
+                self.backend.enter_alt_screen()?;
+                terminal.clear()?;
+            }
+            TerminalCommand::LeaveAltScreen => {
+                self.backend.leave_alt_screen()?;
+                terminal.clear()?;
+            }
+        };
+        terminal.draw(|f| render_dom(f.buffer_mut()))?;
+        Ok(())
     }
 
     pub async fn tick(&mut self) -> TickResult {
@@ -244,6 +288,13 @@ impl<B: Backend + 'static> Runtime<B> {
                     send_event(term_event)
                 }
                 TickResult::Continue
+            }
+            term_command = self.term_command_rx.recv() => {
+                if let Some(term_command) = term_command {
+                    TickResult::Command(term_command)
+                } else {
+                    TickResult::Continue
+                }
             }
         }
     }
@@ -278,6 +329,33 @@ pub fn restore_terminal() -> io::Result<()> {
         restore.lock().expect("lock poisoned")()?;
     }
     Ok(())
+}
+
+pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
+    TERM_COMMAND_TX
+        .get()
+        .unwrap()
+        .try_send(TerminalCommand::InsertBefore {
+            height,
+            text: text.into(),
+        })
+        .unwrap();
+}
+
+pub fn enter_alt_screen() {
+    TERM_COMMAND_TX
+        .get()
+        .unwrap()
+        .try_send(TerminalCommand::EnterAltScreen)
+        .unwrap();
+}
+
+pub fn leave_alt_screen() {
+    TERM_COMMAND_TX
+        .get()
+        .unwrap()
+        .try_send(TerminalCommand::LeaveAltScreen)
+        .unwrap();
 }
 
 pub fn set_panic_hook() {

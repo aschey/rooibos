@@ -21,6 +21,10 @@ pub trait Backend: Send + Sync {
 
     fn supports_keyboard_enhancement(&self) -> bool;
 
+    fn enter_alt_screen(&self) -> io::Result<()>;
+
+    fn leave_alt_screen(&self) -> io::Result<()>;
+
     fn read_input(
         &self,
         signal_tx: mpsc::Sender<SignalMode>,

@@ -29,6 +29,14 @@ impl Backend for TestBackend {
         Ok(())
     }
 
+    fn enter_alt_screen(&self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn leave_alt_screen(&self) -> io::Result<()> {
+        Ok(())
+    }
+
     async fn read_input(
         &self,
         _: tokio::sync::mpsc::Sender<SignalMode>,
