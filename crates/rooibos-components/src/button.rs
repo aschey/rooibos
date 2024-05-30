@@ -9,12 +9,17 @@ use ratatui::widgets::{Block, BorderType, Paragraph};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos_dom::{
+    derive_signal, widget_ref, Constrainable, KeyCode, KeyEvent, Render, WidgetState,
+};
 use rooibos_runtime::{delay, supports_key_up};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
     constraint: MaybeSignal<Constraint>,
+    border_color: MaybeSignal<Color>,
+    focused_border_color: MaybeSignal<Color>,
+    active_border_color: MaybeSignal<Color>,
 }
 
 impl Default for Button {
@@ -38,7 +43,31 @@ impl Button {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
             constraint: Default::default(),
+            focused_border_color: Color::Blue.into(),
+            active_border_color: Color::Green.into(),
+            border_color: Color::Gray.into(),
         }
+    }
+
+    pub fn border_color(mut self, border_color: impl Into<MaybeSignal<Color>>) -> Self {
+        self.border_color = border_color.into();
+        self
+    }
+
+    pub fn focused_border_color(
+        mut self,
+        focused_border_color: impl Into<MaybeSignal<Color>>,
+    ) -> Self {
+        self.focused_border_color = focused_border_color.into();
+        self
+    }
+
+    pub fn active_border_color(
+        mut self,
+        active_border_color: impl Into<MaybeSignal<Color>>,
+    ) -> Self {
+        self.active_border_color = active_border_color.into();
+        self
     }
 
     pub fn on_click<C>(mut self, on_click: C) -> Self
@@ -56,16 +85,28 @@ impl Button {
         let Self {
             on_click,
             constraint,
+            border_color,
+            focused_border_color,
+            active_border_color,
         } = self;
-        let border_color = RwSignal::new(Color::Gray);
+
         let border_type = RwSignal::new(BorderType::Rounded);
+        let widget_state = RwSignal::new(WidgetState::Default);
+
+        let border_color = derive_signal!({
+            match widget_state.get() {
+                WidgetState::Default => border_color.get(),
+                WidgetState::Focused => focused_border_color.get(),
+                WidgetState::Active => active_border_color.get(),
+            }
+        });
 
         let on_enter = move || {
-            border_color.set(Color::Green);
+            widget_state.set(WidgetState::Active);
 
             if !supports_key_up() {
                 delay(Duration::from_millis(50), async move {
-                    border_color.set(Color::Blue);
+                    widget_state.set(WidgetState::Focused);
                 });
             }
             on_click.borrow_mut()()
@@ -78,7 +119,7 @@ impl Button {
                 return;
             }
             if key_event.code == KeyCode::Enter {
-                border_color.set(Color::Blue);
+                widget_state.set(WidgetState::Focused);
             }
         };
         let children = children.into();
@@ -95,8 +136,8 @@ impl Button {
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
         .on_click(move |_, _| on_enter_())
-        .on_focus(move |_| border_color.set(Color::Blue))
-        .on_blur(move |_| border_color.set(Color::Gray))
+        .on_focus(move |_| widget_state.set(WidgetState::Focused))
+        .on_blur(move |_| widget_state.set(WidgetState::Default))
         .on_key_down(move |key_event, _| {
             if key_event.code == KeyCode::Enter {
                 on_enter()

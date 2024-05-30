@@ -21,3 +21,10 @@ macro_rules! derive_signal {
         $crate::__reactive::wrappers::read::Signal::derive(move || $($x)*)
     };
 }
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum WidgetState {
+    Focused,
+    Active,
+    Default,
+}
