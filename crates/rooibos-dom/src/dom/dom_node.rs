@@ -5,9 +5,9 @@ use std::fmt::{self, Display};
 use std::rc::Rc;
 
 use derivative::Derivative;
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
-use ratatui::widgets::Block;
-use ratatui::Frame;
+use ratatui::widgets::{Block, WidgetRef};
 use slotmap::{new_key_type, SlotMap};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
@@ -191,8 +191,8 @@ pub(crate) struct DomNodeInner {
     child_state: Option<ChildState>,
 }
 
-struct RenderProps<'a, 'b> {
-    frame: &'a mut Frame<'b>,
+struct RenderProps<'a> {
+    buf: &'a mut Buffer,
     rect: Rect,
     window: Rect,
     key: DomNodeKey,
@@ -204,7 +204,7 @@ struct RenderProps<'a, 'b> {
 impl DomNodeInner {
     fn render(&self, props: RenderProps) {
         let RenderProps {
-            frame,
+            buf,
             rect,
             window,
             key,
@@ -238,7 +238,7 @@ impl DomNodeInner {
                     if margin < 1 {
                         margin = 1;
                     }
-                    frame.render_widget_ref(block, rect);
+                    block.render_ref(rect, buf);
                 };
                 let layout = Layout::default()
                     .direction(direction)
@@ -252,7 +252,7 @@ impl DomNodeInner {
                     .zip(chunks.iter())
                     .for_each(|(key, chunk)| {
                         dom_nodes[*key].render(RenderProps {
-                            frame,
+                            buf,
                             rect: *chunk,
                             window,
                             key: *key,
@@ -267,7 +267,7 @@ impl DomNodeInner {
                 let chunks = parent_layout.split(rect);
                 self.renderable_children(dom_nodes).for_each(|key| {
                     dom_nodes[*key].render(RenderProps {
-                        frame,
+                        buf,
                         rect: chunks[0],
                         window,
                         key: *key,
@@ -282,7 +282,7 @@ impl DomNodeInner {
                 let rect = Rect::new(x, y, window.width - x, window.height - y);
                 self.renderable_children(dom_nodes).for_each(|key| {
                     dom_nodes[*key].render(RenderProps {
-                        frame,
+                        buf,
                         rect,
                         window,
                         key: *key,
@@ -295,7 +295,7 @@ impl DomNodeInner {
             NodeType::Widget(widget) => {
                 let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
                 let chunks = parent_layout.split(rect);
-                widget.render(frame, chunks[0]);
+                widget.render(chunks[0], buf);
                 *self.rect.borrow_mut() = chunks[0];
             }
             NodeType::Placeholder => {}
@@ -558,14 +558,14 @@ impl DomNode {
     //     });
     // }
 
-    pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
+    pub(crate) fn render(&self, buf: &mut Buffer, rect: Rect) {
         with_nodes(|nodes| {
             with_state_mut(|state| {
                 state.clear_focusables();
                 let constraint = *nodes[self.key].constraint.borrow();
 
                 nodes[self.key].render(RenderProps {
-                    frame,
+                    buf,
                     rect,
                     window: rect,
                     key: self.key,

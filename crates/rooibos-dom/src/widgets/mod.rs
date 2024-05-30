@@ -4,9 +4,9 @@ mod sparkline;
 use std::any::type_name;
 
 pub use chart::*;
+use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
-use ratatui::Frame;
 pub use sparkline::*;
 
 use crate::DomWidget;
@@ -39,8 +39,8 @@ where
 {
     DomWidget::new(type_name::<W>(), move || {
         let props = props();
-        move |frame: &mut Frame, rect: Rect| {
-            frame.render_widget(&props, rect);
+        move |rect: Rect, buf: &mut Buffer| {
+            props.render_ref(rect, buf);
         }
     })
 }
@@ -52,8 +52,8 @@ where
 {
     DomWidget::new(type_name::<W>(), move || {
         let props = props();
-        move |frame: &mut Frame, rect: Rect| {
-            frame.render_widget(props.clone(), rect);
+        move |rect: Rect, buf: &mut Buffer| {
+            props.clone().render(rect, buf);
         }
     })
 }
@@ -67,8 +67,8 @@ where
     DomWidget::new(type_name::<W>(), move || {
         let props = props();
         let mut state = state();
-        move |frame: &mut Frame, rect: Rect| {
-            frame.render_stateful_widget(props.clone(), rect, &mut state);
+        move |rect: Rect, buf: &mut Buffer| {
+            props.clone().render(rect, buf, &mut state);
         }
     })
 }

@@ -3,8 +3,8 @@ use std::fmt;
 use std::fmt::Debug;
 use std::rc::Rc;
 
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Rect};
-use ratatui::Frame;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
@@ -17,7 +17,7 @@ use crate::{
     next_node_id, refresh_dom, Constrainable, EventData, KeyEvent, MouseEvent, RooibosDom,
 };
 
-pub(crate) type DomWidgetFn = Box<dyn FnMut(&mut Frame, Rect)>;
+pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 
 #[derive(Clone)]
 pub struct DomWidget {
@@ -47,7 +47,7 @@ impl Debug for DomWidgetNode {
 }
 
 impl DomWidgetNode {
-    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(&mut Frame, Rect) + 'static>(
+    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
         widget_type: impl Into<String>,
         f: F1,
     ) -> Self {
@@ -69,13 +69,13 @@ impl DomWidgetNode {
         }
     }
 
-    pub(crate) fn render(&self, frame: &mut Frame, rect: Rect) {
-        (*self.f).borrow_mut()(frame, rect);
+    pub(crate) fn render(&self, rect: Rect, buf: &mut Buffer) {
+        (*self.f).borrow_mut()(rect, buf);
     }
 }
 
 impl DomWidget {
-    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(&mut Frame, Rect) + 'static>(
+    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
         widget_type: impl Into<String>,
         f: F1,
     ) -> Self {

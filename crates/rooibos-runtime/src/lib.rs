@@ -30,7 +30,7 @@ static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::Event>> = OnceLock::new(
 static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
 static RESTORE_TERMINAL: OnceLock<std::sync::Mutex<Box<RestoreFn>>> = OnceLock::new();
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum TickResult {
     Continue,
     Redraw,
@@ -193,17 +193,17 @@ impl<B: Backend + 'static> Runtime<B> {
 
     pub async fn run(mut self) -> io::Result<()> {
         let mut terminal = self.setup_terminal()?;
-        terminal.draw(render_dom)?;
+        terminal.draw(|f| render_dom(f.buffer_mut()))?;
         focus_next();
         loop {
             let tick_result = self.tick().await;
             match tick_result {
                 TickResult::Redraw => {
-                    terminal.draw(render_dom)?;
+                    terminal.draw(|f| render_dom(f.buffer_mut()))?;
                 }
                 TickResult::Restart => {
                     terminal = self.setup_terminal()?;
-                    terminal.draw(render_dom)?;
+                    terminal.draw(|f| render_dom(f.buffer_mut()))?;
                 }
                 TickResult::Exit => {
                     if !self.settings.show_final_output {

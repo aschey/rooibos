@@ -21,6 +21,7 @@ tap = "1"
 tracing = "0.1"
 async-signal = "0.2"
 signal-hook = "0.3"
+derivative = "2"
 
 [target.'cfg(unix)'.dependencies]
 termion = { version = "4", optional = true }

@@ -1,9 +1,9 @@
 use std::any::type_name;
 
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Style, Stylize};
-use ratatui::widgets::Block;
-use ratatui::Frame;
+use ratatui::widgets::{Block, Widget};
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Update, UpdateUntracked, With};
@@ -196,8 +196,8 @@ impl Input {
 
         DomWidget::new(type_name::<TextArea>(), move || {
             let text_area = text_area.get();
-            move |f: &mut Frame, area: Rect| {
-                f.render_widget(text_area.widget(), area);
+            move |area: Rect, buf: &mut Buffer| {
+                text_area.widget().render(area, buf);
             }
         })
         .constraint(constraint)

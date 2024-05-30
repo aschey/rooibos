@@ -7,10 +7,10 @@ use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::tui::buffer::Buffer;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
-use rooibos::tui::widgets::Block;
-use rooibos::tui::Frame;
+use rooibos::tui::widgets::{Block, StatefulWidget};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -78,16 +78,13 @@ fn app() -> impl Render {
     DomWidget::new(type_name::<Tree<&str>>(), move || {
         let tree = tree.get();
         state.track();
-        move |frame: &mut Frame, rect: Rect| {
+        move |rect: Rect, buf: &mut Buffer| {
             state.update_untracked(|s| {
-                frame.render_stateful_widget(
-                    Tree::new(&tree)
-                        .unwrap()
-                        .block(Block::bordered().title("Tree Widget"))
-                        .highlight_style(Style::default().black().on_green().bold()),
-                    rect,
-                    s,
-                );
+                Tree::new(&tree)
+                    .unwrap()
+                    .block(Block::bordered().title("Tree Widget"))
+                    .highlight_style(Style::default().black().on_green().bold())
+                    .render(rect, buf, s);
             })
         }
     })

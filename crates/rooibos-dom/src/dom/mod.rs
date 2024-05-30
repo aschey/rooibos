@@ -1,10 +1,10 @@
 use std::cell::{Ref, RefCell, RefMut};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Position, Rect};
 use ratatui::text::{Line, Text};
-use ratatui::widgets::{Paragraph, Wrap};
-use ratatui::Frame;
+use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
@@ -231,8 +231,8 @@ impl Renderer for RooibosDom {
             "text",
             move || {
                 let text = text.clone();
-                move |frame, rect| {
-                    frame.render_widget(&text, rect);
+                move |rect, buf| {
+                    text.render_ref(rect, buf);
                 }
             },
         )));
@@ -439,16 +439,15 @@ pub fn unmount() {
     with_nodes_mut(|mut d| (*d).clear());
 }
 
-pub fn render_dom(frame: &mut Frame) {
-    let size = frame.size();
+pub fn render_dom(buf: &mut Buffer) {
     if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
-        with_state(|s| s.set_window_size(size));
+        with_state(|s| s.set_window_size(buf.area));
     }
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
-        frame.render_widget(print_dom(), size);
+        print_dom().render_ref(buf.area, buf);
     } else {
-        with_root(|d| d.as_ref().unwrap().render(frame, size));
+        with_root(|d| d.as_ref().unwrap().render(buf, buf.area));
     }
 }
 

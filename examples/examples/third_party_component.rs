@@ -8,9 +8,9 @@ use rooibos::reactive::traits::{Get, Update};
 use rooibos::reactive::wrappers::read::MaybeSignal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::tui::buffer::Buffer;
 use rooibos::tui::layout::Rect;
-use rooibos::tui::widgets::Block;
-use rooibos::tui::Frame;
+use rooibos::tui::widgets::{Block, Widget};
 use tui_textarea::TextArea;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -45,8 +45,8 @@ fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget 
     let text_area = text_area.into();
     DomWidget::new(type_name::<TextArea>(), move || {
         let widget = text_area.get();
-        move |f: &mut Frame, area: Rect| {
-            f.render_widget(widget.widget(), area);
+        move |area: Rect, buf: &mut Buffer| {
+            widget.widget().render(area, buf);
         }
     })
 }
