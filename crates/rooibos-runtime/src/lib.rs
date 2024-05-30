@@ -57,14 +57,17 @@ where
     local.run_until(f).await
 }
 
+#[derive(Debug)]
 pub struct RuntimeSettings {
     enable_input_reader: bool,
+    show_final_output: bool,
 }
 
 impl Default for RuntimeSettings {
     fn default() -> Self {
         Self {
             enable_input_reader: true,
+            show_final_output: true,
         }
     }
 }
@@ -74,11 +77,19 @@ impl RuntimeSettings {
         self.enable_input_reader = enable;
         self
     }
+
+    pub fn show_final_output(mut self, show_final_output: bool) -> Self {
+        self.show_final_output = show_final_output;
+        self
+    }
 }
 
 #[derive(Debug)]
 pub struct Runtime<B: Backend> {
+    settings: RuntimeSettings,
+    signal_tx: mpsc::Sender<SignalMode>,
     signal_rx: mpsc::Receiver<SignalMode>,
+    term_event_tx: broadcast::Sender<Event>,
     dom_update_rx: DomUpdateReceiver,
     term_event_rx: broadcast::Receiver<rooibos_dom::Event>,
     backend: Arc<B>,
@@ -108,46 +119,44 @@ impl<B: Backend + 'static> Runtime<B> {
         SUPPORTS_KEYBOARD_ENHANCEMENT
             .store(backend.supports_keyboard_enhancement(), Ordering::Relaxed);
 
-        if settings.enable_input_reader {
-            let backend = backend.clone();
+        {
             let signal_tx = signal_tx.clone();
             Executor::spawn(async move {
-                backend.read_input(signal_tx, term_event_tx).await;
+                #[cfg(unix)]
+                // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+                let mut signals = Signals::new([
+                    Signal::Term,
+                    Signal::Quit,
+                    Signal::Int,
+                    Signal::Tstp,
+                    Signal::Cont,
+                ])
+                .unwrap();
+
+                #[cfg(windows)]
+                let mut signals = Signals::new([Signal::Int]).unwrap();
+
+                while let Some(Ok(signal)) = signals.next().await {
+                    match signal {
+                        Signal::Tstp => {
+                            let _ = signal_tx.send(SignalMode::Suspend).await;
+                        }
+                        Signal::Cont => {
+                            let _ = signal_tx.send(SignalMode::Resume).await;
+                        }
+                        _ => {
+                            let _ = signal_tx.send(SignalMode::Terminate).await;
+                        }
+                    }
+                }
             });
         }
 
-        Executor::spawn(async move {
-            #[cfg(unix)]
-            // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
-            let mut signals = Signals::new([
-                Signal::Term,
-                Signal::Quit,
-                Signal::Int,
-                Signal::Tstp,
-                Signal::Cont,
-            ])
-            .unwrap();
-
-            #[cfg(windows)]
-            let mut signals = Signals::new([Signal::Int]).unwrap();
-
-            while let Some(Ok(signal)) = signals.next().await {
-                match signal {
-                    Signal::Tstp => {
-                        let _ = signal_tx.send(SignalMode::Suspend).await;
-                    }
-                    Signal::Cont => {
-                        let _ = signal_tx.send(SignalMode::Resume).await;
-                    }
-                    _ => {
-                        let _ = signal_tx.send(SignalMode::Terminate).await;
-                    }
-                }
-            }
-        });
-
         mount(f);
         Self {
+            term_event_tx,
+            signal_tx,
+            settings,
             dom_update_rx,
             signal_rx,
             term_event_rx,
@@ -159,10 +168,25 @@ impl<B: Backend + 'static> Runtime<B> {
         let terminal = self.backend.setup_terminal()?;
         let backend = self.backend.clone();
 
+        if self.settings.enable_input_reader {
+            let backend = backend.clone();
+            let signal_tx = self.signal_tx.clone();
+            let term_event_tx = self.term_event_tx.clone();
+            Executor::spawn(async move {
+                backend.read_input(signal_tx, term_event_tx).await;
+            });
+        }
+        let show_final_output = self.settings.show_final_output;
         *RESTORE_TERMINAL
             .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
             .lock()
-            .expect("lock poisoned") = Box::new(move || backend.restore_terminal());
+            .expect("lock poisoned") = Box::new(move || {
+            backend.restore_terminal()?;
+            if show_final_output {
+                backend.write_all(b"\n")?;
+            }
+            Ok(())
+        });
 
         Ok(terminal)
     }
@@ -182,6 +206,9 @@ impl<B: Backend + 'static> Runtime<B> {
                     terminal.draw(render_dom)?;
                 }
                 TickResult::Exit => {
+                    if !self.settings.show_final_output {
+                        terminal.clear()?;
+                    }
                     return Ok(());
                 }
                 TickResult::Continue => {}

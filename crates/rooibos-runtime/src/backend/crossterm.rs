@@ -67,6 +67,14 @@ impl<W> TerminalSettings<W> {
         self
     }
 
+    pub fn viewport(mut self, viewport: Viewport) -> Self {
+        if viewport != Viewport::Fullscreen {
+            self.alternate_screen = false;
+        }
+        self.viewport = viewport;
+        self
+    }
+
     pub fn keyboard_enhancement(mut self, keyboard_enhancement: bool) -> Self {
         self.keyboard_enhancement = keyboard_enhancement;
         self
@@ -168,6 +176,10 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn supports_keyboard_enhancement(&self) -> bool {
         self.supports_keyboard_enhancement
+    }
+
+    fn write_all(&self, buf: &[u8]) -> io::Result<()> {
+        (self.settings.get_writer)().write_all(buf)
     }
 
     async fn read_input(

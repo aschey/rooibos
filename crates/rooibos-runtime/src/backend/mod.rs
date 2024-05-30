@@ -26,4 +26,6 @@ pub trait Backend: Send + Sync {
         signal_tx: mpsc::Sender<SignalMode>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
     ) -> impl Future<Output = ()> + Send;
+
+    fn write_all(&self, buf: &[u8]) -> io::Result<()>;
 }

@@ -76,6 +76,10 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         false
     }
 
+    fn write_all(&self, buf: &[u8]) -> io::Result<()> {
+        (self.settings.get_writer)().write_all(buf)
+    }
+
     async fn read_input(
         &self,
         signal_tx: mpsc::Sender<SignalMode>,

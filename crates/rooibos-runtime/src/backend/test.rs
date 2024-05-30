@@ -1,3 +1,5 @@
+use std::io::{self};
+
 use ratatui::Terminal;
 
 use super::Backend;
@@ -21,6 +23,10 @@ impl Backend for TestBackend {
 
     fn supports_keyboard_enhancement(&self) -> bool {
         true
+    }
+
+    fn write_all(&self, _buf: &[u8]) -> io::Result<()> {
+        Ok(())
     }
 
     async fn read_input(
