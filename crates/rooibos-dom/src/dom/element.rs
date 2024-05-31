@@ -313,6 +313,7 @@ where
             child_state.mountable.unmount();
             let mut new = self.build();
             new.mount(&child_state.parent, None);
+            child_state.mountable = Box::new(new);
         }
 
         state.set_child_state(child_state);

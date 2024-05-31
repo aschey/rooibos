@@ -246,8 +246,9 @@ impl Renderer for RooibosDom {
         unimplemented!()
     }
 
-    fn insert_node(parent: &Self::Element, new_child: &Self::Node, _marker: Option<&Self::Node>) {
-        mount_child(parent, new_child);
+    fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
+        parent.insert_before(new_child, marker);
+        refresh_dom();
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
@@ -297,17 +298,6 @@ impl AsRef<DomNode> for DomNode {
     }
 }
 
-// pub enum MountKind<'a> {
-//     Before(&'a DomNode),
-//     Append(&'a DomNode),
-// }
-
-fn mount_child(parent: &DomNode, child: &DomNode) -> DomNodeKey {
-    parent.append_child(child);
-    refresh_dom();
-    child.key()
-}
-
 fn cleanup_removed_nodes(
     node: &DomNodeKey,
     nodes: &mut RefMut<'_, SlotMap<DomNodeKey, DomNodeInner>>,
@@ -325,30 +315,6 @@ fn cleanup_removed_nodes(
         nodes.remove(*node);
     }
 }
-
-// fn disconnect_child(child: DomNodeKey) {
-//     DOM_NODES.with(|d| {
-//         let mut d = d.borrow_mut();
-//         let child_node = &d[child];
-//         if let Some(parent) = child_node.parent {
-//             let child_pos = d[parent].children.iter().position(|c| c == &child).unwrap();
-//             d[parent].children.remove(child_pos);
-//         }
-//         d[child].parent = None;
-//     });
-// }
-
-// fn replace_child(current: DomNodeKey, new: &DomNode) {
-//     let parent = DOM_NODES.with(|d| {
-//         let d = d.borrow();
-//         let current_node = &d[current];
-//         current_node.parent
-//     });
-//     disconnect_child(current);
-//     if let Some(parent) = parent {
-//         mount_child(&DomNode::from_key(parent), new);
-//     }
-// }
 
 fn clear_children(parent: DomNodeKey) {
     with_nodes_mut(|mut nodes| {

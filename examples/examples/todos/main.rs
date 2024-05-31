@@ -5,9 +5,10 @@ use std::error::Error;
 use std::io::Stdout;
 
 use client::{add_todo, fetch_todos};
-use rooibos::components::{Input, Popup};
+use rooibos::components::{Button, Input, Popup};
 use rooibos::dom::{
     clear, col, overlay, row, transition, widget_ref, Constrainable, Errors, Render, Suspend,
+    WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -15,8 +16,8 @@ use rooibos::reactive::signal::ArcRwSignal;
 use rooibos::reactive::traits::{Get, Track, With};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::tui::style::Stylize;
-use rooibos::tui::text::{Line, Span};
+use rooibos::tui::style::{Color, Stylize};
+use rooibos::tui::text::{Line, Span, Text};
 use rooibos::tui::widgets::{Block, Paragraph};
 use server::run_server;
 
@@ -66,7 +67,14 @@ fn app() -> impl Render {
                     .length(12),
                 col![
                     Input::default()
-                        .block(Block::bordered())
+                        .block(|state| Block::bordered()
+                            .fg(if state == WidgetState::Focused {
+                                Color::Blue
+                            } else {
+                                Color::default()
+                            })
+                            .title("Input")
+                            .into())
                         .on_submit(move |val| {
                             add_todo.dispatch(val);
                             input_ref.delete_line_by_head();
@@ -79,12 +87,12 @@ fn app() -> impl Render {
             row![col![transition!(
                 widget_ref!(Line::from(" Loading...".gray())),
                 todos.await.map(|todos| {
-                    widget_ref!(Paragraph::new(
+                    col![
                         todos
-                            .iter()
-                            .map(|t| Line::from(t.text.clone()))
-                            .collect::<Vec<_>>()
-                    ))
+                            .into_iter()
+                            .map(|t| todo_item(t.text))
+                            .collect::<Vec<_>>(),
+                    ]
                 }),
                 fallback
             )]]
@@ -102,4 +110,13 @@ fn app() -> impl Render {
             ]
         )
     ]
+}
+
+fn todo_item(text: String) -> impl Render {
+    row![
+        Button::new().length(8).render(Text::from("edit")),
+        Button::new().length(5).render(Text::from("x".red())),
+        col![widget_ref!(Paragraph::new(text.clone()))].margin(1)
+    ]
+    .length(3)
 }

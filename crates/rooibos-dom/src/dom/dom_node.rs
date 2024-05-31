@@ -14,7 +14,7 @@ use tachys::view::{Mountable, Render};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
-use super::{mount_child, unmount_child, with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
+use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
 use crate::{next_node_id, DomWidgetNode, EventHandlers, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -219,11 +219,6 @@ impl DomNodeInner {
             dom_state.add_focusable(key);
         }
 
-        let constraints = self
-            .children
-            .iter()
-            .map(|key| *dom_nodes[*key].constraint.borrow());
-
         match &self.node_type {
             NodeType::Layout(layout_props) => {
                 let LayoutProps {
@@ -240,6 +235,10 @@ impl DomNodeInner {
                     }
                     block.render_ref(rect, buf);
                 };
+
+                let constraints = self
+                    .renderable_children(dom_nodes)
+                    .map(|key| *dom_nodes[*key].constraint.borrow());
                 let layout = Layout::default()
                     .direction(direction)
                     .flex(flex)
@@ -336,9 +335,9 @@ impl Mountable<RooibosDom> for DomNode {
     fn mount(
         &mut self,
         parent: &<RooibosDom as Renderer>::Element,
-        _marker: Option<&<RooibosDom as Renderer>::Node>,
+        marker: Option<&<RooibosDom as Renderer>::Node>,
     ) {
-        mount_child(parent, self);
+        RooibosDom::insert_node(parent, self, marker);
         self.unmounted = false;
     }
 
@@ -525,38 +524,23 @@ impl DomNode {
         })
     }
 
-    pub(crate) fn append_child(&self, node: &DomNode) {
-        with_nodes_mut(|mut d| {
-            d[node.key].parent = Some(self.key);
-            d[self.key].children.push(node.key);
-
-            // let pending: Vec<_> = d[node.key].before_pending.drain(..).collect();
-            // for p in pending {
-            //     let self_index = d[self.key]
-            //         .children
-            //         .iter()
-            //         .position(|c| c == &node.key)
-            //         .unwrap();
-            //     d[self.key].children.insert(self_index, p);
-            //     d[p].parent = Some(self.key);
-            // }
-        });
+    pub(crate) fn insert_before(&self, child: &DomNode, reference: Option<&DomNode>) {
+        with_nodes_mut(|mut nodes| {
+            if let Some(reference) = reference {
+                if let Some(reference_pos) = nodes[self.key]
+                    .children
+                    .iter()
+                    .position(|c| *c == reference.key)
+                {
+                    nodes[self.key].children.insert(reference_pos, child.key);
+                    nodes[child.key].parent = Some(self.key);
+                }
+            } else {
+                nodes[self.key].children.push(child.key);
+                nodes[child.key].parent = Some(self.key);
+            }
+        })
     }
-
-    // pub(crate) fn before(&self, node: &DomNode) {
-    //     DOM_NODES.with(|d| {
-    //         let mut d = d.borrow_mut();
-
-    //         if let Some(parent_id) = d[self.key].parent {
-    //             let parent = d.get_mut(parent_id).unwrap();
-    //             let self_index = parent.children.iter().position(|c| c == &self.key).unwrap();
-    //             parent.children.insert(self_index, node.key);
-    //             d[node.key].parent = Some(parent_id);
-    //         } else {
-    //             d[self.key].before_pending.push(node.key);
-    //         }
-    //     });
-    // }
 
     pub(crate) fn render(&self, buf: &mut Buffer, rect: Rect) {
         with_nodes(|nodes| {

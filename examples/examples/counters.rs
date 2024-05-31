@@ -2,10 +2,10 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{for_each, Button};
-use rooibos::dom::{col, row, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, row, widget_ref, Constrainable, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
-use rooibos::reactive::traits::{Get, GetUntracked, Set, Update};
+use rooibos::reactive::traits::{Get, GetUntracked, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{use_keypress, Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::{self, *};
@@ -37,15 +37,6 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + 'static, constraint: Constrai
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
 
-    let key_down = move |key_event: KeyEvent, _| {
-        if key_event.code == KeyCode::Up {
-            update_count(1);
-        }
-        if key_event.code == KeyCode::Down {
-            update_count(-1);
-        }
-    };
-
     row![
         Button::new()
             .length(6)
@@ -61,9 +52,6 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + 'static, constraint: Constrai
             .render(Text::from("x".red())),
         widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
             .length(15)
-            .on_focus(move |_| block.set(Block::bordered().blue()))
-            .on_blur(move |_| block.set(Block::default().padding(default_padding)))
-            .on_key_down(key_down)
             .on_click(move |_, _| update_count(1))
             .id(id.to_string())
     ]

@@ -4,11 +4,13 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
-use reactive_graph::effect::RenderEffect;
+use reactive_graph::effect::Effect;
 use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Update, UpdateUntracked, With};
+use reactive_graph::traits::{Get, Set, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
-use rooibos_dom::{derive_signal, Constrainable, DomWidget, KeyCode, KeyEvent, Render};
+use rooibos_dom::{
+    derive_signal, Constrainable, DomWidget, KeyCode, KeyEvent, Render, WidgetState,
+};
 use tui_textarea::{CursorMove, TextArea};
 
 #[derive(Clone, Copy)]
@@ -91,7 +93,7 @@ impl InputRef {
 pub struct Input {
     constraint: MaybeSignal<Constraint>,
     alignment: MaybeSignal<Alignment>,
-    block: Option<MaybeSignal<Block<'static>>>,
+    block: Box<dyn Fn(WidgetState) -> Option<Block<'static>> + Send + Sync>,
     cursor_style: MaybeSignal<Style>,
     style: MaybeSignal<Style>,
     placeholder_style: MaybeSignal<Style>,
@@ -114,7 +116,7 @@ impl Default for Input {
     fn default() -> Self {
         Self {
             alignment: Alignment::Left.into(),
-            block: None,
+            block: Box::new(move |_| None),
             constraint: Constraint::default().into(),
             cursor_style: Style::default().reversed().into(),
             placeholder_style: Style::default().dark_gray().into(),
@@ -127,8 +129,11 @@ impl Default for Input {
 }
 
 impl Input {
-    pub fn block(mut self, block: impl Into<MaybeSignal<Block<'static>>>) -> Self {
-        self.block = Some(block.into());
+    pub fn block(
+        mut self,
+        block: impl Fn(WidgetState) -> Option<Block<'static>> + Send + Sync + 'static,
+    ) -> Self {
+        self.block = Box::new(block);
         self
     }
 
@@ -166,7 +171,13 @@ impl Input {
         let text_area = input_ref.0;
         text_area.update_untracked(|t| t.insert_str(initial_value));
 
-        RenderEffect::new(move |_| {
+        let widget_state = RwSignal::new(WidgetState::Default);
+        let block = derive_signal!({
+            let state = widget_state.get();
+            return block(state);
+        });
+
+        Effect::new(move |_| {
             text_area.update(|t| {
                 t.set_cursor_line_style(Style::default());
                 t.set_alignment(alignment.get());
@@ -174,8 +185,8 @@ impl Input {
                 t.set_cursor_style(cursor_style.get());
                 t.set_placeholder_text(placeholder_text.get());
                 t.set_placeholder_style(placeholder_style.get());
-                if let Some(block) = block.clone() {
-                    t.set_block(block.get())
+                if let Some(block) = block.get() {
+                    t.set_block(block)
                 }
             });
         });
@@ -202,5 +213,11 @@ impl Input {
         })
         .constraint(constraint)
         .on_key_down(key_down)
+        .on_focus(move |_| {
+            widget_state.set(WidgetState::Focused);
+        })
+        .on_blur(move |_| {
+            widget_state.set(WidgetState::Default);
+        })
     }
 }
