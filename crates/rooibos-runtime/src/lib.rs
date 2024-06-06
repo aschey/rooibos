@@ -7,7 +7,6 @@ use std::panic::{set_hook, take_hook};
 use std::sync::Arc;
 use std::time::Duration;
 
-use any_spawner::Executor;
 use backend::Backend;
 use futures_util::StreamExt;
 use ratatui::text::Text;
@@ -153,7 +152,7 @@ impl<B: Backend + 'static> Runtime<B> {
         {
             use async_signal::{Signal, Signals};
             let signal_tx = signal_tx.clone();
-            Executor::spawn(async move {
+            wasm_compat::spawn(async move {
                 #[cfg(unix)]
                 // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
                 let mut signals = Signals::new([
@@ -319,7 +318,7 @@ impl<B: Backend + 'static> Runtime<B> {
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     let mut term_rx = TERM_TX.with(|t| t.get().expect("runtime not initialized").subscribe());
     let (term_signal, set_term_signal) = signal(None);
-    Executor::spawn(async move {
+    wasm_compat::spawn(async move {
         // TODO: this doesn't work?
         // if term_signal.is_disposed() {
         //     return;
