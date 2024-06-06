@@ -12,4 +12,4 @@ pub mod components {
 }
 
 pub use ratatui as tui;
-pub use rooibos_runtime_macros::main;
+pub use rooibos_runtime_macros::*;

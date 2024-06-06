@@ -2,14 +2,29 @@ use manyhow::manyhow;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
+use syn::parse::Parser;
 use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
 
 #[manyhow]
 #[proc_macro_attribute]
 pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    let args_parsed = syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated
+        .parse2(attrs.clone())
+        .unwrap();
+    if !args_parsed.is_empty() && args_parsed.first().unwrap().is_ident("wasm") {
+        create_main(attrs, tokens, true)
+    } else {
+        create_main(attrs, tokens, false)
+    }
+}
+
+fn create_main(attrs: TokenStream, tokens: TokenStream, is_wasm: bool) -> manyhow::Result {
     let mut func: ItemFn = syn::parse2(tokens)?;
     let mut func_copy = func.clone();
-    func.sig.asyncness = None;
+    if !is_wasm {
+        func.sig.asyncness = None;
+    }
+
     func_copy.vis = Visibility::Inherited;
     func_copy.sig.ident = Ident::new(&format!("__{}", func.sig.ident), Span::call_site());
 
@@ -30,19 +45,35 @@ pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
         })
         .collect();
     let func_param_idents = quote!(#(#func_param_idents),*);
-    Ok(quote! {
-        #vis #func_sig {
-            #runtime::execute(move || ___async_main(#func_param_idents))
-        }
+    if is_wasm {
+        Ok(quote! {
+            #[::wasm_bindgen::prelude::wasm_bindgen(start)]
+            #vis #func_sig {
+                #runtime::execute(move || ___async_main(#func_param_idents)).await
+            }
 
-        #[::tokio::main(#attrs)]
-        async fn ___async_main(#inputs) #output {
-            #runtime::init_executor(#func_copy_ident(#func_param_idents)).await
-        }
+            async fn ___async_main(#inputs) #output {
+                #runtime::init_executor(#func_copy_ident(#func_param_idents)).await
+            }
 
-        #func_copy
-    })
+            #func_copy
+        })
+    } else {
+        Ok(quote! {
+            #vis #func_sig {
+                #runtime::execute(move || ___async_main(#func_param_idents))
+            }
+
+            #[::tokio::main(#attrs)]
+            async fn ___async_main(#inputs) #output {
+                #runtime::init_executor(#func_copy_ident(#func_param_idents)).await
+            }
+
+            #func_copy
+        })
+    }
 }
+
 fn get_runtime_import() -> proc_macro2::TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {

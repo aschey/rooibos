@@ -1,14 +1,13 @@
 pub mod backend;
+pub mod wasm_compat;
 
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 use std::time::Duration;
 
 use any_spawner::Executor;
-use async_signal::{Signal, Signals};
 use backend::Backend;
 use futures_util::StreamExt;
 use ratatui::text::Text;
@@ -23,15 +22,18 @@ use rooibos_dom::{
 };
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
-use tokio::task::{self, spawn_local};
+use tokio::task;
 use tracing::error;
+use wasm_compat::{BoolCell, Mutex, Once};
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
-static TERM_TX: OnceLock<broadcast::Sender<rooibos_dom::Event>> = OnceLock::new();
-static TERM_COMMAND_TX: OnceLock<mpsc::Sender<TerminalCommand>> = OnceLock::new();
-static SUPPORTS_KEYBOARD_ENHANCEMENT: AtomicBool = AtomicBool::new(false);
-static RESTORE_TERMINAL: OnceLock<std::sync::Mutex<Box<RestoreFn>>> = OnceLock::new();
+once! {
+    static TERM_TX: Once<broadcast::Sender<rooibos_dom::Event>> = Once::new();
+    static TERM_COMMAND_TX: Once<mpsc::Sender<TerminalCommand>> = Once::new();
+    static SUPPORTS_KEYBOARD_ENHANCEMENT: BoolCell = BoolCell::new(false);
+    static RESTORE_TERMINAL: Once<Mutex<Box<RestoreFn>>> = Once::new();
+}
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum TerminalCommand {
@@ -58,14 +60,23 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     res
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub async fn init_executor<T, F>(f: F) -> T
 where
     F: Future<Output = T>,
 {
     any_spawner::Executor::init_tokio().expect("executor already initialized");
-
     let local = task::LocalSet::new();
     local.run_until(f).await
+}
+
+#[cfg(target_arch = "wasm32")]
+pub async fn init_executor<T, F>(f: F) -> T
+where
+    F: Future<Output = T>,
+{
+    any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
+    f.await
 }
 
 #[derive(Debug)]
@@ -123,19 +134,24 @@ impl<B: Backend + 'static> Runtime<B> {
         let (signal_tx, signal_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
         let (term_command_tx, term_command_rx) = mpsc::channel(32);
-        TERM_TX
-            .set(term_event_tx.clone())
-            .expect("runtime initialized more than once");
-        TERM_COMMAND_TX
-            .set(term_command_tx)
-            .expect("runtime initialized more than once");
+        TERM_TX.with(|t| {
+            t.set(term_event_tx.clone())
+                .expect("runtime initialized more than once")
+        });
+
+        TERM_COMMAND_TX.with(|t| {
+            t.set(term_command_tx)
+                .expect("runtime initialized more than once")
+        });
+
         let dom_update_rx = dom_update_receiver();
 
         // We need to query this info before reading events
-        SUPPORTS_KEYBOARD_ENHANCEMENT
-            .store(backend.supports_keyboard_enhancement(), Ordering::Relaxed);
+        SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| s.set(backend.supports_keyboard_enhancement()));
 
+        #[cfg(not(target_arch = "wasm32"))]
         {
+            use async_signal::{Signal, Signals};
             let signal_tx = signal_tx.clone();
             Executor::spawn(async move {
                 #[cfg(unix)]
@@ -189,20 +205,20 @@ impl<B: Backend + 'static> Runtime<B> {
             let backend = backend.clone();
             let signal_tx = self.signal_tx.clone();
             let term_event_tx = self.term_event_tx.clone();
-            Executor::spawn(async move {
+
+            wasm_compat::spawn(async move {
                 backend.read_input(signal_tx, term_event_tx).await;
             });
         }
         let show_final_output = self.settings.show_final_output;
-        *RESTORE_TERMINAL
-            .get_or_init(|| std::sync::Mutex::new(Box::new(|| Ok(()))))
-            .lock()
-            .expect("lock poisoned") = Box::new(move || {
-            backend.restore_terminal()?;
-            if show_final_output {
-                backend.write_all(b"\n")?;
-            }
-            Ok(())
+        RESTORE_TERMINAL.with(|r| {
+            let _ = r.set(Mutex::new(Box::new(move || {
+                backend.restore_terminal()?;
+                if show_final_output {
+                    backend.write_all(b"\n")?;
+                }
+                Ok(())
+            })));
         });
 
         Ok(terminal)
@@ -267,12 +283,12 @@ impl<B: Backend + 'static> Runtime<B> {
                     Some(SignalMode::Suspend) => {
                         restore_terminal().unwrap();
                         #[cfg(unix)]
-                        signal_hook::low_level::emulate_default_handler(Signal::Tstp as i32).unwrap();
+                        signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();
                         TickResult::Continue
                     }
                     Some(SignalMode::Resume) => {
                         #[cfg(unix)]
-                        signal_hook::low_level::emulate_default_handler(Signal::Cont as i32).unwrap();
+                        signal_hook::low_level::emulate_default_handler(async_signal::Signal::Cont as i32).unwrap();
                         TickResult::Restart
                     }
                     Some(SignalMode::Terminate) | None => {
@@ -301,7 +317,7 @@ impl<B: Backend + 'static> Runtime<B> {
 }
 
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
-    let mut term_rx = TERM_TX.get().expect("runtime not initialized").subscribe();
+    let mut term_rx = TERM_TX.with(|t| t.get().expect("runtime not initialized").subscribe());
     let (term_signal, set_term_signal) = signal(None);
     Executor::spawn(async move {
         // TODO: this doesn't work?
@@ -321,57 +337,69 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
 }
 
 pub fn supports_key_up() -> bool {
-    SUPPORTS_KEYBOARD_ENHANCEMENT.load(Ordering::Relaxed)
+    SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| s.get())
 }
 
 pub fn restore_terminal() -> io::Result<()> {
-    if let Some(restore) = RESTORE_TERMINAL.get() {
-        restore.lock().expect("lock poisoned")()?;
-    }
-    Ok(())
+    RESTORE_TERMINAL.with(|r| {
+        if let Some(restore) = r.get() {
+            restore.with(|r| r())
+        } else {
+            Ok(())
+        }
+    })
 }
 
 pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
-    TERM_COMMAND_TX
-        .get()
-        .unwrap()
-        .try_send(TerminalCommand::InsertBefore {
-            height,
-            text: text.into(),
-        })
-        .unwrap();
+    TERM_COMMAND_TX.with(|t| {
+        t.get()
+            .unwrap()
+            .try_send(TerminalCommand::InsertBefore {
+                height,
+                text: text.into(),
+            })
+            .unwrap()
+    });
 }
 
 pub fn enter_alt_screen() {
-    TERM_COMMAND_TX
-        .get()
-        .unwrap()
-        .try_send(TerminalCommand::EnterAltScreen)
-        .unwrap();
+    TERM_COMMAND_TX.with(|t| {
+        t.get()
+            .unwrap()
+            .try_send(TerminalCommand::EnterAltScreen)
+            .unwrap()
+    });
 }
 
 pub fn leave_alt_screen() {
-    TERM_COMMAND_TX
-        .get()
-        .unwrap()
-        .try_send(TerminalCommand::LeaveAltScreen)
-        .unwrap();
+    TERM_COMMAND_TX.with(|t| {
+        t.get()
+            .unwrap()
+            .try_send(TerminalCommand::LeaveAltScreen)
+            .unwrap()
+    });
 }
 
 pub fn set_panic_hook() {
-    let original_hook = take_hook();
-    set_hook(Box::new(move |panic_info| {
-        let _ = restore_terminal();
-        original_hook(panic_info);
-    }));
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let original_hook = take_hook();
+        set_hook(Box::new(move |panic_info| {
+            let _ = restore_terminal();
+            original_hook(panic_info);
+        }));
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    console_error_panic_hook::set_once();
 }
 
 pub fn delay<F>(duration: Duration, f: F)
 where
     F: Future<Output = ()> + 'static,
 {
-    spawn_local(async move {
-        tokio::time::sleep(duration).await;
+    wasm_compat::spawn_local(async move {
+        wasm_compat::sleep(duration).await;
         f.await;
     });
 }

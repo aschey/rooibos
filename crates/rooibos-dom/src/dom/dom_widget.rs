@@ -10,12 +10,11 @@ use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
+use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{
-    next_node_id, refresh_dom, Constrainable, EventData, KeyEvent, MouseEvent, RooibosDom,
-};
+use crate::{next_node_id, refresh_dom, Constrainable, EventData, RooibosDom};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 

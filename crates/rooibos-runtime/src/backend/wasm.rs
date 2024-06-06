@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use crossterm::cursor::{DisableBlinking, Hide, Show};
 use crossterm::event::{
     DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
-    EnableFocusChange, EnableMouseCapture, Event, EventStream, KeyCode, KeyEvent, KeyModifiers,
+    EnableFocusChange, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyModifiers,
     KeyboardEnhancementFlags, MouseEvent, MouseEventKind, PopKeyboardEnhancementFlags,
     PushKeyboardEnhancementFlags,
 };
@@ -15,14 +15,17 @@ use crossterm::terminal::{
 use crossterm::{execute, queue};
 use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
+use ratatui_wasm::xterm::Theme;
+use ratatui_wasm::{init_terminal, EventStream, TerminalHandle};
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
+use web_sys::wasm_bindgen::JsCast;
 
 use super::Backend;
-use crate::SignalMode;
+use crate::{wasm_compat, SignalMode};
 
-pub struct TerminalSettings<W> {
+pub struct TerminalSettings {
     alternate_screen: bool,
     mouse_capture: bool,
     keyboard_enhancement: bool,
@@ -30,10 +33,9 @@ pub struct TerminalSettings<W> {
     bracketed_paste: bool,
     viewport: Viewport,
     hover_debounce: Duration,
-    get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
-impl Default for TerminalSettings<Stdout> {
+impl Default for TerminalSettings {
     fn default() -> Self {
         Self {
             alternate_screen: true,
@@ -43,27 +45,11 @@ impl Default for TerminalSettings<Stdout> {
             bracketed_paste: true,
             viewport: Viewport::default(),
             hover_debounce: Duration::from_millis(20),
-            get_writer: Box::new(stdout),
         }
     }
 }
 
-impl Default for TerminalSettings<Stderr> {
-    fn default() -> Self {
-        Self {
-            alternate_screen: true,
-            mouse_capture: true,
-            keyboard_enhancement: true,
-            focus_change: true,
-            bracketed_paste: true,
-            viewport: Viewport::default(),
-            hover_debounce: Duration::from_millis(20),
-            get_writer: Box::new(stderr),
-        }
-    }
-}
-
-impl<W> TerminalSettings<W> {
+impl TerminalSettings {
     pub fn alternate_screen(mut self, alternate_screen: bool) -> Self {
         self.alternate_screen = alternate_screen;
         self
@@ -101,20 +87,15 @@ impl<W> TerminalSettings<W> {
         self.hover_debounce = hover_debounce;
         self
     }
-
-    pub fn writer(mut self, get_writer: impl Fn() -> W + Send + Sync + 'static) -> Self {
-        self.get_writer = Box::new(get_writer);
-        self
-    }
 }
 
-pub struct CrosstermBackend<W: Write> {
-    settings: TerminalSettings<W>,
+pub struct WasmBackend {
+    settings: TerminalSettings,
     supports_keyboard_enhancement: bool,
 }
 
-impl<W: Write> CrosstermBackend<W> {
-    pub fn new(settings: TerminalSettings<W>) -> Self {
+impl WasmBackend {
+    pub fn new(settings: TerminalSettings) -> Self {
         Self {
             supports_keyboard_enhancement: if settings.keyboard_enhancement {
                 supports_keyboard_enhancement().unwrap_or(false)
@@ -126,48 +107,65 @@ impl<W: Write> CrosstermBackend<W> {
     }
 }
 
-impl Default for CrosstermBackend<Stdout> {
+impl Default for WasmBackend {
     fn default() -> Self {
         Self::new(TerminalSettings::default())
     }
 }
 
-impl Default for CrosstermBackend<Stderr> {
-    fn default() -> Self {
-        Self::new(TerminalSettings::default())
-    }
-}
-
-impl<W: Write> Backend for CrosstermBackend<W> {
-    type TuiBackend = ratatui::backend::CrosstermBackend<W>;
+impl Backend for WasmBackend {
+    type TuiBackend = ratatui_wasm::CrosstermBackend;
 
     fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
-        let mut writer = (self.settings.get_writer)();
-        enable_raw_mode()?;
-        queue!(writer, Hide)?;
+        let elem = web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .get_element_by_id("terminal")
+            .unwrap();
+
+        init_terminal(
+            ratatui_wasm::xterm::TerminalOptions::new()
+                .with_rows(50)
+                .with_cursor_blink(true)
+                .with_cursor_width(10)
+                .with_font_size(20)
+                .with_draw_bold_text_in_bright_colors(true)
+                .with_right_click_selects_word(true)
+                .with_theme(
+                    Theme::new()
+                        .with_foreground("#98FB98")
+                        .with_background("#000000"),
+                ),
+            elem.dyn_into().unwrap(),
+        );
+
+        let mut handle = TerminalHandle::default();
+
+        queue!(handle, Hide)?;
         if self.settings.alternate_screen {
-            queue!(writer, EnterAlternateScreen)?;
+            queue!(handle, EnterAlternateScreen)?;
         }
         if self.settings.mouse_capture {
-            queue!(writer, EnableMouseCapture)?;
+            queue!(handle, EnableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(writer, EnableFocusChange)?;
+            queue!(handle, EnableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(writer, EnableBracketedPaste)?;
+            queue!(handle, EnableBracketedPaste)?;
         }
 
         if self.supports_keyboard_enhancement {
             queue!(
-                writer,
+                handle,
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
         }
-        writer.flush()?;
+        handle.flush()?;
 
         let mut terminal = Terminal::with_options(
-            ratatui::backend::CrosstermBackend::new(writer),
+            ratatui_wasm::CrosstermBackend::new(handle),
             ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
             },
@@ -178,38 +176,37 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     }
 
     fn restore_terminal(&self) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
-        queue!(writer, DisableBlinking)?;
+        let mut handle = TerminalHandle::default();
+        queue!(handle, DisableBlinking)?;
         if self.supports_keyboard_enhancement {
-            queue!(writer, PopKeyboardEnhancementFlags)?;
+            queue!(handle, PopKeyboardEnhancementFlags)?;
         }
         if self.settings.mouse_capture {
-            queue!(writer, DisableMouseCapture)?;
+            queue!(handle, DisableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(writer, DisableFocusChange)?;
+            queue!(handle, DisableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(writer, DisableBracketedPaste)?;
+            queue!(handle, DisableBracketedPaste)?;
         }
         if self.settings.alternate_screen {
-            queue!(writer, LeaveAlternateScreen)?;
+            queue!(handle, LeaveAlternateScreen)?;
         }
-        queue!(writer, Show)?;
-        writer.flush()?;
-        disable_raw_mode()?;
+        queue!(handle, Show)?;
+        handle.flush()?;
 
         Ok(())
     }
 
     fn enter_alt_screen(&self) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
-        execute!(writer, EnterAlternateScreen)
+        let mut handle = TerminalHandle::default();
+        execute!(handle, EnterAlternateScreen)
     }
 
     fn leave_alt_screen(&self) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
-        execute!(writer, LeaveAlternateScreen)
+        let mut handle = TerminalHandle::default();
+        execute!(handle, LeaveAlternateScreen)
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
@@ -217,7 +214,8 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     }
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()> {
-        (self.settings.get_writer)().write_all(buf)
+        let mut handle = TerminalHandle::default();
+        handle.write_all(buf)
     }
 
     async fn read_input(
@@ -228,11 +226,11 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         let hover_debounce = self.settings.hover_debounce.as_millis();
         let mut event_reader = EventStream::new().fuse();
 
-        let mut last_move_time = Instant::now();
+        let mut last_move_time = wasm_compat::now();
         let mut pending_move = None;
         loop {
-            let send_next_move = tokio::time::sleep(Duration::from_millis(
-                hover_debounce.saturating_sub((Instant::now() - last_move_time).as_millis()) as u64,
+            let send_next_move = wasm_compat::sleep(Duration::from_millis(
+                hover_debounce.saturating_sub((wasm_compat::now() - last_move_time) as u128) as u64,
             ));
 
             tokio::select! {
@@ -254,10 +252,13 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                                     .send(SignalMode::Suspend)
                                     .await
                                     .tap_err(|_| warn!("error sending suspend signal"));
-                            } else if let Ok(event) = event.try_into() {
-                                let _ = term_tx
-                                .send(event)
-                                .tap_err(|_| warn!("error sending terminal event"));
+                            } else {
+                                if let Ok(event) = event.try_into() {
+                                    let _ = term_tx
+                                    .send(event)
+                                    .tap_err(|_| warn!("error sending terminal event"));
+                                }
+
                             }
                         }
                         Some(Ok(
@@ -267,13 +268,12 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                             }),
                         )) => {
                             pending_move = Some(mouse_event);
-                            last_move_time = Instant::now();
+                            last_move_time = wasm_compat::now();
                         }
                         Some(Ok(event)) => {
                             if let Ok(event) = event.try_into() {
                                 term_tx.send(event).ok();
                             }
-
                         }
                         _ => {
                             return;
@@ -284,7 +284,6 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                     if let Ok(pending_move) = pending_move.take().unwrap().try_into() {
                         term_tx.send(pending_move).ok();
                     }
-
                 }
             }
         }

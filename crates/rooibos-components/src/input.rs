@@ -200,8 +200,11 @@ impl Input {
 
             text_area.update(|t| {
                 #[cfg(feature = "crossterm")]
-                let event: crossterm::event::KeyEvent = key_event.into();
-                t.input(event);
+                if let Ok(event) =
+                    <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(key_event)
+                {
+                    t.input(event);
+                }
             });
         };
 

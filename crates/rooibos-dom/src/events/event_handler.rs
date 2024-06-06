@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use ratatui::layout::Rect;
+use terminput::{KeyEvent, MouseEvent};
 
-use crate::{EventData, KeyEvent, MouseEvent};
+use crate::EventData;
 
 pub(crate) type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent, EventData)>>;
 pub(crate) type MouseEventFn = Rc<RefCell<dyn FnMut(MouseEvent, EventData)>>;

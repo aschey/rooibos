@@ -1,8 +1,10 @@
-#[cfg(feature = "crossterm")]
+#[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
 pub mod crossterm;
-#[cfg(feature = "termion")]
+#[cfg(all(feature = "termion", not(target_arch = "wasm32")))]
 pub mod termion;
 pub mod test;
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
 
 use std::io;
 
@@ -25,11 +27,19 @@ pub trait Backend: Send + Sync {
 
     fn leave_alt_screen(&self) -> io::Result<()>;
 
+    #[cfg(not(target_arch = "wasm32"))]
     fn read_input(
         &self,
         signal_tx: mpsc::Sender<SignalMode>,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
     ) -> impl Future<Output = ()> + Send;
+
+    #[cfg(target_arch = "wasm32")]
+    fn read_input(
+        &self,
+        signal_tx: mpsc::Sender<SignalMode>,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
+    ) -> impl Future<Output = ()>;
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()>;
 }

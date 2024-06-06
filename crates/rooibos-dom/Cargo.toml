@@ -23,12 +23,13 @@ bitflags = "2"
 derivative = "2"
 futures = "0.3.30"
 rustc-hash = "1"
+terminput = { path = "../../../terminput" }
 
 [target.'cfg(unix)'.dependencies]
 termion = { version = "4", optional = true }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
-crossterm = ["dep:crossterm"]
-termion = ["dep:termion"]
+crossterm = ["dep:crossterm", "terminput/crossterm"]
+termion = ["dep:termion", "terminput/termion"]
 default = ["crossterm"]

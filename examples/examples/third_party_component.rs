@@ -33,8 +33,11 @@ fn app() -> impl Render {
 
     let key_down = move |key_event: KeyEvent, _| {
         text_area_widget.update(|t| {
-            let signal: crossterm::event::KeyEvent = key_event.into();
-            t.input(signal);
+            if let Ok(event) =
+                <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(key_event)
+            {
+                t.input(event);
+            }
         });
     };
 

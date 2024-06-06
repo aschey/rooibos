@@ -121,9 +121,11 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                         _ => {}
                     }
                 }
-                let _ = term_tx
-                    .send(event.into())
-                    .tap_err(|e| warn!("error sending terminal event {e:?}"));
+                if let Ok(event) = event.try_into() {
+                    let _ = term_tx
+                        .send(event)
+                        .tap_err(|e| warn!("error sending terminal event {e:?}"));
+                }
             }
         })
         .await

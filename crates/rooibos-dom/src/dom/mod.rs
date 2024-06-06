@@ -10,10 +10,11 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use slotmap::SlotMap;
 use tachys::renderer::{CastFrom, Renderer};
+use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{derive_signal, widget_ref, Event, EventData, KeyCode, KeyEventKind, KeyModifiers};
+use crate::{derive_signal, widget_ref, EventData};
 
 mod any_view;
 mod children;
@@ -503,9 +504,8 @@ pub fn send_event(event: Event) {
                 }
                 Event::FocusGained => {}
                 Event::FocusLost => {}
-                Event::Unknown => {}
                 Event::Mouse(mouse_event) => match mouse_event.kind {
-                    crate::MouseEventKind::Down(_) => {
+                    MouseEventKind::Down(_) => {
                         let current = nodes.keys().find_map(|k| {
                             let rect = nodes[k].rect.borrow();
                             if rect.contains(Position {
@@ -526,9 +526,9 @@ pub fn send_event(event: Event) {
                             on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
                         }
                     }
-                    crate::MouseEventKind::Up(_) => {}
-                    crate::MouseEventKind::Drag(_) => {}
-                    crate::MouseEventKind::Moved => {
+                    MouseEventKind::Up(_) => {}
+                    MouseEventKind::Drag(_) => {}
+                    MouseEventKind::Moved => {
                         let current = nodes.keys().find(|k| {
                             nodes[*k].rect.borrow().contains(Position {
                                 x: mouse_event.column,
@@ -546,10 +546,10 @@ pub fn send_event(event: Event) {
                             state.remove_hovered(&mut nodes);
                         }
                     }
-                    crate::MouseEventKind::ScrollDown => {}
-                    crate::MouseEventKind::ScrollUp => {}
-                    crate::MouseEventKind::ScrollLeft => {}
-                    crate::MouseEventKind::ScrollRight => {}
+                    MouseEventKind::ScrollDown => {}
+                    MouseEventKind::ScrollUp => {}
+                    MouseEventKind::ScrollLeft => {}
+                    MouseEventKind::ScrollRight => {}
                 },
                 Event::Paste(_) => {}
                 Event::Resize(_, _) => {

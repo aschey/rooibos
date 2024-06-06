@@ -1,3 +1,6 @@
 [workspace]
-members = ["./crates/*", "examples"]
+members = ["./crates/*", "examples", "examples/wasm"]
 resolver = "2"
+
+[patch.crates-io]
+crossterm = { git = "https://github.com/aschey/crossterm", rev = "a603289170aa998299b1098fedc8c0de08fbecb5" }
