@@ -32,7 +32,6 @@ pub struct TerminalSettings {
     focus_change: bool,
     bracketed_paste: bool,
     viewport: Viewport,
-    hover_debounce: Duration,
 }
 
 impl Default for TerminalSettings {
@@ -44,7 +43,6 @@ impl Default for TerminalSettings {
             focus_change: true,
             bracketed_paste: true,
             viewport: Viewport::default(),
-            hover_debounce: Duration::from_millis(20),
         }
     }
 }
@@ -80,11 +78,6 @@ impl TerminalSettings {
 
     pub fn keyboard_enhancement(mut self, keyboard_enhancement: bool) -> Self {
         self.keyboard_enhancement = keyboard_enhancement;
-        self
-    }
-
-    pub fn hover_debounce(mut self, hover_debounce: Duration) -> Self {
-        self.hover_debounce = hover_debounce;
         self
     }
 }
@@ -199,14 +192,12 @@ impl Backend for WasmBackend {
         Ok(())
     }
 
-    fn enter_alt_screen(&self) -> io::Result<()> {
-        let mut handle = TerminalHandle::default();
-        execute!(handle, EnterAlternateScreen)
+    fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        execute!(terminal.backend_mut(), EnterAlternateScreen)
     }
 
-    fn leave_alt_screen(&self) -> io::Result<()> {
-        let mut handle = TerminalHandle::default();
-        execute!(handle, LeaveAlternateScreen)
+    fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        execute!(terminal.backend_mut(), LeaveAlternateScreen)
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
@@ -218,73 +209,13 @@ impl Backend for WasmBackend {
         handle.write_all(buf)
     }
 
-    async fn read_input(
-        &self,
-        signal_tx: mpsc::Sender<SignalMode>,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-    ) {
-        let hover_debounce = self.settings.hover_debounce.as_millis();
+    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
         let mut event_reader = EventStream::new().fuse();
-
-        let mut last_move_time = wasm_compat::now();
-        let mut pending_move = None;
-        loop {
-            let send_next_move = wasm_compat::sleep(Duration::from_millis(
-                hover_debounce.saturating_sub((wasm_compat::now() - last_move_time) as u128) as u64,
-            ));
-
-            tokio::select! {
-                next_event = event_reader.next() => {
-                    match next_event {
-                        Some(Ok(
-                            event @ Event::Key(KeyEvent {
-                                code, modifiers, ..
-                            }),
-                        )) => {
-                            if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
-                                let _ = signal_tx
-                                    .send(SignalMode::Terminate)
-                                    .await
-                                    .tap_err(|_| warn!("error sending terminate signal"));
-                            } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
-                            {
-                                let _ = signal_tx
-                                    .send(SignalMode::Suspend)
-                                    .await
-                                    .tap_err(|_| warn!("error sending suspend signal"));
-                            } else {
-                                if let Ok(event) = event.try_into() {
-                                    let _ = term_tx
-                                    .send(event)
-                                    .tap_err(|_| warn!("error sending terminal event"));
-                                }
-
-                            }
-                        }
-                        Some(Ok(
-                            mouse_event @ Event::Mouse(MouseEvent {
-                                kind: MouseEventKind::Moved,
-                                ..
-                            }),
-                        )) => {
-                            pending_move = Some(mouse_event);
-                            last_move_time = wasm_compat::now();
-                        }
-                        Some(Ok(event)) => {
-                            if let Ok(event) = event.try_into() {
-                                term_tx.send(event).ok();
-                            }
-                        }
-                        _ => {
-                            return;
-                        }
-                    }
-                }
-                _ = send_next_move, if pending_move.is_some() => {
-                    if let Ok(pending_move) = pending_move.take().unwrap().try_into() {
-                        term_tx.send(pending_move).ok();
-                    }
-                }
+        while let Some(Ok(event)) = event_reader.next().await {
+            if let Ok(event) = event.try_into() {
+                let _ = term_tx
+                    .send(event)
+                    .tap_err(|e| warn!("failed to send event {e:?}"));
             }
         }
     }

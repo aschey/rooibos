@@ -17,12 +17,12 @@ use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
 use rooibos_dom::{
     dom_update_receiver, focus_next, mount, render_dom, send_event, DomUpdateReceiver, Event,
-    Render,
+    KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tokio::task;
-use tracing::error;
+use tracing::{error, warn};
 use wasm_compat::{BoolCell, Mutex, Once};
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
@@ -39,6 +39,7 @@ pub enum TerminalCommand {
     InsertBefore { height: u16, text: Text<'static> },
     EnterAltScreen,
     LeaveAltScreen,
+    Poll,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -82,6 +83,7 @@ where
 pub struct RuntimeSettings {
     enable_input_reader: bool,
     show_final_output: bool,
+    hover_debounce: Duration,
 }
 
 impl Default for RuntimeSettings {
@@ -89,6 +91,7 @@ impl Default for RuntimeSettings {
         Self {
             enable_input_reader: true,
             show_final_output: true,
+            hover_debounce: Duration::from_millis(20),
         }
     }
 }
@@ -103,6 +106,11 @@ impl RuntimeSettings {
         self.show_final_output = show_final_output;
         self
     }
+
+    pub fn hover_debounce(mut self, hover_debounce: Duration) -> Self {
+        self.hover_debounce = hover_debounce;
+        self
+    }
 }
 
 #[derive(Debug)]
@@ -112,8 +120,9 @@ pub struct Runtime<B: Backend> {
     signal_rx: mpsc::Receiver<SignalMode>,
     term_command_rx: mpsc::Receiver<TerminalCommand>,
     term_event_tx: broadcast::Sender<Event>,
+    term_event_rx: broadcast::Receiver<Event>,
+    term_parser_tx: broadcast::Sender<Event>,
     dom_update_rx: DomUpdateReceiver,
-    term_event_rx: broadcast::Receiver<rooibos_dom::Event>,
     backend: Arc<B>,
 }
 
@@ -132,16 +141,27 @@ impl<B: Backend + 'static> Runtime<B> {
         let backend = Arc::new(backend);
         let (signal_tx, signal_rx) = mpsc::channel(32);
         let (term_event_tx, term_event_rx) = broadcast::channel(32);
+        let (term_parser_tx, _) = broadcast::channel(32);
+
         let (term_command_tx, term_command_rx) = mpsc::channel(32);
         TERM_TX.with(|t| {
-            t.set(term_event_tx.clone())
+            t.set(term_parser_tx.clone())
                 .expect("runtime initialized more than once")
         });
 
         TERM_COMMAND_TX.with(|t| {
-            t.set(term_command_tx)
+            t.set(term_command_tx.clone())
                 .expect("runtime initialized more than once")
         });
+
+        if !backend.supports_async_input() {
+            wasm_compat::spawn(async move {
+                loop {
+                    wasm_compat::sleep(Duration::from_millis(20)).await;
+                    let _ = term_command_tx.send(TerminalCommand::Poll).await;
+                }
+            })
+        }
 
         let dom_update_rx = dom_update_receiver();
 
@@ -187,11 +207,12 @@ impl<B: Backend + 'static> Runtime<B> {
         Self {
             term_command_rx,
             term_event_tx,
+            term_event_rx,
+            term_parser_tx,
             signal_tx,
             settings,
             dom_update_rx,
             signal_rx,
-            term_event_rx,
             backend,
         }
     }
@@ -202,12 +223,15 @@ impl<B: Backend + 'static> Runtime<B> {
 
         if self.settings.enable_input_reader {
             let backend = backend.clone();
-            let signal_tx = self.signal_tx.clone();
-            let term_event_tx = self.term_event_tx.clone();
 
-            wasm_compat::spawn(async move {
-                backend.read_input(signal_tx, term_event_tx).await;
-            });
+            let term_parser_tx = self.term_parser_tx.clone();
+            if backend.supports_async_input() {
+                wasm_compat::spawn(async move {
+                    backend.read_input(term_parser_tx).await;
+                });
+            }
+
+            self.handle_term_events();
         }
         let show_final_output = self.settings.show_final_output;
         RESTORE_TERMINAL.with(|r| {
@@ -221,6 +245,74 @@ impl<B: Backend + 'static> Runtime<B> {
         });
 
         Ok(terminal)
+    }
+
+    fn handle_term_events(&self) {
+        let signal_tx = self.signal_tx.clone();
+        let term_event_tx = self.term_event_tx.clone();
+
+        let mut term_parser_rx = self.term_parser_tx.subscribe();
+        let hover_debounce = self.settings.hover_debounce.as_millis();
+
+        wasm_compat::spawn(async move {
+            let mut last_move_time = wasm_compat::now();
+            let mut pending_move = None;
+            loop {
+                let send_next_move = wasm_compat::sleep(Duration::from_millis(
+                    hover_debounce.saturating_sub((wasm_compat::now() - last_move_time) as u128)
+                        as u64,
+                ));
+
+                tokio::select! {
+                    next_event = term_parser_rx.recv() => {
+                        match next_event {
+                            Ok(
+                                event @ Event::Key(KeyEvent {
+                                    code, modifiers, ..
+                                }),
+                            ) => {
+                                if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
+                                    let _ = signal_tx
+                                        .send(SignalMode::Terminate)
+                                        .await
+                                        .tap_err(|_| warn!("error sending terminate signal"));
+                                } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
+                                {
+                                    let _ = signal_tx
+                                        .send(SignalMode::Suspend)
+                                        .await
+                                        .tap_err(|_| warn!("error sending suspend signal"));
+                                } else {
+                                    let _ = term_event_tx
+                                    .send(event)
+                                    .tap_err(|_| warn!("error sending terminal event"));
+                                }
+                            }
+                            Ok(
+                                mouse_event @ Event::Mouse(MouseEvent {
+                                    kind: MouseEventKind::Moved,
+                                    ..
+                                }),
+                            ) => {
+                                pending_move = Some(mouse_event);
+                                last_move_time = wasm_compat::now();
+                            }
+                            Ok(event) => {
+                                term_event_tx.send(event).ok();
+
+                            }
+                            _ => {
+                                return;
+                            }
+                        }
+                    }
+                    _ = send_next_move, if pending_move.is_some() => {
+                        term_event_tx.send(pending_move.take().unwrap()).ok();
+
+                    }
+                }
+            }
+        });
     }
 
     pub async fn run(mut self) -> io::Result<()> {
@@ -263,12 +355,15 @@ impl<B: Backend + 'static> Runtime<B> {
                 })?;
             }
             TerminalCommand::EnterAltScreen => {
-                self.backend.enter_alt_screen()?;
+                self.backend.enter_alt_screen(terminal)?;
                 terminal.clear()?;
             }
             TerminalCommand::LeaveAltScreen => {
-                self.backend.leave_alt_screen()?;
+                self.backend.leave_alt_screen(terminal)?;
                 terminal.clear()?;
+            }
+            TerminalCommand::Poll => {
+                self.backend.poll_input(terminal, &self.term_parser_tx)?;
             }
         };
         terminal.draw(|f| render_dom(f.buffer_mut()))?;

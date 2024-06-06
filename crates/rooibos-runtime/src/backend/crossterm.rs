@@ -1,12 +1,10 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
-use std::time::{Duration, Instant};
 
-use crossterm::cursor::{DisableBlinking, Hide, Show};
+use crossterm::cursor::{Hide, Show};
 use crossterm::event::{
     DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
-    EnableFocusChange, EnableMouseCapture, Event, EventStream, KeyCode, KeyEvent, KeyModifiers,
-    KeyboardEnhancementFlags, MouseEvent, MouseEventKind, PopKeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags,
+    EnableFocusChange, EnableMouseCapture, EventStream, KeyboardEnhancementFlags,
+    PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
@@ -16,11 +14,10 @@ use crossterm::{execute, queue};
 use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use tracing::warn;
 
 use super::Backend;
-use crate::SignalMode;
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -29,7 +26,6 @@ pub struct TerminalSettings<W> {
     focus_change: bool,
     bracketed_paste: bool,
     viewport: Viewport,
-    hover_debounce: Duration,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
@@ -42,7 +38,6 @@ impl Default for TerminalSettings<Stdout> {
             focus_change: true,
             bracketed_paste: true,
             viewport: Viewport::default(),
-            hover_debounce: Duration::from_millis(20),
             get_writer: Box::new(stdout),
         }
     }
@@ -57,7 +52,6 @@ impl Default for TerminalSettings<Stderr> {
             focus_change: true,
             bracketed_paste: true,
             viewport: Viewport::default(),
-            hover_debounce: Duration::from_millis(20),
             get_writer: Box::new(stderr),
         }
     }
@@ -94,11 +88,6 @@ impl<W> TerminalSettings<W> {
 
     pub fn keyboard_enhancement(mut self, keyboard_enhancement: bool) -> Self {
         self.keyboard_enhancement = keyboard_enhancement;
-        self
-    }
-
-    pub fn hover_debounce(mut self, hover_debounce: Duration) -> Self {
-        self.hover_debounce = hover_debounce;
         self
     }
 
@@ -179,7 +168,6 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn restore_terminal(&self) -> io::Result<()> {
         let mut writer = (self.settings.get_writer)();
-        queue!(writer, DisableBlinking)?;
         if self.supports_keyboard_enhancement {
             queue!(writer, PopKeyboardEnhancementFlags)?;
         }
@@ -202,14 +190,12 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         Ok(())
     }
 
-    fn enter_alt_screen(&self) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
-        execute!(writer, EnterAlternateScreen)
+    fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        execute!(terminal.backend_mut(), EnterAlternateScreen)
     }
 
-    fn leave_alt_screen(&self) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
-        execute!(writer, LeaveAlternateScreen)
+    fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        execute!(terminal.backend_mut(), LeaveAlternateScreen)
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
@@ -220,72 +206,14 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    async fn read_input(
-        &self,
-        signal_tx: mpsc::Sender<SignalMode>,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-    ) {
-        let hover_debounce = self.settings.hover_debounce.as_millis();
+    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
         let mut event_reader = EventStream::new().fuse();
 
-        let mut last_move_time = Instant::now();
-        let mut pending_move = None;
-        loop {
-            let send_next_move = tokio::time::sleep(Duration::from_millis(
-                hover_debounce.saturating_sub((Instant::now() - last_move_time).as_millis()) as u64,
-            ));
-
-            tokio::select! {
-                next_event = event_reader.next() => {
-                    match next_event {
-                        Some(Ok(
-                            event @ Event::Key(KeyEvent {
-                                code, modifiers, ..
-                            }),
-                        )) => {
-                            if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
-                                let _ = signal_tx
-                                    .send(SignalMode::Terminate)
-                                    .await
-                                    .tap_err(|_| warn!("error sending terminate signal"));
-                            } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
-                            {
-                                let _ = signal_tx
-                                    .send(SignalMode::Suspend)
-                                    .await
-                                    .tap_err(|_| warn!("error sending suspend signal"));
-                            } else if let Ok(event) = event.try_into() {
-                                let _ = term_tx
-                                .send(event)
-                                .tap_err(|_| warn!("error sending terminal event"));
-                            }
-                        }
-                        Some(Ok(
-                            mouse_event @ Event::Mouse(MouseEvent {
-                                kind: MouseEventKind::Moved,
-                                ..
-                            }),
-                        )) => {
-                            pending_move = Some(mouse_event);
-                            last_move_time = Instant::now();
-                        }
-                        Some(Ok(event)) => {
-                            if let Ok(event) = event.try_into() {
-                                term_tx.send(event).ok();
-                            }
-
-                        }
-                        _ => {
-                            return;
-                        }
-                    }
-                }
-                _ = send_next_move, if pending_move.is_some() => {
-                    if let Ok(pending_move) = pending_move.take().unwrap().try_into() {
-                        term_tx.send(pending_move).ok();
-                    }
-
-                }
+        while let Some(Ok(event)) = event_reader.next().await {
+            if let Ok(event) = event.try_into() {
+                let _ = term_tx
+                    .send(event)
+                    .tap_err(|e| warn!("failed to send event {e:?}"));
             }
         }
     }

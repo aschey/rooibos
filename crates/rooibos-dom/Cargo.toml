@@ -6,14 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = { version = "0.27", optional = true }
 reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "tracing",
     "effects",
 ] }
 tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
 any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
-
 throw_error = { path = "../../../leptos/any_error" }
 next_tuple = { path = "../../../leptos/next_tuple" }
 ratatui = { version = "0.26", features = ["unstable"] }
@@ -25,11 +23,10 @@ futures = "0.3.30"
 rustc-hash = "1"
 terminput = { path = "../../../terminput" }
 
-[target.'cfg(unix)'.dependencies]
-termion = { version = "4", optional = true }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
-crossterm = ["dep:crossterm", "terminput/crossterm"]
-termion = ["dep:termion", "terminput/termion"]
+crossterm = ["terminput/crossterm"]
+termion = ["terminput/termion"]
+termwiz = ["terminput/termwiz"]
 default = ["crossterm"]

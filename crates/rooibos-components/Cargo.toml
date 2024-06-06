@@ -27,4 +27,5 @@ tracing = "0.1"
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
 crossterm = ["dep:crossterm", "tui-textarea/crossterm"]
 termion = ["tui-textarea/termion"]
+termwiz = ["tui-textarea/termwiz"]
 input-search = ["tui-textarea/search"]

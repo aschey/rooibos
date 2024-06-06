@@ -3,7 +3,6 @@ use std::io::{self};
 use ratatui::Terminal;
 
 use super::Backend;
-use crate::SignalMode;
 
 pub struct TestBackend {
     width: u16,
@@ -29,18 +28,13 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    fn enter_alt_screen(&self) -> io::Result<()> {
+    fn enter_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         Ok(())
     }
 
-    fn leave_alt_screen(&self) -> io::Result<()> {
+    fn leave_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         Ok(())
     }
 
-    async fn read_input(
-        &self,
-        _: tokio::sync::mpsc::Sender<SignalMode>,
-        _: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
-    ) {
-    }
+    async fn read_input(&self, _: tokio::sync::broadcast::Sender<rooibos_dom::Event>) {}
 }

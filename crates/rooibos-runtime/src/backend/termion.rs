@@ -3,16 +3,14 @@ use std::os::fd::AsFd;
 
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
-use termion::event;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use tokio::task::spawn_blocking;
 use tracing::warn;
 
 use super::Backend;
-use crate::SignalMode;
 
 pub struct TermionBackend<W: Write + AsFd> {
     settings: TerminalSettings<W>,
@@ -80,51 +78,28 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    fn enter_alt_screen(&self) -> io::Result<()> {
+    fn enter_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "termion backend does not support alt screen toggle",
         ))
     }
 
-    fn leave_alt_screen(&self) -> io::Result<()> {
+    fn leave_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "termion backend does not support alt screen toggle",
         ))
     }
 
-    async fn read_input(
-        &self,
-        signal_tx: mpsc::Sender<SignalMode>,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-    ) {
+    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
         spawn_blocking(move || {
             let stdin = io::stdin();
             for event in stdin.events().flatten() {
-                if let event::Event::Key(key) = event {
-                    match key {
-                        event::Key::Ctrl('c') => {
-                            let _ = signal_tx
-                                .try_send(SignalMode::Terminate)
-                                .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                            break;
-                        }
-                        event::Key::Ctrl('z') => {
-                            if cfg!(unix) {
-                                let _ = signal_tx
-                                    .try_send(SignalMode::Suspend)
-                                    .tap_err(|e| warn!("error sending quit signal {e:?}"));
-                                continue;
-                            }
-                        }
-                        _ => {}
-                    }
-                }
                 if let Ok(event) = event.try_into() {
                     let _ = term_tx
                         .send(event)
-                        .tap_err(|e| warn!("error sending terminal event {e:?}"));
+                        .tap_err(|e| warn!("failed to send event {e:?}"));
                 }
             }
         })

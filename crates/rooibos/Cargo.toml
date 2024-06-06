@@ -30,5 +30,10 @@ termion = [
     "rooibos-runtime/termion",
     "rooibos-components/termion",
 ]
+termwiz = [
+    "rooibos-dom/termwiz",
+    "rooibos-runtime/termwiz",
+    "rooibos-components/termwiz",
+]
 default = ["crossterm"]
 input-search = ["rooibos-components/input-search"]
