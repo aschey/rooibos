@@ -12,6 +12,7 @@ pub use ratatui::widgets as __widgets;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
 pub use suspense::*;
+pub use tachys::reactive_graph as __tachys_reactive;
 pub use terminput::*;
 pub use throw_error::*;
 pub use widgets::*;

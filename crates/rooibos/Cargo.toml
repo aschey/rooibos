@@ -12,6 +12,7 @@ reactive_graph = { path = "../../../leptos/reactive_graph", features = [
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
 rooibos-components = { path = "../rooibos-components" }
+rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 ratatui = { version = "0.26", features = ["unstable"] }
 
 [features]
@@ -36,4 +37,5 @@ termwiz = [
     "rooibos-components/termwiz",
 ]
 default = ["crossterm"]
+ssh = ["rooibos-ssh"]
 input-search = ["rooibos-components/input-search"]

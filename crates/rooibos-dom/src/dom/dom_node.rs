@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 use std::any::Any;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::fmt::{self, Display};
 use std::rc::Rc;
 
@@ -196,7 +196,7 @@ struct RenderProps<'a> {
     rect: Rect,
     window: Rect,
     key: DomNodeKey,
-    dom_nodes: &'a Ref<'a, SlotMap<DomNodeKey, DomNodeInner>>,
+    dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
     dom_state: &'a mut DomState,
     parent_layout: Layout,
 }
@@ -237,7 +237,7 @@ impl DomNodeInner {
                 };
 
                 let constraints = self
-                    .renderable_children(dom_nodes)
+                    .layout_children(dom_nodes)
                     .map(|key| *dom_nodes[*key].constraint.borrow());
                 let layout = Layout::default()
                     .direction(direction)
@@ -247,7 +247,7 @@ impl DomNodeInner {
                     .constraints(constraints);
 
                 let chunks = layout.split(rect);
-                self.renderable_children(dom_nodes)
+                self.layout_children(dom_nodes)
                     .zip(chunks.iter())
                     .for_each(|(key, chunk)| {
                         dom_nodes[*key].render(RenderProps {
@@ -260,6 +260,17 @@ impl DomNodeInner {
                             parent_layout: Layout::default(),
                         });
                     });
+                self.absolute_children(dom_nodes).for_each(|key| {
+                    dom_nodes[*key].render(RenderProps {
+                        buf,
+                        rect: window,
+                        window,
+                        key: *key,
+                        dom_nodes,
+                        dom_state,
+                        parent_layout: Layout::default(),
+                    });
+                });
             }
             NodeType::Overlay => {
                 let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
@@ -310,11 +321,27 @@ impl DomNodeInner {
 
     fn renderable_children<'a>(
         &'a self,
-        dom_nodes: &'a Ref<'a, SlotMap<DomNodeKey, DomNodeInner>>,
+        dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
     ) -> impl Iterator<Item = &DomNodeKey> {
         self.children
             .iter()
             .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Placeholder))
+    }
+
+    fn layout_children<'a>(
+        &'a self,
+        dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
+    ) -> impl Iterator<Item = &DomNodeKey> {
+        self.renderable_children(dom_nodes)
+            .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Absolute(_)))
+    }
+
+    fn absolute_children<'a>(
+        &'a self,
+        dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
+    ) -> impl Iterator<Item = &DomNodeKey> {
+        self.renderable_children(dom_nodes)
+            .filter(|c| matches!(dom_nodes[**c].node_type, NodeType::Absolute(_)))
     }
 }
 
@@ -326,8 +353,8 @@ pub struct DomNode {
 
 impl Mountable<RooibosDom> for DomNode {
     fn unmount(&mut self) {
-        with_nodes_mut(|mut nodes| {
-            unmount_child(self.key(), &mut nodes, false);
+        with_nodes_mut(|nodes| {
+            unmount_child(self.key(), nodes, false);
         });
         self.unmounted = true;
     }
@@ -356,8 +383,8 @@ impl Drop for DomNode {
         // The thread-local may already have been destroyed
         // We need to check using try_with to prevent a panic here
         if self.unmounted && DOM_NODES.try_with(|_| {}).is_ok() {
-            with_nodes_mut(|mut nodes| {
-                unmount_child(self.key, &mut nodes, true);
+            with_nodes_mut(|nodes| {
+                unmount_child(self.key, nodes, true);
             })
         }
     }
@@ -382,7 +409,7 @@ impl DomNode {
             rect: Default::default(),
             child_state: None,
         };
-        let key = with_nodes_mut(|mut n| n.insert(inner));
+        let key = with_nodes_mut(|n| n.insert(inner));
         Self {
             key,
             unmounted: false,
@@ -404,7 +431,7 @@ impl DomNode {
             rect: Rc::new(RefCell::new(Rect::default())),
             child_state: None,
         };
-        let key = with_nodes_mut(|mut n| n.insert(inner));
+        let key = with_nodes_mut(|n| n.insert(inner));
         Self {
             key,
             unmounted: false,
@@ -426,11 +453,11 @@ impl DomNode {
             rect: Rc::new(RefCell::new(Rect::default())),
             child_state: None,
         };
-        with_nodes_mut(|mut n| n[self.key] = inner);
+        with_nodes_mut(|n| n[self.key] = inner);
     }
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
-        with_nodes_mut(|mut nodes| {
+        with_nodes_mut(|nodes| {
             let current = &nodes[self.key];
             let name = current.name.clone();
             let node_type = current.node_type.clone();
@@ -451,47 +478,41 @@ impl DomNode {
             new.event_handlers = event_handlers;
             new.data = data;
             new.rect = rect;
-            unmount_child(self.key, &mut nodes, true);
+            unmount_child(self.key, nodes, true);
         });
 
         self.key = node.key;
     }
 
     pub(crate) fn add_data(&self, data: impl Any) {
-        with_nodes_mut(|mut n| n[self.key].data.push(Rc::new(data)));
+        with_nodes_mut(|n| n[self.key].data.push(Rc::new(data)));
     }
 
     pub(crate) fn take_child_state(&self) -> ChildState {
-        with_nodes_mut(|mut n| n[self.key].child_state.take().unwrap())
+        with_nodes_mut(|n| n[self.key].child_state.take().unwrap())
     }
 
     pub(crate) fn set_child_state(&self, state: ChildState) {
-        with_nodes_mut(|mut n| n[self.key].child_state = Some(state));
+        with_nodes_mut(|n| n[self.key].child_state = Some(state));
     }
 
-    // pub(crate) fn set_name(&self, name: impl Into<String>) {
-    //     DOM_NODES.with(|n| n.borrow_mut()[self.key].name = name.into());
-    // }
-
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
-        with_nodes_mut(|mut n| n[self.key].constraint = constraint);
+        with_nodes_mut(|n| n[self.key].constraint = constraint);
     }
 
     pub(crate) fn set_focusable(&self, focusable: Rc<RefCell<bool>>) {
-        with_nodes_mut(|mut n| n[self.key].focusable = focusable);
+        with_nodes_mut(|n| n[self.key].focusable = focusable);
     }
 
     pub(crate) fn update_event_handlers<F>(&self, update: F)
     where
         F: FnOnce(EventHandlers) -> EventHandlers,
     {
-        with_nodes_mut(|mut n| {
-            n[self.key].event_handlers = update(n[self.key].event_handlers.clone())
-        });
+        with_nodes_mut(|n| n[self.key].event_handlers = update(n[self.key].event_handlers.clone()));
     }
 
     pub(crate) fn set_id(&self, id: impl Into<NodeId>) {
-        with_nodes_mut(|mut n| {
+        with_nodes_mut(|n| {
             n[self.key].id = Some(id.into());
             *n[self.key].focusable.borrow_mut() = true;
         });
@@ -525,7 +546,7 @@ impl DomNode {
     }
 
     pub(crate) fn insert_before(&self, child: &DomNode, reference: Option<&DomNode>) {
-        with_nodes_mut(|mut nodes| {
+        with_nodes_mut(|nodes| {
             if let Some(reference) = reference {
                 if let Some(reference_pos) = nodes[self.key]
                     .children
@@ -553,7 +574,7 @@ impl DomNode {
                     rect,
                     window: rect,
                     key: self.key,
-                    dom_nodes: &nodes,
+                    dom_nodes: nodes,
                     dom_state: state,
                     parent_layout: Layout::default().constraints([constraint]),
                 });

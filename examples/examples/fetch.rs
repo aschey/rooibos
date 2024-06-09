@@ -4,7 +4,7 @@ use std::io::Stdout;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::{col, row, suspense, widget_ref, Constrainable, Errors, Render, Suspend};
+use rooibos::dom::{col, row, suspense, widget_ref, Constrainable, Errors, Render};
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
 use rooibos::reactive::traits::{Get, Set, With};

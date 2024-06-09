@@ -7,8 +7,7 @@ use std::io::Stdout;
 use client::{add_todo, fetch_todos};
 use rooibos::components::{Button, Input, Popup};
 use rooibos::dom::{
-    clear, col, overlay, row, transition, widget_ref, Constrainable, Errors, Render, Suspend,
-    WidgetState,
+    clear, col, overlay, row, transition, widget_ref, Constrainable, Errors, Render, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;

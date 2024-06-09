@@ -8,14 +8,16 @@ use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
 #[manyhow]
 #[proc_macro_attribute]
 pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
-    let args_parsed = syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated
-        .parse2(attrs.clone())
-        .unwrap();
-    if !args_parsed.is_empty() && args_parsed.first().unwrap().is_ident("wasm") {
-        create_main(attrs, tokens, true)
-    } else {
-        create_main(attrs, tokens, false)
+    if let Ok(args_parsed) =
+        syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated
+            .parse2(attrs.clone())
+    {
+        if !args_parsed.is_empty() && args_parsed.first().unwrap().is_ident("wasm") {
+            return create_main(attrs, tokens, true);
+        }
     }
+
+    create_main(attrs, tokens, false)
 }
 
 fn create_main(attrs: TokenStream, tokens: TokenStream, is_wasm: bool) -> manyhow::Result {

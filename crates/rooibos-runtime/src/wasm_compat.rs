@@ -5,16 +5,16 @@ use futures_util::Future;
 
 #[cfg(not(target_arch = "wasm32"))]
 pub fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
-    Executor::spawn(fut)
+    Executor::spawn(fut);
 }
 
 #[cfg(target_arch = "wasm32")]
 pub fn spawn(fut: impl Future<Output = ()> + 'static) {
-    Executor::spawn_local(fut)
+    Executor::spawn_local(fut);
 }
 
 pub fn spawn_local(fut: impl Future<Output = ()> + 'static) {
-    Executor::spawn_local(fut)
+    Executor::spawn_local(fut);
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -122,7 +122,7 @@ pub struct Mutex<T>(std::cell::RefCell<T>);
 pub struct Mutex<T>(std::sync::Mutex<T>);
 
 impl<T> Mutex<T> {
-    pub fn new(val: T) -> Self {
+    pub const fn new(val: T) -> Self {
         #[cfg(target_arch = "wasm32")]
         return Self(std::cell::RefCell::new(val));
         #[cfg(not(target_arch = "wasm32"))]
@@ -152,6 +152,55 @@ impl<T> Mutex<T> {
         #[cfg(not(target_arch = "wasm32"))]
         {
             let mut inner = self.0.lock().unwrap();
+            f(&mut *inner)
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let mut inner = self.0.borrow_mut();
+            f(&mut *inner)
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug)]
+pub struct RwLock<T>(std::cell::RefCell<T>);
+
+#[cfg(not(target_arch = "wasm32"))]
+#[derive(Debug)]
+pub struct RwLock<T>(std::sync::RwLock<T>);
+
+impl<T> RwLock<T> {
+    pub const fn new(val: T) -> Self {
+        #[cfg(target_arch = "wasm32")]
+        return Self(std::cell::RefCell::new(val));
+        #[cfg(not(target_arch = "wasm32"))]
+        return Self(std::sync::RwLock::new(val));
+    }
+
+    pub fn with<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&T) -> R,
+    {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let inner = self.0.read().unwrap();
+            f(&*inner)
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let inner = self.0.borrow();
+            f(&*inner)
+        }
+    }
+
+    pub fn with_mut<F, R>(&self, f: F) -> R
+    where
+        F: FnOnce(&mut T) -> R,
+    {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let mut inner = self.0.write().unwrap();
             f(&mut *inner)
         }
         #[cfg(target_arch = "wasm32")]

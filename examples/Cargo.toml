@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 crossterm = "0.27"
-rooibos = { path = "../crates/rooibos" }
+rooibos = { path = "../crates/rooibos", features = ["ssh"] }
 tokio = { version = "1.37.0", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.40"
 tilia = { git = "https://github.com/aschey/tilia", rev = "694a370d7e08e28884d468567a0671afe90a827d", features = [
@@ -21,6 +21,7 @@ tui-tree-widget = "0.20.0"
 reqwest = { version = "0.12.4", features = ["json"] }
 serde = "1.0.203"
 axum = "0.7.5"
+tokio-stream = { version = "0.1.15", features = ["sync"] }
 
 [features]
 nightly = ["rooibos/nightly"]

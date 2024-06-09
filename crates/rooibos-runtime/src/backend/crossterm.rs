@@ -31,20 +31,21 @@ pub struct TerminalSettings<W> {
 
 impl Default for TerminalSettings<Stdout> {
     fn default() -> Self {
-        Self {
-            alternate_screen: true,
-            mouse_capture: true,
-            keyboard_enhancement: true,
-            focus_change: true,
-            bracketed_paste: true,
-            viewport: Viewport::default(),
-            get_writer: Box::new(stdout),
-        }
+        Self::new(stdout)
     }
 }
 
 impl Default for TerminalSettings<Stderr> {
     fn default() -> Self {
+        Self::new(stderr)
+    }
+}
+
+impl<W> TerminalSettings<W> {
+    pub fn new<F>(get_writer: F) -> Self
+    where
+        F: Fn() -> W + Send + Sync + 'static,
+    {
         Self {
             alternate_screen: true,
             mouse_capture: true,
@@ -52,12 +53,10 @@ impl Default for TerminalSettings<Stderr> {
             focus_change: true,
             bracketed_paste: true,
             viewport: Viewport::default(),
-            get_writer: Box::new(stderr),
+            get_writer: Box::new(get_writer),
         }
     }
-}
 
-impl<W> TerminalSettings<W> {
     pub fn alternate_screen(mut self, alternate_screen: bool) -> Self {
         self.alternate_screen = alternate_screen;
         self

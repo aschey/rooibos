@@ -1,4 +1,4 @@
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use ratatui::buffer::Buffer;
@@ -130,8 +130,7 @@ thread_local! {
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {
-    let (tx, rx) = watch::channel(());
-    DOM_UPDATE_TX.with(|d| *d.borrow_mut() = tx);
+    let rx = DOM_UPDATE_TX.with(|d| d.borrow().subscribe());
     DomUpdateReceiver(rx)
 }
 
@@ -139,66 +138,34 @@ fn with_state<F, R>(f: F) -> R
 where
     F: FnOnce(&DomState) -> R,
 {
-    DOM_STATE.with(|s| {
-        let s = s.borrow();
-        if let Some(s) = s.as_ref() {
-            return f(s);
-        }
-        panic!("state deallocated")
-    })
+    DOM_STATE.with(|s| s.borrow().as_ref().map(f).unwrap())
 }
 
 fn with_state_mut<F, R>(f: F) -> R
 where
     F: FnOnce(&mut DomState) -> R,
 {
-    DOM_STATE.with(|s| {
-        let mut s = s.borrow_mut();
-        if let Some(s) = s.as_mut() {
-            return f(s);
-        }
-        panic!("state deallocated")
-    })
+    DOM_STATE.with(|s| s.borrow_mut().as_mut().map(f).unwrap())
 }
-
 fn with_nodes<F, R>(f: F) -> R
 where
-    F: FnOnce(Ref<SlotMap<DomNodeKey, DomNodeInner>>) -> R,
+    F: FnOnce(&SlotMap<DomNodeKey, DomNodeInner>) -> R,
 {
-    DOM_NODES.with(|n| {
-        let n = n.borrow();
-        f(n)
-    })
+    DOM_NODES.with(|n| f(&n.borrow()))
 }
 
 fn with_nodes_mut<F, R>(f: F) -> R
 where
-    F: FnOnce(RefMut<SlotMap<DomNodeKey, DomNodeInner>>) -> R,
+    F: FnOnce(&mut SlotMap<DomNodeKey, DomNodeInner>) -> R,
 {
-    DOM_NODES.with(|n| {
-        let n = n.borrow_mut();
-        f(n)
-    })
+    DOM_NODES.with(|n| f(&mut n.borrow_mut()))
 }
 
 fn with_root<F, R>(f: F) -> R
 where
-    F: FnOnce(Ref<Option<DomNode>>) -> R,
+    F: FnOnce(&Option<DomNode>) -> R,
 {
-    DOM_ROOT.with(|n| {
-        let n = n.borrow();
-        f(n)
-    })
-}
-
-fn with_root_mut<F, R>(f: F) -> R
-where
-    F: FnOnce(RefMut<Option<DomNode>>) -> R,
-{
-    DOM_ROOT.with(|n| {
-        let n = n.borrow_mut();
-        f(n)
-    })
+    DOM_ROOT.with(|n| f(&n.borrow()))
 }
 
 #[derive(Debug)]
@@ -253,8 +220,8 @@ impl Renderer for RooibosDom {
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
-        with_nodes_mut(|mut nodes| {
-            unmount_child(child.key(), &mut nodes, true);
+        with_nodes_mut(|nodes| {
+            unmount_child(child.key(), nodes, true);
         });
 
         Some(child.clone())
@@ -265,8 +232,8 @@ impl Renderer for RooibosDom {
     }
 
     fn remove(node: &Self::Node) {
-        with_nodes_mut(|mut nodes| {
-            unmount_child(node.key(), &mut nodes, true);
+        with_nodes_mut(|nodes| {
+            unmount_child(node.key(), nodes, true);
         });
     }
 
@@ -301,7 +268,7 @@ impl AsRef<DomNode> for DomNode {
 
 fn cleanup_removed_nodes(
     node: &DomNodeKey,
-    nodes: &mut RefMut<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    nodes: &mut SlotMap<DomNodeKey, DomNodeInner>,
     remove: bool,
 ) {
     with_state_mut(|s| {
@@ -318,19 +285,15 @@ fn cleanup_removed_nodes(
 }
 
 fn clear_children(parent: DomNodeKey) {
-    with_nodes_mut(|mut nodes| {
+    with_nodes_mut(|nodes| {
         let children = nodes[parent].children.clone();
         for child in children {
-            unmount_child(child, &mut nodes, true);
+            unmount_child(child, nodes, true);
         }
     });
 }
 
-fn unmount_child(
-    child: DomNodeKey,
-    nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>,
-    cleanup: bool,
-) {
+fn unmount_child(child: DomNodeKey, nodes: &mut SlotMap<DomNodeKey, DomNodeInner>, cleanup: bool) {
     let child_node = &nodes[child];
     if let Some(parent) = child_node.parent {
         let child_pos = nodes[parent]
@@ -347,13 +310,13 @@ fn unmount_child(
 
 pub fn print_dom() -> Paragraph<'static> {
     let lines = with_root(|dom| {
-        with_nodes(|nodes| print_dom_inner(&nodes, dom.as_ref().unwrap().key(), ""))
+        with_nodes(|nodes| print_dom_inner(nodes, dom.as_ref().unwrap().key(), ""))
     });
     Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
 }
 
 fn print_dom_inner(
-    dom_ref: &Ref<'_, SlotMap<DomNodeKey, DomNodeInner>>,
+    dom_ref: &SlotMap<DomNodeKey, DomNodeInner>,
     key: DomNodeKey,
     indent: &str,
 ) -> Vec<Line<'static>> {
@@ -397,13 +360,13 @@ where
     M: Render<State = DomNode>,
 {
     let node = f().build();
-    with_root_mut(|mut d| *d = Some(node));
+    DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
 }
 
 pub fn unmount() {
-    with_root_mut(|mut d| *d = None);
+    DOM_ROOT.with(|d| *d.borrow_mut() = None);
     DOM_STATE.with(|d| *d.borrow_mut() = None);
-    with_nodes_mut(|mut d| (*d).clear());
+    with_nodes_mut(|d| (*d).clear());
 }
 
 pub fn render_dom(buf: &mut Buffer) {
@@ -431,8 +394,8 @@ pub fn focus(id: impl Into<NodeId>) {
     });
     if let Some(node) = node {
         with_state_mut(|state| {
-            with_nodes_mut(|mut nodes| {
-                state.set_focused(node, &mut nodes);
+            with_nodes_mut(|nodes| {
+                state.set_focused(node, nodes);
             });
         });
     }
@@ -453,7 +416,7 @@ enum Focus {
 
 pub fn send_event(event: Event) {
     let focus = with_state_mut(|state| {
-        with_nodes_mut(|mut nodes| {
+        with_nodes_mut(|nodes| {
             match event {
                 Event::Key(key_event) => {
                     if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
@@ -537,13 +500,13 @@ pub fn send_event(event: Event) {
                         });
                         if let Some(current) = current {
                             if state.focused_key() != Some(current) {
-                                state.set_focused(current, &mut nodes);
+                                state.set_focused(current, nodes);
                             }
                             if state.hovered_key() != Some(current) {
-                                state.set_hovered(current, &mut nodes)
+                                state.set_hovered(current, nodes)
                             }
                         } else {
-                            state.remove_hovered(&mut nodes);
+                            state.remove_hovered(nodes);
                         }
                     }
                     MouseEventKind::ScrollDown => {}
@@ -574,7 +537,7 @@ pub fn send_event(event: Event) {
 
 pub fn focus_id(id: impl Into<NodeId>) {
     let id = id.into();
-    with_nodes_mut(|mut nodes| {
+    with_nodes_mut(|nodes| {
         let found_node = nodes.iter().find_map(|(key, node)| {
             if let Some(current_id) = &node.id {
                 if &id == current_id {
@@ -585,14 +548,14 @@ pub fn focus_id(id: impl Into<NodeId>) {
         });
         if let Some(found_node) = found_node {
             with_state_mut(|state| {
-                state.set_focused(found_node, &mut nodes);
+                state.set_focused(found_node, nodes);
             });
         }
     });
 }
 
 pub fn focus_next() {
-    with_nodes_mut(|mut nodes| {
+    with_nodes_mut(|nodes| {
         with_state_mut(|state| {
             let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
@@ -600,31 +563,31 @@ pub fn focus_next() {
 
                 if current_focused < focusable_nodes.len() - 1 {
                     let next = focusable_nodes[current_focused + 1];
-                    state.set_focused(next, &mut nodes);
+                    state.set_focused(next, nodes);
                     return;
                 }
             }
             if let Some(next) = focusable_nodes.first() {
-                state.set_focused(*next, &mut nodes);
+                state.set_focused(*next, nodes);
             }
         });
     });
 }
 
 pub fn focus_prev() {
-    with_nodes_mut(|mut nodes| {
+    with_nodes_mut(|nodes| {
         with_state_mut(|state| {
             let focusable_nodes = state.focusable_nodes();
             if let Some(focused) = state.focused_key() {
                 let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
                 if current_focused > 0 {
                     let prev = focusable_nodes[current_focused - 1];
-                    state.set_focused(prev, &mut nodes);
+                    state.set_focused(prev, nodes);
                     return;
                 }
             }
             if let Some(prev) = focusable_nodes.last() {
-                state.set_focused(*prev, &mut nodes);
+                state.set_focused(*prev, nodes);
             }
         });
     });

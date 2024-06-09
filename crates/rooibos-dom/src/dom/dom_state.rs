@@ -1,5 +1,3 @@
-use std::cell::RefMut;
-
 use ratatui::layout::Rect;
 use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
 use reactive_graph::traits::Set;
@@ -62,7 +60,7 @@ impl DomState {
     pub(crate) fn set_focused(
         &mut self,
         node_key: DomNodeKey,
-        nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>,
+        nodes: &mut SlotMap<DomNodeKey, DomNodeInner>,
     ) {
         if let Some(focused_key) = self.focused_key {
             let node = &mut nodes[focused_key];
@@ -89,7 +87,7 @@ impl DomState {
     pub(crate) fn set_hovered(
         &mut self,
         node_key: DomNodeKey,
-        nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>,
+        nodes: &mut SlotMap<DomNodeKey, DomNodeInner>,
     ) {
         if let Some(hovered_key) = self.hovered_key {
             let node = &mut nodes[hovered_key];
@@ -112,7 +110,7 @@ impl DomState {
         }
     }
 
-    pub(crate) fn remove_hovered(&mut self, nodes: &mut RefMut<SlotMap<DomNodeKey, DomNodeInner>>) {
+    pub(crate) fn remove_hovered(&mut self, nodes: &mut SlotMap<DomNodeKey, DomNodeInner>) {
         if let Some(node_key) = self.hovered_key {
             let node = &mut nodes[node_key];
             if let Some(on_mouse_leave) = &mut node.event_handlers.on_mouse_leave {

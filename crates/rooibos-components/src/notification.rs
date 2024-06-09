@@ -1,33 +1,26 @@
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
-use once_cell::sync::Lazy;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Paragraph};
+use reactive_graph::owner::{provide_context, use_context};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Update};
 use rooibos_dom::{
     absolute, clear, col, derive_signal, use_window_size, widget_ref, Constrainable, Render,
 };
-use rooibos_runtime::wasm_compat::Mutex;
-use rooibos_runtime::{once, wasm_compat};
+use rooibos_runtime::wasm_compat;
 use tokio::sync::mpsc;
 
 use crate::for_each;
 
-type NotificationChannel = (
-    mpsc::Sender<Notification>,
-    Mutex<Option<mpsc::Receiver<Notification>>>,
-);
+#[derive(Clone)]
+struct NotificationContext {
+    tx: mpsc::Sender<Notification>,
+}
 
 static NOTIFICATION_ID: AtomicU32 = AtomicU32::new(1);
-
-once! {
-    static NOTIFICATION_CHANNEL: Lazy<NotificationChannel> = Lazy::new(move || {
-        let (tx, rx) = mpsc::channel(32);
-        (tx, Mutex::new(Some(rx)))
-    });
-}
 
 #[derive(Clone)]
 pub struct Notification {
@@ -44,22 +37,45 @@ impl Notification {
     }
 }
 
-pub fn notify(notification: Notification) {
-    NOTIFICATION_CHANNEL.with(|c| c.0.try_send(notification).unwrap());
+pub struct Notifier {
+    context: Arc<RwLock<Option<NotificationContext>>>,
+}
+
+impl Default for Notifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Notifier {
+    pub fn new() -> Self {
+        Self {
+            context: Arc::new(RwLock::new(use_context::<NotificationContext>())),
+        }
+    }
+
+    pub fn notify(&self, notification: Notification) {
+        if let Some(context) = use_context::<NotificationContext>() {
+            context.tx.try_send(notification).unwrap();
+            return;
+        }
+
+        let context = use_context::<NotificationContext>().unwrap();
+        context.tx.try_send(notification).unwrap();
+        *self.context.write().unwrap() = Some(context);
+    }
 }
 
 pub fn notifications() -> impl Render {
+    let (tx, mut rx) = mpsc::channel(32);
+    provide_context(NotificationContext { tx });
+
     let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
     let window_size = use_window_size();
     let anchor = derive_signal!((window_size.get().width.saturating_sub(20), 0));
 
-    let Some(mut notification_rx) = NOTIFICATION_CHANNEL.with(|c| c.1.with_mut(|c| c.take()))
-    else {
-        panic!("notifications already created");
-    };
-
     wasm_compat::spawn(async move {
-        while let Some(notification) = notification_rx.recv().await {
+        while let Some(notification) = rx.recv().await {
             let id = notification.id;
             notifications.update(|n| n.push(notification));
             wasm_compat::spawn(async move {

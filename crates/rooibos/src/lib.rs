@@ -10,6 +10,9 @@ pub mod runtime {
 pub mod components {
     pub use rooibos_components::*;
 }
-
+#[cfg(feature = "ssh")]
+pub mod ssh {
+    pub use rooibos_ssh::*;
+}
 pub use ratatui as tui;
 pub use rooibos_runtime_macros::*;

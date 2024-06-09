@@ -1,6 +1,8 @@
 pub mod backend;
 pub mod wasm_compat;
 
+use std::borrow::BorrowMut;
+use std::collections::HashMap;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
@@ -21,20 +23,57 @@ use rooibos_dom::{
 };
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
-use tokio::task;
+use tokio::{task, task_local};
 use tracing::{error, warn};
-use wasm_compat::{BoolCell, Mutex, Once};
+use wasm_compat::Mutex;
+
+use crate::wasm_compat::{Once, RwLock};
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
-once! {
-    static TERM_TX: Once<broadcast::Sender<rooibos_dom::Event>> = Once::new();
-    static TERM_COMMAND_TX: Once<mpsc::Sender<TerminalCommand>> = Once::new();
-    static SUPPORTS_KEYBOARD_ENHANCEMENT: BoolCell = BoolCell::new(false);
-    static RESTORE_TERMINAL: Once<Mutex<Box<RestoreFn>>> = Once::new();
+struct RuntimeState {
+    term_tx: broadcast::Sender<rooibos_dom::Event>,
+    term_command_tx: broadcast::Sender<TerminalCommand>,
+    supports_keyboard_enhancement: bool,
+    restore_terminal: Mutex<Box<RestoreFn>>,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+impl RuntimeState {
+    fn new() -> Self {
+        let (term_tx, _) = broadcast::channel(32);
+        let (term_command_tx, _) = broadcast::channel(32);
+        Self {
+            term_tx,
+            term_command_tx,
+            supports_keyboard_enhancement: false,
+            restore_terminal: Mutex::new(Box::new(|| Ok(()))),
+        }
+    }
+}
+
+once! {
+    static STATE: Once<RwLock<HashMap<u32, RuntimeState>>> = Once::new();
+}
+
+task_local! {
+    static CURRENT_RUNTIME: u32;
+}
+
+pub async fn with_runtime<Fut, T>(id: u32, f: Fut) -> T
+where
+    Fut: Future<Output = T>,
+{
+    STATE.with(|s| {
+        s.get()
+            .unwrap()
+            .borrow_mut()
+            .with_mut(|r| r.insert(id, RuntimeState::new()))
+    });
+
+    CURRENT_RUNTIME.scope(id, f).await
+}
+
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TerminalCommand {
     InsertBefore { height: u16, text: Text<'static> },
     EnterAltScreen,
@@ -52,6 +91,11 @@ pub enum TickResult {
 }
 
 pub fn execute<T>(f: impl FnOnce() -> T) -> T {
+    let mut state = HashMap::new();
+    state.insert(0, RuntimeState::new());
+    if STATE.with(|s| s.set(RwLock::new(state))).is_err() {
+        panic!();
+    }
     let owner = Owner::new();
     set_panic_hook();
     let res = owner.with(f);
@@ -118,7 +162,7 @@ pub struct Runtime<B: Backend> {
     settings: RuntimeSettings,
     signal_tx: mpsc::Sender<SignalMode>,
     signal_rx: mpsc::Receiver<SignalMode>,
-    term_command_rx: mpsc::Receiver<TerminalCommand>,
+    term_command_rx: broadcast::Receiver<TerminalCommand>,
     term_event_tx: broadcast::Sender<Event>,
     term_event_rx: broadcast::Receiver<Event>,
     term_parser_tx: broadcast::Sender<Event>,
@@ -138,27 +182,23 @@ impl<B: Backend + 'static> Runtime<B> {
         F: FnOnce() -> M + 'static,
         M: Render,
     {
+        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
         let backend = Arc::new(backend);
         let (signal_tx, signal_rx) = mpsc::channel(32);
-        let (term_event_tx, term_event_rx) = broadcast::channel(32);
+
         let (term_parser_tx, _) = broadcast::channel(32);
 
-        let (term_command_tx, term_command_rx) = mpsc::channel(32);
-        TERM_TX.with(|t| {
-            t.set(term_parser_tx.clone())
-                .expect("runtime initialized more than once")
-        });
-
-        TERM_COMMAND_TX.with(|t| {
-            t.set(term_command_tx.clone())
-                .expect("runtime initialized more than once")
+        let term_command_tx = STATE.with(|s| {
+            s.get()
+                .unwrap()
+                .with(|r| r.get(&current_runtime).unwrap().term_command_tx.clone())
         });
 
         if !backend.supports_async_input() {
             wasm_compat::spawn(async move {
                 loop {
                     wasm_compat::sleep(Duration::from_millis(20)).await;
-                    let _ = term_command_tx.send(TerminalCommand::Poll).await;
+                    let _ = term_command_tx.send(TerminalCommand::Poll);
                 }
             })
         }
@@ -166,7 +206,13 @@ impl<B: Backend + 'static> Runtime<B> {
         let dom_update_rx = dom_update_receiver();
 
         // We need to query this info before reading events
-        SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| s.set(backend.supports_keyboard_enhancement()));
+        STATE.with(|s| {
+            s.get().unwrap().with_mut(|r| {
+                r.get_mut(&current_runtime)
+                    .unwrap()
+                    .supports_keyboard_enhancement = backend.supports_keyboard_enhancement()
+            })
+        });
 
         #[cfg(not(target_arch = "wasm32"))]
         {
@@ -204,10 +250,22 @@ impl<B: Backend + 'static> Runtime<B> {
         }
 
         mount(f);
+
+        let term_command_tx = STATE.with(|s| {
+            s.get()
+                .unwrap()
+                .with(|r| r.get(&current_runtime).unwrap().term_command_tx.clone())
+        });
+        let term_event_tx = STATE.with(|s| {
+            s.get()
+                .unwrap()
+                .with(|r| r.get(&current_runtime).unwrap().term_tx.clone())
+        });
+
         Self {
-            term_command_rx,
+            term_command_rx: term_command_tx.subscribe(),
+            term_event_rx: term_event_tx.subscribe(),
             term_event_tx,
-            term_event_rx,
             term_parser_tx,
             signal_tx,
             settings,
@@ -234,14 +292,22 @@ impl<B: Backend + 'static> Runtime<B> {
             self.handle_term_events();
         }
         let show_final_output = self.settings.show_final_output;
-        RESTORE_TERMINAL.with(|r| {
-            let _ = r.set(Mutex::new(Box::new(move || {
-                backend.restore_terminal()?;
-                if show_final_output {
-                    backend.write_all(b"\n")?;
-                }
-                Ok(())
-            })));
+        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+        STATE.with(|s| {
+            s.get().unwrap().with_mut(|r| {
+                r.get_mut(&current_runtime)
+                    .unwrap()
+                    .restore_terminal
+                    .with_mut(|r| {
+                        *r = Box::new(move || {
+                            backend.restore_terminal()?;
+                            if show_final_output {
+                                backend.write_all(b"\n")?;
+                            }
+                            Ok(())
+                        })
+                    })
+            })
         });
 
         Ok(terminal)
@@ -319,6 +385,7 @@ impl<B: Backend + 'static> Runtime<B> {
         let mut terminal = self.setup_terminal()?;
         terminal.draw(|f| render_dom(f.buffer_mut()))?;
         focus_next();
+
         loop {
             let tick_result = self.tick().await;
             match tick_result {
@@ -400,7 +467,7 @@ impl<B: Backend + 'static> Runtime<B> {
                 TickResult::Continue
             }
             term_command = self.term_command_rx.recv() => {
-                if let Some(term_command) = term_command {
+                if let Ok(term_command) = term_command {
                     TickResult::Command(term_command)
                 } else {
                     TickResult::Continue
@@ -411,9 +478,14 @@ impl<B: Backend + 'static> Runtime<B> {
 }
 
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
-    let mut term_rx = TERM_TX.with(|t| t.get().expect("runtime not initialized").subscribe());
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    let mut term_rx = STATE.with(|s| {
+        s.get()
+            .unwrap()
+            .with(|r| r.get(&current_runtime).unwrap().term_tx.subscribe())
+    });
     let (term_signal, set_term_signal) = signal(None);
-    wasm_compat::spawn(async move {
+    wasm_compat::spawn_local(async move {
         // TODO: this doesn't work?
         // if term_signal.is_disposed() {
         //     return;
@@ -431,47 +503,69 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
 }
 
 pub fn supports_key_up() -> bool {
-    SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| s.get())
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE.with(|s| {
+        s.get().unwrap().with(|r| {
+            r.get(&current_runtime)
+                .unwrap()
+                .supports_keyboard_enhancement
+        })
+    })
 }
 
 pub fn restore_terminal() -> io::Result<()> {
-    RESTORE_TERMINAL.with(|r| {
-        if let Some(restore) = r.get() {
-            restore.with(|r| r())
-        } else {
+    STATE.with(|s| {
+        s.get().unwrap().with(|r| {
+            for runtime in r.values() {
+                runtime.restore_terminal.with(|r| r())?;
+            }
             Ok(())
-        }
+        })
     })
 }
 
 pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
-    TERM_COMMAND_TX.with(|t| {
-        t.get()
-            .unwrap()
-            .try_send(TerminalCommand::InsertBefore {
-                height,
-                text: text.into(),
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get().unwrap().with(|r| {
+                r.get(&current_runtime).unwrap().term_command_tx.send(
+                    TerminalCommand::InsertBefore {
+                        height,
+                        text: text.into(),
+                    },
+                )
             })
-            .unwrap()
-    });
+        })
+        .unwrap();
 }
 
 pub fn enter_alt_screen() {
-    TERM_COMMAND_TX.with(|t| {
-        t.get()
-            .unwrap()
-            .try_send(TerminalCommand::EnterAltScreen)
-            .unwrap()
-    });
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get().unwrap().with(|r| {
+                r.get(&current_runtime)
+                    .unwrap()
+                    .term_command_tx
+                    .send(TerminalCommand::EnterAltScreen)
+            })
+        })
+        .unwrap();
 }
 
 pub fn leave_alt_screen() {
-    TERM_COMMAND_TX.with(|t| {
-        t.get()
-            .unwrap()
-            .try_send(TerminalCommand::LeaveAltScreen)
-            .unwrap()
-    });
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get().unwrap().with(|r| {
+                r.get(&current_runtime)
+                    .unwrap()
+                    .term_command_tx
+                    .send(TerminalCommand::LeaveAltScreen)
+            })
+        })
+        .unwrap();
 }
 
 pub fn set_panic_hook() {

@@ -1,0 +1,21 @@
+[package]
+name = "rooibos-ssh"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+russh-keys = "0.43"
+russh = "0.43"
+rooibos-runtime = { path = "../rooibos-runtime" }
+rooibos-dom = { path = "../rooibos-dom" }
+tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
+ratatui = { version = "0.26", default-features = false }
+tracing = "0.1"
+tap = "1"
+futures = "0.3"
+async-trait = "0.1"
+reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+    "tracing",
+    "effects",
+] }
+terminput = { path = "../../../terminput" }

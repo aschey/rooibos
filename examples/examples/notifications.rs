@@ -2,10 +2,10 @@ use std::error::Error;
 use std::io::Stdout;
 use std::time::Duration;
 
-use rooibos::components::{notifications, notify, Notification};
+use rooibos::components::{notifications, Notification, Notifier};
 use rooibos::dom::{col, widget_ref, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
 use rooibos::tui::text::Line;
 use rooibos::tui::widgets::{Block, Paragraph};
 
@@ -19,15 +19,17 @@ async fn main() -> Result<()> {
         app,
     );
     runtime.run().await?;
+
     Ok(())
 }
 
 fn app() -> impl Render {
-    tokio::spawn(async move {
+    let notifier = Notifier::new();
+    wasm_compat::spawn_local(async move {
         tokio::time::sleep(Duration::from_secs(1)).await;
-        notify(Notification::new("notify 1"));
+        notifier.notify(Notification::new("notify 1"));
         tokio::time::sleep(Duration::from_secs(1)).await;
-        notify(Notification::new("notify 2"));
+        notifier.notify(Notification::new("notify 2"));
     });
     col![
         widget_ref!(
