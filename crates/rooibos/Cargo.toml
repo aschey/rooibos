@@ -25,6 +25,7 @@ crossterm = [
     "rooibos-dom/crossterm",
     "rooibos-runtime/crossterm",
     "rooibos-components/crossterm",
+    "rooibos-ssh?/crossterm",
 ]
 termion = [
     "rooibos-dom/termion",

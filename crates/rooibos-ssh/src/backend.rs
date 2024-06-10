@@ -15,6 +15,9 @@ pub struct SshBackend<B: Backend> {
 
 impl<B: Backend> SshBackend<B> {
     pub fn new(inner: B, event_rx: mpsc::Receiver<Event>) -> Self {
+        // force ANSI escape codes on windows because SSH on Windows uses Unix-style escape codes
+        #[cfg(feature = "crossterm")]
+        crossterm::ansi_support::force_ansi(true);
         Self {
             event_rx: Mutex::new(Some(event_rx)),
             inner,
