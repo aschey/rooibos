@@ -7,8 +7,8 @@ use rooibos::tui::text::Text;
 #[cfg(target_arch = "wasm32")]
 #[rooibos::main(wasm)]
 async fn start() -> Result<(), wasm_bindgen::JsError> {
-    use rooibos::runtime::backend::wasm::WasmBackend;
     use rooibos::runtime::{Runtime, RuntimeSettings};
+    use rooibos::xterm_js::WasmBackend;
 
     let runtime = Runtime::initialize(RuntimeSettings::default(), WasmBackend::default(), app);
     runtime

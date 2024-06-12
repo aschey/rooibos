@@ -13,17 +13,16 @@ use crossterm::terminal::{
     LeaveAlternateScreen,
 };
 use crossterm::{execute, queue};
-use futures_util::StreamExt;
+use futures::StreamExt;
 use ratatui::{Terminal, Viewport};
 use ratatui_wasm::xterm::Theme;
 use ratatui_wasm::{init_terminal, EventStream, TerminalHandle};
+use rooibos_runtime::backend::Backend;
+use rooibos_runtime::{wasm_compat, SignalMode};
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
 use web_sys::wasm_bindgen::JsCast;
-
-use super::Backend;
-use crate::{wasm_compat, SignalMode};
 
 pub struct TerminalSettings {
     alternate_screen: bool,

@@ -5,8 +5,6 @@ pub mod termion;
 #[cfg(all(feature = "termwiz", not(target_arch = "wasm32")))]
 pub mod termwiz;
 pub mod test;
-#[cfg(target_arch = "wasm32")]
-pub mod wasm;
 
 use std::{future, io};
 

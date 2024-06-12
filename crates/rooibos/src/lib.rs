@@ -14,5 +14,12 @@ pub mod components {
 pub mod ssh {
     pub use rooibos_ssh::*;
 }
+
+#[cfg(feature = "xterm-js")]
+pub mod xterm_js {
+    #[cfg(target_arch = "wasm32")]
+    pub use rooibos_xterm_js::*;
+}
+
 pub use ratatui as tui;
 pub use rooibos_runtime_macros::*;
