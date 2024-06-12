@@ -93,7 +93,7 @@ impl Button {
         let border_type = RwSignal::new(BorderType::Rounded);
         let widget_state = RwSignal::new(WidgetState::Default);
 
-        let border_color = derive_signal!({
+        let current_border_color = derive_signal!({
             match widget_state.get() {
                 WidgetState::Default => border_color.get(),
                 WidgetState::Focused => focused_border_color.get(),
@@ -103,10 +103,12 @@ impl Button {
 
         let on_enter = move || {
             widget_state.set(WidgetState::Active);
-
             if !supports_key_up() {
                 delay(Duration::from_millis(50), async move {
-                    widget_state.set(WidgetState::Focused);
+                    // Need to use try_get here in case the button was already disposed
+                    if widget_state.try_get() == Some(WidgetState::Active) {
+                        widget_state.set(WidgetState::Focused);
+                    }
                 });
             }
             on_click.borrow_mut()()
@@ -128,7 +130,7 @@ impl Button {
                 .block(
                     Block::bordered()
                         .border_type(border_type.get())
-                        .border_style(Style::default().fg(border_color.get()))
+                        .border_style(Style::default().fg(current_border_color.get()))
                 )
                 .centered()
         )

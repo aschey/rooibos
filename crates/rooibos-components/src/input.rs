@@ -9,7 +9,7 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, Constrainable, DomWidget, KeyCode, KeyEvent, Render, WidgetState,
+    derive_signal, Constrainable, DomWidget, KeyCode, KeyEvent, NodeId, Render, WidgetState,
 };
 use tui_textarea::{CursorMove, TextArea};
 
@@ -100,6 +100,7 @@ pub struct Input {
     placeholder_text: MaybeSignal<String>,
     on_submit: Box<dyn FnMut(String)>,
     initial_value: String,
+    id: Option<NodeId>,
 }
 
 impl Constrainable for Input {
@@ -124,6 +125,7 @@ impl Default for Input {
             style: Style::default().into(),
             on_submit: Box::new(|_| {}),
             initial_value: "".to_string(),
+            id: None,
         }
     }
 }
@@ -152,6 +154,11 @@ impl Input {
         self
     }
 
+    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
+        self.id = Some(id.into());
+        self
+    }
+
     pub fn get_ref() -> InputRef {
         InputRef(RwSignal::new(TextArea::default()))
     }
@@ -167,9 +174,13 @@ impl Input {
             placeholder_text,
             mut on_submit,
             initial_value,
+            id,
         } = self;
         let text_area = input_ref.0;
-        text_area.update_untracked(|t| t.insert_str(initial_value));
+        text_area.update_untracked(|t| {
+            t.delete_line_by_head();
+            t.insert_str(initial_value);
+        });
 
         let widget_state = RwSignal::new(WidgetState::Default);
         let block = derive_signal!({
@@ -208,7 +219,7 @@ impl Input {
             });
         };
 
-        DomWidget::new(type_name::<TextArea>(), move || {
+        let mut widget = DomWidget::new(type_name::<TextArea>(), move || {
             let text_area = text_area.get();
             move |area: Rect, buf: &mut Buffer| {
                 text_area.widget().render(area, buf);
@@ -221,6 +232,10 @@ impl Input {
         })
         .on_blur(move |_| {
             widget_state.set(WidgetState::Default);
-        })
+        });
+        if let Some(id) = id {
+            widget = widget.id(id);
+        }
+        widget
     }
 }

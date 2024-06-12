@@ -353,9 +353,7 @@ pub struct DomNode {
 
 impl Mountable<RooibosDom> for DomNode {
     fn unmount(&mut self) {
-        with_nodes_mut(|nodes| {
-            unmount_child(self.key(), nodes, false);
-        });
+        unmount_child(self.key(), false);
         self.unmounted = true;
     }
 
@@ -383,17 +381,11 @@ impl Drop for DomNode {
         // The thread-local may already have been destroyed
         // We need to check using try_with to prevent a panic here
         if self.unmounted && DOM_NODES.try_with(|_| {}).is_ok() {
-            with_nodes_mut(|nodes| {
-                unmount_child(self.key, nodes, true);
-            })
+            unmount_child(self.key, true);
         }
     }
 }
 impl DomNode {
-    // pub(crate) fn from_key(key: DomNodeKey) -> Self {
-    //     Self { key }
-    // }
-
     pub(crate) fn placeholder() -> Self {
         let inner = DomNodeInner {
             name: "Placeholder".to_string(),
@@ -401,7 +393,6 @@ impl DomNode {
             constraint: Default::default(),
             children: vec![],
             parent: None,
-            // before_pending: vec![],
             focusable: Default::default(),
             id: None,
             event_handlers: Default::default(),
@@ -423,7 +414,6 @@ impl DomNode {
             constraint: Rc::new(RefCell::new(fragment.constraint)),
             children: vec![],
             parent: None,
-            // before_pending: vec![],
             focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
             event_handlers: fragment.event_handlers,
@@ -445,7 +435,6 @@ impl DomNode {
             constraint: Rc::new(RefCell::new(fragment.constraint)),
             children: vec![],
             parent: self.get_parent_key(),
-            // before_pending: vec![],
             focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
             event_handlers: fragment.event_handlers,
@@ -458,15 +447,29 @@ impl DomNode {
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|nodes| {
-            let current = &nodes[self.key];
-            let name = current.name.clone();
-            let node_type = current.node_type.clone();
-            let constraint = current.constraint.clone();
-            let focusable = current.focusable.clone();
-            let id = current.id.clone();
-            let event_handlers = current.event_handlers.clone();
-            let data = current.data.clone();
-            let rect = current.rect.clone();
+            // This is annoyingly verbose, but we use destructuring here to ensure we account for
+            // any new properties that get added to DomNodeInner
+            let DomNodeInner {
+                node_type,
+                name,
+                constraint,
+                children: _children,
+                parent: _parent,
+                id,
+                focusable,
+                event_handlers,
+                rect,
+                data,
+                child_state: _child_state,
+            } = &nodes[self.key];
+            let name = name.clone();
+            let node_type = node_type.clone();
+            let constraint = constraint.clone();
+            let focusable = focusable.clone();
+            let id = id.clone();
+            let event_handlers = event_handlers.clone();
+            let data = data.clone();
+            let rect = rect.clone();
 
             let new = &mut nodes[node.key];
 
@@ -478,8 +481,8 @@ impl DomNode {
             new.event_handlers = event_handlers;
             new.data = data;
             new.rect = rect;
-            unmount_child(self.key, nodes, true);
         });
+        unmount_child(self.key, true);
 
         self.key = node.key;
     }

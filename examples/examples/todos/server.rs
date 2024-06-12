@@ -29,7 +29,8 @@ pub async fn run_server() {
 async fn todos_get(State(db): State<Db>) -> impl IntoResponse {
     let todos = db.read().unwrap();
 
-    let todos = todos.values().cloned().collect::<Vec<_>>();
+    let mut todos = todos.values().cloned().collect::<Vec<_>>();
+    todos.sort_by(|t1, t2| t1.id.cmp(&t2.id));
 
     Json(todos)
 }

@@ -2,8 +2,9 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
+use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::widgets::{Block, BorderType, Paragraph};
 use reactive_graph::owner::{provide_context, use_context};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Update};
@@ -95,10 +96,18 @@ pub fn notifications() -> impl Render {
         col![for_each(
             move || notifications.get(),
             |n| n.id,
-            move |n| clear!(widget_ref!(
-                Paragraph::new(n.content.clone()).block(Block::bordered())
-            ))
-            .length(3)
+            move |n| {
+                let height = n.content.height();
+                clear!(widget_ref!(
+                    Paragraph::new(n.content.clone()).block(
+                        Block::bordered()
+                            .border_type(BorderType::Rounded)
+                            .border_style(Style::new().blue())
+                    )
+                ))
+                // +2 for borders
+                .length(height as u16 + 2)
+            }
         )]
     ]
 }

@@ -14,7 +14,7 @@ use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{derive_signal, widget_ref, EventData};
+use crate::{derive_signal, widget_ref, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
@@ -220,9 +220,7 @@ impl Renderer for RooibosDom {
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
-        with_nodes_mut(|nodes| {
-            unmount_child(child.key(), nodes, true);
-        });
+        unmount_child(child.key(), true);
 
         Some(child.clone())
     }
@@ -232,9 +230,7 @@ impl Renderer for RooibosDom {
     }
 
     fn remove(node: &Self::Node) {
-        with_nodes_mut(|nodes| {
-            unmount_child(node.key(), nodes, true);
-        });
+        unmount_child(node.key(), true);
     }
 
     fn get_parent(node: &Self::Node) -> Option<Self::Node> {
@@ -266,45 +262,45 @@ impl AsRef<DomNode> for DomNode {
     }
 }
 
-fn cleanup_removed_nodes(
-    node: &DomNodeKey,
-    nodes: &mut SlotMap<DomNodeKey, DomNodeInner>,
-    remove: bool,
-) {
+fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
     with_state_mut(|s| {
         s.cleanup_before_remove(node);
-        s.remove_hovered(nodes)
     });
-    let children = nodes[*node].children.clone();
+    dom_state::remove_hovered();
+    let children = with_nodes(|nodes| nodes[*node].children.clone());
+
     for child in children {
-        cleanup_removed_nodes(&child, nodes, remove);
+        cleanup_removed_nodes(&child, remove);
     }
     if remove {
-        nodes.remove(*node);
+        with_nodes_mut(|nodes| {
+            nodes.remove(*node);
+        })
     }
 }
 
 fn clear_children(parent: DomNodeKey) {
-    with_nodes_mut(|nodes| {
-        let children = nodes[parent].children.clone();
-        for child in children {
-            unmount_child(child, nodes, true);
-        }
-    });
+    let children = with_nodes(|nodes| nodes[parent].children.clone());
+    for child in children {
+        unmount_child(child, true);
+    }
 }
 
-fn unmount_child(child: DomNodeKey, nodes: &mut SlotMap<DomNodeKey, DomNodeInner>, cleanup: bool) {
-    let child_node = &nodes[child];
-    if let Some(parent) = child_node.parent {
-        let child_pos = nodes[parent]
-            .children
-            .iter()
-            .position(|c| c == &child)
-            .unwrap();
-        nodes[parent].children.remove(child_pos);
-    }
-    nodes[child].parent = None;
-    cleanup_removed_nodes(&child, nodes, cleanup);
+fn unmount_child(child: DomNodeKey, cleanup: bool) {
+    with_nodes_mut(|nodes| {
+        let child_node = &nodes[child];
+        if let Some(parent) = child_node.parent {
+            let child_pos = nodes[parent]
+                .children
+                .iter()
+                .position(|c| c == &child)
+                .unwrap();
+            nodes[parent].children.remove(child_pos);
+        }
+        nodes[child].parent = None;
+    });
+
+    cleanup_removed_nodes(&child, cleanup);
     refresh_dom();
 }
 
@@ -393,11 +389,7 @@ pub fn focus(id: impl Into<NodeId>) {
         })
     });
     if let Some(node) = node {
-        with_state_mut(|state| {
-            with_nodes_mut(|nodes| {
-                state.set_focused(node, nodes);
-            });
-        });
+        dom_state::set_focused(node);
     }
 }
 
@@ -409,186 +401,186 @@ pub fn use_window_size() -> ReadSignal<Rect> {
     with_state(|s| s.window_size())
 }
 
-enum Focus {
-    Next,
-    Prev,
+struct ClickEvent {
+    on_click: Option<MouseEventFn>,
+    rect: Rect,
+    key: DomNodeKey,
 }
 
 pub fn send_event(event: Event) {
-    let focus = with_state_mut(|state| {
-        with_nodes_mut(|nodes| {
-            match event {
-                Event::Key(key_event) => {
-                    if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
-                        if key_event.modifiers.contains(KeyModifiers::SHIFT) {
-                            return Some(Focus::Prev);
-                        } else {
-                            return Some(Focus::Next);
-                        }
-                    } else if key_event.code == KeyCode::Char('p')
-                        && key_event.modifiers.contains(KeyModifiers::CONTROL)
-                    {
-                        PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
-                        refresh_dom();
-                    } else if let Some(key) = state.focused_key() {
-                        match key_event.kind {
-                            KeyEventKind::Press | KeyEventKind::Repeat => {
-                                let node = &mut nodes[key];
-                                if let Some(on_key_down) = &mut node.event_handlers.on_key_down {
-                                    #[cfg(debug_assertions)]
-                                    let _guard =
-                                        reactive_graph::diagnostics::SpecialNonReactiveZone::enter(
-                                        );
-                                    on_key_down.borrow_mut()(
-                                        key_event,
-                                        EventData {
-                                            rect: *node.rect.borrow(),
-                                        },
-                                    );
-                                }
-                            }
-                            KeyEventKind::Release => {
-                                let node = &mut nodes[key];
-                                if let Some(on_key_up) = &mut node.event_handlers.on_key_up {
-                                    #[cfg(debug_assertions)]
-                                    let _guard =
-                                        reactive_graph::diagnostics::SpecialNonReactiveZone::enter(
-                                        );
-                                    on_key_up.borrow_mut()(
-                                        key_event,
-                                        EventData {
-                                            rect: *node.rect.borrow(),
-                                        },
-                                    );
-                                }
-                            }
-                        }
-                    }
+    match event {
+        Event::Key(key_event) => {
+            if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
+                if key_event.modifiers.contains(KeyModifiers::SHIFT) {
+                    focus_prev();
+                } else {
+                    focus_next();
                 }
-                Event::FocusGained => {}
-                Event::FocusLost => {}
-                Event::Mouse(mouse_event) => match mouse_event.kind {
-                    MouseEventKind::Down(_) => {
-                        let current = nodes.keys().find_map(|k| {
-                            let rect = nodes[k].rect.borrow();
-                            if rect.contains(Position {
-                                x: mouse_event.column,
-                                y: mouse_event.row,
-                            }) {
-                                let node = &nodes[k];
-                                if let Some(on_click) = &node.event_handlers.on_click {
-                                    return Some((on_click, rect));
-                                }
-                            }
-                            None
+            } else if key_event.code == KeyCode::Char('p')
+                && key_event.modifiers.contains(KeyModifiers::CONTROL)
+            {
+                PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
+                refresh_dom();
+            } else if let Some(key) = with_state(|s| s.focused_key()) {
+                match key_event.kind {
+                    KeyEventKind::Press | KeyEventKind::Repeat => {
+                        let (rect, mut on_key_down) = with_nodes(|nodes| {
+                            (
+                                *nodes[key].rect.borrow(),
+                                nodes[key].event_handlers.on_key_down.clone(),
+                            )
                         });
-                        if let Some((on_click, rect)) = current {
+                        if let Some(on_key_down) = &mut on_key_down {
                             #[cfg(debug_assertions)]
                             let _guard =
                                 reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                            on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
+                            on_key_down.borrow_mut()(key_event, EventData { rect });
                         }
                     }
-                    MouseEventKind::Up(_) => {}
-                    MouseEventKind::Drag(_) => {}
-                    MouseEventKind::Moved => {
-                        let current = nodes.keys().find(|k| {
-                            nodes[*k].rect.borrow().contains(Position {
-                                x: mouse_event.column,
-                                y: mouse_event.row,
-                            }) && *nodes[*k].focusable.borrow()
+                    KeyEventKind::Release => {
+                        let (rect, mut on_key_up) = with_nodes(|nodes| {
+                            (
+                                *nodes[key].rect.borrow(),
+                                nodes[key].event_handlers.on_key_up.clone(),
+                            )
                         });
-                        if let Some(current) = current {
-                            if state.focused_key() != Some(current) {
-                                state.set_focused(current, nodes);
-                            }
-                            if state.hovered_key() != Some(current) {
-                                state.set_hovered(current, nodes)
-                            }
-                        } else {
-                            state.remove_hovered(nodes);
+                        if let Some(on_key_up) = &mut on_key_up {
+                            #[cfg(debug_assertions)]
+                            let _guard =
+                                reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                            on_key_up.borrow_mut()(key_event, EventData { rect });
                         }
                     }
-                    MouseEventKind::ScrollDown => {}
-                    MouseEventKind::ScrollUp => {}
-                    MouseEventKind::ScrollLeft => {}
-                    MouseEventKind::ScrollRight => {}
-                },
-                Event::Paste(_) => {}
-                Event::Resize(_, _) => {
-                    PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
-                    refresh_dom();
                 }
-            };
-            None
-        })
-    });
+            }
+        }
+        Event::FocusGained => {}
+        Event::FocusLost => {}
+        Event::Mouse(mouse_event) => match mouse_event.kind {
+            MouseEventKind::Down(_) => {
+                let current = with_nodes(|nodes| {
+                    let mut current: Option<ClickEvent> = None;
+                    for key in nodes.keys() {
+                        let rect = nodes[key].rect.borrow();
+                        if rect.contains(Position {
+                            x: mouse_event.column,
+                            y: mouse_event.row,
+                        }) {
+                            let node = &nodes[key];
+                            if *node.focusable.borrow() || node.event_handlers.on_click.is_some() {
+                                current = Some(ClickEvent {
+                                    on_click: node.event_handlers.on_click.clone(),
+                                    rect: *rect,
+                                    key,
+                                });
+                            }
+                            if node.event_handlers.on_click.is_some() {
+                                break;
+                            }
+                        }
+                    }
+                    current
+                });
 
-    match focus {
-        Some(Focus::Next) => {
-            focus_next();
+                if let Some(ClickEvent {
+                    on_click,
+                    rect,
+                    key,
+                }) = current
+                {
+                    let set_focus = with_nodes(|nodes| {
+                        with_state(|state| {
+                            state.focused_key() != Some(key) && *nodes[key].focusable.borrow()
+                        })
+                    });
+                    if set_focus {
+                        dom_state::set_focused(key);
+                    }
+                    if let Some(on_click) = on_click {
+                        #[cfg(debug_assertions)]
+                        let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                        on_click.borrow_mut()(mouse_event, EventData { rect });
+                    }
+                }
+            }
+            MouseEventKind::Up(_) => {}
+            MouseEventKind::Drag(_) => {}
+            MouseEventKind::Moved => {
+                let current = with_nodes(|nodes| {
+                    nodes.keys().find(|k| {
+                        nodes[*k].rect.borrow().contains(Position {
+                            x: mouse_event.column,
+                            y: mouse_event.row,
+                        }) && *nodes[*k].focusable.borrow()
+                    })
+                });
+
+                if let Some(current) = current {
+                    let set_focus = with_state(|state| state.hovered_key() != Some(current));
+                    if set_focus {
+                        dom_state::set_hovered(current);
+                    }
+                } else {
+                    dom_state::remove_hovered();
+                }
+            }
+            MouseEventKind::ScrollDown => {}
+            MouseEventKind::ScrollUp => {}
+            MouseEventKind::ScrollLeft => {}
+            MouseEventKind::ScrollRight => {}
+        },
+        Event::Paste(_) => {}
+        Event::Resize(_, _) => {
+            PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
+            refresh_dom();
         }
-        Some(Focus::Prev) => {
-            focus_prev();
-        }
-        None => {}
-    }
+    };
 }
 
 pub fn focus_id(id: impl Into<NodeId>) {
     let id = id.into();
-    with_nodes_mut(|nodes| {
-        let found_node = nodes.iter().find_map(|(key, node)| {
+    let found_node = with_nodes(|nodes| {
+        nodes.iter().find_map(|(key, node)| {
             if let Some(current_id) = &node.id {
                 if &id == current_id {
                     return Some(key);
                 }
             }
             None
-        });
-        if let Some(found_node) = found_node {
-            with_state_mut(|state| {
-                state.set_focused(found_node, nodes);
-            });
-        }
+        })
     });
+    if let Some(found_node) = found_node {
+        dom_state::set_focused(found_node);
+    }
 }
 
 pub fn focus_next() {
-    with_nodes_mut(|nodes| {
-        with_state_mut(|state| {
-            let focusable_nodes = state.focusable_nodes();
-            if let Some(focused) = state.focused_key() {
-                let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
+    let focusable_nodes = with_state(|state| state.focusable_nodes().clone());
+    if let Some(focused) = with_state(|state| state.focused_key()) {
+        let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
 
-                if current_focused < focusable_nodes.len() - 1 {
-                    let next = focusable_nodes[current_focused + 1];
-                    state.set_focused(next, nodes);
-                    return;
-                }
-            }
-            if let Some(next) = focusable_nodes.first() {
-                state.set_focused(*next, nodes);
-            }
-        });
-    });
+        if current_focused < focusable_nodes.len() - 1 {
+            let next = focusable_nodes[current_focused + 1];
+            dom_state::set_focused(next);
+            return;
+        }
+    }
+    if let Some(next) = focusable_nodes.first() {
+        dom_state::set_focused(*next);
+    }
 }
 
 pub fn focus_prev() {
-    with_nodes_mut(|nodes| {
-        with_state_mut(|state| {
-            let focusable_nodes = state.focusable_nodes();
-            if let Some(focused) = state.focused_key() {
-                let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
-                if current_focused > 0 {
-                    let prev = focusable_nodes[current_focused - 1];
-                    state.set_focused(prev, nodes);
-                    return;
-                }
-            }
-            if let Some(prev) = focusable_nodes.last() {
-                state.set_focused(*prev, nodes);
-            }
-        });
-    });
+    let focusable_nodes = with_state(|state| state.focusable_nodes().clone());
+    if let Some(focused) = with_state(|state| state.focused_key()) {
+        let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
+        if current_focused > 0 {
+            let prev = focusable_nodes[current_focused - 1];
+            dom_state::set_focused(prev);
+            return;
+        }
+    }
+    if let Some(prev) = focusable_nodes.last() {
+        dom_state::set_focused(*prev);
+    }
 }

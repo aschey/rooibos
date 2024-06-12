@@ -4,17 +4,20 @@ mod server;
 use std::error::Error;
 use std::io::Stdout;
 
-use client::{add_todo, fetch_todos};
-use rooibos::components::{Button, Input, Popup};
+use client::{add_todo, delete_todo, fetch_todos, update_todo};
+use rooibos::components::{notifications, Button, Input, Notification, Notifier, Popup, Show};
 use rooibos::dom::{
-    clear, col, overlay, row, transition, widget_ref, Constrainable, Errors, Render, WidgetState,
+    clear, col, derive_signal, focus_id, overlay, row, transition, widget_ref, Constrainable,
+    Errors, NodeId, Render, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
-use rooibos::reactive::signal::ArcRwSignal;
-use rooibos::reactive::traits::{Get, Track, With};
+use rooibos::reactive::effect::Effect;
+use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
+use rooibos::reactive::signal::{ArcRwSignal, RwSignal};
+use rooibos::reactive::traits::{Get, Track, Update, With};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::{Line, Span, Text};
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -33,6 +36,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[derive(Clone)]
+struct TodoContext {
+    update_todo: Action<(u32, String), Result<(), rooibos::dom::Error>>,
+    delete_todo: Action<u32, Result<(), rooibos::dom::Error>>,
+}
+
 fn app() -> impl Render {
     let fallback = move |errors: ArcRwSignal<Errors>| {
         let error_list = move || {
@@ -48,13 +57,41 @@ fn app() -> impl Render {
     };
 
     let add_todo = Action::new(move |text: &String| add_todo(text.clone()));
-    let version = add_todo.version();
+    let update_todo = Action::new(move |(id, text): &(u32, String)| update_todo(*id, text.clone()));
+    let delete_todo = Action::new(move |id: &u32| delete_todo(*id));
+    provide_context(TodoContext {
+        update_todo,
+        delete_todo,
+    });
+
+    let add_version = add_todo.version();
+    let update_version = update_todo.version();
+    let delete_version = delete_todo.version();
+
     let add_pending = add_todo.pending();
+    let update_pending = update_todo.pending();
+    let delete_pending = delete_todo.pending();
+
+    let notifier = Notifier::new();
+
+    Effect::new(move |_| {
+        if update_version.get() > 0 {
+            notifier.notify(Notification::new(Text::from_iter([
+                Line::raw(""),
+                Line::raw("  Todo updated"),
+                Line::raw(""),
+            ])));
+        }
+    });
+
     let todos = AsyncDerived::new(move || {
         // TODO: is this the best way to trigger a refetch?
-        version.track();
+        add_version.track();
+        update_version.track();
+        delete_version.track();
         fetch_todos()
     });
+    let pending = derive_signal!(add_pending.get() || update_pending.get() || delete_pending.get());
 
     let input_ref = Input::get_ref();
 
@@ -81,41 +118,95 @@ fn app() -> impl Render {
                         .length(3)
                         .render(input_ref)
                 ]
+                .percentage(80)
             ]
             .length(3),
             row![col![transition!(
                 widget_ref!(Line::from(" Loading...".gray())),
-                todos.await.map(|todos| {
-                    col![
-                        todos
-                            .into_iter()
-                            .map(|t| todo_item(t.text))
-                            .collect::<Vec<_>>(),
-                    ]
-                }),
+                {
+                    todos.await.map(|todos| {
+                        col![
+                            todos
+                                .into_iter()
+                                .map(|t| todo_item(t.id, t.text))
+                                .collect::<Vec<_>>(),
+                        ]
+                    })
+                },
                 fallback
             )]]
-            .block(Block::bordered().title("Todos"))
+            .block(Block::bordered().title("Todos")),
+            notifications()
         ],
-        Popup::default().percent_x(50).percent_y(50).render(
-            move || add_pending.get(),
-            move || col![
+        Popup::default()
+            .percent_x(50)
+            .percent_y(50)
+            .render(pending, move || col![
                 col![].fill(1),
                 clear![widget_ref!(
                     Paragraph::new("Saving...").block(Block::bordered())
                 )]
                 .length(3),
                 col![].fill(1),
-            ]
-        )
+            ])
     ]
 }
 
-fn todo_item(text: String) -> impl Render {
+fn todo_item(id: u32, text: String) -> impl Render {
+    let editing = RwSignal::new(false);
+    let text = RwSignal::new(text);
+    let edit_save_text = derive_signal!(Text::from(if editing.get() {
+        "".green()
+    } else {
+        "".blue()
+    }));
+
+    let TodoContext {
+        update_todo,
+        delete_todo,
+    } = use_context::<TodoContext>().unwrap();
+
+    let input_ref = Input::get_ref();
+    let input_id = StoredValue::new(NodeId::new_auto());
+
     row![
-        Button::new().length(8).render(Text::from("edit")),
-        Button::new().length(5).render(Text::from("x".red())),
-        col![widget_ref!(Paragraph::new(text.clone()))].margin(1)
+        Button::new()
+            .length(5)
+            .on_click(move || {
+                editing.update(|e| *e = !*e);
+            })
+            .render(edit_save_text),
+        Button::new()
+            .length(5)
+            .on_click(move || {
+                delete_todo.dispatch(id);
+            })
+            .render(Text::from("x".red())),
+        Show::new()
+            .fallback(move || col![widget_ref!(Paragraph::new(text.get()))].margin(1))
+            .render(editing, move || {
+                // Focus after mounting
+                wasm_compat::spawn_local(async move {
+                    focus_id(input_id.get_value());
+                });
+
+                Input::default()
+                    .block(|state| {
+                        Block::bordered()
+                            .fg(if state == WidgetState::Focused {
+                                Color::Blue
+                            } else {
+                                Color::default()
+                            })
+                            .into()
+                    })
+                    .initial_value(text.get())
+                    .on_submit(move |value| {
+                        update_todo.dispatch((id, value));
+                    })
+                    .id(input_id.get_value())
+                    .render(input_ref)
+            })
     ]
     .length(3)
 }

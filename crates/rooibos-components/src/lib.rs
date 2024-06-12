@@ -10,6 +10,7 @@ mod tab_view;
 mod wrapping_list;
 
 pub use button::*;
+pub use either_of;
 pub use for_loop::*;
 pub use input::*;
 pub use list_view::*;

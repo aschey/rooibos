@@ -1,5 +1,4 @@
 use either_of::Either;
-use reactive_graph::computed::Memo;
 use reactive_graph::traits::Get;
 use rooibos_dom::{IntoView, TypedChildrenMut, ViewFn};
 
@@ -20,17 +19,21 @@ impl Show {
         }
     }
 
+    pub fn fallback(mut self, fallback: impl Into<ViewFn>) -> Self {
+        self.fallback = fallback.into();
+        self
+    }
+
     pub fn render<C, W>(self, when: W, children: impl Into<TypedChildrenMut<C>>) -> impl IntoView
     where
         C: IntoView + 'static,
-        W: Fn() -> bool + Send + Sync + 'static,
+        W: Get<Value = bool> + Send + 'static,
     {
         let Self { fallback } = self;
-        let memoized_when = Memo::new(move |_| when());
 
         let mut children = children.into().into_inner();
         move || {
-            if memoized_when.get() {
+            if when.get() {
                 Either::Left(children())
             } else {
                 Either::Right(fallback.run())

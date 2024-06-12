@@ -56,7 +56,7 @@ impl Popup {
     where
         F: FnMut() -> M + Send + Sync + 'static,
         M: RenderAny + Send + Sync + 'static,
-        W: Fn() -> bool + Send + Sync + 'static,
+        W: Get<Value = bool> + Send + Sync + 'static,
     {
         let Popup {
             percent_x,
