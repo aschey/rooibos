@@ -1,9 +1,11 @@
+use std::fmt::Display;
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
 use ratatui::Viewport;
 use termwiz::caps::Capabilities;
+use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
 use termwiz::terminal::{SystemTerminal, Terminal};
 use tokio::sync::broadcast;
@@ -17,26 +19,53 @@ pub struct TermwizBackend<W: Write> {
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
     viewport: Viewport,
+    title: Option<String>,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
+}
+
+impl<W> TerminalSettings<W> {
+    fn new<F>(writer: F) -> Self
+    where
+        F: Fn() -> W + Send + Sync + 'static,
+    {
+        Self {
+            alternate_screen: true,
+            viewport: Viewport::default(),
+            title: None,
+            get_writer: Box::new(writer),
+        }
+    }
+}
+
+impl<W> TerminalSettings<W> {
+    pub fn writer(mut self, get_writer: impl Fn() -> W + Send + Sync + 'static) -> Self {
+        self.get_writer = Box::new(get_writer);
+        self
+    }
+
+    pub fn viewport(mut self, viewport: Viewport) -> Self {
+        if viewport != Viewport::Fullscreen {
+            self.alternate_screen = false;
+        }
+        self.viewport = viewport;
+        self
+    }
+
+    pub fn title<T: Display>(mut self, title: T) -> Self {
+        self.title = Some(title.to_string());
+        self
+    }
 }
 
 impl Default for TerminalSettings<Stdout> {
     fn default() -> Self {
-        Self {
-            alternate_screen: true,
-            viewport: Viewport::default(),
-            get_writer: Box::new(stdout),
-        }
+        Self::new(stdout)
     }
 }
 
 impl Default for TerminalSettings<Stderr> {
     fn default() -> Self {
-        Self {
-            alternate_screen: true,
-            viewport: Viewport::default(),
-            get_writer: Box::new(stderr),
-        }
+        Self::new(stderr)
     }
 }
 
@@ -45,6 +74,12 @@ impl Default for TermwizBackend<Stdout> {
         Self {
             settings: Default::default(),
         }
+    }
+}
+
+impl<W: io::Write> TermwizBackend<W> {
+    pub fn new(settings: TerminalSettings<W>) -> Self {
+        Self { settings }
     }
 }
 
@@ -60,6 +95,10 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
         if self.settings.alternate_screen {
             terminal.terminal().enter_alternate_screen().unwrap();
+        }
+
+        if let Some(title) = &self.settings.title {
+            terminal.add_change(Change::Title(title.clone()));
         }
 
         let terminal = ratatui::terminal::Terminal::with_options(
@@ -106,6 +145,18 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             .terminal()
             .enter_alternate_screen()
             .unwrap();
+        Ok(())
+    }
+
+    fn set_title<T: std::fmt::Display>(
+        &self,
+        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
+        title: T,
+    ) -> io::Result<()> {
+        terminal
+            .backend_mut()
+            .buffered_terminal_mut()
+            .add_change(Change::Title(title.to_string()));
         Ok(())
     }
 

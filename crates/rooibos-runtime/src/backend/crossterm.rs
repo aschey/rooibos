@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 
 use crossterm::cursor::{Hide, Show};
@@ -8,7 +9,7 @@ use crossterm::event::{
 };
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
-    LeaveAlternateScreen,
+    LeaveAlternateScreen, SetTitle,
 };
 use crossterm::{execute, queue};
 use futures_util::StreamExt;
@@ -26,6 +27,7 @@ pub struct TerminalSettings<W> {
     focus_change: bool,
     bracketed_paste: bool,
     viewport: Viewport,
+    title: Option<String>,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
@@ -53,6 +55,7 @@ impl<W> TerminalSettings<W> {
             focus_change: true,
             bracketed_paste: true,
             viewport: Viewport::default(),
+            title: None,
             get_writer: Box::new(get_writer),
         }
     }
@@ -87,6 +90,11 @@ impl<W> TerminalSettings<W> {
 
     pub fn keyboard_enhancement(mut self, keyboard_enhancement: bool) -> Self {
         self.keyboard_enhancement = keyboard_enhancement;
+        self
+    }
+
+    pub fn title<T: Display>(mut self, title: T) -> Self {
+        self.title = Some(title.to_string());
         self
     }
 
@@ -145,12 +153,14 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         if self.settings.bracketed_paste {
             queue!(writer, EnableBracketedPaste)?;
         }
-
         if self.supports_keyboard_enhancement {
             queue!(
                 writer,
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
+        }
+        if let Some(title) = &self.settings.title {
+            queue!(writer, SetTitle(title))?;
         }
         writer.flush()?;
 
@@ -182,6 +192,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         if self.settings.alternate_screen {
             queue!(writer, LeaveAlternateScreen)?;
         }
+
         queue!(writer, Show)?;
         writer.flush()?;
         disable_raw_mode()?;
@@ -195,6 +206,14 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         execute!(terminal.backend_mut(), LeaveAlternateScreen)
+    }
+
+    fn set_title<T: std::fmt::Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        title: T,
+    ) -> io::Result<()> {
+        execute!(terminal.backend_mut(), SetTitle(title))
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {

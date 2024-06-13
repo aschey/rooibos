@@ -6,6 +6,7 @@ pub mod termion;
 pub mod termwiz;
 pub mod test;
 
+use std::fmt::Display;
 use std::{future, io};
 
 use futures_util::Future;
@@ -24,6 +25,12 @@ pub trait Backend: Send + Sync {
     fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
 
     fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
+
+    fn set_title<T: Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        title: T,
+    ) -> io::Result<()>;
 
     fn supports_async_input(&self) -> bool {
         true

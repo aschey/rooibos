@@ -24,6 +24,14 @@ impl Backend for TestBackend {
         true
     }
 
+    fn set_title<T: std::fmt::Display>(
+        &self,
+        _terminal: &mut Terminal<Self::TuiBackend>,
+        _title: T,
+    ) -> io::Result<()> {
+        Ok(())
+    }
+
     fn write_all(&self, _buf: &[u8]) -> io::Result<()> {
         Ok(())
     }

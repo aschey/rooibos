@@ -92,6 +92,17 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         ))
     }
 
+    fn set_title<T: std::fmt::Display>(
+        &self,
+        _terminal: &mut Terminal<Self::TuiBackend>,
+        _title: T,
+    ) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "termion backend does not support setting the window title",
+        ))
+    }
+
     async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
         spawn_blocking(move || {
             let stdin = io::stdin();

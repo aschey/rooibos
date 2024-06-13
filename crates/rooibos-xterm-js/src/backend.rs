@@ -10,7 +10,7 @@ use crossterm::event::{
 };
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
-    LeaveAlternateScreen,
+    LeaveAlternateScreen, SetTitle,
 };
 use crossterm::{execute, queue};
 use futures::StreamExt;
@@ -197,6 +197,14 @@ impl Backend for WasmBackend {
 
     fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         execute!(terminal.backend_mut(), LeaveAlternateScreen)
+    }
+
+    fn set_title<T: std::fmt::Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        title: T,
+    ) -> io::Result<()> {
+        execute!(terminal.backend_mut(), SetTitle(title))
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {

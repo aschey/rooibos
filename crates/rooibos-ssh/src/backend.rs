@@ -52,6 +52,14 @@ impl<B: Backend> Backend for SshBackend<B> {
         self.inner.write_all(buf)
     }
 
+    fn set_title<T: std::fmt::Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        title: T,
+    ) -> io::Result<()> {
+        self.inner.set_title(terminal, title)
+    }
+
     fn supports_async_input(&self) -> bool {
         true
     }

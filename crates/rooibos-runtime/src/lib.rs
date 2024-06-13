@@ -3,6 +3,7 @@ pub mod wasm_compat;
 
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
@@ -78,6 +79,7 @@ pub enum TerminalCommand {
     InsertBefore { height: u16, text: Text<'static> },
     EnterAltScreen,
     LeaveAltScreen,
+    SetTitle(String),
     Poll,
 }
 
@@ -429,6 +431,9 @@ impl<B: Backend + 'static> Runtime<B> {
                 self.backend.leave_alt_screen(terminal)?;
                 terminal.clear()?;
             }
+            TerminalCommand::SetTitle(title) => {
+                self.backend.set_title(terminal, title)?;
+            }
             TerminalCommand::Poll => {
                 self.backend.poll_input(terminal, &self.term_parser_tx)?;
             }
@@ -563,6 +568,20 @@ pub fn leave_alt_screen() {
                     .unwrap()
                     .term_command_tx
                     .send(TerminalCommand::LeaveAltScreen)
+            })
+        })
+        .unwrap();
+}
+
+pub fn set_title<T: Display>(title: T) {
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get().unwrap().with(|r| {
+                r.get(&current_runtime)
+                    .unwrap()
+                    .term_command_tx
+                    .send(TerminalCommand::SetTitle(title.to_string()))
             })
         })
         .unwrap();
