@@ -6,6 +6,7 @@ use rooibos_dom::Event;
 use rooibos_runtime::backend::Backend;
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
+use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
 pub struct SshBackend<B: Backend> {
@@ -64,12 +65,25 @@ impl<B: Backend> Backend for SshBackend<B> {
         true
     }
 
-    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
+    async fn read_input(
+        &self,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
+        cancellation_token: CancellationToken,
+    ) {
         let mut event_rx = self.event_rx.lock().unwrap().take().unwrap();
-        while let Some(event) = event_rx.recv().await {
-            let _ = term_tx
-                .send(event)
-                .tap_err(|e| warn!("failed to send event {e:?}"));
+        loop {
+            tokio::select! {
+                event = event_rx.recv() => {
+                    if let Some(event) = event {
+                        let _ = term_tx
+                            .send(event)
+                            .tap_err(|e| warn!("failed to send event {e:?}"));
+                    }
+                }
+                _ = cancellation_token.cancelled() => {
+                    return;
+                }
+            }
         }
     }
 }

@@ -366,13 +366,12 @@ impl Mountable<RooibosDom> for DomNode {
         self.unmounted = false;
     }
 
-    fn insert_before_this(
-        &self,
-        parent: &<RooibosDom as Renderer>::Element,
-        child: &mut dyn Mountable<RooibosDom>,
-    ) -> bool {
-        child.mount(parent, Some(self));
-        true
+    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
+        if let Some(parent) = RooibosDom::get_parent(self) {
+            child.mount(&parent, Some(self));
+            return true;
+        }
+        false
     }
 }
 

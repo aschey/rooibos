@@ -80,11 +80,11 @@ where
         self.placeholder.mount(parent, marker);
     }
 
-    fn insert_before_this(&self, parent: &DomNode, child: &mut dyn Mountable<RooibosDom>) -> bool {
+    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
         if self.showing_fallback {
-            self.fallback.insert_before_this(parent, child)
+            self.fallback.insert_before_this(child)
         } else {
-            self.children.insert_before_this(parent, child)
+            self.children.insert_before_this(child)
         }
     }
 }

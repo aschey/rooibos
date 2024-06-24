@@ -8,6 +8,7 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
 use tokio::sync::broadcast;
 use tokio::task::spawn_blocking;
+use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
 use super::Backend;
@@ -103,8 +104,12 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         ))
     }
 
-    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
-        spawn_blocking(move || {
+    async fn read_input(
+        &self,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
+        cancellation_token: CancellationToken,
+    ) {
+        let reader = spawn_blocking(move || {
             let stdin = io::stdin();
             for event in stdin.events().flatten() {
                 if let Ok(event) = event.try_into() {
@@ -113,8 +118,10 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                         .tap_err(|e| warn!("failed to send event {e:?}"));
                 }
             }
-        })
-        .await
-        .unwrap();
+        });
+        tokio::select! {
+            _ = reader => {}
+            _ = cancellation_token.cancelled() => {}
+        }
     }
 }

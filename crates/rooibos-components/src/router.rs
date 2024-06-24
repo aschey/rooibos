@@ -164,12 +164,8 @@ impl Mountable<RooibosDom> for RouterState {
         self.state.mount(parent, marker)
     }
 
-    fn insert_before_this(
-        &self,
-        parent: &<RooibosDom as tachys::prelude::Renderer>::Element,
-        child: &mut dyn Mountable<RooibosDom>,
-    ) -> bool {
-        self.state.insert_before_this(parent, child)
+    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
+        self.state.insert_before_this(child)
     }
 }
 

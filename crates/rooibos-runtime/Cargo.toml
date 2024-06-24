@@ -16,6 +16,7 @@ tap = "1"
 tracing = "0.1"
 derivative = "2"
 termwiz = { version = "0.22.0", optional = true }
+tokio-util = "0.7"
 
 [target.'cfg(unix)'.dependencies]
 termion = { version = "4", optional = true }

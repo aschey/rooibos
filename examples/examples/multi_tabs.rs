@@ -40,12 +40,12 @@ fn app() -> impl Render {
         match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
-                    focused.set(prev.get_value());
+                    focused.set(prev.get_value().to_string());
                 }
             }
             KeyCode::Right => {
                 if let Some(next) = tabs.next_item(&focused.get()) {
-                    focused.set(next.get_value());
+                    focused.set(next.get_value().to_string());
                 }
             }
             _ => {}
@@ -60,7 +60,7 @@ fn app() -> impl Render {
                 .highlight_style(Style::new().yellow())
                 .fit(true)
                 .on_title_click(move |_, tab| {
-                    focused.set(tab);
+                    focused.set(tab.to_string());
                 })
                 .on_focus(move |_| {
                     tab_block.set(Block::bordered().blue().title("Demo"));
@@ -90,12 +90,12 @@ fn inner_tabs() -> impl Render {
         match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&focused_tab.get()) {
-                    focused_tab.set(prev.get_value());
+                    focused_tab.set(prev.get_value().to_string());
                 }
             }
             KeyCode::Right => {
                 if let Some(next) = tabs.next_item(&focused_tab.get()) {
-                    focused_tab.set(next.get_value());
+                    focused_tab.set(next.get_value().to_string());
                 }
             }
             _ => {}
@@ -108,7 +108,7 @@ fn inner_tabs() -> impl Render {
             .block(tab_block)
             .highlight_style(Style::new().yellow())
             .on_title_click(move |_, tab| {
-                focused_tab.set(tab);
+                focused_tab.set(tab.to_string());
             })
             .on_focus(move |_| {
                 tab_block.set(Block::bordered().blue().title("Inner"));

@@ -19,8 +19,7 @@ pub struct AnyViewState {
     state: Box<dyn Any>,
     unmount: fn(&mut dyn Any),
     mount: fn(&mut dyn Any, parent: &DomNode, marker: Option<&DomNode>),
-    insert_before_this:
-        fn(&dyn Any, parent: &DomNode, child: &mut dyn Mountable<RooibosDom>) -> bool,
+    insert_before_this: fn(&dyn Any, child: &mut dyn Mountable<RooibosDom>) -> bool,
 }
 
 impl Debug for AnyViewState {
@@ -61,11 +60,7 @@ where
     state.unmount();
 }
 
-fn insert_before_this<T>(
-    state: &dyn Any,
-    parent: &DomNode,
-    child: &mut dyn Mountable<RooibosDom>,
-) -> bool
+fn insert_before_this<T>(state: &dyn Any, child: &mut dyn Mountable<RooibosDom>) -> bool
 where
     T: RenderAny,
     T::State: 'static,
@@ -73,7 +68,7 @@ where
     let state = state
         .downcast_ref::<T::State>()
         .expect("AnyViewState::opening_node couldn't downcast state");
-    state.insert_before_this(parent, child)
+    state.insert_before_this(child)
 }
 
 impl<T> IntoAny for T
@@ -153,7 +148,7 @@ impl Mountable<RooibosDom> for AnyViewState {
         (self.mount)(&mut *self.state, parent, marker)
     }
 
-    fn insert_before_this(&self, parent: &DomNode, child: &mut dyn Mountable<RooibosDom>) -> bool {
-        (self.insert_before_this)(self, parent, child)
+    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
+        (self.insert_before_this)(&*self.state, child)
     }
 }

@@ -43,7 +43,7 @@ fn app() -> impl Render {
         if focused.get() == tab {
             let tabs = tabs.get();
             if tabs.is_empty() {
-                focused.set("");
+                focused.set("".to_string());
                 return;
             }
             let new_idx = (i as isize - 1).max(0);
@@ -57,12 +57,12 @@ fn app() -> impl Render {
         match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
-                    focused.set(prev.get_value());
+                    focused.set(prev.get_value().to_string());
                 }
             }
             KeyCode::Right => {
                 if let Some(next) = tabs.next_item(&focused.get()) {
-                    focused.set(next.get_value());
+                    focused.set(next.get_value().to_string());
                 }
             }
             KeyCode::Char('d') => {
@@ -85,7 +85,7 @@ fn app() -> impl Render {
             .highlight_style(Style::new().yellow())
             .fit(true)
             .on_title_click(move |_, tab| {
-                focused.set(tab);
+                focused.set(tab.to_string());
             })
             .on_focus(move |_| {
                 tabs_block.set(Block::bordered().title("Demo").blue());

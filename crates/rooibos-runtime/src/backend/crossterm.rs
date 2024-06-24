@@ -16,6 +16,7 @@ use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use tokio::sync::broadcast;
+use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
 use super::Backend;
@@ -224,14 +225,29 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
+    async fn read_input(
+        &self,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
+        cancellation_token: CancellationToken,
+    ) {
         let mut event_reader = EventStream::new().fuse();
 
-        while let Some(Ok(event)) = event_reader.next().await {
-            if let Ok(event) = event.try_into() {
-                let _ = term_tx
-                    .send(event)
-                    .tap_err(|e| warn!("failed to send event {e:?}"));
+        loop {
+            tokio::select! {
+                _ = cancellation_token.cancelled() => {
+                    return;
+                }
+                event = event_reader.next() => {
+                    if let Some(Ok(event)) = event {
+                        if let Ok(event) = event.try_into() {
+                            let _ = term_tx
+                                .send(event)
+                                .tap_err(|e| warn!("failed to send event {e:?}"));
+                        }
+                    } else {
+                        return;
+                    }
+                }
             }
         }
     }

@@ -116,12 +116,12 @@ fn header_tabs() -> impl Render {
         match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
-                    focused.set(prev.get_value());
+                    focused.set(prev.get_value().to_string());
                 }
             }
             KeyCode::Right => {
                 if let Some(next) = tabs.next_item(&focused.get()) {
-                    focused.set(next.get_value());
+                    focused.set(next.get_value().to_string());
                 }
             }
             _ => {}
@@ -134,7 +134,7 @@ fn header_tabs() -> impl Render {
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .on_key_down(on_key_down)
-            .on_title_click(move |_, tab| focused.set(tab))
+            .on_title_click(move |_, tab| focused.set(tab.to_string()))
             .render(focused, tabs)
     ]
 }

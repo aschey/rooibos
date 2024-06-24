@@ -20,6 +20,7 @@ reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "effects",
 ] }
 terminput = { path = "../../../terminput" }
+tokio-util = "0.7"
 
 [features]
 crossterm = ["dep:crossterm"]

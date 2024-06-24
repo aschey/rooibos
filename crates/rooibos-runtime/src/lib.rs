@@ -7,10 +7,13 @@ use std::fmt::Display;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
+use std::process::ExitStatus;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 use backend::Backend;
+use derivative::Derivative;
 use futures_util::StreamExt;
 use ratatui::text::Text;
 use ratatui::widgets::{Paragraph, Widget};
@@ -25,6 +28,7 @@ use rooibos_dom::{
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tokio::{task, task_local};
+use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 use wasm_compat::Mutex;
 
@@ -74,16 +78,31 @@ where
     CURRENT_RUNTIME.scope(id, f).await
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
+    + Send
+    + Sync;
+
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
 pub enum TerminalCommand {
-    InsertBefore { height: u16, text: Text<'static> },
+    InsertBefore {
+        height: u16,
+        text: Text<'static>,
+    },
     EnterAltScreen,
     LeaveAltScreen,
     SetTitle(String),
+    #[cfg(not(target_arch = "wasm32"))]
+    Exec {
+        #[derivative(Debug = "ignore")]
+        command: Arc<std::sync::Mutex<tokio::process::Command>>,
+        #[derivative(Debug = "ignore")]
+        on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
+    },
     Poll,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub enum TickResult {
     Continue,
     Redraw,
@@ -170,12 +189,15 @@ pub struct Runtime<B: Backend> {
     term_parser_tx: broadcast::Sender<Event>,
     dom_update_rx: DomUpdateReceiver,
     backend: Arc<B>,
+    cancellation_token: CancellationToken,
+    parser_running: Arc<AtomicBool>,
 }
 
 pub enum SignalMode {
     Terminate,
     Suspend,
     Resume,
+    Restart,
 }
 
 impl<B: Backend + 'static> Runtime<B> {
@@ -274,10 +296,12 @@ impl<B: Backend + 'static> Runtime<B> {
             dom_update_rx,
             signal_rx,
             backend,
+            cancellation_token: CancellationToken::new(),
+            parser_running: Arc::new(AtomicBool::new(false)),
         }
     }
 
-    pub fn setup_terminal(&self) -> io::Result<Terminal<B::TuiBackend>> {
+    pub fn setup_terminal(&mut self) -> io::Result<Terminal<B::TuiBackend>> {
         let terminal = self.backend.setup_terminal()?;
         let backend = self.backend.clone();
 
@@ -285,9 +309,12 @@ impl<B: Backend + 'static> Runtime<B> {
             let backend = backend.clone();
 
             let term_parser_tx = self.term_parser_tx.clone();
+            // Reset cancellation token so the next input reader can start
+            self.cancellation_token = CancellationToken::new();
+            let cancellation_token = self.cancellation_token.clone();
             if backend.supports_async_input() {
                 wasm_compat::spawn(async move {
-                    backend.read_input(term_parser_tx).await;
+                    backend.read_input(term_parser_tx, cancellation_token).await;
                 });
             }
 
@@ -321,7 +348,10 @@ impl<B: Backend + 'static> Runtime<B> {
 
         let mut term_parser_rx = self.term_parser_tx.subscribe();
         let hover_debounce = self.settings.hover_debounce.as_millis();
-
+        if self.parser_running.swap(true, Ordering::SeqCst) {
+            return;
+        }
+        let parser_running = self.parser_running.clone();
         wasm_compat::spawn(async move {
             let mut last_move_time = wasm_compat::now();
             let mut pending_move = None;
@@ -370,6 +400,7 @@ impl<B: Backend + 'static> Runtime<B> {
 
                             }
                             _ => {
+                                parser_running.store(false, Ordering::SeqCst);
                                 return;
                             }
                         }
@@ -405,15 +436,15 @@ impl<B: Backend + 'static> Runtime<B> {
                     return Ok(());
                 }
                 TickResult::Command(command) => {
-                    self.handle_terminal_command(command, &mut terminal)?;
+                    self.handle_terminal_command(command, &mut terminal).await?;
                 }
                 TickResult::Continue => {}
             }
         }
     }
 
-    pub fn handle_terminal_command(
-        &self,
+    pub async fn handle_terminal_command(
+        &mut self,
         command: TerminalCommand,
         terminal: &mut Terminal<B::TuiBackend>,
     ) -> io::Result<()> {
@@ -437,6 +468,31 @@ impl<B: Backend + 'static> Runtime<B> {
             TerminalCommand::Poll => {
                 self.backend.poll_input(terminal, &self.term_parser_tx)?;
             }
+            #[cfg(not(target_arch = "wasm32"))]
+            TerminalCommand::Exec { command, on_finish } => {
+                self.cancellation_token.cancel();
+
+                restore_terminal()?;
+                terminal.clear()?;
+                let mut child = command.lock().unwrap().spawn()?;
+                let child_stdout = child.stdout.take();
+                let child_stderr = child.stderr.take();
+                tokio::select! {
+                    status = child.wait() => {
+                        let status = status.unwrap();
+                        let on_finish = (*on_finish.lock().unwrap()).take().unwrap();
+                        on_finish(status, child_stdout, child_stderr);
+                        self.signal_tx.send(SignalMode::Restart).await.unwrap();
+                    },
+                    // Interrupt child if a signal is received
+                    res = self.signal_rx.recv() => {
+                        child.kill().await.unwrap();
+                        if let Some(signal) = res {
+                            self.signal_tx.send(signal).await.unwrap();
+                        }
+                    }
+                }
+            }
         };
         terminal.draw(|f| render_dom(f.buffer_mut()))?;
         Ok(())
@@ -447,6 +503,7 @@ impl<B: Backend + 'static> Runtime<B> {
             signal = self.signal_rx.recv() => {
                 match signal {
                     Some(SignalMode::Suspend) => {
+                        self.cancellation_token.cancel();
                         restore_terminal().unwrap();
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();
@@ -455,6 +512,9 @@ impl<B: Backend + 'static> Runtime<B> {
                     Some(SignalMode::Resume) => {
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Cont as i32).unwrap();
+                        TickResult::Restart
+                    }
+                    Some(SignalMode::Restart) => {
                         TickResult::Restart
                     }
                     Some(SignalMode::Terminate) | None => {
@@ -582,6 +642,30 @@ pub fn set_title<T: Display>(title: T) {
                     .unwrap()
                     .term_command_tx
                     .send(TerminalCommand::SetTitle(title.to_string()))
+            })
+        })
+        .unwrap();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn exec<F>(command: tokio::process::Command, on_finish: F)
+where
+    F: FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
+        + Send
+        + Sync
+        + 'static,
+{
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get().unwrap().with(|r| {
+                r.get(&current_runtime)
+                    .unwrap()
+                    .term_command_tx
+                    .send(TerminalCommand::Exec {
+                        command: Arc::new(std::sync::Mutex::new(command)),
+                        on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
+                    })
             })
         })
         .unwrap();

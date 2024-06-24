@@ -1,6 +1,7 @@
 use std::io::{self};
 
 use ratatui::Terminal;
+use tokio_util::sync::CancellationToken;
 
 use super::Backend;
 
@@ -44,5 +45,10 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    async fn read_input(&self, _: tokio::sync::broadcast::Sender<rooibos_dom::Event>) {}
+    async fn read_input(
+        &self,
+        _: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
+        _cancellation_token: CancellationToken,
+    ) {
+    }
 }

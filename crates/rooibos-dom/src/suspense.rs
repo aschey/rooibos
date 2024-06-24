@@ -1,12 +1,13 @@
 use reactive_graph::computed::suspense::SuspenseContext;
 use reactive_graph::computed::ArcMemo;
+use reactive_graph::effect::RenderEffect;
 use reactive_graph::owner::provide_context;
 use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, With};
 use slotmap::{DefaultKey, SlotMap};
-use tachys::reactive_graph::{OwnedView, RenderEffectState};
+use tachys::reactive_graph::OwnedView;
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
-use tachys::view::Render;
+use tachys::view::{Mountable, Render};
 
 use crate::{AnyView, IntoView, RenderAny, RooibosDom, ViewFnOnce};
 
@@ -91,7 +92,7 @@ where
     Fal: RenderAny + Send + 'static,
     Chil: RenderAny + Send + 'static,
 {
-    type State = RenderEffectState<EitherKeepAliveState<Chil::State, Fal::State, RooibosDom>>;
+    type State = RenderEffect<EitherKeepAliveState<Chil::State, Fal::State>>;
 
     fn build(self) -> Self::State {
         let mut children = Some(self.children);
@@ -99,22 +100,35 @@ where
         let none_pending = self.none_pending;
         let mut nth_run = 0;
 
-        (move || {
-            // show the fallback if
-            // 1) there are pending futures, and
-            // 2) we are either in a Suspense (not Transition), or it's the first fallback (because
-            //    we initially render the children to register Futures, the "first fallback" is
-            //    probably the 2nd run
-            let show_b = !none_pending.get() && (!TRANSITION || nth_run < 2);
-            nth_run += 1;
-            EitherKeepAlive {
-                a: children.take(),
-                b: fallback.take(),
-                show_b,
-            }
-        })
-        .build()
+        RenderEffect::new(
+            move |prev: Option<EitherKeepAliveState<Chil::State, Fal::State>>| {
+                // show the fallback if
+                // 1) there are pending futures, and
+                // 2) we are either in a Suspense (not Transition), or it's the first fallback
+                //    (because we initially render the children to register Futures, the "first
+                //    fallback" is probably the 2nd run
+                let show_b = !none_pending.get() && (!TRANSITION || nth_run < 2);
+                nth_run += 1;
+                let this = EitherKeepAlive {
+                    a: children.take(),
+                    b: fallback.take(),
+                    show_b,
+                };
+
+                if let Some(mut state) = prev {
+                    this.rebuild(&mut state);
+                    state
+                } else {
+                    this.build()
+                }
+            },
+        )
     }
 
-    fn rebuild(self, _state: &mut Self::State) {}
+    fn rebuild(self, state: &mut Self::State) {
+        let new = self.build();
+        let mut old = std::mem::replace(state, new);
+        old.insert_before_this(state);
+        old.unmount();
+    }
 }
