@@ -7,6 +7,7 @@ use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::style::{Color, Stylize};
+use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -29,10 +30,11 @@ fn app() -> impl Render {
     col![
         Input::default()
             .block(|state| Block::bordered()
-                .fg(if state == WidgetState::Focused {
-                    Color::Blue
+                .fg(Color::Blue)
+                .border_set(if state == WidgetState::Focused {
+                    border::PLAIN
                 } else {
-                    Color::default()
+                    border::EMPTY
                 })
                 .title("Input")
                 .into())

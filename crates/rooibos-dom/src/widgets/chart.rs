@@ -1,6 +1,7 @@
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, GraphType, WidgetRef};
+use style::Styled;
 
 #[derive(Clone, Default)]
 pub struct Dataset<'a> {

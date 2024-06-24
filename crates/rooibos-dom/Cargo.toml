@@ -14,7 +14,7 @@ tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
 any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
 throw_error = { path = "../../../leptos/any_error" }
 next_tuple = { path = "../../../leptos/next_tuple" }
-ratatui = { version = "0.26", features = ["unstable"] }
+ratatui = { version = "0.27", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
 bitflags = "2"

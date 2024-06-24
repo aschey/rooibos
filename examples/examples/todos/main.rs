@@ -15,10 +15,12 @@ use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::{provide_context, use_context, StoredValue};
 use rooibos::reactive::signal::{ArcRwSignal, RwSignal};
-use rooibos::reactive::traits::{Get, Track, Update, With};
+use rooibos::reactive::traits::{Get, Set, Track, With};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
 use rooibos::tui::style::{Color, Stylize};
+use rooibos::tui::symbols::border;
 use rooibos::tui::text::{Line, Span, Text};
 use rooibos::tui::widgets::{Block, Paragraph};
 use server::run_server;
@@ -55,6 +57,8 @@ fn app() -> impl Render {
 
         widget_ref!(Paragraph::new(Line::from(error_list())))
     };
+
+    let editing_id = RwSignal::new(None);
 
     let add_todo = Action::new(move |text: &String| add_todo(text.clone()));
     let update_todo = Action::new(move |(id, text): &(u32, String)| update_todo(*id, text.clone()));
@@ -128,7 +132,7 @@ fn app() -> impl Render {
                         col![
                             todos
                                 .into_iter()
-                                .map(|t| todo_item(t.id, t.text))
+                                .map(|t| todo_item(t.id, t.text, editing_id))
                                 .collect::<Vec<_>>(),
                         ]
                     })
@@ -152,8 +156,8 @@ fn app() -> impl Render {
     ]
 }
 
-fn todo_item(id: u32, text: String) -> impl Render {
-    let editing = RwSignal::new(false);
+fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl Render {
+    let editing = Signal::derive(move || editing_id.get() == Some(id));
     let text = RwSignal::new(text);
     let edit_save_text = derive_signal!(Text::from(if editing.get() {
         "".green()
@@ -173,7 +177,11 @@ fn todo_item(id: u32, text: String) -> impl Render {
         Button::new()
             .length(5)
             .on_click(move || {
-                editing.update(|e| *e = !*e);
+                if editing.get() {
+                    input_ref.submit();
+                } else {
+                    editing_id.set(Some(id));
+                }
             })
             .render(edit_save_text),
         Button::new()
@@ -193,16 +201,18 @@ fn todo_item(id: u32, text: String) -> impl Render {
                 Input::default()
                     .block(|state| {
                         Block::bordered()
-                            .fg(if state == WidgetState::Focused {
-                                Color::Blue
+                            .fg(Color::Blue)
+                            .border_set(if state == WidgetState::Focused {
+                                border::PLAIN
                             } else {
-                                Color::default()
+                                border::EMPTY
                             })
                             .into()
                     })
                     .initial_value(text.get())
                     .on_submit(move |value| {
                         update_todo.dispatch((id, value));
+                        editing_id.set(None);
                     })
                     .id(input_id.get_value())
                     .render(input_ref)

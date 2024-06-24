@@ -7,7 +7,7 @@ edition = "2021"
 ratatui-wasm = { path = "../../../ratatui-wasm" }
 crossterm = { version = "0.27", features = ["event-stream"] }
 futures = "0.3"
-ratatui = { version = "0.26", default-features = false }
+ratatui = { version = "0.27", default-features = false }
 tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
 tracing = "0.1"
 web-sys = { version = "0.3.64", features = ["console", "Window", "Document"] }

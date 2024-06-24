@@ -67,7 +67,7 @@ fn demo_line_gauge(
     widget_ref!(
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
-            .gauge_style(Style::new().magenta())
+            .filled_style(Style::new().magenta())
             .line_set(if enhanced_graphics {
                 symbols::line::THICK
             } else {

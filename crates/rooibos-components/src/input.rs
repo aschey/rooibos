@@ -5,88 +5,108 @@ use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
 use reactive_graph::effect::Effect;
+use reactive_graph::owner::StoredValue;
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, Constrainable, DomWidget, KeyCode, KeyEvent, NodeId, Render, WidgetState,
+    derive_signal, Constrainable, DomWidget, EventData, KeyCode, KeyEvent, NodeId, Render,
+    WidgetState,
 };
+use rooibos_runtime::wasm_compat;
+use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
 
 #[derive(Clone, Copy)]
-pub struct InputRef(RwSignal<TextArea<'static>>);
+pub struct InputRef {
+    text_area: RwSignal<TextArea<'static>>,
+    submit_tx: StoredValue<broadcast::Sender<String>>,
+}
 
 impl InputRef {
     pub fn text(&self) -> Signal<String> {
-        let textarea = self.0;
-        derive_signal!(textarea.get().lines()[0].clone())
+        let text_area = self.text_area;
+        derive_signal!(text_area.get().lines()[0].clone())
     }
 }
 
 impl InputRef {
+    pub fn submit(&self) {
+        self.submit_tx
+            .get_value()
+            .send(self.text_area.with(|t| t.lines()[0].to_owned()))
+            .unwrap();
+    }
+
     pub fn cancel_selection(&self) {
-        self.0.update(|t| {
+        self.text_area.update(|t| {
             t.cancel_selection();
         })
     }
 
     pub fn set_mask_char(&self, mask: char) {
-        self.0.update(|t| {
+        self.text_area.update(|t| {
             t.set_mask_char(mask);
         })
     }
 
     pub fn clear_mask_char(&self) {
-        self.0.update(|t| {
+        self.text_area.update(|t| {
             t.clear_mask_char();
         })
     }
 
     pub fn cut(&self) -> bool {
-        self.0.try_update(|t| t.cut()).unwrap()
+        self.text_area.try_update(|t| t.cut()).unwrap()
     }
 
     pub fn paste(&self) -> bool {
-        self.0.try_update(|t| t.paste()).unwrap()
+        self.text_area.try_update(|t| t.paste()).unwrap()
     }
 
     pub fn move_cursor(&self, cursor_move: CursorMove) {
-        self.0.update(|t| t.move_cursor(cursor_move));
+        self.text_area.update(|t| t.move_cursor(cursor_move));
     }
 
     pub fn delete_line_by_head(&self) -> bool {
-        self.0.try_update(|t| t.delete_line_by_head()).unwrap()
+        self.text_area
+            .try_update(|t| t.delete_line_by_head())
+            .unwrap()
     }
 
     pub fn delete_line_by_end(&self) -> bool {
-        self.0.try_update(|t| t.delete_line_by_end()).unwrap()
+        self.text_area
+            .try_update(|t| t.delete_line_by_end())
+            .unwrap()
     }
 
     pub fn with_lines<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&[String]) -> T,
     {
-        self.0.with(|t| f(t.lines()))
+        self.text_area.with(|t| f(t.lines()))
     }
 
     pub fn set_hard_tab_indent(&self, set: bool) {
-        self.0.update(|t| t.set_hard_tab_indent(set));
+        self.text_area.update(|t| t.set_hard_tab_indent(set));
     }
 
     pub fn cursor(&self) -> (usize, usize) {
-        self.0.with(|t| t.cursor())
+        self.text_area.with(|t| t.cursor())
     }
 
     #[cfg(feature = "input-search")]
     pub fn search_forward(&self, match_cursor: bool) -> bool {
-        self.0
+        self.text_area
             .try_update(|t| t.search_forward(match_cursor))
             .unwrap()
     }
 
     #[cfg(feature = "input-search")]
     pub fn search_back(&self, match_cursor: bool) -> bool {
-        self.0.try_update(|t| t.search_back(match_cursor)).unwrap()
+        self.text_area
+            .try_update(|t| t.search_back(match_cursor))
+            .unwrap()
     }
 }
 
@@ -99,6 +119,8 @@ pub struct Input {
     placeholder_style: MaybeSignal<Style>,
     placeholder_text: MaybeSignal<String>,
     on_submit: Box<dyn FnMut(String)>,
+    on_focus: Box<dyn FnMut(EventData)>,
+    on_blur: Box<dyn FnMut(EventData)>,
     initial_value: String,
     id: Option<NodeId>,
 }
@@ -124,6 +146,8 @@ impl Default for Input {
             placeholder_text: String::new().into(),
             style: Style::default().into(),
             on_submit: Box::new(|_| {}),
+            on_focus: Box::new(|_| {}),
+            on_blur: Box::new(|_| {}),
             initial_value: "".to_string(),
             id: None,
         }
@@ -149,6 +173,16 @@ impl Input {
         self
     }
 
+    pub fn on_focus(mut self, on_focus: impl FnMut(EventData) + 'static) -> Self {
+        self.on_focus = Box::new(on_focus);
+        self
+    }
+
+    pub fn on_blur(mut self, on_blur: impl FnMut(EventData) + 'static) -> Self {
+        self.on_blur = Box::new(on_blur);
+        self
+    }
+
     pub fn initial_value(mut self, initial_value: impl Into<String>) -> Self {
         self.initial_value = initial_value.into();
         self
@@ -160,7 +194,11 @@ impl Input {
     }
 
     pub fn get_ref() -> InputRef {
-        InputRef(RwSignal::new(TextArea::default()))
+        let (submit_tx, _) = broadcast::channel(32);
+        InputRef {
+            text_area: RwSignal::new(TextArea::default()),
+            submit_tx: StoredValue::new(submit_tx),
+        }
     }
 
     pub fn render(self, input_ref: InputRef) -> impl Render {
@@ -173,10 +211,16 @@ impl Input {
             style,
             placeholder_text,
             mut on_submit,
+            mut on_focus,
+            mut on_blur,
             initial_value,
             id,
         } = self;
-        let text_area = input_ref.0;
+
+        let text_area = input_ref.text_area;
+        let submit_tx = input_ref.submit_tx.get_value();
+        let mut submit_rx = submit_tx.subscribe();
+
         text_area.update_untracked(|t| {
             t.delete_line_by_head();
             t.insert_str(initial_value);
@@ -186,6 +230,12 @@ impl Input {
         let block = derive_signal!({
             let state = widget_state.get();
             return block(state);
+        });
+
+        wasm_compat::spawn_local(async move {
+            while let Ok(line) = submit_rx.recv().await {
+                on_submit(line);
+            }
         });
 
         Effect::new(move |_| {
@@ -205,7 +255,7 @@ impl Input {
         let key_down = move |key_event: KeyEvent, _| {
             if key_event.code == KeyCode::Enter && key_event.modifiers.is_empty() {
                 let line = text_area.with(|t| t.lines()[0].clone());
-                on_submit(line);
+                submit_tx.send(line).unwrap();
                 return;
             }
 
@@ -227,11 +277,13 @@ impl Input {
         })
         .constraint(constraint)
         .on_key_down(key_down)
-        .on_focus(move |_| {
+        .on_focus(move |event_data| {
             widget_state.set(WidgetState::Focused);
+            on_focus(event_data);
         })
-        .on_blur(move |_| {
+        .on_blur(move |event_data| {
             widget_state.set(WidgetState::Default);
+            on_blur(event_data);
         });
         if let Some(id) = id {
             widget = widget.id(id);

@@ -8,7 +8,8 @@ use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::Stylize;
-use rooibos::tui::widgets::{Block, Padding, Paragraph};
+use rooibos::tui::symbols::border;
+use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -25,12 +26,8 @@ async fn main() -> Result<()> {
 
 fn counter(id: i32, constraint: Constraint) -> impl Render {
     let (count, set_count) = signal(id);
-    let default_padding = Padding {
-        left: 1,
-        top: 1,
-        ..Default::default()
-    };
-    let block = RwSignal::new(Block::default().padding(default_padding));
+
+    let block = RwSignal::new(Block::bordered().border_set(border::EMPTY));
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
 
@@ -46,7 +43,7 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
     widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
         .constraint(constraint)
         .on_focus(move |_| block.set(Block::bordered().blue()))
-        .on_blur(move |_| block.set(Block::default().padding(default_padding)))
+        .on_blur(move |_| block.set(Block::bordered().border_set(border::EMPTY)))
         .on_key_down(key_down)
         .on_click(move |_, _| update_count(1))
         .id(id.to_string())
