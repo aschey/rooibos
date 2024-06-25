@@ -13,7 +13,7 @@ fn main() -> Result<()> {
     execute(async_main)
 }
 
-#[tokio::main()]
+#[tokio::main]
 async fn async_main() -> Result<()> {
     init_executor(async {
         let runtime = Runtime::initialize(

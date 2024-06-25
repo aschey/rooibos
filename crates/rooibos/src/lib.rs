@@ -10,6 +10,11 @@ pub mod runtime {
 pub mod components {
     pub use rooibos_components::*;
 }
+
+pub mod tester {
+    pub use rooibos_tester::*;
+}
+
 #[cfg(feature = "ssh")]
 pub mod ssh {
     pub use rooibos_ssh::*;

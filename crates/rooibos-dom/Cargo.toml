@@ -16,7 +16,7 @@ throw_error = { path = "../../../leptos/any_error" }
 next_tuple = { path = "../../../leptos/next_tuple" }
 ratatui = { version = "0.27", features = ["unstable"] }
 slotmap = "1"
-tokio = { version = "1.37.0", default-features = false, features = ["sync"] }
+tokio = { version = "1.38.0", default-features = false, features = ["sync"] }
 bitflags = "2"
 derivative = "2"
 futures = "0.3.30"

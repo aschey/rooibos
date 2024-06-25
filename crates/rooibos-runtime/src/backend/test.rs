@@ -10,6 +10,12 @@ pub struct TestBackend {
     height: u16,
 }
 
+impl TestBackend {
+    pub fn new(width: u16, height: u16) -> Self {
+        Self { width, height }
+    }
+}
+
 impl Backend for TestBackend {
     type TuiBackend = ratatui::backend::TestBackend;
 

@@ -8,19 +8,34 @@ use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
 #[manyhow]
 #[proc_macro_attribute]
 pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    parse_args(attrs, tokens, false)
+}
+
+#[manyhow]
+#[proc_macro_attribute]
+pub fn test(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    parse_args(attrs, tokens, true)
+}
+
+fn parse_args(attrs: TokenStream, tokens: TokenStream, is_test: bool) -> manyhow::Result {
     if let Ok(args_parsed) =
         syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated
             .parse2(attrs.clone())
     {
         if !args_parsed.is_empty() && args_parsed.first().unwrap().is_ident("wasm") {
-            return create_main(attrs, tokens, true);
+            return create_main(attrs, tokens, true, is_test);
         }
     }
 
-    create_main(attrs, tokens, false)
+    create_main(attrs, tokens, false, is_test)
 }
 
-fn create_main(attrs: TokenStream, tokens: TokenStream, is_wasm: bool) -> manyhow::Result {
+fn create_main(
+    attrs: TokenStream,
+    tokens: TokenStream,
+    is_wasm: bool,
+    is_test: bool,
+) -> manyhow::Result {
     let mut func: ItemFn = syn::parse2(tokens)?;
     let mut func_copy = func.clone();
     if !is_wasm {
@@ -47,6 +62,8 @@ fn create_main(attrs: TokenStream, tokens: TokenStream, is_wasm: bool) -> manyho
         })
         .collect();
     let func_param_idents = quote!(#(#func_param_idents),*);
+
+    let test_attr = if is_test { quote!(#[test]) } else { quote!() };
     if is_wasm {
         Ok(quote! {
             #[::wasm_bindgen::prelude::wasm_bindgen(start)]
@@ -62,6 +79,7 @@ fn create_main(attrs: TokenStream, tokens: TokenStream, is_wasm: bool) -> manyho
         })
     } else {
         Ok(quote! {
+            #test_attr
             #vis #func_sig {
                 #runtime::execute(move || ___async_main(#func_param_idents))
             }
