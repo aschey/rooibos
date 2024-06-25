@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use rooibos::dom::{widget_ref, Event, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
@@ -24,10 +22,7 @@ async fn test_counter_simple() {
 
     harness.send_event(Event::Key(KeyCode::Enter.into()));
     harness
-        .wait_for_timeout(
-            |buf| buf.terminal_view().contains("count 1"),
-            Duration::from_secs(1),
-        )
+        .wait_for(|buf| buf.terminal_view().contains("count 1"))
         .await
         .unwrap();
 }

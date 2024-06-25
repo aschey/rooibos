@@ -34,6 +34,7 @@ struct SshApp {
 }
 
 impl SshHandler for SshApp {
+    #[allow(refining_impl_trait)]
     async fn run_terminal(
         &self,
         _client_id: u32,
