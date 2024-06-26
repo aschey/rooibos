@@ -19,10 +19,9 @@ slotmap = "1"
 tokio = { version = "1.38.0", default-features = false, features = ["sync"] }
 bitflags = "2"
 derivative = "2"
-futures = "0.3.30"
-rustc-hash = "1"
-terminput = { path = "../../../terminput" }
-
+futures = "0.3"
+rustc-hash = "2"
+terminput = { git = "https://github.com/aschey/terminput", rev = "fa983c79b62568ddd8d440717d80257dbe34221b" }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]

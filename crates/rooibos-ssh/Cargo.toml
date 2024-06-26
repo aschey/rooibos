@@ -19,7 +19,7 @@ reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "tracing",
     "effects",
 ] }
-terminput = { path = "../../../terminput" }
+terminput = { git = "https://github.com/aschey/terminput", rev = "fa983c79b62568ddd8d440717d80257dbe34221b" }
 tokio-util = "0.7"
 
 [features]

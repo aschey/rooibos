@@ -16,8 +16,8 @@ tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
 ] }
 rand = "0.8.5"
-tui-textarea = "0.4.0"
-tui-tree-widget = { path = "../../tui-rs-tree-widget" }
+tui-textarea = { git = "https://github.com/aschey/tui-textarea", rev = "cc952b1b68a1d8090ca1bbda2567f6140c8a8a96" }
+tui-tree-widget = { git = "https://github.com/aschey/tui-rs-tree-widget", rev = "b91f51a8277e842aa88f6e3a326c8609e078f9a3" }
 reqwest = { version = "0.12.4", features = ["json"] }
 serde = "1.0.203"
 axum = "0.7.5"

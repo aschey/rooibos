@@ -18,7 +18,7 @@ rooibos-runtime = { path = "../rooibos-runtime" }
 url = "2"
 derivative = "2"
 ratatui = { version = "0.27", default-features = false }
-tui-textarea = { version = "0.4", default-features = false }
+tui-textarea = { git = "https://github.com/aschey/tui-textarea", rev = "cc952b1b68a1d8090ca1bbda2567f6140c8a8a96", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }
 once_cell = "1"
 tracing = "0.1"
