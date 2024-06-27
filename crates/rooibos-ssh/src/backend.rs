@@ -4,9 +4,9 @@ use std::sync::Mutex;
 use ratatui::Terminal;
 use rooibos_dom::Event;
 use rooibos_runtime::backend::Backend;
+use rooibos_runtime::CancellationToken;
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
-use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
 pub struct SshBackend<B: Backend> {

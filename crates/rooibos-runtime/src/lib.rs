@@ -28,7 +28,7 @@ use rooibos_dom::{
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tokio::{task, task_local};
-use tokio_util::sync::CancellationToken;
+pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 use wasm_compat::Mutex;
 
@@ -78,6 +78,7 @@ where
     CURRENT_RUNTIME.scope(id, f).await
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
     + Send
     + Sync;

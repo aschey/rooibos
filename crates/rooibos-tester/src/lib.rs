@@ -1,17 +1,18 @@
 use std::fmt::Write;
 use std::time::{Duration, Instant};
 
-use once_cell::sync::Lazy;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 use rooibos_dom::{focus_next, render_dom, send_event, Event, Render};
 use rooibos_runtime::backend::test::TestBackend;
-use rooibos_runtime::wasm_compat::RwLock;
-use rooibos_runtime::{Runtime, RuntimeSettings, TickResult};
+use rooibos_runtime::wasm_compat::{Lazy, RwLock};
+use rooibos_runtime::{once, Runtime, RuntimeSettings, TickResult};
 
-static DEFAULT_TIMEOUT: Lazy<RwLock<Duration>> =
-    Lazy::new(move || RwLock::new(Duration::from_secs(1)));
+once! {
+    static DEFAULT_TIMEOUT: Lazy<RwLock<Duration>> =
+        Lazy::new(move || RwLock::new(Duration::from_secs(1)));
+}
 
 pub trait TerminalView {
     fn terminal_view(&self) -> String;
@@ -39,7 +40,7 @@ pub struct TestHarness {
 
 impl TestHarness {
     pub fn set_default_timeout(timeout: Duration) {
-        DEFAULT_TIMEOUT.with_mut(|d| *d = timeout);
+        DEFAULT_TIMEOUT.with(|t| t.with_mut(|d| *d = timeout));
     }
     pub fn new<F, M>(runtime_settings: RuntimeSettings, width: u16, height: u16, f: F) -> Self
     where
@@ -63,7 +64,9 @@ impl TestHarness {
     }
 
     pub async fn wait_for(&mut self, f: impl FnMut(&Buffer) -> bool) -> Result<(), Buffer> {
-        DEFAULT_TIMEOUT.with(|t| self.wait_for_timeout(f, *t)).await
+        DEFAULT_TIMEOUT
+            .with(|t| t.with(|t| self.wait_for_timeout(f, *t)))
+            .await
     }
 
     pub async fn wait_for_timeout(

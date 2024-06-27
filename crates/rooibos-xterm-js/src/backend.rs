@@ -18,7 +18,7 @@ use ratatui::{Terminal, Viewport};
 use ratatui_wasm::xterm::Theme;
 use ratatui_wasm::{init_terminal, EventStream, TerminalHandle};
 use rooibos_runtime::backend::Backend;
-use rooibos_runtime::{wasm_compat, SignalMode};
+use rooibos_runtime::{wasm_compat, CancellationToken, SignalMode};
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
@@ -216,13 +216,29 @@ impl Backend for WasmBackend {
         handle.write_all(buf)
     }
 
-    async fn read_input(&self, term_tx: broadcast::Sender<rooibos_dom::Event>) {
+    async fn read_input(
+        &self,
+        term_tx: broadcast::Sender<rooibos_dom::Event>,
+        cancellation_token: CancellationToken,
+    ) {
         let mut event_reader = EventStream::new().fuse();
-        while let Some(Ok(event)) = event_reader.next().await {
-            if let Ok(event) = event.try_into() {
-                let _ = term_tx
-                    .send(event)
-                    .tap_err(|e| warn!("failed to send event {e:?}"));
+
+        loop {
+            tokio::select! {
+                _ = cancellation_token.cancelled() => {
+                    return;
+                }
+                event = event_reader.next() => {
+                    if let Some(Ok(event)) = event {
+                        if let Ok(event) = event.try_into() {
+                            let _ = term_tx
+                                .send(event)
+                                .tap_err(|e| warn!("failed to send event {e:?}"));
+                        }
+                    } else {
+                        return;
+                    }
+                }
             }
         }
     }

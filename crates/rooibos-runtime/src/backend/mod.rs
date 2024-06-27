@@ -48,7 +48,7 @@ pub trait Backend: Send + Sync {
     fn read_input(
         &self,
         _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _cancellation_token: tokio_util::sync::CancellationToken,
+        _cancellation_token: crate::CancellationToken,
     ) -> impl Future<Output = ()> + Send {
         future::ready(())
     }
@@ -57,6 +57,7 @@ pub trait Backend: Send + Sync {
     fn read_input(
         &self,
         _term_tx: broadcast::Sender<rooibos_dom::Event>,
+        _cancellation_token: crate::CancellationToken,
     ) -> impl Future<Output = ()> {
         future::ready(())
     }

@@ -181,7 +181,10 @@ impl Renderer for RooibosDom {
     type Placeholder = DomNode;
 
     fn intern(text: &str) -> &str {
-        text
+        #[cfg(target_arch = "wasm32")]
+        return wasm_bindgen::intern(text);
+        #[cfg(not(target_arch = "wasm32"))]
+        return text;
     }
 
     fn create_text_node(text: &str) -> Self::Text {
