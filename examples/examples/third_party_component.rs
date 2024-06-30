@@ -1,4 +1,3 @@
-use std::any::type_name;
 use std::error::Error;
 use std::io::Stdout;
 
@@ -46,7 +45,7 @@ fn app() -> impl Render {
 
 fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget {
     let text_area = text_area.into();
-    DomWidget::new(type_name::<TextArea>(), move || {
+    DomWidget::new::<TextArea, _, _>(move || {
         let widget = text_area.get();
         move |area: Rect, buf: &mut Buffer| {
             widget.widget().render(area, buf);

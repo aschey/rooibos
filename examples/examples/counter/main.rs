@@ -1,11 +1,12 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{line, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::tui::style::Stylize;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -31,7 +32,11 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(format!("count {}", count.get()))
+    widget_ref!(line!("count: ".bold(), count.get().to_string().cyan()))
         .on_key_down(key_down)
         .on_click(move |_, _| update_count())
 }
+
+#[cfg(test)]
+#[path = "./tests.rs"]
+mod tests;

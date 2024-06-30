@@ -108,12 +108,8 @@ where
                 value.rebuild(state);
             } else {
                 let mut new = value.into_any().build();
-
+                state.insert_before_this(&mut new);
                 state.unmount();
-                if let Some(parent) = &state.parent {
-                    new.mount(parent, None);
-                }
-
                 *state = new;
             }
         };

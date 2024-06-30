@@ -5,7 +5,7 @@ use std::time::Duration;
 use ratatui::layout::Constraint;
 use ratatui::style::{Color, Style};
 use ratatui::text::Text;
-use ratatui::widgets::{Block, BorderType, Paragraph};
+use ratatui::widgets::{Block, BorderType};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
@@ -126,7 +126,7 @@ impl Button {
         };
         let children = children.into();
         widget_ref!(
-            Paragraph::new(children.get())
+            rooibos_dom::Button::new(children.get())
                 .block(
                     Block::bordered()
                         .border_type(border_type.get())

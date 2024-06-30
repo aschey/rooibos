@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
-use rooibos_dom::{focus_next, render_dom, send_event, Event, Render};
+use rooibos_dom::{focus_next, render_dom, Render};
 use rooibos_runtime::backend::test::TestBackend;
 use rooibos_runtime::wasm_compat::{Lazy, RwLock};
 use rooibos_runtime::{once, Runtime, RuntimeSettings, TickResult};
@@ -16,11 +16,13 @@ once! {
 
 pub trait TerminalView {
     fn terminal_view(&self) -> String;
+    fn slice(&self, rect: Rect) -> Self;
 }
 
 impl TerminalView for Buffer {
     fn terminal_view(&self) -> String {
         let Rect { width, height, .. } = self.area();
+
         let mut string_buf = String::with_capacity((width * height) as usize);
         for row in 0..*height {
             for col in 0..*width {
@@ -30,6 +32,21 @@ impl TerminalView for Buffer {
             writeln!(&mut string_buf).unwrap();
         }
         string_buf
+    }
+
+    fn slice(&self, rect: Rect) -> Self {
+        let mut buf = Buffer::empty(rect);
+        for row in rect.y..rect.y + rect.height {
+            for col in rect.x..rect.x + rect.width {
+                let cur = self.get(col, row);
+                let new = buf.get_mut(col, row);
+
+                new.set_skip(cur.skip);
+                new.set_style(cur.style());
+                new.set_symbol(cur.symbol());
+            }
+        }
+        buf
     }
 }
 
@@ -42,6 +59,7 @@ impl TestHarness {
     pub fn set_default_timeout(timeout: Duration) {
         DEFAULT_TIMEOUT.with(|t| t.with_mut(|d| *d = timeout));
     }
+
     pub fn new<F, M>(runtime_settings: RuntimeSettings, width: u16, height: u16, f: F) -> Self
     where
         F: FnOnce() -> M + 'static,
@@ -57,10 +75,6 @@ impl TestHarness {
 
     pub fn terminal(&self) -> &Terminal<ratatui::backend::TestBackend> {
         &self.terminal
-    }
-
-    pub fn send_event(&mut self, event: Event) {
-        send_event(event);
     }
 
     pub async fn wait_for(&mut self, f: impl FnMut(&Buffer) -> bool) -> Result<(), Buffer> {

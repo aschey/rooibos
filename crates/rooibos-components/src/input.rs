@@ -1,5 +1,3 @@
-use std::any::type_name;
-
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Constraint, Rect};
 use ratatui::style::{Style, Stylize};
@@ -269,7 +267,7 @@ impl Input {
             });
         };
 
-        let mut widget = DomWidget::new(type_name::<TextArea>(), move || {
+        let mut widget = DomWidget::new::<TextArea, _, _>(move || {
             let text_area = text_area.get();
             move |area: Rect, buf: &mut Buffer| {
                 text_area.widget().render(area, buf);

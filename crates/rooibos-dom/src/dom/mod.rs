@@ -198,15 +198,14 @@ impl Renderer for RooibosDom {
 
     fn set_text(node: &Self::Text, text: &str) {
         let text = text.to_string();
-        node.replace_fragment(DocumentFragment::widget(DomWidgetNode::new(
-            "text",
-            move || {
+        node.replace_fragment(DocumentFragment::widget(
+            DomWidgetNode::new::<String, _, _>(move || {
                 let text = text.clone();
                 move |rect, buf| {
                     text.render_ref(rect, buf);
                 }
-            },
-        )));
+            }),
+        ));
     }
 
     fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
@@ -276,9 +275,10 @@ fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
         cleanup_removed_nodes(&child, remove);
     }
     if remove {
-        with_nodes_mut(|nodes| {
-            nodes.remove(*node);
-        })
+        let removed = with_nodes_mut(|nodes| nodes.remove(*node));
+        // We need to make sure we drop the removed node after we release the borrow
+        // because the drop impl needs to borrow the node list as well
+        drop(removed);
     }
 }
 
@@ -312,6 +312,16 @@ pub fn print_dom() -> Paragraph<'static> {
         with_nodes(|nodes| print_dom_inner(nodes, dom.as_ref().unwrap().key(), ""))
     });
     Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
+}
+
+pub fn root() -> DomNodeRepr {
+    with_root(|r| {
+        with_nodes(|nodes| {
+            let root = r.as_ref().unwrap();
+            let node = &nodes[root.key()];
+            DomNodeRepr::from_node(root.key(), node)
+        })
+    })
 }
 
 fn print_dom_inner(

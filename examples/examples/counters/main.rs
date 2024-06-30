@@ -88,13 +88,15 @@ fn app() -> impl Render {
                 .render(Text::from("Add Counter"))
         ]
         .length(3),
-        // TODO if the for_each items aren't in a separate column,
-        // all siblings outside of the for_each get removed when all the counters are removed
-        // Looks like there's an open TODO item in leptos to fix this
-        col![for_each(
+        for_each(
             move || ids.get(),
             |k| *k,
             move |i| counter(i, move || remove_id(i), Length(3))
-        )]
+        )
     ]
+    .id("root")
 }
+
+#[cfg(test)]
+#[path = "./tests.rs"]
+mod tests;

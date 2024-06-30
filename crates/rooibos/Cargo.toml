@@ -43,7 +43,3 @@ xterm-js = ["rooibos-xterm-js"]
 default = ["crossterm"]
 ssh = ["rooibos-ssh"]
 input-search = ["rooibos-components/input-search"]
-
-[dev-dependencies]
-insta = "1.39.0"
-tokio = { version = "1.38.0", features = ["rt-multi-thread", "macros", "sync"] }

@@ -1,5 +1,0 @@
----
-source: crates/rooibos/tests/test.rs
-expression: terminal.backend().buffer().terminal_view()
----
-count 0

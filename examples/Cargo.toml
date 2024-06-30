@@ -23,6 +23,9 @@ serde = "1.0.203"
 axum = "0.7.5"
 tokio-stream = { version = "0.1.15", features = ["sync"] }
 
+[dev-dependencies]
+insta = "1.39.0"
+
 [features]
 nightly = ["rooibos/nightly"]
 termion = ["rooibos/termion"]

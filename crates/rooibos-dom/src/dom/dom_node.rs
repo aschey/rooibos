@@ -3,6 +3,8 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{self, Display};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use derivative::Derivative;
 use ratatui::buffer::Buffer;
@@ -11,11 +13,12 @@ use ratatui::widgets::{Block, WidgetRef};
 use slotmap::{new_key_type, SlotMap};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
+use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::DomState;
 use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
-use crate::{next_node_id, DomWidgetNode, EventHandlers, RooibosDom};
+use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum NodeIdInner {
@@ -58,6 +61,33 @@ impl From<&str> for NodeId {
 }
 
 new_key_type! {pub(crate) struct DomNodeKey; }
+
+impl DomNodeKey {
+    pub(crate) fn traverse<F, T>(&self, f: F, stop_on_first_match: bool) -> Vec<T>
+    where
+        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
+    {
+        let mut out_list = vec![];
+        self.traverse_inner(f, &mut out_list, stop_on_first_match);
+        out_list
+    }
+
+    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, stop_on_first_match: bool)
+    where
+        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
+    {
+        if let Some(out) = with_nodes(|nodes| f(*self, &nodes[*self])) {
+            out_list.push(out);
+            if stop_on_first_match {
+                return;
+            }
+        }
+        let children = with_nodes(|nodes| nodes[*self].children.clone());
+        for child in children {
+            child.traverse_inner(f.clone(), out_list, stop_on_first_match);
+        }
+    }
+}
 
 pub(crate) struct NodeTypeStructure {
     pub(crate) name: &'static str,
@@ -171,6 +201,68 @@ pub(crate) struct ChildState {
     #[derivative(Debug = "ignore")]
     pub(crate) mountable: Box<dyn AnyMountable>,
     pub(crate) parent: DomNode,
+}
+
+#[derive(Clone)]
+pub struct DomNodeRepr {
+    key: DomNodeKey,
+    rect: Rect,
+}
+
+impl DomNodeRepr {
+    pub(crate) fn from_node(key: DomNodeKey, node: &DomNodeInner) -> Self {
+        Self {
+            key,
+            rect: *node.rect.borrow(),
+        }
+    }
+
+    pub fn rect(&self) -> Rect {
+        self.rect
+    }
+
+    pub fn find_by_id(&self, id: impl Into<NodeId>) -> DomNodeRepr {
+        let id = id.into();
+        let nodes = self.key.traverse(
+            |key, node| {
+                if node.id.as_ref() == Some(&id) {
+                    Some(DomNodeRepr::from_node(key, node))
+                } else {
+                    None
+                }
+            },
+            true,
+        );
+        nodes.first().cloned().unwrap()
+    }
+
+    pub fn find_by_role(&self, role: Role) -> Vec<DomNodeRepr> {
+        self.key.traverse(
+            |key, node| {
+                if let NodeType::Widget(widget_node) = &node.node_type {
+                    if widget_node.role == Some(role) {
+                        return Some(DomNodeRepr::from_node(key, node));
+                    }
+                }
+                None
+            },
+            false,
+        )
+    }
+
+    pub fn children_count(&self) -> usize {
+        with_nodes(|nodes| nodes[self.key].children.len())
+    }
+
+    pub fn click(&self) {
+        let event = Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: self.rect.x,
+            row: self.rect.y,
+            modifiers: KeyModifiers::empty(),
+        });
+        send_event(event);
+    }
 }
 
 #[derive(Derivative)]
@@ -345,16 +437,24 @@ impl DomNodeInner {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug)]
 pub struct DomNode {
     key: DomNodeKey,
-    unmounted: bool,
+    unmounted: Arc<AtomicBool>,
 }
+
+impl PartialEq for DomNode {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
+}
+
+impl Eq for DomNode {}
 
 impl Mountable<RooibosDom> for DomNode {
     fn unmount(&mut self) {
         unmount_child(self.key(), false);
-        self.unmounted = true;
+        self.unmounted.store(true, Ordering::SeqCst);
     }
 
     fn mount(
@@ -363,7 +463,7 @@ impl Mountable<RooibosDom> for DomNode {
         marker: Option<&<RooibosDom as Renderer>::Node>,
     ) {
         RooibosDom::insert_node(parent, self, marker);
-        self.unmounted = false;
+        self.unmounted.store(false, Ordering::SeqCst);
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
@@ -379,11 +479,15 @@ impl Drop for DomNode {
     fn drop(&mut self) {
         // The thread-local may already have been destroyed
         // We need to check using try_with to prevent a panic here
-        if self.unmounted && DOM_NODES.try_with(|_| {}).is_ok() {
-            unmount_child(self.key, true);
+        if self.unmounted.load(Ordering::SeqCst) && DOM_NODES.try_with(|_| {}).is_ok() {
+            let contains_key = with_nodes(|nodes| nodes.contains_key(self.key));
+            if contains_key {
+                unmount_child(self.key, true);
+            }
         }
     }
 }
+
 impl DomNode {
     pub(crate) fn placeholder() -> Self {
         let inner = DomNodeInner {
@@ -402,7 +506,7 @@ impl DomNode {
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
             key,
-            unmounted: false,
+            unmounted: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -423,7 +527,7 @@ impl DomNode {
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
             key,
-            unmounted: false,
+            unmounted: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -542,7 +646,7 @@ impl DomNode {
         with_nodes(|n| {
             n[self.key].parent.map(|p| DomNode {
                 key: p,
-                unmounted: false,
+                unmounted: Arc::new(AtomicBool::new(false)),
             })
         })
     }

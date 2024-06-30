@@ -1,4 +1,3 @@
-use std::any::type_name;
 use std::error::Error;
 use std::io::Stdout;
 
@@ -75,7 +74,7 @@ fn app() -> impl Render {
         _ => {}
     };
 
-    DomWidget::new(type_name::<Tree<&str>>(), move || {
+    DomWidget::new::<Tree<&str>, _, _>(move || {
         let tree = tree.get();
         state.track();
         move |rect: Rect, buf: &mut Buffer| {

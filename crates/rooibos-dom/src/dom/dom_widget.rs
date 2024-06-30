@@ -1,3 +1,4 @@
+use std::any::type_name;
 use std::cell::RefCell;
 use std::fmt;
 use std::fmt::Debug;
@@ -14,7 +15,8 @@ use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{next_node_id, refresh_dom, Constrainable, EventData, RooibosDom};
+use crate::widgets::WidgetRole;
+use crate::{next_node_id, refresh_dom, Constrainable, EventData, Role, RooibosDom};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 
@@ -28,6 +30,7 @@ pub(crate) struct DomWidgetNode {
     f: Rc<RefCell<DomWidgetFn>>,
     id: u32,
     pub(crate) widget_type: String,
+    pub(crate) role: Option<Role>,
     _effect: Rc<RenderEffect<()>>,
 }
 
@@ -46,10 +49,11 @@ impl Debug for DomWidgetNode {
 }
 
 impl DomWidgetNode {
-    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
-        widget_type: impl Into<String>,
+    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
         f: F1,
     ) -> Self {
+        let widget_type = type_name::<T>();
+        let role = T::widget_role();
         let id = next_node_id();
         let rc_f: Rc<RefCell<DomWidgetFn>> = Rc::new(RefCell::new(Box::new(|_, _| {})));
 
@@ -62,6 +66,7 @@ impl DomWidgetNode {
         });
         Self {
             id,
+            role,
             f: rc_f,
             widget_type: widget_type.into(),
             _effect: Rc::new(effect),
@@ -74,11 +79,10 @@ impl DomWidgetNode {
 }
 
 impl DomWidget {
-    pub fn new<F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
-        widget_type: impl Into<String>,
+    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
         f: F1,
     ) -> Self {
-        let dom_widget_node = DomWidgetNode::new(widget_type, f);
+        let dom_widget_node = DomWidgetNode::new::<T, _, _>(f);
         let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
         Self { inner }
     }
