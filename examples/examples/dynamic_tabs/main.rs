@@ -124,3 +124,6 @@ fn app() -> impl Render {
         .length(5)
     ]
 }
+
+#[cfg(test)]
+mod tests;

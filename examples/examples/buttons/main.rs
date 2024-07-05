@@ -40,5 +40,4 @@ fn counter_button() -> impl Render {
     .length(3)
 }
 #[cfg(test)]
-#[path = "./tests.rs"]
 mod tests;

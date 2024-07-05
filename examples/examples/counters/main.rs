@@ -98,5 +98,4 @@ fn app() -> impl Render {
 }
 
 #[cfg(test)]
-#[path = "./tests.rs"]
 mod tests;

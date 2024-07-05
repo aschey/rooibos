@@ -4,10 +4,14 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
-use rooibos_dom::{focus_next, render_dom, DomNodeRepr, NodeTypeRepr, Render};
+use rooibos_dom::{
+    focus_next, render_dom, send_event, DomNodeRepr, Event, KeyModifiers, MouseButton, MouseEvent,
+    MouseEventKind, NodeTypeRepr, Render,
+};
 use rooibos_runtime::backend::test::TestBackend;
 use rooibos_runtime::wasm_compat::{Lazy, RwLock};
 use rooibos_runtime::{once, Runtime, RuntimeSettings, TickResult};
+use unicode_width::UnicodeWidthStr;
 
 once! {
     static DEFAULT_TIMEOUT: Lazy<RwLock<Duration>> =
@@ -152,4 +156,43 @@ impl TestHarness {
             }
         }
     }
+
+    pub fn find_nth_position_of_text(&self, text: impl AsRef<str>, nth: usize) -> Option<Rect> {
+        let text = text.as_ref();
+        let view = self.terminal().backend().buffer().terminal_view();
+        let lines = view.split('\n');
+
+        for (i, line) in lines.enumerate() {
+            if let Some((col, _)) = line.match_indices(text).nth(nth) {
+                return Some(Rect {
+                    x: line[..col].width() as u16,
+                    y: i as u16,
+                    width: text.width() as u16,
+                    height: 1,
+                });
+            }
+        }
+        None
+    }
+
+    pub fn get_nth_position_of_text(&self, text: impl AsRef<str>, nth: usize) -> Rect {
+        self.find_nth_position_of_text(text, nth).unwrap()
+    }
+
+    pub fn find_position_of_text(&self, text: impl AsRef<str>) -> Option<Rect> {
+        self.find_nth_position_of_text(text, 0)
+    }
+
+    pub fn get_position_of_text(&self, text: impl AsRef<str>) -> Rect {
+        self.find_position_of_text(text).unwrap()
+    }
+}
+
+pub fn click_pos(rect: Rect) {
+    send_event(Event::Mouse(MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        row: rect.y,
+        column: rect.x,
+        modifiers: KeyModifiers::empty(),
+    }));
 }
