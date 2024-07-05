@@ -1,0 +1,12 @@
+[config]
+default_to_workspace = false
+
+[tasks.clean-snapshots]
+env = { INSTA_SNAPSHOT_REFERENCES_FILE = "insta_refs" }
+script = '''
+cargo test --examples
+sed -i -e 's:/./:/:g' ./examples/insta_refs
+rg --files -g '*.snap' "$(pwd)" | grep -vFf ./examples/insta_refs | xargs -r rm
+rm -f ./examples/insta_refs
+'''
+script_runner = "@shell"

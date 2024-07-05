@@ -32,7 +32,14 @@ fn counter_button() -> impl Render {
         Button::new()
             .length(20)
             .on_click(move || set_count.update(|c| *c += 1))
-            .render(derive_signal!(Text::from(format!("count {}", count.get()))))
+            .render(derive_signal!(Text::from(format!(
+                "count: {}",
+                count.get()
+            ))))
     ]
     .length(3)
 }
+
+// #[cfg(test)]
+#[path = "./tests.rs"]
+mod tests;

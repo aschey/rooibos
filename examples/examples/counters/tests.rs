@@ -45,4 +45,11 @@ async fn test_counters() {
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
+
+    harness.find_all_by_text(&root_layout, "x")[1].click();
+
+    harness
+        .wait_for(|_, harness| harness.find_all_by_text(&root_layout, "+1").len() == 1)
+        .await
+        .unwrap();
 }
