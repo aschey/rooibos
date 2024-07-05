@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{col, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, row, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
 }
 
 fn counter(id: i32, constraint: Constraint) -> impl Render {
-    let (count, set_count) = signal(id);
+    let (count, set_count) = signal(0);
 
     let block = RwSignal::new(Block::bordered().border_set(border::EMPTY));
 
@@ -50,5 +50,9 @@ fn counter(id: i32, constraint: Constraint) -> impl Render {
 }
 
 fn app() -> impl Render {
-    col![{ (0..5).map(|i| counter(i, Length(3))).collect::<Vec<_>>() }]
+    row![col![(0..5).map(|i| counter(i, Length(3))).collect::<Vec<_>>()].length(15)]
 }
+
+#[cfg(test)]
+#[path = "./tests.rs"]
+mod tests;

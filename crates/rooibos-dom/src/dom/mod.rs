@@ -424,11 +424,9 @@ pub fn send_event(event: Event) {
     match event {
         Event::Key(key_event) => {
             if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
-                if key_event.modifiers.contains(KeyModifiers::SHIFT) {
-                    focus_prev();
-                } else {
-                    focus_next();
-                }
+                focus_next();
+            } else if key_event.code == KeyCode::BackTab && key_event.kind == KeyEventKind::Press {
+                focus_prev();
             } else if key_event.code == KeyCode::Char('p')
                 && key_event.modifiers.contains(KeyModifiers::CONTROL)
             {
