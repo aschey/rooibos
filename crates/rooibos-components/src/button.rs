@@ -20,6 +20,7 @@ pub struct Button {
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
+    class: Option<String>,
 }
 
 impl Default for Button {
@@ -46,7 +47,13 @@ impl Button {
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
+            class: None,
         }
+    }
+
+    pub fn class(mut self, class: impl Into<String>) -> Self {
+        self.class = Some(class.into());
+        self
     }
 
     pub fn border_color(mut self, border_color: impl Into<MaybeSignal<Color>>) -> Self {
@@ -88,6 +95,7 @@ impl Button {
             border_color,
             focused_border_color,
             active_border_color,
+            class,
         } = self;
 
         let border_type = RwSignal::new(BorderType::Rounded);
@@ -125,7 +133,7 @@ impl Button {
             }
         };
         let children = children.into();
-        widget_ref!(
+        let mut button = widget_ref!(
             rooibos_dom::Button::new(children.get())
                 .block(
                     Block::bordered()
@@ -145,6 +153,10 @@ impl Button {
                 on_enter()
             }
         })
-        .on_key_up(key_up)
+        .on_key_up(key_up);
+        if let Some(class) = class {
+            button = button.class(class);
+        }
+        button
     }
 }

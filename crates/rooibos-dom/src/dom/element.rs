@@ -39,6 +39,11 @@ impl<C> Element<C> {
         self
     }
 
+    pub fn class(self, class: impl Into<String>) -> Self {
+        self.inner.set_class(class);
+        self
+    }
+
     pub fn margin<S>(self, margin: S) -> Self
     where
         S: Into<MaybeSignal<u16>>,

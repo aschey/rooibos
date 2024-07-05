@@ -15,14 +15,14 @@ macro_rules! assert_snapshot {
 }
 
 #[rooibos::test]
-async fn test_counter_simple() {
+async fn test_counter() {
     let mut harness = TestHarness::new(RuntimeSettings::default(), 20, 10, app);
 
     assert_snapshot!(harness.terminal());
 
     send_event(Event::Key(KeyCode::Enter.into()));
     harness
-        .wait_for(|buf| buf.terminal_view().contains("count: 1"))
+        .wait_for(|buf, _| buf.terminal_view().contains("count: 1"))
         .await
         .unwrap();
 }

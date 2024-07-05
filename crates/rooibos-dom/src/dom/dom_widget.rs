@@ -96,6 +96,11 @@ impl DomWidget {
         self
     }
 
+    pub fn class(self, class: impl Into<String>) -> Self {
+        self.inner.set_class(class);
+        self
+    }
+
     pub fn focusable<S>(self, focusable: S) -> Self
     where
         S: Into<MaybeSignal<bool>>,

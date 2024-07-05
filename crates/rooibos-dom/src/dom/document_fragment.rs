@@ -14,6 +14,7 @@ pub struct DocumentFragment {
     pub(crate) node_type: NodeType,
     pub(crate) constraint: Constraint,
     pub(crate) id: Option<NodeId>,
+    pub(crate) class: Option<String>,
     pub(crate) focusable: bool,
     pub(crate) flex: Flex,
     pub(crate) name: String,
@@ -30,6 +31,7 @@ impl DocumentFragment {
             flex: Flex::default(),
             focusable: false,
             id: None,
+            class: None,
             event_handlers: Default::default(),
         }
     }
@@ -45,6 +47,7 @@ impl DocumentFragment {
             name: "row".to_string(),
             focusable: false,
             id: None,
+            class: None,
             event_handlers: Default::default(),
         }
     }
@@ -60,6 +63,7 @@ impl DocumentFragment {
             name: "col".to_string(),
             focusable: false,
             id: None,
+            class: None,
             event_handlers: Default::default(),
         }
     }
@@ -72,6 +76,7 @@ impl DocumentFragment {
             name: "overlay".to_string(),
             focusable: false,
             id: None,
+            class: None,
             event_handlers: Default::default(),
         }
     }
@@ -84,6 +89,7 @@ impl DocumentFragment {
             name: "absolute".to_string(),
             focusable: false,
             id: None,
+            class: None,
             event_handlers: Default::default(),
         }
     }

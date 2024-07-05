@@ -203,10 +203,20 @@ pub(crate) struct ChildState {
     pub(crate) parent: DomNode,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum NodeTypeRepr {
+    Layout,
+    Overlay,
+    Absolute,
+    Widget,
+    Placeholder,
+}
+
 #[derive(Clone)]
 pub struct DomNodeRepr {
     key: DomNodeKey,
     rect: Rect,
+    node_type: NodeTypeRepr,
 }
 
 impl DomNodeRepr {
@@ -214,6 +224,13 @@ impl DomNodeRepr {
         Self {
             key,
             rect: *node.rect.borrow(),
+            node_type: match node.node_type {
+                NodeType::Layout(_) => NodeTypeRepr::Layout,
+                NodeType::Overlay => NodeTypeRepr::Overlay,
+                NodeType::Absolute(_) => NodeTypeRepr::Absolute,
+                NodeType::Widget(_) => NodeTypeRepr::Widget,
+                NodeType::Placeholder => NodeTypeRepr::Placeholder,
+            },
         }
     }
 
@@ -221,7 +238,47 @@ impl DomNodeRepr {
         self.rect
     }
 
-    pub fn find_by_id(&self, id: impl Into<NodeId>) -> DomNodeRepr {
+    pub fn node_type(&self) -> NodeTypeRepr {
+        self.node_type.clone()
+    }
+
+    pub fn find<F>(&self, f: F) -> Option<DomNodeRepr>
+    where
+        F: Fn(&DomNodeRepr) -> bool + Clone,
+    {
+        self.key
+            .traverse(
+                |key, node| {
+                    let repr = DomNodeRepr::from_node(key, node);
+                    if f(&repr) { Some(repr) } else { None }
+                },
+                true,
+            )
+            .first()
+            .cloned()
+    }
+
+    pub fn get<F>(&self, f: F) -> DomNodeRepr
+    where
+        F: Fn(&DomNodeRepr) -> bool + Clone,
+    {
+        self.find(f).unwrap()
+    }
+
+    pub fn find_all<F>(&self, f: F) -> Vec<DomNodeRepr>
+    where
+        F: Fn(&DomNodeRepr) -> bool + Clone,
+    {
+        self.key.traverse(
+            |key, node| {
+                let repr = DomNodeRepr::from_node(key, node);
+                if f(&repr) { Some(repr) } else { None }
+            },
+            false,
+        )
+    }
+
+    pub fn find_by_id(&self, id: impl Into<NodeId>) -> Option<DomNodeRepr> {
         let id = id.into();
         let nodes = self.key.traverse(
             |key, node| {
@@ -233,10 +290,14 @@ impl DomNodeRepr {
             },
             true,
         );
-        nodes.first().cloned().unwrap()
+        nodes.first().cloned()
     }
 
-    pub fn find_by_role(&self, role: Role) -> Vec<DomNodeRepr> {
+    pub fn get_by_id(&self, id: impl Into<NodeId>) -> DomNodeRepr {
+        self.find_by_id(id).unwrap()
+    }
+
+    pub fn find_all_by_role(&self, role: Role) -> Vec<DomNodeRepr> {
         self.key.traverse(
             |key, node| {
                 if let NodeType::Widget(widget_node) = &node.node_type {
@@ -244,6 +305,20 @@ impl DomNodeRepr {
                         return Some(DomNodeRepr::from_node(key, node));
                     }
                 }
+                None
+            },
+            false,
+        )
+    }
+
+    pub fn find_all_by_class(&self, class: impl Into<String>) -> Vec<DomNodeRepr> {
+        let class = class.into();
+        self.key.traverse(
+            |key, node| {
+                if node.class.as_ref() == Some(&class) {
+                    return Some(DomNodeRepr::from_node(key, node));
+                }
+
                 None
             },
             false,
@@ -274,6 +349,7 @@ pub(crate) struct DomNodeInner {
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
+    pub(crate) class: Option<String>,
     pub(crate) focusable: Rc<RefCell<bool>>,
     #[derivative(Debug = "ignore")]
     pub(crate) event_handlers: EventHandlers,
@@ -498,6 +574,7 @@ impl DomNode {
             parent: None,
             focusable: Default::default(),
             id: None,
+            class: None,
             event_handlers: Default::default(),
             data: vec![],
             rect: Default::default(),
@@ -519,6 +596,7 @@ impl DomNode {
             parent: None,
             focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
+            class: fragment.class,
             event_handlers: fragment.event_handlers,
             data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
@@ -540,6 +618,7 @@ impl DomNode {
             parent: self.get_parent_key(),
             focusable: Rc::new(RefCell::new(fragment.focusable)),
             id: fragment.id,
+            class: fragment.class,
             event_handlers: fragment.event_handlers,
             data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
@@ -559,6 +638,7 @@ impl DomNode {
                 children: _children,
                 parent: _parent,
                 id,
+                class,
                 focusable,
                 event_handlers,
                 rect,
@@ -570,6 +650,7 @@ impl DomNode {
             let constraint = constraint.clone();
             let focusable = focusable.clone();
             let id = id.clone();
+            let class = class.clone();
             let event_handlers = event_handlers.clone();
             let data = data.clone();
             let rect = rect.clone();
@@ -581,6 +662,7 @@ impl DomNode {
             new.constraint = constraint;
             new.focusable = focusable;
             new.id = id;
+            new.class = class;
             new.event_handlers = event_handlers;
             new.data = data;
             new.rect = rect;
@@ -621,6 +703,12 @@ impl DomNode {
         with_nodes_mut(|n| {
             n[self.key].id = Some(id.into());
             *n[self.key].focusable.borrow_mut() = true;
+        });
+    }
+
+    pub(crate) fn set_class(&self, class: impl Into<String>) {
+        with_nodes_mut(|n| {
+            n[self.key].class = Some(class.into());
         });
     }
 

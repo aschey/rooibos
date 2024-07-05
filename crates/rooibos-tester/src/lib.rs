@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
-use rooibos_dom::{focus_next, render_dom, Render};
+use rooibos_dom::{focus_next, render_dom, DomNodeRepr, NodeTypeRepr, Render};
 use rooibos_runtime::backend::test::TestBackend;
 use rooibos_runtime::wasm_compat::{Lazy, RwLock};
 use rooibos_runtime::{once, Runtime, RuntimeSettings, TickResult};
@@ -16,7 +16,7 @@ once! {
 
 pub trait TerminalView {
     fn terminal_view(&self) -> String;
-    fn slice(&self, rect: Rect) -> Self;
+    fn slice(&self, rect: Rect) -> Buffer;
 }
 
 impl TerminalView for Buffer {
@@ -34,12 +34,17 @@ impl TerminalView for Buffer {
         string_buf
     }
 
-    fn slice(&self, rect: Rect) -> Self {
-        let mut buf = Buffer::empty(rect);
+    fn slice(&self, rect: Rect) -> Buffer {
+        let mut buf = Buffer::empty(Rect {
+            x: 0,
+            y: 0,
+            width: rect.width,
+            height: rect.height,
+        });
         for row in rect.y..rect.y + rect.height {
             for col in rect.x..rect.x + rect.width {
                 let cur = self.get(col, row);
-                let new = buf.get_mut(col, row);
+                let new = buf.get_mut(col - rect.x, row - rect.y);
 
                 new.set_skip(cur.skip);
                 new.set_style(cur.style());
@@ -77,15 +82,42 @@ impl TestHarness {
         &self.terminal
     }
 
-    pub async fn wait_for(&mut self, f: impl FnMut(&Buffer) -> bool) -> Result<(), Buffer> {
+    pub async fn wait_for(&mut self, f: impl FnMut(&Buffer, &Self) -> bool) -> Result<(), Buffer> {
         DEFAULT_TIMEOUT
             .with(|t| t.with(|t| self.wait_for_timeout(f, *t)))
             .await
     }
 
+    pub fn find_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> Option<DomNodeRepr> {
+        let text = text.as_ref();
+        let buf = self.terminal().backend().buffer();
+        node.find(|node| {
+            node.node_type() == NodeTypeRepr::Widget
+                && buf.slice(node.rect()).terminal_view().contains(text)
+        })
+    }
+
+    pub fn get_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> DomNodeRepr {
+        self.find_by_text(node, text).unwrap()
+    }
+
+    pub fn find_all_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> Vec<DomNodeRepr> {
+        let text = text.as_ref();
+        node.find_all(|node| {
+            node.node_type() == NodeTypeRepr::Widget
+                && self
+                    .terminal()
+                    .backend()
+                    .buffer()
+                    .slice(node.rect())
+                    .terminal_view()
+                    .contains(text)
+        })
+    }
+
     pub async fn wait_for_timeout(
         &mut self,
-        mut f: impl FnMut(&Buffer) -> bool,
+        mut f: impl FnMut(&Buffer, &Self) -> bool,
         timeout: Duration,
     ) -> Result<(), Buffer> {
         let start = Instant::now();
@@ -112,7 +144,7 @@ impl TestHarness {
                 },
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
-            if f(self.terminal.backend().buffer()) {
+            if f(self.terminal.backend().buffer(), self) {
                 return Ok(());
             }
             if Instant::now().duration_since(start) > timeout {
