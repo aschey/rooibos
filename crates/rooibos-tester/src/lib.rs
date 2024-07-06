@@ -98,7 +98,10 @@ impl TestHarness {
         self.terminal.backend().buffer()
     }
 
-    pub async fn wait_for(&mut self, f: impl FnMut(&Buffer, &Self) -> bool) -> Result<(), Buffer> {
+    pub async fn wait_for(
+        &mut self,
+        f: impl FnMut(&Self, Option<TickResult>) -> bool,
+    ) -> Result<(), Buffer> {
         DEFAULT_TIMEOUT
             .with(|t| t.with(|t| self.wait_for_timeout(f, *t)))
             .await
@@ -221,19 +224,22 @@ impl TestHarness {
 
     pub async fn wait_for_timeout(
         &mut self,
-        mut f: impl FnMut(&Buffer, &Self) -> bool,
+        mut f: impl FnMut(&Self, Option<TickResult>) -> bool,
         timeout: Duration,
     ) -> Result<(), Buffer> {
         let start = Instant::now();
         loop {
+            let mut last_tick_result = None;
             tokio::select! {
                 tick_result = self.runtime.tick() => {
+                    last_tick_result = Some(tick_result.clone());
                     match tick_result {
                         TickResult::Redraw => {
                             self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
                         }
                         TickResult::Restart => {
-
+                            self.terminal = self.runtime.setup_terminal().unwrap();
+                            self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
                         }
                         TickResult::Exit => {
                             panic!("application exited");
@@ -248,7 +254,7 @@ impl TestHarness {
                 },
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
-            if f(self.buffer(), self) {
+            if f(self, last_tick_result) {
                 return Ok(());
             }
             if Instant::now().duration_since(start) > timeout {

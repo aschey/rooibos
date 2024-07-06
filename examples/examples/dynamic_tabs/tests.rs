@@ -21,7 +21,7 @@ async fn test_tabs() {
     let tab2_pos = harness.get_position_of_text("Tab2");
     harness.click_pos(tab2_pos);
     harness
-        .wait_for(|buf, _| buf.terminal_view().contains("tab2"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("tab2"))
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
@@ -29,7 +29,7 @@ async fn test_tabs() {
     let add_pos = harness.get_position_of_text("+");
     harness.click_pos(add_pos);
     harness
-        .wait_for(|buf, _| buf.terminal_view().contains("Tab3"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("Tab3"))
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
@@ -37,14 +37,14 @@ async fn test_tabs() {
     let tab3_pos = harness.get_position_of_text("Tab3");
     harness.click_pos(tab3_pos);
     harness
-        .wait_for(|buf, _| buf.terminal_view().contains("tab3"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("tab3"))
         .await
         .unwrap();
 
     let tab2_close = harness.get_nth_position_of_text("✕", 2);
     harness.click_pos(tab2_close);
     harness
-        .wait_for(|buf, _| buf.terminal_view().contains("tab2"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("tab2"))
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());

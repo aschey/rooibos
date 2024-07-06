@@ -12,16 +12,18 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
+    let editor = env::var("EDITOR").unwrap_or("vim".to_string());
+
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
-        app,
+        || app(editor),
     );
     runtime.run().await?;
     Ok(())
 }
 
-fn app() -> impl Render {
+fn app(editor: String) -> impl Render {
     let (count, set_count) = signal(0);
 
     let update_count = move || set_count.update(|c| *c += 1);
@@ -31,15 +33,17 @@ fn app() -> impl Render {
             update_count();
         }
         if key_event.code == KeyCode::Char('e') {
-            let editor = env::var("EDITOR").unwrap_or("vim".to_string());
-            exec(tokio::process::Command::new(editor), |_, _, _| {});
+            exec(tokio::process::Command::new(&editor), |_, _, _| {});
         }
     };
 
     widget_ref!(format!(
-        "count {}. Press 'e' to open your editor.",
+        "count: {}. Press 'e' to open your editor.",
         count.get()
     ))
     .on_key_down(key_down)
     .on_click(move |_, _| update_count())
 }
+
+#[cfg(test)]
+mod tests;

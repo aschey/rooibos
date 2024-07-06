@@ -26,7 +26,7 @@ async fn test_counters() {
     add_button.click();
 
     harness
-        .wait_for(|buf, _| buf.terminal_view().contains("count: 0"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 0"))
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
@@ -34,14 +34,14 @@ async fn test_counters() {
     harness.get_by_text(&root_layout, "+1").click();
 
     harness
-        .wait_for(|buf, _| buf.terminal_view().contains("count: 1"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
         .await
         .unwrap();
 
     add_button.click();
 
     harness
-        .wait_for(|_, harness| harness.find_all_by_text(&root_layout, "+1").len() == 2)
+        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "+1").len() == 2)
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
@@ -49,7 +49,7 @@ async fn test_counters() {
     harness.find_all_by_text(&root_layout, "x")[1].click();
 
     harness
-        .wait_for(|_, harness| harness.find_all_by_text(&root_layout, "+1").len() == 1)
+        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "+1").len() == 1)
         .await
         .unwrap();
 

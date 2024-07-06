@@ -24,7 +24,7 @@ async fn test_buttons() {
     harness.send_mouse_move(button_rect.x, button_rect.y);
 
     harness
-        .wait_for(|_, harness| harness.find_by_text(&root_node, "╔").is_some())
+        .wait_for(|harness, _| harness.find_by_text(&root_node, "╔").is_some())
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
@@ -33,7 +33,7 @@ async fn test_buttons() {
     harness.send_key(KeyCode::Enter);
 
     harness
-        .wait_for(|_, harness| harness.find_by_text(&root_node, "count: 1").is_some())
+        .wait_for(|harness, _| harness.find_by_text(&root_node, "count: 1").is_some())
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
