@@ -22,6 +22,8 @@ derivative = "2"
 futures = "0.3"
 rustc-hash = "2"
 terminput = { git = "https://github.com/aschey/terminput", rev = "fa983c79b62568ddd8d440717d80257dbe34221b" }
+tui-textarea = { git = "https://github.com/aschey/tui-textarea", rev = "cc952b1b68a1d8090ca1bbda2567f6140c8a8a96", default-features = false }
+
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }

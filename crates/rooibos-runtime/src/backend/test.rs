@@ -1,6 +1,7 @@
-use std::io::{self};
+use std::io;
 
 use ratatui::Terminal;
+use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
 use super::Backend;
@@ -8,11 +9,21 @@ use super::Backend;
 pub struct TestBackend {
     width: u16,
     height: u16,
+    event_tx: broadcast::Sender<rooibos_dom::Event>,
 }
 
 impl TestBackend {
     pub fn new(width: u16, height: u16) -> Self {
-        Self { width, height }
+        let (event_tx, _) = broadcast::channel(32);
+        Self {
+            width,
+            height,
+            event_tx,
+        }
+    }
+
+    pub fn event_tx(&self) -> broadcast::Sender<rooibos_dom::Event> {
+        self.event_tx.clone()
     }
 }
 
@@ -53,8 +64,19 @@ impl Backend for TestBackend {
 
     async fn read_input(
         &self,
-        _: tokio::sync::broadcast::Sender<rooibos_dom::Event>,
-        _cancellation_token: CancellationToken,
+        tx: broadcast::Sender<rooibos_dom::Event>,
+        cancellation_token: CancellationToken,
     ) {
+        let mut rx = self.event_tx.subscribe();
+        loop {
+            tokio::select! {
+                _ = cancellation_token.cancelled() => {
+                    return;
+                }
+                Ok(event) = rx.recv() => {
+                    tx.send(event).unwrap();
+                }
+            }
+        }
     }
 }

@@ -16,7 +16,7 @@ use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::document_fragment::DocumentFragment;
-use super::dom_state::DomState;
+use super::dom_state::{self, DomState};
 use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
 
@@ -94,13 +94,13 @@ pub(crate) struct NodeTypeStructure {
     pub(crate) attrs: Option<String>,
 }
 
-#[derive(PartialEq, Eq, Clone, Default)]
-pub(crate) struct LayoutProps {
-    pub(crate) direction: Direction,
-    pub(crate) flex: Flex,
-    pub(crate) margin: u16,
-    pub(crate) spacing: u16,
-    pub(crate) block: Option<Block<'static>>,
+#[derive(PartialEq, Eq, Clone, Default, Debug)]
+pub struct LayoutProps {
+    pub direction: Direction,
+    pub flex: Flex,
+    pub margin: u16,
+    pub spacing: u16,
+    pub block: Option<Block<'static>>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -205,7 +205,7 @@ pub(crate) struct ChildState {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
-    Layout,
+    Layout(LayoutProps),
     Overlay,
     Absolute,
     Widget,
@@ -224,8 +224,8 @@ impl DomNodeRepr {
         Self {
             key,
             rect: *node.rect.borrow(),
-            node_type: match node.node_type {
-                NodeType::Layout(_) => NodeTypeRepr::Layout,
+            node_type: match &node.node_type {
+                NodeType::Layout(props) => NodeTypeRepr::Layout(props.borrow().clone()),
                 NodeType::Overlay => NodeTypeRepr::Overlay,
                 NodeType::Absolute(_) => NodeTypeRepr::Absolute,
                 NodeType::Widget(_) => NodeTypeRepr::Widget,
@@ -337,6 +337,16 @@ impl DomNodeRepr {
             modifiers: KeyModifiers::empty(),
         });
         send_event(event);
+    }
+
+    pub fn focus(&self) {
+        let found_node = with_nodes(|nodes| {
+            nodes
+                .iter()
+                .find_map(|(key, _)| if key == self.key { Some(key) } else { None })
+        })
+        .unwrap();
+        dom_state::set_focused(found_node);
     }
 }
 

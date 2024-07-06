@@ -5,12 +5,13 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::Terminal;
 use rooibos_dom::{
-    focus_next, render_dom, send_event, DomNodeRepr, Event, KeyModifiers, MouseButton, MouseEvent,
-    MouseEventKind, NodeTypeRepr, Render,
+    focus_next, render_dom, DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton,
+    MouseEvent, MouseEventKind, NodeTypeRepr, Render,
 };
 use rooibos_runtime::backend::test::TestBackend;
 use rooibos_runtime::wasm_compat::{Lazy, RwLock};
 use rooibos_runtime::{once, Runtime, RuntimeSettings, TickResult};
+use tokio::sync::broadcast;
 use unicode_width::UnicodeWidthStr;
 
 once! {
@@ -62,6 +63,7 @@ impl TerminalView for Buffer {
 pub struct TestHarness {
     runtime: Runtime<TestBackend>,
     terminal: Terminal<ratatui::backend::TestBackend>,
+    event_tx: broadcast::Sender<Event>,
 }
 
 impl TestHarness {
@@ -74,16 +76,26 @@ impl TestHarness {
         F: FnOnce() -> M + 'static,
         M: Render,
     {
-        let mut runtime = Runtime::initialize(runtime_settings, TestBackend::new(width, height), f);
+        let backend = TestBackend::new(width, height);
+        let event_tx = backend.event_tx();
+        let mut runtime = Runtime::initialize(runtime_settings, backend, f);
         let mut terminal = runtime.setup_terminal().unwrap();
         terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
         focus_next();
 
-        Self { runtime, terminal }
+        Self {
+            runtime,
+            terminal,
+            event_tx,
+        }
     }
 
     pub fn terminal(&self) -> &Terminal<ratatui::backend::TestBackend> {
         &self.terminal
+    }
+
+    pub fn buffer(&self) -> &Buffer {
+        self.terminal.backend().buffer()
     }
 
     pub async fn wait_for(&mut self, f: impl FnMut(&Buffer, &Self) -> bool) -> Result<(), Buffer> {
@@ -94,15 +106,72 @@ impl TestHarness {
 
     pub fn find_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> Option<DomNodeRepr> {
         let text = text.as_ref();
-        let buf = self.terminal().backend().buffer();
+        let buf = self.buffer();
         node.find(|node| {
             node.node_type() == NodeTypeRepr::Widget
                 && buf.slice(node.rect()).terminal_view().contains(text)
         })
     }
 
+    pub fn find_by_block_text(
+        &self,
+        node: &DomNodeRepr,
+        text: impl AsRef<str>,
+    ) -> Option<DomNodeRepr> {
+        let text = text.as_ref();
+        let buf = self.buffer();
+        node.find(|node| {
+            if let NodeTypeRepr::Layout(props) = node.node_type() {
+                if props.block.is_some() {
+                    let rect = node.rect();
+
+                    // Check top of block
+                    if buf
+                        .slice(Rect {
+                            x: rect.x,
+                            y: rect.y,
+                            width: rect.width,
+                            height: 1,
+                        })
+                        .terminal_view()
+                        .contains(text)
+                    {
+                        return true;
+                    }
+
+                    // Check bottom of block
+                    if buf
+                        .slice(Rect {
+                            x: rect.x,
+                            y: rect.y + rect.height - 1,
+                            width: rect.width,
+                            height: 1,
+                        })
+                        .terminal_view()
+                        .contains(text)
+                    {
+                        return true;
+                    }
+                }
+            }
+            false
+        })
+    }
+
     pub fn get_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> DomNodeRepr {
-        self.find_by_text(node, text).unwrap()
+        if let Some(node) = self.find_by_text(node, text) {
+            node
+        } else {
+            panic!("{}", self.buffer().terminal_view());
+        }
+    }
+
+    pub fn get_by_block_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> DomNodeRepr {
+        if let Some(node) = self.find_by_block_text(node, text) {
+            node
+        } else {
+            panic!("{}", self.buffer().terminal_view());
+        }
     }
 
     pub fn find_all_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> Vec<DomNodeRepr> {
@@ -110,13 +179,44 @@ impl TestHarness {
         node.find_all(|node| {
             node.node_type() == NodeTypeRepr::Widget
                 && self
-                    .terminal()
-                    .backend()
                     .buffer()
                     .slice(node.rect())
                     .terminal_view()
                     .contains(text)
         })
+    }
+
+    pub fn send_event(&self, event: Event) {
+        self.event_tx.send(event).unwrap();
+    }
+
+    pub fn send_text(&self, text: impl Into<String>) {
+        let text = text.into();
+        for char in text.chars() {
+            self.send_event(Event::Key(KeyCode::Char(char).into()));
+        }
+    }
+
+    pub fn send_key(&self, key_code: KeyCode) {
+        self.send_event(Event::Key(key_code.into()));
+    }
+
+    pub fn send_mouse_move(&self, x: u16, y: u16) {
+        self.send_event(Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: x,
+            row: y,
+            modifiers: KeyModifiers::empty(),
+        }));
+    }
+
+    pub fn click_pos(&self, rect: Rect) {
+        self.send_event(Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            row: rect.y,
+            column: rect.x,
+            modifiers: KeyModifiers::empty(),
+        }));
     }
 
     pub async fn wait_for_timeout(
@@ -136,7 +236,7 @@ impl TestHarness {
 
                         }
                         TickResult::Exit => {
-                            return Ok(());
+                            panic!("application exited");
                         }
                         TickResult::Command(command) => {
                             self.runtime
@@ -148,18 +248,41 @@ impl TestHarness {
                 },
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
-            if f(self.terminal.backend().buffer(), self) {
+            if f(self.buffer(), self) {
                 return Ok(());
             }
             if Instant::now().duration_since(start) > timeout {
-                return Err(self.terminal.backend().buffer().clone());
+                return Err(self.buffer().clone());
+            }
+        }
+    }
+
+    pub async fn exit(mut self) {
+        self.event_tx
+            .send(Event::Key(KeyEvent::new(
+                KeyCode::Char('c'),
+                KeyModifiers::CONTROL,
+            )))
+            .unwrap();
+
+        let start = Instant::now();
+        loop {
+            tokio::select! {
+                tick_result = self.runtime.tick() => {
+                    if matches!(tick_result, TickResult::Exit) {
+                        return;
+                    }
+                }
+                _ = tokio::time::sleep(Duration::from_secs(3) - (Instant::now() - start)) => {
+                    panic!("application failed to exit");
+                }
             }
         }
     }
 
     pub fn find_nth_position_of_text(&self, text: impl AsRef<str>, nth: usize) -> Option<Rect> {
         let text = text.as_ref();
-        let view = self.terminal().backend().buffer().terminal_view();
+        let view = self.buffer().terminal_view();
         let lines = view.split('\n');
 
         for (i, line) in lines.enumerate() {
@@ -186,13 +309,4 @@ impl TestHarness {
     pub fn get_position_of_text(&self, text: impl AsRef<str>) -> Rect {
         self.find_position_of_text(text).unwrap()
     }
-}
-
-pub fn click_pos(rect: Rect) {
-    send_event(Event::Mouse(MouseEvent {
-        kind: MouseEventKind::Down(MouseButton::Left),
-        row: rect.y,
-        column: rect.x,
-        modifiers: KeyModifiers::empty(),
-    }));
 }

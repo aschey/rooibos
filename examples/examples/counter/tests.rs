@@ -1,4 +1,4 @@
-use rooibos::dom::{send_event, Event, KeyCode};
+use rooibos::dom::KeyCode;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
@@ -20,9 +20,11 @@ async fn test_counter() {
 
     assert_snapshot!(harness.terminal());
 
-    send_event(Event::Key(KeyCode::Enter.into()));
+    harness.send_key(KeyCode::Enter);
     harness
         .wait_for(|buf, _| buf.terminal_view().contains("count: 1"))
         .await
         .unwrap();
+
+    harness.exit().await;
 }

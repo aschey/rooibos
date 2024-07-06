@@ -52,4 +52,6 @@ async fn test_counters() {
         .wait_for(|_, harness| harness.find_all_by_text(&root_layout, "+1").len() == 1)
         .await
         .unwrap();
+
+    harness.exit().await;
 }

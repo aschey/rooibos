@@ -1,6 +1,22 @@
 [config]
 default_to_workspace = false
 
+[tasks.coverage]
+args = [
+    "llvm-cov",
+    "--workspace",
+    "--all-features",
+    "--examples",
+    "--html",
+    "--open",
+    "--ignore-filename-regex",
+    "\".cargo|.*_test\\.rs|integration_tests.*|tests.rs\"",
+]
+toolchain = "nightly"
+clear = true
+command = "cargo"
+install_crate = "cargo-llvm-cov"
+
 [tasks.clean-snapshots]
 env = { INSTA_SNAPSHOT_REFERENCES_FILE = "insta_refs" }
 script = '''

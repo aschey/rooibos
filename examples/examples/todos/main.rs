@@ -3,12 +3,13 @@ mod server;
 
 use std::error::Error;
 use std::io::Stdout;
+use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{notifications, Button, Input, Notification, Notifier, Popup, Show};
 use rooibos::dom::{
     clear, col, derive_signal, focus_id, overlay, row, transition, widget_ref, Constrainable,
-    Errors, NodeId, Render, WidgetState,
+    Errors, IntoAny, NodeId, Render, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -30,7 +31,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
-        app,
+        || app(Duration::from_secs(3)),
     );
     tokio::spawn(run_server());
     runtime.run().await?;
@@ -44,7 +45,7 @@ struct TodoContext {
     delete_todo: Action<u32, Result<(), rooibos::dom::Error>>,
 }
 
-fn app() -> impl Render {
+fn app(notification_timeout: Duration) -> impl Render {
     let fallback = move |errors: ArcRwSignal<Errors>| {
         let error_list = move || {
             errors.with(|errors| {
@@ -80,11 +81,14 @@ fn app() -> impl Render {
 
     Effect::new(move |_| {
         if update_version.get() > 0 {
-            notifier.notify(Notification::new(Text::from_iter([
-                Line::raw(""),
-                Line::raw("  Todo updated"),
-                Line::raw(""),
-            ])));
+            notifier.notify(
+                Notification::new(Text::from_iter([
+                    Line::raw(""),
+                    Line::raw("  Todo updated"),
+                    Line::raw(""),
+                ]))
+                .timeout(notification_timeout),
+            );
         }
     });
 
@@ -129,12 +133,15 @@ fn app() -> impl Render {
                 widget_ref!(Line::from(" Loading...".gray())),
                 {
                     todos.await.map(|todos| {
-                        col![
+                        col![if todos.is_empty() {
+                            widget_ref!("No todos".gray()).into_any()
+                        } else {
                             todos
                                 .into_iter()
                                 .map(|t| todo_item(t.id, t.text, editing_id))
-                                .collect::<Vec<_>>(),
-                        ]
+                                .collect::<Vec<_>>()
+                                .into_any()
+                        }]
                     })
                 },
                 fallback
@@ -214,9 +221,15 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
                         update_todo.dispatch((id, value));
                         editing_id.set(None);
                     })
+                    .on_blur(move |_| {
+                        editing_id.set(None);
+                    })
                     .id(input_id.get_value())
                     .render(input_ref)
             })
     ]
     .length(3)
 }
+
+#[cfg(test)]
+mod tests;

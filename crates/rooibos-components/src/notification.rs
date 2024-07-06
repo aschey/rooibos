@@ -27,6 +27,7 @@ static NOTIFICATION_ID: AtomicU32 = AtomicU32::new(1);
 pub struct Notification {
     id: u32,
     content: Text<'static>,
+    timeout: Duration,
 }
 
 impl Notification {
@@ -34,7 +35,13 @@ impl Notification {
         Self {
             id: NOTIFICATION_ID.fetch_add(1, Ordering::SeqCst),
             content: content.into(),
+            timeout: Duration::from_secs(3),
         }
+    }
+
+    pub fn timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
     }
 }
 
@@ -78,9 +85,10 @@ pub fn notifications() -> impl Render {
     wasm_compat::spawn(async move {
         while let Some(notification) = rx.recv().await {
             let id = notification.id;
+            let timeout = notification.timeout;
             notifications.update(|n| n.push(notification));
             wasm_compat::spawn(async move {
-                wasm_compat::sleep(Duration::from_secs(3)).await;
+                wasm_compat::sleep(timeout).await;
                 notifications.update(|n| {
                     let idx = n.iter().position(|n| n.id == id);
                     if let Some(idx) = idx {

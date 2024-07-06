@@ -10,6 +10,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
 pub use sparkline::*;
+use tui_textarea::TextArea;
 
 use crate::DomWidget;
 
@@ -78,6 +79,7 @@ where
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Role {
     Button,
+    TextInput,
 }
 
 pub trait WidgetRole {
@@ -89,8 +91,13 @@ where
     T: Any,
 {
     fn widget_role() -> Option<Role> {
-        if TypeId::of::<Self>() == TypeId::of::<Button>() {
+        let current_type = TypeId::of::<Self>();
+
+        if current_type == TypeId::of::<Button>() {
             return Some(Role::Button);
+        }
+        if current_type == TypeId::of::<TextArea>() {
+            return Some(Role::TextInput);
         }
         None
     }

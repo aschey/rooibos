@@ -22,8 +22,8 @@ use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
 use rooibos_dom::{
-    dom_update_receiver, focus_next, mount, render_dom, send_event, DomUpdateReceiver, Event,
-    KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
+    dom_update_receiver, focus_next, mount, render_dom, send_event, unmount, DomUpdateReceiver,
+    Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
@@ -434,6 +434,7 @@ impl<B: Backend + 'static> Runtime<B> {
                     if !self.settings.show_final_output {
                         terminal.clear()?;
                     }
+                    unmount();
                     return Ok(());
                 }
                 TickResult::Command(command) => {
@@ -678,6 +679,7 @@ pub fn set_panic_hook() {
         let original_hook = take_hook();
         set_hook(Box::new(move |panic_info| {
             let _ = restore_terminal();
+            unmount();
             original_hook(panic_info);
         }));
     }
