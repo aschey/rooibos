@@ -20,9 +20,12 @@ macro_rules! assert_snapshot {
 #[rooibos::test]
 async fn test_todos() {
     tokio::spawn(run_server());
-    let mut harness = TestHarness::new(RuntimeSettings::default(), 40, 10, || {
-        app(Duration::from_millis(100))
-    });
+    let mut harness = TestHarness::new(
+        RuntimeSettings::default().enable_signal_handler(false),
+        40,
+        10,
+        || app(Duration::from_millis(100)),
+    );
     let root_layout = root();
     // Wait for initial data load
     harness

@@ -15,7 +15,12 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_tabs() {
-    let mut harness = TestHarness::new(RuntimeSettings::default(), 40, 10, app);
+    let mut harness = TestHarness::new(
+        RuntimeSettings::default().enable_signal_handler(false),
+        40,
+        10,
+        app,
+    );
     assert_snapshot!(harness.terminal());
 
     let tab2_pos = harness.get_position_of_text("Tab2");

@@ -148,6 +148,7 @@ where
 #[derive(Debug)]
 pub struct RuntimeSettings {
     enable_input_reader: bool,
+    enable_signal_handler: bool,
     show_final_output: bool,
     hover_debounce: Duration,
 }
@@ -156,6 +157,7 @@ impl Default for RuntimeSettings {
     fn default() -> Self {
         Self {
             enable_input_reader: true,
+            enable_signal_handler: true,
             show_final_output: true,
             hover_debounce: Duration::from_millis(20),
         }
@@ -165,6 +167,11 @@ impl Default for RuntimeSettings {
 impl RuntimeSettings {
     pub fn enable_input_reader(mut self, enable: bool) -> Self {
         self.enable_input_reader = enable;
+        self
+    }
+
+    pub fn enable_signal_handler(mut self, enable: bool) -> Self {
+        self.enable_signal_handler = enable;
         self
     }
 
@@ -182,8 +189,8 @@ impl RuntimeSettings {
 #[derive(Debug)]
 pub struct Runtime<B: Backend> {
     settings: RuntimeSettings,
-    signal_tx: mpsc::Sender<SignalMode>,
-    signal_rx: mpsc::Receiver<SignalMode>,
+    runtime_cmd_tx: mpsc::Sender<RuntimeCommand>,
+    runtime_cmd_rx: mpsc::Receiver<RuntimeCommand>,
     term_command_rx: broadcast::Receiver<TerminalCommand>,
     term_event_tx: broadcast::Sender<Event>,
     term_event_rx: broadcast::Receiver<Event>,
@@ -194,7 +201,7 @@ pub struct Runtime<B: Backend> {
     parser_running: Arc<AtomicBool>,
 }
 
-pub enum SignalMode {
+pub enum RuntimeCommand {
     Terminate,
     Suspend,
     Resume,
@@ -209,7 +216,7 @@ impl<B: Backend + 'static> Runtime<B> {
     {
         let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
         let backend = Arc::new(backend);
-        let (signal_tx, signal_rx) = mpsc::channel(32);
+        let (runtime_cmd_tx, runtime_cmd_rx) = mpsc::channel(32);
 
         let (term_parser_tx, _) = broadcast::channel(32);
 
@@ -240,9 +247,9 @@ impl<B: Backend + 'static> Runtime<B> {
         });
 
         #[cfg(not(target_arch = "wasm32"))]
-        {
+        if settings.enable_signal_handler {
             use async_signal::{Signal, Signals};
-            let signal_tx = signal_tx.clone();
+            let runtime_cmd_tx = runtime_cmd_tx.clone();
             wasm_compat::spawn(async move {
                 #[cfg(unix)]
                 // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
@@ -261,13 +268,13 @@ impl<B: Backend + 'static> Runtime<B> {
                 while let Some(Ok(signal)) = signals.next().await {
                     match signal {
                         Signal::Tstp => {
-                            let _ = signal_tx.send(SignalMode::Suspend).await;
+                            let _ = runtime_cmd_tx.send(RuntimeCommand::Suspend).await;
                         }
                         Signal::Cont => {
-                            let _ = signal_tx.send(SignalMode::Resume).await;
+                            let _ = runtime_cmd_tx.send(RuntimeCommand::Resume).await;
                         }
                         _ => {
-                            let _ = signal_tx.send(SignalMode::Terminate).await;
+                            let _ = runtime_cmd_tx.send(RuntimeCommand::Terminate).await;
                         }
                     }
                 }
@@ -292,10 +299,10 @@ impl<B: Backend + 'static> Runtime<B> {
             term_event_rx: term_event_tx.subscribe(),
             term_event_tx,
             term_parser_tx,
-            signal_tx,
+            runtime_cmd_tx,
             settings,
             dom_update_rx,
-            signal_rx,
+            runtime_cmd_rx,
             backend,
             cancellation_token: CancellationToken::new(),
             parser_running: Arc::new(AtomicBool::new(false)),
@@ -344,7 +351,7 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     fn handle_term_events(&self) {
-        let signal_tx = self.signal_tx.clone();
+        let signal_tx = self.runtime_cmd_tx.clone();
         let term_event_tx = self.term_event_tx.clone();
 
         let mut term_parser_rx = self.term_parser_tx.subscribe();
@@ -372,13 +379,13 @@ impl<B: Backend + 'static> Runtime<B> {
                             ) => {
                                 if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
                                     let _ = signal_tx
-                                        .send(SignalMode::Terminate)
+                                        .send(RuntimeCommand::Terminate)
                                         .await
                                         .tap_err(|_| warn!("error sending terminate signal"));
                                 } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
                                 {
                                     let _ = signal_tx
-                                        .send(SignalMode::Suspend)
+                                        .send(RuntimeCommand::Suspend)
                                         .await
                                         .tap_err(|_| warn!("error sending suspend signal"));
                                 } else {
@@ -413,6 +420,10 @@ impl<B: Backend + 'static> Runtime<B> {
                 }
             }
         });
+    }
+
+    pub async fn send_runtime_command(&self, runtime_cmd: RuntimeCommand) {
+        self.runtime_cmd_tx.send(runtime_cmd).await.unwrap()
     }
 
     pub async fn run(mut self) -> io::Result<()> {
@@ -484,13 +495,13 @@ impl<B: Backend + 'static> Runtime<B> {
                         let status = status.unwrap();
                         let on_finish = (*on_finish.lock().unwrap()).take().unwrap();
                         on_finish(status, child_stdout, child_stderr);
-                        self.signal_tx.send(SignalMode::Restart).await.unwrap();
+                        self.runtime_cmd_tx.send(RuntimeCommand::Restart).await.unwrap();
                     },
                     // Interrupt child if a signal is received
-                    res = self.signal_rx.recv() => {
+                    res = self.runtime_cmd_rx.recv() => {
                         child.kill().await.unwrap();
                         if let Some(signal) = res {
-                            self.signal_tx.send(signal).await.unwrap();
+                            self.runtime_cmd_tx.send(signal).await.unwrap();
                         }
                     }
                 }
@@ -502,24 +513,24 @@ impl<B: Backend + 'static> Runtime<B> {
 
     pub async fn tick(&mut self) -> TickResult {
         tokio::select! {
-            signal = self.signal_rx.recv() => {
+            signal = self.runtime_cmd_rx.recv() => {
                 match signal {
-                    Some(SignalMode::Suspend) => {
+                    Some(RuntimeCommand::Suspend) => {
                         self.cancellation_token.cancel();
                         restore_terminal().unwrap();
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();
                         TickResult::Continue
                     }
-                    Some(SignalMode::Resume) => {
+                    Some(RuntimeCommand::Resume) => {
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Cont as i32).unwrap();
                         TickResult::Restart
                     }
-                    Some(SignalMode::Restart) => {
+                    Some(RuntimeCommand::Restart) => {
                         TickResult::Restart
                     }
-                    Some(SignalMode::Terminate) | None => {
+                    Some(RuntimeCommand::Terminate) | None => {
                         TickResult::Exit
                     }
                 }

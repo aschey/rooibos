@@ -16,8 +16,12 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_exec() {
-    let mut harness =
-        TestHarness::new(RuntimeSettings::default(), 40, 10, || app("ls".to_string()));
+    let mut harness = TestHarness::new(
+        RuntimeSettings::default().enable_signal_handler(false),
+        40,
+        10,
+        || app("ls".to_string()),
+    );
     assert_snapshot!(harness.terminal());
 
     harness.send_key(KeyCode::Enter);
