@@ -1,9 +1,9 @@
 use reactive_graph::computed::suspense::SuspenseContext;
 use reactive_graph::computed::ArcMemo;
 use reactive_graph::effect::RenderEffect;
-use reactive_graph::owner::provide_context;
+use reactive_graph::owner::{provide_context, Owner};
 use reactive_graph::signal::ArcRwSignal;
-use reactive_graph::traits::{Get, With};
+use reactive_graph::traits::{Get, Track, With};
 use slotmap::{DefaultKey, SlotMap};
 use tachys::reactive_graph::OwnedView;
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
@@ -47,17 +47,28 @@ where
     R: RenderAny,
     SuspenseBoundary<false, AnyView, F>: IntoView,
 {
-    let fallback = fallback.into().run();
+    let owner = Owner::new();
+    owner.with(|| {
+        let fallback = fallback.into().run();
 
-    let tasks = ArcRwSignal::new(SlotMap::<DefaultKey, ()>::new());
-    provide_context(SuspenseContext {
-        tasks: tasks.clone(),
-    });
-    let none_pending = ArcMemo::new(move |_| tasks.with(SlotMap::is_empty));
-    OwnedView::new(SuspenseBoundary::<false, _, _> {
-        none_pending,
-        fallback,
-        children,
+        let tasks = ArcRwSignal::new(SlotMap::<DefaultKey, ()>::new());
+        provide_context(SuspenseContext {
+            tasks: tasks.clone(),
+        });
+        let none_pending = ArcMemo::new(move |prev: Option<&bool>| {
+            tasks.track();
+            if prev.is_none() {
+                false
+            } else {
+                tasks.with(SlotMap::is_empty)
+            }
+        });
+
+        OwnedView::new(SuspenseBoundary::<false, _, _> {
+            none_pending,
+            fallback,
+            children,
+        })
     })
 }
 
