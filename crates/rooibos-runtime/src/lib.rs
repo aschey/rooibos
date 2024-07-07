@@ -72,7 +72,8 @@ where
         s.get()
             .unwrap()
             .borrow_mut()
-            .with_mut(|r| r.insert(id, RuntimeState::new()))
+            .write()
+            .insert(id, RuntimeState::new())
     });
 
     CURRENT_RUNTIME.scope(id, f).await
@@ -223,7 +224,11 @@ impl<B: Backend + 'static> Runtime<B> {
         let term_command_tx = STATE.with(|s| {
             s.get()
                 .unwrap()
-                .with(|r| r.get(&current_runtime).unwrap().term_command_tx.clone())
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .clone()
         });
 
         if !backend.supports_async_input() {
@@ -239,11 +244,12 @@ impl<B: Backend + 'static> Runtime<B> {
 
         // We need to query this info before reading events
         STATE.with(|s| {
-            s.get().unwrap().with_mut(|r| {
-                r.get_mut(&current_runtime)
-                    .unwrap()
-                    .supports_keyboard_enhancement = backend.supports_keyboard_enhancement()
-            })
+            s.get()
+                .unwrap()
+                .write()
+                .get_mut(&current_runtime)
+                .unwrap()
+                .supports_keyboard_enhancement = backend.supports_keyboard_enhancement()
         });
 
         #[cfg(not(target_arch = "wasm32"))]
@@ -286,12 +292,20 @@ impl<B: Backend + 'static> Runtime<B> {
         let term_command_tx = STATE.with(|s| {
             s.get()
                 .unwrap()
-                .with(|r| r.get(&current_runtime).unwrap().term_command_tx.clone())
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .clone()
         });
         let term_event_tx = STATE.with(|s| {
             s.get()
                 .unwrap()
-                .with(|r| r.get(&current_runtime).unwrap().term_tx.clone())
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_tx
+                .clone()
         });
 
         Self {
@@ -331,19 +345,18 @@ impl<B: Backend + 'static> Runtime<B> {
         let show_final_output = self.settings.show_final_output;
         let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
         STATE.with(|s| {
-            s.get().unwrap().with_mut(|r| {
-                r.get_mut(&current_runtime)
-                    .unwrap()
-                    .restore_terminal
-                    .with_mut(|r| {
-                        *r = Box::new(move || {
-                            backend.restore_terminal()?;
-                            if show_final_output {
-                                backend.write_all(b"\n")?;
-                            }
-                            Ok(())
-                        })
-                    })
+            *s.get()
+                .unwrap()
+                .write()
+                .get_mut(&current_runtime)
+                .unwrap()
+                .restore_terminal
+                .lock_mut() = Box::new(move || {
+                backend.restore_terminal()?;
+                if show_final_output {
+                    backend.write_all(b"\n")?;
+                }
+                Ok(())
             })
         });
 
@@ -560,7 +573,11 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     let mut term_rx = STATE.with(|s| {
         s.get()
             .unwrap()
-            .with(|r| r.get(&current_runtime).unwrap().term_tx.subscribe())
+            .read()
+            .get(&current_runtime)
+            .unwrap()
+            .term_tx
+            .subscribe()
     });
     let (term_signal, set_term_signal) = signal(None);
     wasm_compat::spawn_local(async move {
@@ -583,22 +600,23 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
 pub fn supports_key_up() -> bool {
     let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
     STATE.with(|s| {
-        s.get().unwrap().with(|r| {
-            r.get(&current_runtime)
-                .unwrap()
-                .supports_keyboard_enhancement
-        })
+        s.get()
+            .unwrap()
+            .read()
+            .get(&current_runtime)
+            .unwrap()
+            .supports_keyboard_enhancement
     })
 }
 
 pub fn restore_terminal() -> io::Result<()> {
     STATE.with(|s| {
-        s.get().unwrap().with(|r| {
-            for runtime in r.values() {
-                runtime.restore_terminal.with(|r| r())?;
-            }
-            Ok(())
-        })
+        let r = s.get().unwrap().read();
+
+        for runtime in r.values() {
+            runtime.restore_terminal.lock()()?;
+        }
+        Ok(())
     })
 }
 
@@ -606,14 +624,16 @@ pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
     let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
     STATE
         .with(|s| {
-            s.get().unwrap().with(|r| {
-                r.get(&current_runtime).unwrap().term_command_tx.send(
-                    TerminalCommand::InsertBefore {
-                        height,
-                        text: text.into(),
-                    },
-                )
-            })
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::InsertBefore {
+                    height,
+                    text: text.into(),
+                })
         })
         .unwrap();
 }
@@ -622,12 +642,13 @@ pub fn enter_alt_screen() {
     let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
     STATE
         .with(|s| {
-            s.get().unwrap().with(|r| {
-                r.get(&current_runtime)
-                    .unwrap()
-                    .term_command_tx
-                    .send(TerminalCommand::EnterAltScreen)
-            })
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::EnterAltScreen)
         })
         .unwrap();
 }
@@ -636,12 +657,13 @@ pub fn leave_alt_screen() {
     let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
     STATE
         .with(|s| {
-            s.get().unwrap().with(|r| {
-                r.get(&current_runtime)
-                    .unwrap()
-                    .term_command_tx
-                    .send(TerminalCommand::LeaveAltScreen)
-            })
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::LeaveAltScreen)
         })
         .unwrap();
 }
@@ -650,12 +672,13 @@ pub fn set_title<T: Display>(title: T) {
     let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
     STATE
         .with(|s| {
-            s.get().unwrap().with(|r| {
-                r.get(&current_runtime)
-                    .unwrap()
-                    .term_command_tx
-                    .send(TerminalCommand::SetTitle(title.to_string()))
-            })
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::SetTitle(title.to_string()))
         })
         .unwrap();
 }
@@ -671,15 +694,16 @@ where
     let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
     STATE
         .with(|s| {
-            s.get().unwrap().with(|r| {
-                r.get(&current_runtime)
-                    .unwrap()
-                    .term_command_tx
-                    .send(TerminalCommand::Exec {
-                        command: Arc::new(std::sync::Mutex::new(command)),
-                        on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
-                    })
-            })
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::Exec {
+                    command: Arc::new(std::sync::Mutex::new(command)),
+                    on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
+                })
         })
         .unwrap();
 }

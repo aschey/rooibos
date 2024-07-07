@@ -68,7 +68,7 @@ pub struct TestHarness {
 
 impl TestHarness {
     pub fn set_default_timeout(timeout: Duration) {
-        DEFAULT_TIMEOUT.with(|t| t.with_mut(|d| *d = timeout));
+        DEFAULT_TIMEOUT.with(|t| *t.write() = timeout);
     }
 
     pub fn new<F, M>(runtime_settings: RuntimeSettings, width: u16, height: u16, f: F) -> Self
@@ -103,7 +103,7 @@ impl TestHarness {
         f: impl FnMut(&Self, Option<TickResult>) -> bool,
     ) -> Result<(), Buffer> {
         DEFAULT_TIMEOUT
-            .with(|t| t.with(|t| self.wait_for_timeout(f, *t)))
+            .with(|t| self.wait_for_timeout(f, *t.read()))
             .await
     }
 
