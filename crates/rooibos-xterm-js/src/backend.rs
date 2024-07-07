@@ -1,5 +1,4 @@
 use std::io::{self, Write};
-use std::time::{Duration, Instant};
 
 use crossterm::cursor::{DisableBlinking, Hide, Show};
 use crossterm::event::{

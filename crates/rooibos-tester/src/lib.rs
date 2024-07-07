@@ -9,12 +9,12 @@ use rooibos_dom::{
     MouseEvent, MouseEventKind, NodeTypeRepr, Render,
 };
 use rooibos_runtime::backend::test::TestBackend;
-use rooibos_runtime::wasm_compat::{Lazy, RwLock};
-use rooibos_runtime::{once, Runtime, RuntimeSettings, TickResult};
+use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
+use rooibos_runtime::{Runtime, RuntimeSettings, TickResult};
 use tokio::sync::broadcast;
 use unicode_width::UnicodeWidthStr;
 
-once! {
+wasm_compat::static_init! {
     static DEFAULT_TIMEOUT: Lazy<RwLock<Duration>> =
         Lazy::new(move || RwLock::new(Duration::from_secs(1)));
 }

@@ -1,5 +1,4 @@
 pub mod backend;
-pub mod wasm_compat;
 
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
@@ -30,9 +29,16 @@ use tokio::sync::{broadcast, mpsc};
 use tokio::{task, task_local};
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
-use wasm_compat::Mutex;
 
-use crate::wasm_compat::{Once, RwLock};
+pub mod wasm_compat {
+    pub use ::wasm_compat::cell::*;
+    pub use ::wasm_compat::futures::*;
+    pub use ::wasm_compat::once::*;
+    pub use ::wasm_compat::static_init;
+    pub use ::wasm_compat::static_init::*;
+    pub use ::wasm_compat::sync::*;
+    pub use ::wasm_compat::time::*;
+}
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
@@ -40,7 +46,7 @@ struct RuntimeState {
     term_tx: broadcast::Sender<rooibos_dom::Event>,
     term_command_tx: broadcast::Sender<TerminalCommand>,
     supports_keyboard_enhancement: bool,
-    restore_terminal: Mutex<Box<RestoreFn>>,
+    restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
 }
 
 impl RuntimeState {
@@ -51,13 +57,13 @@ impl RuntimeState {
             term_tx,
             term_command_tx,
             supports_keyboard_enhancement: false,
-            restore_terminal: Mutex::new(Box::new(|| Ok(()))),
+            restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
         }
     }
 }
 
-once! {
-    static STATE: Once<RwLock<HashMap<u32, RuntimeState>>> = Once::new();
+wasm_compat::static_init! {
+    static STATE: wasm_compat::Once<wasm_compat::RwLock<HashMap<u32, RuntimeState>>> = wasm_compat::Once::new();
 }
 
 task_local! {
@@ -116,7 +122,10 @@ pub enum TickResult {
 pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     let mut state = HashMap::new();
     state.insert(0, RuntimeState::new());
-    if STATE.with(|s| s.set(RwLock::new(state))).is_err() {
+    if STATE
+        .with(|s| s.set(wasm_compat::RwLock::new(state)))
+        .is_err()
+    {
         panic!();
     }
     let owner = Owner::new();
