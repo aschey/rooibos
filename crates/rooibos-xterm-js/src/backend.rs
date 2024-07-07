@@ -1,16 +1,14 @@
-use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
+use std::io::{self, Write};
 use std::time::{Duration, Instant};
 
 use crossterm::cursor::{DisableBlinking, Hide, Show};
 use crossterm::event::{
     DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
-    EnableFocusChange, EnableMouseCapture, Event, KeyCode, KeyEvent, KeyModifiers,
-    KeyboardEnhancementFlags, MouseEvent, MouseEventKind, PopKeyboardEnhancementFlags,
+    EnableFocusChange, EnableMouseCapture, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags,
     PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
-    LeaveAlternateScreen, SetTitle,
+    supports_keyboard_enhancement, EnterAlternateScreen, LeaveAlternateScreen, SetTitle,
 };
 use crossterm::{execute, queue};
 use futures::StreamExt;
@@ -18,9 +16,9 @@ use ratatui::{Terminal, Viewport};
 use ratatui_wasm::xterm::Theme;
 use ratatui_wasm::{init_terminal, EventStream, TerminalHandle};
 use rooibos_runtime::backend::Backend;
-use rooibos_runtime::{wasm_compat, CancellationToken, SignalMode};
+use rooibos_runtime::CancellationToken;
 use tap::TapFallible;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use tracing::warn;
 use web_sys::wasm_bindgen::JsCast;
 
