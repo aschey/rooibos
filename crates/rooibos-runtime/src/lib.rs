@@ -14,6 +14,8 @@ use std::time::Duration;
 use backend::Backend;
 use derivative::Derivative;
 use futures_util::StreamExt;
+use ratatui::backend::Backend as TuiBackend;
+use ratatui::layout::Size;
 use ratatui::text::Text;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
@@ -46,6 +48,7 @@ struct RuntimeState {
     term_tx: broadcast::Sender<rooibos_dom::Event>,
     term_command_tx: broadcast::Sender<TerminalCommand>,
     supports_keyboard_enhancement: bool,
+    pixel_size: Option<Size>,
     restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
 }
 
@@ -57,6 +60,7 @@ impl RuntimeState {
             term_tx,
             term_command_tx,
             supports_keyboard_enhancement: false,
+            pixel_size: None,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
         }
     }
@@ -333,7 +337,21 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     pub fn setup_terminal(&mut self) -> io::Result<Terminal<B::TuiBackend>> {
-        let terminal = self.backend.setup_terminal()?;
+        let mut terminal = self.backend.setup_terminal()?;
+        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+        if let Ok(window_size) = terminal.backend_mut().window_size() {
+            STATE.with(|s| {
+                s.get()
+                    .unwrap()
+                    .write()
+                    .get_mut(&current_runtime)
+                    .unwrap()
+                    .pixel_size = Some(Size {
+                    width: window_size.pixels.width / window_size.columns_rows.width,
+                    height: window_size.pixels.height / window_size.columns_rows.height,
+                })
+            });
+        }
         let backend = self.backend.clone();
 
         if self.settings.enable_input_reader {
@@ -352,7 +370,7 @@ impl<B: Backend + 'static> Runtime<B> {
             self.handle_term_events();
         }
         let show_final_output = self.settings.show_final_output;
-        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+
         STATE.with(|s| {
             *s.get()
                 .unwrap()
@@ -615,6 +633,18 @@ pub fn supports_key_up() -> bool {
             .get(&current_runtime)
             .unwrap()
             .supports_keyboard_enhancement
+    })
+}
+
+pub fn pixel_size() -> Option<Size> {
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE.with(|s| {
+        s.get()
+            .unwrap()
+            .read()
+            .get(&current_runtime)
+            .unwrap()
+            .pixel_size
     })
 }
 
