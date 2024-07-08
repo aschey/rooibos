@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::thread;
 
 pub use image::io::Reader as ImageReader;
@@ -23,50 +24,85 @@ pub enum ResizeMode {
 
 pub struct Image {
     resize_mode: MaybeSignal<ResizeMode>,
-    image: MaybeSignal<DynamicImage>,
+    image_source: ImageSource,
+}
+
+#[derive(Clone)]
+pub enum ImageSource {
+    Url(MaybeSignal<PathBuf>),
+    Binary(MaybeSignal<DynamicImage>),
 }
 
 impl Image {
-    pub fn new(image: impl Into<MaybeSignal<DynamicImage>>) -> Self {
+    pub fn from_url(url: impl Into<MaybeSignal<PathBuf>>) -> Self {
         Self {
-            image: image.into(),
+            image_source: ImageSource::Url(url.into()),
+            resize_mode: ResizeMode::Fit(None).into(),
+        }
+    }
+
+    pub fn from_binary(binary: impl Into<MaybeSignal<DynamicImage>>) -> Self {
+        Self {
+            image_source: ImageSource::Binary(binary.into()),
             resize_mode: ResizeMode::Fit(None).into(),
         }
     }
 
     pub fn render(self) -> impl Render {
-        let Self { resize_mode, image } = self;
+        let Self {
+            resize_mode,
+            image_source,
+        } = self;
+
+        let image = RwSignal::new(None);
+
+        Effect::new(move |_| match &image_source {
+            ImageSource::Url(url) => {
+                let url = url.get();
+                thread::spawn(move || {
+                    let decoded = ImageReader::open(url).unwrap().decode().unwrap();
+                    image.set(Some(decoded));
+                });
+            }
+            ImageSource::Binary(binary) => {
+                image.set(Some(binary.get()));
+            }
+        });
 
         let (tx_worker, rec_worker) =
             std::sync::mpsc::channel::<(Box<dyn StatefulProtocol>, Resize, Rect)>();
 
         let async_state = RwSignal::new(None);
-        Effect::new(move |prev_picker: Option<Picker>| {
+        Effect::new(move |prev_picker: Option<Option<Picker>>| {
             let image = image.get();
-            if let Some(mut picker) = prev_picker {
-                async_state.set(Some(ThreadProtocol::new(
-                    tx_worker.clone(),
-                    picker.new_resize_protocol(image),
-                )));
-                picker
-            } else {
-                let fallback_size = Size {
-                    width: 8,
-                    height: 16,
-                };
-                let mut pixel_size = rooibos_runtime::pixel_size().unwrap_or(fallback_size);
-                if pixel_size == Size::default() {
-                    pixel_size = fallback_size;
+            if let Some(image) = image {
+                if let Some(Some(mut picker)) = prev_picker {
+                    async_state.set(Some(ThreadProtocol::new(
+                        tx_worker.clone(),
+                        picker.new_resize_protocol(image),
+                    )));
+                    Some(picker)
+                } else {
+                    let fallback_size = Size {
+                        width: 8,
+                        height: 16,
+                    };
+                    let mut pixel_size = rooibos_runtime::pixel_size().unwrap_or(fallback_size);
+                    if pixel_size == Size::default() {
+                        pixel_size = fallback_size;
+                    }
+                    let mut picker = Picker::new((pixel_size.width, pixel_size.height));
+                    picker.guess_protocol();
+
+                    async_state.set(Some(ThreadProtocol::new(
+                        tx_worker.clone(),
+                        picker.new_resize_protocol(image),
+                    )));
+
+                    Some(picker)
                 }
-                let mut picker = Picker::new((pixel_size.width, pixel_size.height));
-                picker.guess_protocol();
-
-                async_state.set(Some(ThreadProtocol::new(
-                    tx_worker.clone(),
-                    picker.new_resize_protocol(image),
-                )));
-
-                picker
+            } else {
+                None
             }
         });
 
