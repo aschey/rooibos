@@ -2,12 +2,13 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::Popup;
-use rooibos::dom::{clear, col, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::dom::{
+    clear, col, line, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render,
+};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::tui::text::Line;
 use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -35,10 +36,10 @@ fn app() -> impl Render {
     overlay![
         widget_ref!(
             Paragraph::new(vec![
-                Line::from("text1"),
-                Line::from("text2"),
-                Line::from("text3"),
-                Line::from("text4")
+                line!("text1"),
+                line!("text2"),
+                line!("text3"),
+                line!("text4")
             ])
             .block(Block::bordered())
         )

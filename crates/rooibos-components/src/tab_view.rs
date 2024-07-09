@@ -7,8 +7,8 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, derive_signal, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny, IntoChildrenFn,
-    KeyEvent, MouseEvent, Render,
+    col, derive_signal, line, span, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny,
+    IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -99,10 +99,10 @@ impl Default for TabView {
             style: Default::default(),
             constraint: Default::default(),
             fit: false.into(),
-            divider: Span::raw(symbols::line::VERTICAL).into(),
+            divider: span!(symbols::line::VERTICAL).into(),
             header_constraint: Constraint::Length(1).into(),
-            padding_left: Line::from(" ").into(),
-            padding_right: Line::from(" ").into(),
+            padding_left: line!(" ").into(),
+            padding_right: line!(" ").into(),
         }
     }
 }
@@ -276,9 +276,7 @@ impl TabView {
                                             .collect();
                                     }
                                 }
-                                Line::from(
-                                    [spans, vec![Span::from("  ")], decorator_spans].concat(),
-                                )
+                                line!([spans, vec![span!("  ")], decorator_spans].concat())
                             } else {
                                 if i == cur_tab {
                                     let spans: Vec<_> = header
@@ -286,7 +284,7 @@ impl TabView {
                                         .into_iter()
                                         .map(|s| s.set_style(highlight_style))
                                         .collect();
-                                    header = Line::from(spans);
+                                    header = line!(spans);
                                 }
 
                                 header

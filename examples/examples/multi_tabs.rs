@@ -2,14 +2,13 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, line, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
-use rooibos::tui::text::Line;
 use rooibos::tui::widgets::Block;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -30,9 +29,9 @@ fn app() -> impl Render {
     let tab_block = RwSignal::new(Block::bordered().title("Demo"));
 
     let tabs = RwSignal::new(KeyedWrappingList::<Tab>(vec![
-        Tab::new(Line::from("Tab1"), "tab1", move || "tab1"),
-        Tab::new(Line::from("Tab2"), "tab2", inner_tabs),
-        Tab::new(Line::from("Tab3"), "tab3", move || "tab3"),
+        Tab::new(line!("Tab1"), "tab1", move || "tab1"),
+        Tab::new(line!("Tab2"), "tab2", inner_tabs),
+        Tab::new(line!("Tab3"), "tab3", move || "tab3"),
     ]));
 
     let on_key_down = move |key_event: KeyEvent, _: EventData| {
@@ -81,8 +80,8 @@ fn inner_tabs() -> impl Render {
     let tab_block = RwSignal::new(Block::bordered().title("Inner"));
 
     let tabs = RwSignal::new(KeyedWrappingList::<Tab>(vec![
-        Tab::new(Line::from("Tab1"), "tab1", move || "tab1"),
-        Tab::new(Line::from("Tab2"), "tab2", move || "tab2"),
+        Tab::new(line!("Tab1"), "tab1", move || "tab1"),
+        Tab::new(line!("Tab2"), "tab2", move || "tab2"),
     ]));
 
     let on_key_down = move |key_event: KeyEvent, _: EventData| {

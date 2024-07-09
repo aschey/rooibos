@@ -3,7 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Position, Rect};
-use ratatui::text::{Line, Text};
+use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
@@ -14,7 +14,7 @@ use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{derive_signal, widget_ref, EventData, MouseEventFn};
+use crate::{derive_signal, line, text, widget_ref, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
@@ -189,7 +189,7 @@ impl Renderer for RooibosDom {
 
     fn create_text_node(text: &str) -> Self::Text {
         let text = text.to_owned();
-        widget_ref!(Text::from(text.clone())).inner()
+        widget_ref!(text!(text.clone())).inner()
     }
 
     fn create_placeholder() -> Self::Placeholder {
@@ -346,7 +346,7 @@ fn print_dom_inner(
     }
     line += &format!(" constraint={}>", node.constraint.borrow().clone());
 
-    let mut lines = vec![Line::from(line)];
+    let mut lines = vec![line!(line)];
 
     let child_indent = format!("{indent}  ");
 
@@ -354,7 +354,7 @@ fn print_dom_inner(
         lines.append(&mut print_dom_inner(dom_ref, *key, &child_indent));
     }
 
-    lines.push(Line::from(format!("{indent}</{node_name}>")));
+    lines.push(line!("{indent}</{node_name}>"));
 
     lines
 }

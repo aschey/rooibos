@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{for_each, Button};
-use rooibos::dom::{col, row, widget_ref, Constrainable, KeyCode, Render};
+use rooibos::dom::{col, row, text, widget_ref, Constrainable, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
@@ -10,7 +10,6 @@ use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{use_keypress, Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::Stylize;
-use rooibos::tui::text::Text;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -41,15 +40,15 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + 'static, constraint: Constrai
         Button::new()
             .length(6)
             .on_click(move || update_count(-1))
-            .render(Text::from("-1")),
+            .render(text!("-1")),
         Button::new()
             .length(6)
             .on_click(move || update_count(1))
-            .render(Text::from("+1")),
+            .render(text!("+1")),
         Button::new()
             .length(5)
             .on_click(on_remove)
-            .render(Text::from("x".red())),
+            .render(text!("x".red())),
         widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
             .length(15)
             .on_click(move |_, _| update_count(1))
@@ -85,7 +84,7 @@ fn app() -> impl Render {
             Button::new()
                 .on_click(add_counter)
                 .length(20)
-                .render(Text::from("Add Counter"))
+                .render(text!("Add Counter"))
         ]
         .length(3),
         for_each(

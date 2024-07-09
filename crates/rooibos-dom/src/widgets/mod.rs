@@ -10,7 +10,6 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
 pub use sparkline::*;
-use tui_textarea::TextArea;
 
 use crate::DomWidget;
 
@@ -96,7 +95,8 @@ where
         if current_type == TypeId::of::<Button>() {
             return Some(Role::Button);
         }
-        if current_type == TypeId::of::<TextArea>() {
+        #[cfg(feature = "input")]
+        if current_type == TypeId::of::<tui_textarea::TextArea>() {
             return Some(Role::TextInput);
         }
         None

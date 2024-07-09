@@ -1,7 +1,6 @@
-use rooibos::dom::{col, widget_ref, Constrainable, Render};
+use rooibos::dom::{col, line, span, widget_ref, Constrainable, Render};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::{Modifier, Stylize};
-use rooibos::tui::text::{Line, Span};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
 
 use crate::tab0::charts::charts;
@@ -21,31 +20,31 @@ pub(crate) fn tab0() -> impl Render {
 fn footer(constraint: Constraint) -> impl Render {
     widget_ref!(
         Paragraph::new(vec![
-            Line::from(
+            line!(
                 "This is a paragraph with several lines. You can style your text the way you want"
             ),
-            Line::from(""),
-            Line::from(vec![
-                Span::from("For example: "),
-                Span::from("under").red(),
-                Span::from(" "),
-                Span::from("the").green(),
-                Span::from(" "),
-                Span::from("rainbow").blue(),
-                Span::from(".")
-            ]),
-            Line::from(vec![
-                Span::from("Oh and if you didn't "),
-                Span::from("notice").italic(),
-                Span::from(" you can "),
-                Span::from("automatically").bold(),
-                Span::from(" "),
-                Span::from("wrap").reversed(),
-                Span::from(" your "),
-                Span::from("text").underlined(),
-                Span::from(".")
-            ]),
-            Line::from("One more thing is that it should display unicode characters: 10€")
+            line!(""),
+            line!(
+                span!("For example: "),
+                span!("under").red(),
+                span!(" "),
+                span!("the").green(),
+                span!(" "),
+                span!("rainbow").blue(),
+                span!(".")
+            ),
+            line!(
+                span!("Oh and if you didn't "),
+                span!("notice").italic(),
+                span!(" you can "),
+                span!("automatically").bold(),
+                span!(" "),
+                span!("wrap").reversed(),
+                span!(" your "),
+                span!("text").underlined(),
+                span!(".")
+            ),
+            line!("One more thing is that it should display unicode characters: 10€")
         ])
         .block(
             Block::bordered()

@@ -3,7 +3,7 @@ use std::io::Stdout;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{col, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, line, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set};
@@ -11,7 +11,6 @@ use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
-use rooibos::tui::text::Line;
 use rooibos::tui::widgets::Block;
 use tilia::transport_async::codec::{CodecStream, LengthDelimitedCodec};
 use tilia::transport_async::ipc::{IpcSecurity, OnConflict, SecurityAttributes, ServerId};
@@ -103,7 +102,7 @@ const TAB2: &str = "Tab2";
 fn header_tabs() -> impl Render {
     let focused = RwSignal::new(TAB0.to_string());
 
-    let tab_header = |title: &'static str| Line::from(title.green());
+    let tab_header = |title: &'static str| line!(title.green());
 
     let tabs = RwSignal::new(KeyedWrappingList(vec![
         Tab::new(tab_header(TAB0), TAB0.to_string(), tab0),

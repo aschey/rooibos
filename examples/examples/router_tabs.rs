@@ -2,15 +2,15 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{use_router, Button, KeyedWrappingList, Route, Router, Tab, TabView};
-use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, line, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
-use rooibos::tui::text::{Line, Text};
 use rooibos::tui::widgets::Block;
+
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
@@ -38,9 +38,9 @@ fn tabs() -> impl Render {
     let current_route = router.use_param("id");
 
     let tabs = KeyedWrappingList(vec![
-        Tab::new(Line::from("Tab1"), "tab1", move || "tab1"),
-        Tab::new(Line::from("Tab2"), "tab2", move || "tab2"),
-        Tab::new(Line::from("Tab3"), "tab3", move || "tab3"),
+        Tab::new(line!("Tab1"), "tab1", move || "tab1"),
+        Tab::new(line!("Tab2"), "tab2", move || "tab2"),
+        Tab::new(line!("Tab3"), "tab3", move || "tab3"),
     ]);
 
     let on_key_down = {
@@ -78,7 +78,7 @@ fn tabs() -> impl Render {
                 .on_click(move || {
                     router.pop();
                 })
-                .render(Text::from("Previous"))
+                .render(text!("Previous"))
         ]
         .length(10)
     ]

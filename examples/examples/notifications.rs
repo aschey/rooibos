@@ -3,10 +3,9 @@ use std::io::Stdout;
 use std::time::Duration;
 
 use rooibos::components::{notifications, Notification, Notifier};
-use rooibos::dom::{col, widget_ref, Render};
+use rooibos::dom::{col, line, widget_ref, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
-use rooibos::tui::text::Line;
 use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -34,10 +33,10 @@ fn app() -> impl Render {
     col![
         widget_ref!(
             Paragraph::new(vec![
-                Line::from("text1"),
-                Line::from("text2"),
-                Line::from("text3"),
-                Line::from("text4")
+                line!("text1"),
+                line!("text2"),
+                line!("text3"),
+                line!("text4")
             ])
             .block(Block::bordered())
         ),

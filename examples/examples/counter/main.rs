@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{line, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{line, span, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -32,7 +32,7 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(line!("count: ".bold(), count.get().to_string().cyan()))
+    widget_ref!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_down)
         .on_click(move |_, _| update_count())
 }

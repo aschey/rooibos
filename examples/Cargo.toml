@@ -16,6 +16,7 @@ tracing = "0.1.40"
 tilia = { git = "https://github.com/aschey/tilia", rev = "694a370d7e08e28884d468567a0671afe90a827d", features = [
     "ipc",
 ] }
+any_spawner = { path = "../../leptos/any_spawner", features = ["tokio"] }
 tracing-subscriber = { version = "0.3.18", features = [
     "registry",
     "env-filter",

@@ -4,14 +4,15 @@ use std::io::Stdout;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::{col, row, suspense, widget_ref, Constrainable, Errors, Render};
+use rooibos::dom::{
+    col, line, row, span, suspense, text, widget_ref, Constrainable, Errors, Render,
+};
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
 use rooibos::reactive::traits::{Get, Set, With};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::style::Stylize;
-use rooibos::tui::text::{Line, Span, Text};
 use rooibos::tui::widgets::Paragraph;
 use serde::Deserialize;
 
@@ -33,16 +34,10 @@ fn app() -> impl Render {
     let character = AsyncDerived::new(move || fetch_next(id.get()));
 
     let fallback = move |errors: ArcRwSignal<Errors>| {
-        let error_list = move || {
-            errors.with(|errors| {
-                errors
-                    .iter()
-                    .map(|(_, e)| Span::from(e.to_string()))
-                    .collect::<Vec<_>>()
-            })
-        };
+        let error_list =
+            move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
 
-        widget_ref!(Paragraph::new(Line::from(error_list())))
+        widget_ref!(Paragraph::new(line!(error_list())))
     };
 
     col![
@@ -52,16 +47,16 @@ fn app() -> impl Render {
                     .on_click(move || {
                         set_id.set(rand::thread_rng().gen_range(1..80));
                     })
-                    .render(Text::from("fetch next")),
+                    .render(text!("fetch next")),
             ]
             .length(20)
         ]
         .length(3),
         row![col![suspense!(
-            widget_ref!(Line::from(" Loading...".gray())),
+            widget_ref!(line!(" Loading...".gray())),
             character
                 .await
-                .map(|c| widget_ref!(Line::from(format!(" {c}").green()))),
+                .map(|c| widget_ref!(line!(" ", c.clone().green()))),
             fallback
         )]]
     ]

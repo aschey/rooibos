@@ -8,8 +8,8 @@ use std::time::Duration;
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{notifications, Button, Input, Notification, Notifier, Popup, Show};
 use rooibos::dom::{
-    clear, col, derive_signal, focus_id, overlay, row, transition, widget_ref, Constrainable,
-    Errors, IntoAny, NodeId, Render, WidgetState,
+    clear, col, derive_signal, focus_id, line, overlay, row, span, text, transition, widget_ref,
+    Constrainable, Errors, IntoAny, NodeId, Render, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -22,7 +22,6 @@ use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
-use rooibos::tui::text::{Line, Span, Text};
 use rooibos::tui::widgets::{Block, Paragraph};
 use server::run_server;
 
@@ -47,16 +46,10 @@ struct TodoContext {
 
 fn app(notification_timeout: Duration) -> impl Render {
     let fallback = move |errors: ArcRwSignal<Errors>| {
-        let error_list = move || {
-            errors.with(|errors| {
-                errors
-                    .iter()
-                    .map(|(_, e)| Span::from(e.to_string()))
-                    .collect::<Vec<_>>()
-            })
-        };
+        let error_list =
+            move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
 
-        widget_ref!(Paragraph::new(Line::from(error_list())))
+        widget_ref!(Paragraph::new(line!(error_list())))
     };
 
     let editing_id = RwSignal::new(None);
@@ -82,12 +75,7 @@ fn app(notification_timeout: Duration) -> impl Render {
     Effect::new(move |_| {
         if update_version.get() > 0 {
             notifier.notify(
-                Notification::new(Text::from_iter([
-                    Line::raw(""),
-                    Line::raw("  Todo updated"),
-                    Line::raw(""),
-                ]))
-                .timeout(notification_timeout),
+                Notification::new(text!("", "  Todo updated", "")).timeout(notification_timeout),
             );
         }
     });
@@ -130,7 +118,7 @@ fn app(notification_timeout: Duration) -> impl Render {
             ]
             .length(3),
             row![col![transition!(
-                widget_ref!(Line::from(" Loading...".gray())),
+                widget_ref!(line!(" Loading...".gray())),
                 {
                     todos.await.map(|todos| {
                         col![if todos.is_empty() {
@@ -166,7 +154,7 @@ fn app(notification_timeout: Duration) -> impl Render {
 fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl Render {
     let editing = Signal::derive(move || editing_id.get() == Some(id));
     let text = RwSignal::new(text);
-    let edit_save_text = derive_signal!(Text::from(if editing.get() {
+    let edit_save_text = derive_signal!(text!(if editing.get() {
         "".green()
     } else {
         "".blue()
@@ -196,7 +184,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
             .on_click(move || {
                 delete_todo.dispatch(id);
             })
-            .render(Text::from("x".red())),
+            .render(text!("x".red())),
         Show::new()
             .fallback(move || col![widget_ref!(Paragraph::new(text.get()))].margin(1))
             .render(editing, move || {

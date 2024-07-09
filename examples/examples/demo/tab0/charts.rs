@@ -1,6 +1,6 @@
 use rooibos::dom::{
-    col, derive_signal, row, stateful_widget, widget_ref, Chart, Constrainable, Dataset, KeyCode,
-    Render,
+    col, derive_signal, line, row, span, stateful_widget, widget_ref, Chart, Constrainable,
+    Dataset, KeyCode, Render,
 };
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -11,7 +11,6 @@ use rooibos::runtime::use_keypress;
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
-use rooibos::tui::text::{Line, Span};
 use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
 
 use crate::random::RandomData;
@@ -129,16 +128,16 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
                 .yellow()
                 .data(sin2.get().points)
         ])
-        .block(Block::bordered().title(Span::from("Chart").cyan().bold()))
+        .block(Block::bordered().title(span!("Chart").cyan().bold()))
         .x_axis(
             Axis::default()
                 .title("X Axis")
                 .gray()
                 .bounds(window.get())
                 .labels(vec![
-                    Span::from(window_start.get().to_string()),
-                    Span::from(((window_start.get() + window_end.get()) / 2.0).to_string()),
-                    Span::from(window_end.get().to_string())
+                    span!(window_start.get()),
+                    span!(((window_start.get() + window_end.get()) / 2.0)),
+                    span!(window_end.get())
                 ])
                 .bold()
         )
@@ -147,11 +146,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
                 .title("Y Axis")
                 .gray()
                 .bounds([-20.0, 20.0])
-                .labels(vec![
-                    Span::from("-20").bold(),
-                    Span::from("  0"),
-                    Span::from(" 20").bold()
-                ])
+                .labels(vec![span!("-20").bold(), span!("  0"), span!(" 20").bold()])
         )
     )
 }
@@ -250,7 +245,7 @@ fn task_list() -> impl Render {
     });
 
     stateful_widget!(
-        List::new(TASKS.map(|t| ListItem::new(Span::from(t))))
+        List::new(TASKS.map(|t| ListItem::new(span!(t))))
             .block(Block::bordered().title("List"))
             .highlight_style(Style::new().bold())
             .highlight_symbol("> "),
@@ -328,10 +323,7 @@ fn logs() -> impl Render {
 
     widget_ref!(
         List::new(logs.get().iter().map(|(evt, level, style)| {
-            ListItem::new(Line::from(vec![
-                Span::styled(format!("{level:<9}"), *style),
-                Span::from(*evt),
-            ]))
+            ListItem::new(line!(span!(*style; "{level:<9}"), span!(*evt)))
         }))
         .block(Block::bordered().title("Logs"))
     )

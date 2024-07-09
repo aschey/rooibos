@@ -2,16 +2,16 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{col, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{
+    col, line, row, span, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
+};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
-use rooibos::tui::text::{Line, Text};
 use rooibos::tui::widgets::Block;
-
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
@@ -30,8 +30,8 @@ fn app() -> impl Render {
     let tabs_block = RwSignal::new(Block::bordered().title("Demo"));
 
     let tabs = RwSignal::new(KeyedWrappingList(vec![
-        Tab::new(Line::from("Tab1"), "tab1", move || "tab1").decorator(Line::from("✕".red())),
-        Tab::new(Line::from("Tab2"), "tab2", move || "tab2").decorator(Line::from("✕".red())),
+        Tab::new(line!("Tab1"), "tab1", move || "tab1").decorator(line!("✕".red())),
+        Tab::new(line!("Tab2"), "tab2", move || "tab2").decorator(line!("✕".red())),
     ]));
 
     let next_tab = RwSignal::new(3);
@@ -104,11 +104,11 @@ fn app() -> impl Render {
                             let num = next_tab.get();
                             t.push(
                                 Tab::new(
-                                    Line::from(format!("Tab{num}")),
+                                    line!("Tab", span!(num)),
                                     format!("tab{num}"),
                                     move || format!("tab{num}"),
                                 )
-                                .decorator(Line::from("✕".red())),
+                                .decorator(line!("✕".red())),
                             );
                             next_tab.update(|t| *t += 1);
                         });
@@ -117,7 +117,7 @@ fn app() -> impl Render {
                             focused.set(tabs[0].get_value().to_string());
                         }
                     })
-                    .render(Text::from("+".green()))
+                    .render(text!("+".green()))
             ]
             .length(3)
         ]

@@ -1,14 +1,13 @@
 use std::error::Error;
 
 use rooibos::components::Button;
-use rooibos::dom::{col, derive_signal, row, Constrainable, Render};
+use rooibos::dom::{col, derive_signal, line, row, span, Constrainable, Render};
 use rooibos::reactive::signal::ReadSignal;
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
-use rooibos::tui::text::Text;
 use tokio::sync::watch;
 use tokio_stream::wrappers::WatchStream;
 
@@ -66,10 +65,9 @@ fn app(count_tx: watch::Sender<i32>) -> impl Render {
                 .on_click(move || {
                     count_tx.send(count.get().unwrap_or_default() + 1).unwrap();
                 })
-                .render(derive_signal!(Text::from(format!(
-                    "count {}",
-                    count.get().unwrap_or_default()
-                ))))
+                .render(derive_signal!(
+                    line!("count ", span!(count.get().unwrap_or_default())).into()
+                ))
         ]
         .length(3)
     ]
