@@ -12,8 +12,8 @@ use crossterm::terminal::{
 use crossterm::{execute, queue};
 use futures::StreamExt;
 use ratatui::{Terminal, Viewport};
-use ratatui_wasm::xterm::Theme;
-use ratatui_wasm::{init_terminal, EventStream, TerminalHandle};
+use ratatui_xterm_js::xterm::Theme;
+use ratatui_xterm_js::{init_terminal, EventStream, TerminalHandle, XtermJsBackend};
 use rooibos_runtime::backend::Backend;
 use rooibos_runtime::CancellationToken;
 use tap::TapFallible;
@@ -103,7 +103,7 @@ impl Default for WasmBackend {
 }
 
 impl Backend for WasmBackend {
-    type TuiBackend = ratatui_wasm::CrosstermBackend;
+    type TuiBackend = XtermJsBackend;
 
     fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
         let elem = web_sys::window()
@@ -114,7 +114,7 @@ impl Backend for WasmBackend {
             .unwrap();
 
         init_terminal(
-            ratatui_wasm::xterm::TerminalOptions::new()
+            ratatui_xterm_js::xterm::TerminalOptions::new()
                 .with_rows(50)
                 .with_cursor_blink(true)
                 .with_cursor_width(10)
@@ -154,7 +154,7 @@ impl Backend for WasmBackend {
         handle.flush()?;
 
         let mut terminal = Terminal::with_options(
-            ratatui_wasm::CrosstermBackend::new(handle),
+            XtermJsBackend::new(handle),
             ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
             },
