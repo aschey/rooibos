@@ -18,7 +18,7 @@ macro_rules! suspense {
             move || $fallback,
             move || {
                 $crate::error_boundary(
-                    move || $crate::__tachys_reactive::Suspend(async move { $sus }),
+                    move || $crate::__tachys_reactive::Suspend::new(async move { $sus }),
                     $errors,
                 )
             },
@@ -33,7 +33,7 @@ macro_rules! transition {
             move || $fallback,
             move || {
                 $crate::error_boundary(
-                    move || $crate::__tachys_reactive::Suspend(async move { $sus }),
+                    move || $crate::__tachys_reactive::Suspend::new(async move { $sus }),
                     $errors,
                 )
             },

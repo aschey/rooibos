@@ -2,32 +2,24 @@ use manyhow::manyhow;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
-use syn::parse::Parser;
 use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
 
 #[manyhow]
 #[proc_macro_attribute]
 pub fn main(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
-    parse_args(attrs, tokens, false)
+    create_main(attrs, tokens, false, false)
+}
+
+#[manyhow]
+#[proc_macro_attribute]
+pub fn wasm_bindgen(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
+    create_main(attrs, tokens, true, false)
 }
 
 #[manyhow]
 #[proc_macro_attribute]
 pub fn test(attrs: TokenStream, tokens: TokenStream) -> manyhow::Result {
-    parse_args(attrs, tokens, true)
-}
-
-fn parse_args(attrs: TokenStream, tokens: TokenStream, is_test: bool) -> manyhow::Result {
-    if let Ok(args_parsed) =
-        syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated
-            .parse2(attrs.clone())
-    {
-        if !args_parsed.is_empty() && args_parsed.first().unwrap().is_ident("wasm") {
-            return create_main(attrs, tokens, true, is_test);
-        }
-    }
-
-    create_main(attrs, tokens, false, is_test)
+    create_main(attrs, tokens, false, true)
 }
 
 fn create_main(
@@ -41,7 +33,7 @@ fn create_main(
     if !is_wasm {
         func.sig.asyncness = None;
     }
-
+    let vis = func_copy.vis.clone();
     func_copy.vis = Visibility::Inherited;
     func_copy.sig.ident = Ident::new(&format!("__{}", func.sig.ident), Span::call_site());
 
@@ -49,7 +41,7 @@ fn create_main(
     let output = func.sig.output.clone();
 
     let func_copy_ident = func_copy.sig.ident.clone();
-    let vis = func_copy.vis.clone();
+
     let func_sig = func.sig.clone();
     let inputs = func.sig.inputs.clone();
     let func_param_idents: Vec<Box<Pat>> = func
@@ -66,7 +58,7 @@ fn create_main(
     let test_attr = if is_test { quote!(#[test]) } else { quote!() };
     if is_wasm {
         Ok(quote! {
-            #[::wasm_bindgen::prelude::wasm_bindgen(start)]
+            #[::wasm_bindgen::prelude::wasm_bindgen(#attrs)]
             #vis #func_sig {
                 #runtime::execute(move || ___async_main(#func_param_idents)).await
             }

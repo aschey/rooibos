@@ -4,7 +4,7 @@ use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 
 #[cfg(target_arch = "wasm32")]
-#[rooibos::main(wasm)]
+#[rooibos::wasm_bindgen(start)]
 async fn start() -> Result<(), wasm_bindgen::JsError> {
     use rooibos::runtime::{Runtime, RuntimeSettings};
     use rooibos::xterm_js::WasmBackend;
