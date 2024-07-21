@@ -17,13 +17,13 @@ async fn main() -> Result<()> {
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
-        || app(editor),
+        || app(editor, Vec::new()),
     );
     runtime.run().await?;
     Ok(())
 }
 
-fn app(editor: String) -> impl Render {
+fn app(editor: String, args: Vec<String>) -> impl Render {
     let (count, set_count) = signal(0);
 
     let update_count = move || set_count.update(|c| *c += 1);
@@ -33,7 +33,9 @@ fn app(editor: String) -> impl Render {
             update_count();
         }
         if key_event.code == KeyCode::Char('e') {
-            exec(tokio::process::Command::new(&editor), |_, _, _| {});
+            let mut cmd = tokio::process::Command::new(&editor);
+            cmd.args(&args);
+            exec(cmd, |_, _, _| {});
         }
     };
 

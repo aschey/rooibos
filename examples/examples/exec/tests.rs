@@ -20,7 +20,13 @@ async fn test_exec() {
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         10,
-        || app("ls".to_string()),
+        || {
+            if cfg!(windows) {
+                app("cmd".to_string(), vec!["/C".to_string(), "dir".to_string()])
+            } else {
+                app("ls".to_string(), Vec::new())
+            }
+        },
     );
     assert_snapshot!(harness.terminal());
 

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::thread;
 
-pub use image::io::Reader as ImageReader;
 use image::DynamicImage;
+pub use image::ImageReader;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;

@@ -30,7 +30,7 @@ js-sys = "0.3.64"
 any_spawner = { path = "../../../leptos/any_spawner", features = [
     "wasm-bindgen",
 ] }
-tokio = { version = "1.38.0", default-features = false, features = [
+tokio = { version = "1.38.1", default-features = false, features = [
     "sync",
     "macros",
     "rt",
@@ -43,7 +43,7 @@ console_error_panic_hook = "0.1"
 any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
 signal-hook = "0.3"
 async-signal = "0.2"
-tokio = { version = "1.38.0", default-features = false, features = [
+tokio = { version = "1.38.1", default-features = false, features = [
     "sync",
     "macros",
     "time",

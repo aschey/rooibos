@@ -27,7 +27,7 @@ use rooibos_dom::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 use tap::TapFallible;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use tokio::{task, task_local};
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
@@ -47,6 +47,7 @@ type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 struct RuntimeState {
     term_tx: broadcast::Sender<rooibos_dom::Event>,
     term_command_tx: broadcast::Sender<TerminalCommand>,
+    runtime_command_tx: broadcast::Sender<RuntimeCommand>,
     supports_keyboard_enhancement: bool,
     pixel_size: Option<Size>,
     restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
@@ -56,9 +57,11 @@ impl RuntimeState {
     fn new() -> Self {
         let (term_tx, _) = broadcast::channel(32);
         let (term_command_tx, _) = broadcast::channel(32);
+        let (runtime_command_tx, _) = broadcast::channel(32);
         Self {
             term_tx,
             term_command_tx,
+            runtime_command_tx,
             supports_keyboard_enhancement: false,
             pixel_size: None,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
@@ -203,8 +206,8 @@ impl RuntimeSettings {
 #[derive(Debug)]
 pub struct Runtime<B: Backend> {
     settings: RuntimeSettings,
-    runtime_cmd_tx: mpsc::Sender<RuntimeCommand>,
-    runtime_cmd_rx: mpsc::Receiver<RuntimeCommand>,
+    runtime_command_tx: broadcast::Sender<RuntimeCommand>,
+    runtime_command_rx: broadcast::Receiver<RuntimeCommand>,
     term_command_rx: broadcast::Receiver<TerminalCommand>,
     term_event_tx: broadcast::Sender<Event>,
     term_event_rx: broadcast::Receiver<Event>,
@@ -215,6 +218,7 @@ pub struct Runtime<B: Backend> {
     parser_running: Arc<AtomicBool>,
 }
 
+#[derive(Debug, Clone)]
 pub enum RuntimeCommand {
     Terminate,
     Suspend,
@@ -230,18 +234,13 @@ impl<B: Backend + 'static> Runtime<B> {
     {
         let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
         let backend = Arc::new(backend);
-        let (runtime_cmd_tx, runtime_cmd_rx) = mpsc::channel(32);
 
         let (term_parser_tx, _) = broadcast::channel(32);
 
-        let term_command_tx = STATE.with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .clone()
+        let (term_command_tx, runtime_command_tx) = STATE.with(|s| {
+            let s = s.get().unwrap().read();
+            let s = s.get(&current_runtime).unwrap();
+            (s.term_command_tx.clone(), s.runtime_command_tx.clone())
         });
 
         if !backend.supports_async_input() {
@@ -268,7 +267,7 @@ impl<B: Backend + 'static> Runtime<B> {
         #[cfg(not(target_arch = "wasm32"))]
         if settings.enable_signal_handler {
             use async_signal::{Signal, Signals};
-            let runtime_cmd_tx = runtime_cmd_tx.clone();
+            let runtime_command_tx = runtime_command_tx.clone();
             wasm_compat::spawn(async move {
                 #[cfg(unix)]
                 // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
@@ -287,13 +286,13 @@ impl<B: Backend + 'static> Runtime<B> {
                 while let Some(Ok(signal)) = signals.next().await {
                     match signal {
                         Signal::Tstp => {
-                            let _ = runtime_cmd_tx.send(RuntimeCommand::Suspend).await;
+                            let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
                         }
                         Signal::Cont => {
-                            let _ = runtime_cmd_tx.send(RuntimeCommand::Resume).await;
+                            let _ = runtime_command_tx.send(RuntimeCommand::Resume);
                         }
                         _ => {
-                            let _ = runtime_cmd_tx.send(RuntimeCommand::Terminate).await;
+                            let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
                         }
                     }
                 }
@@ -326,11 +325,11 @@ impl<B: Backend + 'static> Runtime<B> {
             term_event_rx: term_event_tx.subscribe(),
             term_event_tx,
             term_parser_tx,
-            runtime_cmd_tx,
+            runtime_command_rx: runtime_command_tx.subscribe(),
+            backend,
+            runtime_command_tx,
             settings,
             dom_update_rx,
-            runtime_cmd_rx,
-            backend,
             cancellation_token: CancellationToken::new(),
             parser_running: Arc::new(AtomicBool::new(false)),
         }
@@ -391,7 +390,7 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     fn handle_term_events(&self) {
-        let signal_tx = self.runtime_cmd_tx.clone();
+        let signal_tx = self.runtime_command_tx.clone();
         let term_event_tx = self.term_event_tx.clone();
 
         let mut term_parser_rx = self.term_parser_tx.subscribe();
@@ -420,13 +419,13 @@ impl<B: Backend + 'static> Runtime<B> {
                                 if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
                                     let _ = signal_tx
                                         .send(RuntimeCommand::Terminate)
-                                        .await
+
                                         .tap_err(|_| warn!("error sending terminate signal"));
                                 } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
                                 {
                                     let _ = signal_tx
                                         .send(RuntimeCommand::Suspend)
-                                        .await
+
                                         .tap_err(|_| warn!("error sending suspend signal"));
                                 } else {
                                     let _ = term_event_tx
@@ -460,10 +459,6 @@ impl<B: Backend + 'static> Runtime<B> {
                 }
             }
         });
-    }
-
-    pub async fn send_runtime_command(&self, runtime_cmd: RuntimeCommand) {
-        self.runtime_cmd_tx.send(runtime_cmd).await.unwrap()
     }
 
     pub async fn run(mut self) -> io::Result<()> {
@@ -535,13 +530,13 @@ impl<B: Backend + 'static> Runtime<B> {
                         let status = status.unwrap();
                         let on_finish = (*on_finish.lock().unwrap()).take().unwrap();
                         on_finish(status, child_stdout, child_stderr);
-                        self.runtime_cmd_tx.send(RuntimeCommand::Restart).await.unwrap();
+                        self.runtime_command_tx.send(RuntimeCommand::Restart).unwrap();
                     },
                     // Interrupt child if a signal is received
-                    res = self.runtime_cmd_rx.recv() => {
+                    res = self.runtime_command_rx.recv() => {
                         child.kill().await.unwrap();
-                        if let Some(signal) = res {
-                            self.runtime_cmd_tx.send(signal).await.unwrap();
+                        if let Ok(signal) = res {
+                            self.runtime_command_tx.send(signal).unwrap();
                         }
                     }
                 }
@@ -553,24 +548,24 @@ impl<B: Backend + 'static> Runtime<B> {
 
     pub async fn tick(&mut self) -> TickResult {
         tokio::select! {
-            signal = self.runtime_cmd_rx.recv() => {
+            signal = self.runtime_command_rx.recv() => {
                 match signal {
-                    Some(RuntimeCommand::Suspend) => {
+                    Ok(RuntimeCommand::Suspend) => {
                         self.cancellation_token.cancel();
                         restore_terminal().unwrap();
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();
                         TickResult::Continue
                     }
-                    Some(RuntimeCommand::Resume) => {
+                    Ok(RuntimeCommand::Resume) => {
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Cont as i32).unwrap();
                         TickResult::Restart
                     }
-                    Some(RuntimeCommand::Restart) => {
+                    Ok(RuntimeCommand::Restart) => {
                         TickResult::Restart
                     }
-                    Some(RuntimeCommand::Terminate) | None => {
+                    Ok(RuntimeCommand::Terminate) | Err(_) => {
                         TickResult::Exit
                     }
                 }
@@ -743,6 +738,21 @@ where
                     command: Arc::new(std::sync::Mutex::new(command)),
                     on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
                 })
+        })
+        .unwrap();
+}
+
+pub fn exit() {
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .runtime_command_tx
+                .send(RuntimeCommand::Terminate)
         })
         .unwrap();
 }
