@@ -34,18 +34,30 @@ pub struct TerminalSettings<W> {
 
 impl Default for TerminalSettings<Stdout> {
     fn default() -> Self {
-        Self::new(stdout)
+        Self::new()
     }
 }
 
 impl Default for TerminalSettings<Stderr> {
     fn default() -> Self {
-        Self::new(stderr)
+        Self::new()
+    }
+}
+
+impl TerminalSettings<Stdout> {
+    pub fn new() -> Self {
+        Self::from_writer(stdout)
+    }
+}
+
+impl TerminalSettings<Stderr> {
+    pub fn new() -> Self {
+        Self::from_writer(stderr)
     }
 }
 
 impl<W> TerminalSettings<W> {
-    pub fn new<F>(get_writer: F) -> Self
+    pub fn from_writer<F>(get_writer: F) -> Self
     where
         F: Fn() -> W + Send + Sync + 'static,
     {

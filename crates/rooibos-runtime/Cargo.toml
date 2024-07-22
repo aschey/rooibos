@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-crossterm = { version = "0.27", features = ["event-stream"], optional = true }
+crossterm = { version = "0.27", features = [
+    "event-stream",
+    "use-dev-tty",
+], optional = true }
 futures-util = "0.3"
 rooibos-dom = { path = "../rooibos-dom" }
 reactive_graph = { path = "../../../leptos/reactive_graph", features = [

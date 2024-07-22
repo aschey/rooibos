@@ -5,10 +5,11 @@ use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, With};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::runtime::{exit, Runtime, RuntimeSettings};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
+use rooibos::tui::Viewport;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -16,10 +17,15 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 async fn main() -> Result<()> {
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
-        CrosstermBackend::<Stderr>::default(),
+        CrosstermBackend::new(
+            TerminalSettings::<Stderr>::new()
+                .alternate_screen(false)
+                .viewport(Viewport::Inline(3)),
+        ),
         app,
     );
     runtime.run().await?;
+
     Ok(())
 }
 

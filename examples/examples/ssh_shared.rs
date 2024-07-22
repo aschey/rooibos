@@ -45,7 +45,7 @@ impl SshHandler for SshApp {
         let runtime = Runtime::initialize(
             RuntimeSettings::default(),
             SshBackend::new(
-                CrosstermBackend::new(TerminalSettings::new(move || handle.clone())),
+                CrosstermBackend::new(TerminalSettings::from_writer(move || handle.clone())),
                 event_rx,
             ),
             move || app(count_tx),
