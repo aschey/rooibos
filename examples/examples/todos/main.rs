@@ -27,12 +27,16 @@ use server::run_server;
 
 #[rooibos::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
+        .await
+        .unwrap();
+
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
         || app(Duration::from_secs(3)),
     );
-    tokio::spawn(run_server());
+    tokio::spawn(run_server(listener));
     runtime.run().await?;
 
     Ok(())

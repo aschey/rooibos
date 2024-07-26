@@ -11,17 +11,13 @@ use serde::{Deserialize, Serialize};
 
 static ID: AtomicU32 = AtomicU32::new(1);
 
-pub async fn run_server() {
+pub async fn run_server(listener: tokio::net::TcpListener) {
     let db = Db::default();
 
     let app = axum::Router::new()
         .route("/todos", get(todos_get).post(todos_create))
         .route("/todos/:id", patch(todos_update).delete(todos_delete))
         .with_state(db);
-
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
-        .await
-        .unwrap();
 
     axum::serve(listener, app).await.unwrap();
 }

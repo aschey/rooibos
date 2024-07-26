@@ -19,7 +19,11 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_todos() {
-    tokio::spawn(run_server());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
+        .await
+        .unwrap();
+
+    tokio::spawn(run_server(listener));
     let mut harness = TestHarness::new(
         RuntimeSettings::default().enable_signal_handler(false),
         40,
