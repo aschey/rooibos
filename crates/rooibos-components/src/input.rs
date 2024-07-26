@@ -267,6 +267,12 @@ impl Input {
             });
         };
 
+        let paste = move |text: String, _| {
+            text_area.update(|t| {
+                t.insert_str(text);
+            });
+        };
+
         let mut widget = DomWidget::new::<TextArea, _, _>(move || {
             let text_area = text_area.get();
             move |area: Rect, buf: &mut Buffer| {
@@ -275,6 +281,7 @@ impl Input {
         })
         .constraint(constraint)
         .on_key_down(key_down)
+        .on_paste(paste)
         .on_focus(move |event_data| {
             widget_state.set(WidgetState::Focused);
             on_focus(event_data);

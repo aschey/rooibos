@@ -10,11 +10,13 @@ pub(crate) type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent, EventData)>>;
 pub(crate) type MouseEventFn = Rc<RefCell<dyn FnMut(MouseEvent, EventData)>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
+pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData)>>;
 
 #[derive(Clone, Default)]
 pub(crate) struct EventHandlers {
     pub(crate) on_key_down: Option<KeyEventFn>,
     pub(crate) on_key_up: Option<KeyEventFn>,
+    pub(crate) on_paste: Option<PasteFn>,
     pub(crate) on_focus: Option<EventFn>,
     pub(crate) on_blur: Option<EventFn>,
     pub(crate) on_click: Option<MouseEventFn>,
@@ -37,6 +39,14 @@ impl EventHandlers {
         F: FnMut(KeyEvent, EventData) + 'static,
     {
         self.on_key_up = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub(crate) fn on_paste<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(String, EventData) + 'static,
+    {
+        self.on_paste = Some(Rc::new(RefCell::new(handler)));
         self
     }
 

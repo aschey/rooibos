@@ -136,9 +136,12 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
         panic!();
     }
     let owner = Owner::new();
-    set_panic_hook();
+    set_panic_hook(owner.clone());
     let res = owner.with(f);
+
+    owner.cleanup();
     drop(owner);
+
     let _ = restore_terminal().tap_err(|e| error!("error restoring terminal: {e:?}"));
     res
 }
@@ -757,13 +760,14 @@ pub fn exit() {
         .unwrap();
 }
 
-pub fn set_panic_hook() {
+pub fn set_panic_hook(owner: Owner) {
     #[cfg(not(target_arch = "wasm32"))]
     {
         let original_hook = take_hook();
         set_hook(Box::new(move |panic_info| {
             let _ = restore_terminal();
             unmount();
+            owner.cleanup();
             original_hook(panic_info);
         }));
     }

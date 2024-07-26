@@ -540,7 +540,21 @@ pub fn send_event(event: Event) {
             MouseEventKind::ScrollLeft => {}
             MouseEventKind::ScrollRight => {}
         },
-        Event::Paste(_) => {}
+        Event::Paste(val) => {
+            if let Some(key) = with_state(|s| s.focused_key()) {
+                let (rect, on_paste) = with_nodes(|nodes| {
+                    (
+                        *nodes[key].rect.borrow(),
+                        nodes[key].event_handlers.on_paste.clone(),
+                    )
+                });
+                if let Some(on_paste) = on_paste {
+                    #[cfg(debug_assertions)]
+                    let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                    on_paste.borrow_mut()(val, EventData { rect });
+                }
+            }
+        }
         Event::Resize(_, _) => {
             PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
             refresh_dom();

@@ -132,6 +132,17 @@ impl DomWidget {
         self
     }
 
+    pub fn on_paste<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(String, EventData) + 'static,
+    {
+        self = self.focusable(true);
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_paste(handler));
+
+        self
+    }
+
     pub fn on_key_up<F>(mut self, handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData) + 'static,
