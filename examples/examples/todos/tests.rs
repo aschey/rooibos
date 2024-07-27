@@ -28,7 +28,7 @@ async fn test_todos() {
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         10,
-        || app(Duration::from_millis(100)),
+        || app(Duration::from_millis(500)),
     );
     let root_layout = root();
     // Wait for initial data load

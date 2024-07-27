@@ -37,8 +37,14 @@ async fn test_exec() {
         .unwrap();
 
     harness.send_key(KeyCode::Char('e'));
+
+    // Wait for process to finish
     harness
         .wait_for(|_, last_tick_result| matches!(last_tick_result, Some(TickResult::Restart)))
+        .await
+        .unwrap();
+    harness
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
         .await
         .unwrap();
 
