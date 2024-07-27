@@ -4,7 +4,7 @@ use reactive_graph::traits::Set;
 
 use super::dom_node::{DomNodeKey, NodeId};
 use super::{with_nodes, with_state, with_state_mut};
-use crate::EventData;
+use crate::{BlurEvent, EventData, FocusEvent};
 
 pub(crate) struct DomState {
     window_size: ReadSignal<Rect>,
@@ -80,19 +80,29 @@ impl DomState {
 }
 
 pub(crate) fn set_focused(node_key: DomNodeKey) {
-    if let Some(focused_key) = with_state(|state| state.focused_key) {
-        let (rect, mut on_blur) = with_nodes(|nodes| {
+    let prev_focused_id = if let Some(focused_key) = with_state(|state| state.focused_key) {
+        let (rect, mut on_blur, node_id) = with_nodes(|nodes| {
             (
                 *nodes[focused_key].rect.borrow(),
                 nodes[focused_key].event_handlers.on_blur.clone(),
+                nodes[focused_key].id.clone(),
             )
         });
         if let Some(on_blur) = &mut on_blur {
+            let focus_id = with_nodes(|nodes| nodes[node_key].id.clone());
             #[cfg(debug_assertions)]
             let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            on_blur.borrow_mut()(EventData { rect });
+            on_blur.borrow_mut()(
+                BlurEvent {
+                    new_target: focus_id,
+                },
+                EventData { rect },
+            );
         }
-    }
+        node_id
+    } else {
+        None
+    };
 
     with_nodes(|nodes| {
         with_state_mut(|state| {
@@ -111,7 +121,12 @@ pub(crate) fn set_focused(node_key: DomNodeKey) {
     if let Some(on_focused) = &mut on_focus {
         #[cfg(debug_assertions)]
         let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-        on_focused.borrow_mut()(EventData { rect });
+        on_focused.borrow_mut()(
+            FocusEvent {
+                previous_target: prev_focused_id,
+            },
+            EventData { rect },
+        );
     }
 }
 

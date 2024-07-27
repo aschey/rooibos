@@ -163,6 +163,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     } else {
         "".blue()
     }));
+    let add_edit_id = StoredValue::new(NodeId::new_auto());
 
     let TodoContext {
         update_todo,
@@ -175,6 +176,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     row![
         Button::new()
             .length(5)
+            .id(add_edit_id.get_value())
             .on_click(move || {
                 if editing.get() {
                     input_ref.submit();
@@ -213,8 +215,10 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
                         update_todo.dispatch((id, value));
                         editing_id.set(None);
                     })
-                    .on_blur(move |_| {
-                        editing_id.set(None);
+                    .on_blur(move |blur_event, _| {
+                        if blur_event.new_target != Some(add_edit_id.get_value()) {
+                            editing_id.set(None);
+                        }
                     })
                     .id(input_id.get_value())
                     .render(input_ref)

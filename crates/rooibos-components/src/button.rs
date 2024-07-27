@@ -10,7 +10,7 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    derive_signal, widget_ref, Constrainable, KeyCode, KeyEvent, Render, WidgetState,
+    derive_signal, widget_ref, Constrainable, KeyCode, KeyEvent, NodeId, Render, WidgetState,
 };
 use rooibos_runtime::{delay, supports_key_up};
 
@@ -20,6 +20,7 @@ pub struct Button {
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
+    id: Option<NodeId>,
     class: Option<String>,
 }
 
@@ -47,8 +48,14 @@ impl Button {
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
+            id: None,
             class: None,
         }
+    }
+
+    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
+        self.id = Some(id.into());
+        self
     }
 
     pub fn class(mut self, class: impl Into<String>) -> Self {
@@ -95,6 +102,7 @@ impl Button {
             border_color,
             focused_border_color,
             active_border_color,
+            id,
             class,
         } = self;
 
@@ -146,14 +154,17 @@ impl Button {
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
         .on_click(move |_, _| on_enter_())
-        .on_focus(move |_| widget_state.set(WidgetState::Focused))
-        .on_blur(move |_| widget_state.set(WidgetState::Default))
+        .on_focus(move |_, _| widget_state.set(WidgetState::Focused))
+        .on_blur(move |_, _| widget_state.set(WidgetState::Default))
         .on_key_down(move |key_event, _| {
             if key_event.code == KeyCode::Enter {
                 on_enter()
             }
         })
         .on_key_up(key_up);
+        if let Some(id) = id {
+            button = button.id(id);
+        }
         if let Some(class) = class {
             button = button.class(class);
         }

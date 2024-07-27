@@ -2,7 +2,7 @@ use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{stateful_widget, EventData, KeyEvent, Render};
+use rooibos_dom::{stateful_widget, BlurEvent, EventData, FocusEvent, KeyEvent, Render};
 
 use crate::WrappingList;
 
@@ -12,8 +12,8 @@ pub struct ListView<T> {
     style: MaybeSignal<Style>,
     on_item_click: Box<ItemSelectFn<T>>,
     on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
-    on_focus: Box<dyn FnMut(EventData)>,
-    on_blur: Box<dyn FnMut(EventData)>,
+    on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
+    on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     highlight_style: MaybeSignal<Style>,
     block: Option<MaybeSignal<Block<'static>>>,
     direction: MaybeSignal<ListDirection>,
@@ -29,8 +29,8 @@ impl<T> Default for ListView<T> {
             style: Default::default(),
             on_item_click: Box::new(move |_, _| {}),
             on_key_down: Box::new(move |_, _| {}),
-            on_focus: Box::new(move |_| {}),
-            on_blur: Box::new(move |_| {}),
+            on_focus: Box::new(move |_, _| {}),
+            on_blur: Box::new(move |_, _| {}),
             highlight_style: Style::default().into(),
             block: Default::default(),
             direction: Default::default(),
@@ -62,12 +62,12 @@ impl<T> ListView<T> {
         self
     }
 
-    pub fn on_focus(mut self, on_focus: impl FnMut(EventData) + 'static) -> Self {
+    pub fn on_focus(mut self, on_focus: impl FnMut(FocusEvent, EventData) + 'static) -> Self {
         self.on_focus = Box::new(on_focus);
         self
     }
 
-    pub fn on_blur(mut self, on_blur: impl FnMut(EventData) + 'static) -> Self {
+    pub fn on_blur(mut self, on_blur: impl FnMut(BlurEvent, EventData) + 'static) -> Self {
         self.on_blur = Box::new(on_blur);
         self
     }

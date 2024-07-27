@@ -13,7 +13,9 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{refresh_dom, ChildState, Constrainable, EventData, RenderAny, RooibosDom};
+use crate::{
+    refresh_dom, BlurEvent, ChildState, Constrainable, EventData, FocusEvent, RenderAny, RooibosDom,
+};
 
 #[derive(Debug)]
 pub struct Element<C> {
@@ -135,7 +137,7 @@ impl<C> Element<C> {
 
     pub fn on_focus<F>(self, handler: F) -> Self
     where
-        F: FnMut(EventData) + 'static,
+        F: FnMut(FocusEvent, EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
@@ -144,7 +146,7 @@ impl<C> Element<C> {
 
     pub fn on_blur<F>(self, handler: F) -> Self
     where
-        F: FnMut(EventData) + 'static,
+        F: FnMut(BlurEvent, EventData) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));

@@ -7,8 +7,8 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, derive_signal, line, span, widget_ref, ChildrenFn, Constrainable, EventData, IntoAny,
-    IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    col, derive_signal, line, span, widget_ref, BlurEvent, ChildrenFn, Constrainable, EventData,
+    FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -69,8 +69,8 @@ pub struct TabView {
     style: MaybeSignal<Style>,
     on_title_click: Box<OnChangeFn>,
     on_decorator_click: Option<Box<OnChangeFn>>,
-    on_focus: Box<dyn FnMut(EventData)>,
-    on_blur: Box<dyn FnMut(EventData)>,
+    on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
+    on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
     constraint: MaybeSignal<Constraint>,
     fit: MaybeSignal<bool>,
@@ -91,8 +91,8 @@ impl Default for TabView {
             on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: None,
             on_key_down: Box::new(move |_, _| {}),
-            on_focus: Box::new(move |_| {}),
-            on_blur: Box::new(move |_| {}),
+            on_focus: Box::new(move |_, _| {}),
+            on_blur: Box::new(move |_, _| {}),
             block: Default::default(),
             highlight_style: Default::default(),
             decorator_highlight_style: Default::default(),
@@ -173,12 +173,12 @@ impl TabView {
         self
     }
 
-    pub fn on_focus(mut self, on_focus: impl FnMut(EventData) + 'static) -> Self {
+    pub fn on_focus(mut self, on_focus: impl FnMut(FocusEvent, EventData) + 'static) -> Self {
         self.on_focus = Box::new(on_focus);
         self
     }
 
-    pub fn on_blur(mut self, on_blur: impl FnMut(EventData) + 'static) -> Self {
+    pub fn on_blur(mut self, on_blur: impl FnMut(BlurEvent, EventData) + 'static) -> Self {
         self.on_blur = Box::new(on_blur);
         self
     }

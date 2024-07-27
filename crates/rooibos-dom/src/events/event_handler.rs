@@ -4,6 +4,7 @@ use std::rc::Rc;
 use ratatui::layout::Rect;
 use terminput::{KeyEvent, MouseEvent};
 
+use super::{BlurEvent, FocusEvent};
 use crate::EventData;
 
 pub(crate) type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent, EventData)>>;
@@ -11,14 +12,16 @@ pub(crate) type MouseEventFn = Rc<RefCell<dyn FnMut(MouseEvent, EventData)>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData)>>;
+pub(crate) type FocusFn = Rc<RefCell<dyn FnMut(FocusEvent, EventData)>>;
+pub(crate) type BlurFn = Rc<RefCell<dyn FnMut(BlurEvent, EventData)>>;
 
 #[derive(Clone, Default)]
 pub(crate) struct EventHandlers {
     pub(crate) on_key_down: Option<KeyEventFn>,
     pub(crate) on_key_up: Option<KeyEventFn>,
     pub(crate) on_paste: Option<PasteFn>,
-    pub(crate) on_focus: Option<EventFn>,
-    pub(crate) on_blur: Option<EventFn>,
+    pub(crate) on_focus: Option<FocusFn>,
+    pub(crate) on_blur: Option<BlurFn>,
     pub(crate) on_click: Option<MouseEventFn>,
     pub(crate) on_mouse_enter: Option<EventFn>,
     pub(crate) on_mouse_leave: Option<EventFn>,
@@ -52,7 +55,7 @@ impl EventHandlers {
 
     pub(crate) fn on_focus<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(EventData) + 'static,
+        F: FnMut(FocusEvent, EventData) + 'static,
     {
         self.on_focus = Some(Rc::new(RefCell::new(handler)));
         self
@@ -60,7 +63,7 @@ impl EventHandlers {
 
     pub(crate) fn on_blur<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(EventData) + 'static,
+        F: FnMut(BlurEvent, EventData) + 'static,
     {
         self.on_blur = Some(Rc::new(RefCell::new(handler)));
         self

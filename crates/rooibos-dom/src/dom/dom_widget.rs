@@ -16,7 +16,9 @@ use terminput::{KeyEvent, MouseEvent};
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
 use crate::widgets::WidgetRole;
-use crate::{next_node_id, refresh_dom, Constrainable, EventData, Role, RooibosDom};
+use crate::{
+    next_node_id, refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, Role, RooibosDom,
+};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 
@@ -155,7 +157,7 @@ impl DomWidget {
 
     pub fn on_focus<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(EventData) + 'static,
+        F: FnMut(FocusEvent, EventData) + 'static,
     {
         self = self.focusable(true);
         self.inner
@@ -165,7 +167,7 @@ impl DomWidget {
 
     pub fn on_blur<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(EventData) + 'static,
+        F: FnMut(BlurEvent, EventData) + 'static,
     {
         self = self.focusable(true);
         self.inner

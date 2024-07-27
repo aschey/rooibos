@@ -8,8 +8,8 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, Constrainable, DomWidget, EventData, KeyCode, KeyEvent, NodeId, Render,
-    WidgetState,
+    derive_signal, BlurEvent, Constrainable, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
+    NodeId, Render, WidgetState,
 };
 use rooibos_runtime::wasm_compat;
 use tokio::sync::broadcast;
@@ -117,8 +117,8 @@ pub struct Input {
     placeholder_style: MaybeSignal<Style>,
     placeholder_text: MaybeSignal<String>,
     on_submit: Box<dyn FnMut(String)>,
-    on_focus: Box<dyn FnMut(EventData)>,
-    on_blur: Box<dyn FnMut(EventData)>,
+    on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
+    on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     initial_value: String,
     id: Option<NodeId>,
 }
@@ -144,8 +144,8 @@ impl Default for Input {
             placeholder_text: String::new().into(),
             style: Style::default().into(),
             on_submit: Box::new(|_| {}),
-            on_focus: Box::new(|_| {}),
-            on_blur: Box::new(|_| {}),
+            on_focus: Box::new(|_, _| {}),
+            on_blur: Box::new(|_, _| {}),
             initial_value: "".to_string(),
             id: None,
         }
@@ -171,12 +171,12 @@ impl Input {
         self
     }
 
-    pub fn on_focus(mut self, on_focus: impl FnMut(EventData) + 'static) -> Self {
+    pub fn on_focus(mut self, on_focus: impl FnMut(FocusEvent, EventData) + 'static) -> Self {
         self.on_focus = Box::new(on_focus);
         self
     }
 
-    pub fn on_blur(mut self, on_blur: impl FnMut(EventData) + 'static) -> Self {
+    pub fn on_blur(mut self, on_blur: impl FnMut(BlurEvent, EventData) + 'static) -> Self {
         self.on_blur = Box::new(on_blur);
         self
     }
@@ -282,13 +282,13 @@ impl Input {
         .constraint(constraint)
         .on_key_down(key_down)
         .on_paste(paste)
-        .on_focus(move |event_data| {
+        .on_focus(move |focus_event, event_data| {
             widget_state.set(WidgetState::Focused);
-            on_focus(event_data);
+            on_focus(focus_event, event_data);
         })
-        .on_blur(move |event_data| {
+        .on_blur(move |blur_event, event_data| {
             widget_state.set(WidgetState::Default);
-            on_blur(event_data);
+            on_blur(blur_event, event_data);
         });
         if let Some(id) = id {
             widget = widget.id(id);

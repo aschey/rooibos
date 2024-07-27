@@ -87,10 +87,10 @@ fn app() -> impl Render {
             .on_title_click(move |_, tab| {
                 focused.set(tab.to_string());
             })
-            .on_focus(move |_| {
+            .on_focus(move |_, _| {
                 tabs_block.set(Block::bordered().title("Demo").blue());
             })
-            .on_blur(move |_| {
+            .on_blur(move |_, _| {
                 tabs_block.set(Block::bordered().title("Demo"));
             })
             .on_decorator_click(remove_tab)
