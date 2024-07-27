@@ -20,7 +20,7 @@ tracing = "0.1"
 derivative = "2"
 termwiz = { version = "0.22.0", optional = true }
 tokio-util = "0.7"
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "34097fbe8e34cd1d5105b1a4aaf7c04822197422", features = [
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "84c52ad6b049e169ca7f7c0a566ba45817cb31dd", features = [
     "all",
 ] }
 
