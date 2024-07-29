@@ -10,6 +10,7 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use slotmap::SlotMap;
 use tachys::renderer::{CastFrom, Renderer};
+use tachys::view::Render as _;
 use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
 
@@ -35,13 +36,34 @@ pub use element::*;
 pub use focus::*;
 pub use into_view::*;
 
+pub trait AsDomNode {
+    fn as_dom_node(&self) -> &DomNode;
+}
+
+impl<T1, T2> AsDomNode for (T1, T2)
+where
+    T1: AsDomNode,
+{
+    fn as_dom_node(&self) -> &DomNode {
+        self.0.as_dom_node()
+    }
+}
+
 pub trait RenderAny: tachys::view::Render<RooibosDom> {}
 
 impl<T> RenderAny for T where T: tachys::view::Render<RooibosDom> {}
 
-pub trait Render: tachys::view::Render<RooibosDom, State = DomNode> {}
+pub trait Render: tachys::view::Render<RooibosDom, State = Self::DomState> {
+    type DomState: AsDomNode;
+}
 
-impl<T> Render for T where T: tachys::view::Render<RooibosDom, State = DomNode> {}
+impl<T, S> Render for T
+where
+    T: tachys::view::Render<RooibosDom, State = S>,
+    S: AsDomNode,
+{
+    type DomState = S;
+}
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
@@ -117,7 +139,7 @@ impl DomUpdateReceiver {
 }
 
 thread_local! {
-    static DOM_ROOT: RefCell<Option<DomNode>> = const { RefCell::new(None) };
+    static DOM_ROOT: RefCell<Option<Box<dyn AsDomNode>>> = const { RefCell::new(None) };
     static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
         RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
     static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
@@ -163,9 +185,9 @@ where
 
 fn with_root<F, R>(f: F) -> R
 where
-    F: FnOnce(&Option<DomNode>) -> R,
+    F: FnOnce(Option<DomNode>) -> R,
 {
-    DOM_ROOT.with(|n| f(&n.borrow()))
+    DOM_ROOT.with(|n| f(n.borrow().as_deref().map(|r| r.as_dom_node().clone())))
 }
 
 #[derive(Debug)]
@@ -189,11 +211,15 @@ impl Renderer for RooibosDom {
 
     fn create_text_node(text: &str) -> Self::Text {
         let text = text.to_owned();
-        widget_ref!(text!(text.clone())).inner()
+        widget_ref!(text!(text.clone()))
+            .build()
+            .as_dom_node()
+            .clone()
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        DomNode::placeholder()
+        let placeholder = DomNode::placeholder();
+        placeholder.build().as_dom_node().clone()
     }
 
     fn set_text(node: &Self::Text, text: &str) {
@@ -206,6 +232,7 @@ impl Renderer for RooibosDom {
                 }
             }),
         ));
+        node.clone().build();
     }
 
     fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
@@ -366,10 +393,11 @@ pub fn refresh_dom() {
 pub fn mount<F, M>(f: F)
 where
     F: FnOnce() -> M + 'static,
-    M: Render<State = DomNode>,
+    M: Render,
+    <M as Render>::DomState: 'static,
 {
     let node = f().build();
-    DOM_ROOT.with(|d| *d.borrow_mut() = Some(node));
+    DOM_ROOT.with(|d| *d.borrow_mut() = Some(Box::new(node)));
 }
 
 pub fn unmount() {

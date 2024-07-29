@@ -234,6 +234,7 @@ impl<B: Backend + 'static> Runtime<B> {
     where
         F: FnOnce() -> M + 'static,
         M: Render,
+        <M as Render>::DomState: 'static,
     {
         let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
         let backend = Arc::new(backend);
@@ -766,7 +767,6 @@ pub fn set_panic_hook(owner: Owner) {
         let original_hook = take_hook();
         set_hook(Box::new(move |panic_info| {
             let _ = restore_terminal();
-            unmount();
             owner.cleanup();
             original_hook(panic_info);
         }));

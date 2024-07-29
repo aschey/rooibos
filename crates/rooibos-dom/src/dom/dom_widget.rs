@@ -11,6 +11,7 @@ use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
+use tachys::reactive_graph::RenderEffectState;
 use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
@@ -28,12 +29,12 @@ pub struct DomWidget {
 }
 
 #[derive(Clone)]
-pub(crate) struct DomWidgetNode {
-    f: Rc<RefCell<DomWidgetFn>>,
+pub struct DomWidgetNode {
+    f: Rc<dyn Fn() -> DomWidgetFn>,
+    rc_f: Rc<RefCell<DomWidgetFn>>,
     id: u32,
     pub(crate) widget_type: String,
     pub(crate) role: Option<Role>,
-    _effect: Rc<RenderEffect<()>>,
 }
 
 impl PartialEq for DomWidgetNode {
@@ -59,24 +60,38 @@ impl DomWidgetNode {
         let id = next_node_id();
         let rc_f: Rc<RefCell<DomWidgetFn>> = Rc::new(RefCell::new(Box::new(|_, _| {})));
 
-        let effect = RenderEffect::new({
-            let rc_f = rc_f.clone();
-            move |_| {
-                (*rc_f.borrow_mut()) = Box::new((f)());
-                refresh_dom();
-            }
-        });
         Self {
             id,
             role,
-            f: rc_f,
+            rc_f,
+            f: Rc::new(move || Box::new((f)())),
             widget_type: widget_type.into(),
-            _effect: Rc::new(effect),
         }
     }
 
     pub(crate) fn render(&self, rect: Rect, buf: &mut Buffer) {
-        (*self.f).borrow_mut()(rect, buf);
+        (*self.rc_f).borrow_mut()(rect, buf);
+    }
+}
+
+impl Render<RooibosDom> for DomWidgetNode {
+    type State = RenderEffectState<()>;
+
+    fn build(self) -> Self::State {
+        RenderEffect::new({
+            let f = self.f.clone();
+            let rc_f = self.rc_f.clone();
+            move |_| {
+                (*rc_f.borrow_mut()) = (f)();
+                refresh_dom();
+            }
+        })
+        .into()
+    }
+
+    fn rebuild(self, state: &mut Self::State) {
+        let new = self.build();
+        *state = new;
     }
 }
 
@@ -87,10 +102,6 @@ impl DomWidget {
         let dom_widget_node = DomWidgetNode::new::<T, _, _>(f);
         let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
         Self { inner }
-    }
-
-    pub(crate) fn inner(&self) -> DomNode {
-        self.inner.clone()
     }
 
     pub fn id(self, id: impl Into<NodeId>) -> Self {
@@ -235,16 +246,18 @@ impl Constrainable for DomWidget {
 }
 
 impl Render<RooibosDom> for DomWidget {
-    type State = DomNode;
+    type State = <DomNode as Render<RooibosDom>>::State;
 
     fn build(self) -> Self::State {
-        self.inner
+        self.inner.build()
     }
 
     fn rebuild(mut self, state: &mut Self::State) {
-        if &self.inner != state {
-            self.inner.replace_node(state);
+        if self.inner != state.0 {
+            self.inner.replace_node(&state.0);
             refresh_dom();
+        } else {
+            self.inner.rebuild(state);
         }
     }
 }

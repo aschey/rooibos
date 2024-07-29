@@ -75,6 +75,7 @@ impl TestHarness {
     where
         F: FnOnce() -> M + 'static,
         M: Render,
+        <M as Render>::DomState: 'static,
     {
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();

@@ -13,9 +13,8 @@ use tachys::prelude::*;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use crate::{
-    refresh_dom, BlurEvent, ChildState, Constrainable, EventData, FocusEvent, RenderAny, RooibosDom,
-};
+use super::AsDomNode;
+use crate::{refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Element<C> {
@@ -289,40 +288,70 @@ pub fn absolute<C>(pos: impl Into<MaybeSignal<(u16, u16)>>, children: C) -> Elem
     Element { inner, children }
 }
 
+pub struct ElementState<Children>
+where
+    Children: Render<RooibosDom>,
+{
+    node: <DomNode as Render<RooibosDom>>::State,
+    children: <Children as Render<RooibosDom>>::State,
+}
+
+impl<Children> AsDomNode for ElementState<Children>
+where
+    Children: Render<RooibosDom>,
+{
+    fn as_dom_node(&self) -> &DomNode {
+        self.node.as_dom_node()
+    }
+}
+
+impl<Children> Mountable<RooibosDom> for ElementState<Children>
+where
+    Children: Render<RooibosDom>,
+{
+    fn unmount(&mut self) {
+        self.node.unmount();
+    }
+
+    fn mount(
+        &mut self,
+        parent: &<RooibosDom as Renderer>::Element,
+        marker: Option<&<RooibosDom as Renderer>::Node>,
+    ) {
+        self.node.mount(parent, marker);
+    }
+
+    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
+        self.node.insert_before_this(child)
+    }
+}
+
 impl<Children> Render<RooibosDom> for Element<Children>
 where
     Children: RenderAny + 'static,
 {
-    type State = DomNode;
+    type State = ElementState<Children>;
 
     fn build(self) -> Self::State {
+        let inner_state = self.inner.build();
         let mut children_state = self.children.build();
-        children_state.mount(&self.inner, None);
-        // Store children output to prevent drop effects from occurring
-        self.inner.set_child_state(ChildState {
-            mountable: Box::new(children_state),
-            parent: self.inner.clone(),
-        });
-        self.inner
+        children_state.mount(&inner_state.0, None);
+
+        ElementState {
+            node: inner_state,
+            children: children_state,
+        }
     }
 
     fn rebuild(self, state: &mut Self::State) {
-        let mut child_state = state.take_child_state();
-
-        let child_mountable = child_state
-            .mountable
-            .as_any()
-            .downcast_mut::<Children::State>();
-
-        if let Some(s) = child_mountable {
-            self.children.rebuild(s);
-        } else if &self.inner != state {
-            child_state.mountable.unmount();
-            let mut new = self.build();
-            new.mount(&child_state.parent, None);
-            child_state.mountable = Box::new(new);
+        if self.inner == state.node.0 {
+            self.inner.rebuild(&mut state.node);
+            self.children.rebuild(&mut state.children);
+        } else {
+            state.children.unmount();
+            let mut children_state = self.children.build();
+            children_state.mount(&state.node.0, None);
+            state.children = children_state;
         }
-
-        state.set_child_state(child_state);
     }
 }

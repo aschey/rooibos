@@ -11,13 +11,14 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::widgets::{Block, WidgetRef};
 use slotmap::{new_key_type, SlotMap};
+use tachys::reactive_graph::RenderEffectState;
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_state::{self, DomState};
-use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, DOM_NODES};
+use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, DOM_NODES};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -104,7 +105,7 @@ pub struct LayoutProps {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub(crate) enum NodeType {
+pub enum NodeType {
     Layout(Rc<RefCell<LayoutProps>>),
     Overlay,
     Absolute(Rc<RefCell<(u16, u16)>>),
@@ -182,7 +183,35 @@ impl Debug for NodeType {
     }
 }
 
-pub(crate) trait AnyMountable: Mountable<RooibosDom> + Any {
+impl Render<RooibosDom> for NodeType {
+    type State = Option<RenderEffectState<()>>;
+
+    fn build(self) -> Self::State {
+        match self {
+            NodeType::Layout(_) => None,
+            NodeType::Overlay => None,
+            NodeType::Absolute(_) => None,
+            NodeType::Widget(node) => Some(node.build()),
+            NodeType::Placeholder => None,
+        }
+    }
+
+    fn rebuild(self, state: &mut Self::State) {
+        match self {
+            NodeType::Layout(_) => {}
+            NodeType::Overlay => {}
+            NodeType::Absolute(_) => {}
+            NodeType::Widget(node) => {
+                if let Some(s) = state.as_mut() {
+                    node.rebuild(s)
+                }
+            }
+            NodeType::Placeholder => {}
+        }
+    }
+}
+
+pub trait AnyMountable: Mountable<RooibosDom> + Any {
     fn as_any(&mut self) -> &mut dyn Any;
 }
 
@@ -195,12 +224,22 @@ where
     }
 }
 
-#[derive(Derivative)]
-#[derivative(Debug)]
-pub(crate) struct ChildState {
-    #[derivative(Debug = "ignore")]
-    pub(crate) mountable: Box<dyn AnyMountable>,
-    pub(crate) parent: DomNode,
+impl Mountable<RooibosDom> for Box<dyn AnyMountable> {
+    fn mount(
+        &mut self,
+        parent: &<RooibosDom as Renderer>::Element,
+        marker: Option<&<RooibosDom as Renderer>::Node>,
+    ) {
+        (**self).mount(parent, marker)
+    }
+
+    fn unmount(&mut self) {
+        (**self).unmount()
+    }
+
+    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
+        (**self).insert_before_this(child)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -352,7 +391,7 @@ impl DomNodeRepr {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub(crate) struct DomNodeInner {
+pub struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
     pub(crate) constraint: Rc<RefCell<Constraint>>,
@@ -365,8 +404,18 @@ pub(crate) struct DomNodeInner {
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
     data: Vec<Rc<dyn Any>>,
-    #[derivative(Debug = "ignore")]
-    child_state: Option<ChildState>,
+}
+
+impl Render<RooibosDom> for DomNodeInner {
+    type State = <NodeType as Render<RooibosDom>>::State;
+
+    fn build(self) -> Self::State {
+        self.node_type.build()
+    }
+
+    fn rebuild(self, state: &mut Self::State) {
+        self.node_type.rebuild(state);
+    }
 }
 
 struct RenderProps<'a> {
@@ -529,6 +578,12 @@ pub struct DomNode {
     unmounted: Arc<AtomicBool>,
 }
 
+impl AsDomNode for DomNode {
+    fn as_dom_node(&self) -> &DomNode {
+        self
+    }
+}
+
 impl PartialEq for DomNode {
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
@@ -588,7 +643,6 @@ impl DomNode {
             event_handlers: Default::default(),
             data: vec![],
             rect: Default::default(),
-            child_state: None,
         };
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
@@ -610,7 +664,6 @@ impl DomNode {
             event_handlers: fragment.event_handlers,
             data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
-            child_state: None,
         };
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
@@ -632,7 +685,6 @@ impl DomNode {
             event_handlers: fragment.event_handlers,
             data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
-            child_state: None,
         };
         with_nodes_mut(|n| n[self.key] = inner);
     }
@@ -653,7 +705,6 @@ impl DomNode {
                 event_handlers,
                 rect,
                 data,
-                child_state: _child_state,
             } = &nodes[self.key];
             let name = name.clone();
             let node_type = node_type.clone();
@@ -684,14 +735,6 @@ impl DomNode {
 
     pub(crate) fn add_data(&self, data: impl Any) {
         with_nodes_mut(|n| n[self.key].data.push(Rc::new(data)));
-    }
-
-    pub(crate) fn take_child_state(&self) -> ChildState {
-        with_nodes_mut(|n| n[self.key].child_state.take().unwrap())
-    }
-
-    pub(crate) fn set_child_state(&self, state: ChildState) {
-        with_nodes_mut(|n| n[self.key].child_state = Some(state));
     }
 
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
@@ -788,11 +831,14 @@ impl DomNode {
 }
 
 impl Render<RooibosDom> for DomNode {
-    type State = DomNode;
+    type State = (DomNode, <NodeType as Render<RooibosDom>>::State);
 
     fn build(self) -> Self::State {
-        self
+        let state = with_nodes(|n| n[self.key].node_type.clone().build());
+        (self, state)
     }
 
-    fn rebuild(self, _state: &mut Self::State) {}
+    fn rebuild(self, (_node, ref mut node_type_state): &mut Self::State) {
+        with_nodes(|n| n[self.key].node_type.clone().rebuild(node_type_state));
+    }
 }
