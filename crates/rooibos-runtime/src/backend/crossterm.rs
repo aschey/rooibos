@@ -318,8 +318,9 @@ impl crossterm::Command for SetClipboard {
     }
 
     #[cfg(windows)]
-    fn execute_winapi(&self) -> Result<()> {
-        clipboard_win::set_clipboard_string(&self.payload).map_err(std::io::Error::from)
+    fn execute_winapi(&self) -> io::Result<()> {
+        clipboard_win::set_clipboard_string(&self.payload)
+            .map_err(|e| io::Error::from_raw_os_error(e.raw_code()))
     }
 
     #[cfg(windows)]
