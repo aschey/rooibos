@@ -45,6 +45,7 @@ impl Notification {
     }
 }
 
+#[derive(Clone)]
 pub struct Notifier {
     context: Arc<RwLock<Option<NotificationContext>>>,
 }

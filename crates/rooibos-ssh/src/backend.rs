@@ -61,6 +61,16 @@ impl<B: Backend> Backend for SshBackend<B> {
         self.inner.set_title(terminal, title)
     }
 
+    #[cfg(feature = "clipboard")]
+    fn set_clipboard<T: std::fmt::Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        content: T,
+        clipboard_kind: rooibos_runtime::backend::ClipboardKind,
+    ) -> io::Result<()> {
+        self.inner.set_clipboard(terminal, content, clipboard_kind)
+    }
+
     fn supports_async_input(&self) -> bool {
         true
     }

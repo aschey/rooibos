@@ -10,6 +10,7 @@ rooibos = { path = "../crates/rooibos", features = [
     "terminal-widget",
     "input",
     "image",
+    "clipboard",
 ] }
 tokio = { version = "1.38.1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.40"

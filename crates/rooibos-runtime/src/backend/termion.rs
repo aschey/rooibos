@@ -104,6 +104,19 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         ))
     }
 
+    #[cfg(feature = "clipboard")]
+    fn set_clipboard<T: std::fmt::Display>(
+        &self,
+        _terminal: &mut Terminal<Self::TuiBackend>,
+        _content: T,
+        _clipboard_kind: super::ClipboardKind,
+    ) -> io::Result<()> {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "termion backend does not support setting the clipboard",
+        ))
+    }
+
     async fn read_input(
         &self,
         term_tx: broadcast::Sender<rooibos_dom::Event>,

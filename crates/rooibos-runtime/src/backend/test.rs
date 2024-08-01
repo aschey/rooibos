@@ -50,6 +50,16 @@ impl Backend for TestBackend {
         Ok(())
     }
 
+    #[cfg(feature = "clipboard")]
+    fn set_clipboard<T: std::fmt::Display>(
+        &self,
+        _terminal: &mut Terminal<Self::TuiBackend>,
+        _content: T,
+        _clipboard_kind: super::ClipboardKind,
+    ) -> io::Result<()> {
+        Ok(())
+    }
+
     fn write_all(&self, _buf: &[u8]) -> io::Result<()> {
         Ok(())
     }

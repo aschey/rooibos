@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.27", optional = true }
-russh-keys = "0.43"
-russh = "0.43"
+russh-keys = "0.44"
+russh = "0.44"
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-dom = { path = "../rooibos-dom" }
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
@@ -23,3 +23,4 @@ terminput = { git = "https://github.com/aschey/terminput", rev = "85e84fb29e77ee
 
 [features]
 crossterm = ["dep:crossterm"]
+clipboard = ["rooibos-runtime/clipboard"]
