@@ -19,7 +19,7 @@ use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
-use super::Backend;
+use super::{Backend, ClipboardKind};
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -229,6 +229,19 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         execute!(terminal.backend_mut(), SetTitle(title))
     }
 
+    #[cfg(feature = "clipboard")]
+    fn set_clipboard<T: Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        content: T,
+        clipboard_kind: ClipboardKind,
+    ) -> io::Result<()> {
+        execute!(
+            terminal.backend_mut(),
+            SetClipboard::new(&content.to_string(), clipboard_kind)
+        )
+    }
+
     fn supports_keyboard_enhancement(&self) -> bool {
         self.supports_keyboard_enhancement
     }
@@ -262,5 +275,56 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                 }
             }
         }
+    }
+}
+
+#[cfg(feature = "clipboard")]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SetClipboard {
+    // The base64 encoded content for Unix and the raw content for Windows
+    payload: String,
+    kind: ClipboardKind,
+}
+
+#[cfg(feature = "clipboard")]
+impl SetClipboard {
+    #[cfg(windows)]
+    pub fn new(content: &str, kind: ClipboardKind) -> Self {
+        Self {
+            payload: content.to_string(),
+            kind,
+        }
+    }
+
+    #[cfg(not(windows))]
+    pub fn new(content: &str, kind: ClipboardKind) -> Self {
+        use base64::prelude::*;
+        Self {
+            payload: BASE64_STANDARD.encode(content),
+            kind,
+        }
+    }
+}
+
+#[cfg(feature = "clipboard")]
+impl crossterm::Command for SetClipboard {
+    fn write_ansi(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
+        // Send an OSC 52 set command: https://terminalguide.namepad.de/seq/osc-52/
+        let kind = match &self.kind {
+            ClipboardKind::Clipboard => "c",
+            ClipboardKind::Primary => "p",
+        };
+        write!(f, "\x1b]52;{};{}\x1b\\", kind, &self.payload)
+    }
+
+    #[cfg(windows)]
+    fn execute_winapi(&self) -> io::Result<()> {
+        clipboard_win::set_clipboard_string(&self.payload)
+            .map_err(|e| io::Error::from_raw_os_error(e.raw_code()))
+    }
+
+    #[cfg(windows)]
+    fn is_ansi_code_supported(&self) -> bool {
+        false
     }
 }

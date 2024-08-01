@@ -160,6 +160,31 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
         Ok(())
     }
 
+    #[cfg(feature = "clipboard")]
+    fn set_clipboard<T: Display>(
+        &self,
+        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
+        content: T,
+        clipboard_kind: super::ClipboardKind,
+    ) -> io::Result<()> {
+        use termwiz::escape::osc::Selection;
+
+        let action = termwiz::escape::Action::OperatingSystemCommand(Box::new(
+            termwiz::escape::OperatingSystemCommand::SetSelection(
+                match clipboard_kind {
+                    super::ClipboardKind::Clipboard => Selection::CLIPBOARD,
+                    super::ClipboardKind::Primary => Selection::PRIMARY,
+                },
+                content.to_string(),
+            ),
+        ));
+        terminal
+            .backend_mut()
+            .buffered_terminal_mut()
+            .add_change(action.to_string());
+        Ok(())
+    }
+
     fn supports_async_input(&self) -> bool {
         false
     }

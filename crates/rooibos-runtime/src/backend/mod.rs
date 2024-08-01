@@ -13,6 +13,24 @@ use futures_util::Future;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
 
+// From https://github.com/crossterm-rs/crossterm/pull/697
+/// Which selection to set. Only affects X11. See
+/// [X Window selection](https://en.wikipedia.org/wiki/X_Window_selection) for details.
+#[cfg(feature = "clipboard")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClipboardKind {
+    /// Set the clipboard selection. This is the only clipboard in most windowing systems.
+    /// In X11, it's the selection set by an explicit copy command
+    Clipboard,
+    /// Set the primary selection.
+    /// In windowing systems other than X11, terminals often perform the same behavior
+    /// as with Clipboard for Primary.
+    /// In X11, this sets the selection used when text is highlighted.
+    Primary,
+    // XTerm also supports "secondary", "select", and "cut-buffers" 0-7 as kinds.
+    // Since those aren't supported elsewhere, not exposing those from here
+}
+
 pub trait Backend: Send + Sync {
     type TuiBackend: ratatui::backend::Backend;
 
@@ -30,6 +48,14 @@ pub trait Backend: Send + Sync {
         &self,
         terminal: &mut Terminal<Self::TuiBackend>,
         title: T,
+    ) -> io::Result<()>;
+
+    #[cfg(feature = "clipboard")]
+    fn set_clipboard<T: Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        content: T,
+        clipboard_kind: ClipboardKind,
     ) -> io::Result<()>;
 
     fn supports_async_input(&self) -> bool {

@@ -107,6 +107,8 @@ pub enum TerminalCommand {
     EnterAltScreen,
     LeaveAltScreen,
     SetTitle(String),
+    #[cfg(feature = "clipboard")]
+    SetClipboard(String, backend::ClipboardKind),
     #[cfg(not(target_arch = "wasm32"))]
     Exec {
         #[derivative(Debug = "ignore")]
@@ -520,6 +522,10 @@ impl<B: Backend + 'static> Runtime<B> {
             TerminalCommand::Poll => {
                 self.backend.poll_input(terminal, &self.term_parser_tx)?;
             }
+            #[cfg(feature = "clipboard")]
+            TerminalCommand::SetClipboard(content, kind) => {
+                self.backend.set_clipboard(terminal, content, kind)?;
+            }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
                 self.cancellation_token.cancel();
@@ -717,6 +723,22 @@ pub fn set_title<T: Display>(title: T) {
                 .unwrap()
                 .term_command_tx
                 .send(TerminalCommand::SetTitle(title.to_string()))
+        })
+        .unwrap();
+}
+
+#[cfg(feature = "clipboard")]
+pub fn set_clipboard<T: Display>(title: T, kind: backend::ClipboardKind) {
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::SetClipboard(title.to_string(), kind))
         })
         .unwrap();
 }
