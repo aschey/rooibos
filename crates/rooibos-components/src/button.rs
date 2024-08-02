@@ -31,6 +31,8 @@ impl Default for Button {
 }
 
 impl Constrainable for Button {
+    type Output = Self;
+
     fn constraint<S>(mut self, constraint: S) -> Self
     where
         S: Into<MaybeSignal<Constraint>>,

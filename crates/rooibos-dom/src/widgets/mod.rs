@@ -34,7 +34,7 @@ macro_rules! stateful_widget {
     };
 }
 
-pub fn widget_ref<F, W>(props: F) -> DomWidget
+pub fn widget_ref<F, W>(props: F) -> DomWidget<()>
 where
     F: Fn() -> W + 'static,
     W: WidgetRef + 'static,
@@ -47,7 +47,7 @@ where
     })
 }
 
-pub fn widget<F, W>(props: F) -> DomWidget
+pub fn widget<F, W>(props: F) -> DomWidget<()>
 where
     F: Fn() -> W + 'static,
     W: Widget + Clone + 'static,
@@ -60,7 +60,7 @@ where
     })
 }
 
-pub fn stateful_widget<F1, F2, W>(props: F1, state: F2) -> DomWidget
+pub fn stateful_widget<F1, F2, W>(props: F1, state: F2) -> DomWidget<()>
 where
     F1: Fn() -> W + 'static,
     F2: Fn() -> W::State + 'static,

@@ -108,6 +108,8 @@ impl Default for TabView {
 }
 
 impl Constrainable for TabView {
+    type Output = Self;
+
     fn constraint<S>(mut self, constraint: S) -> Self
     where
         S: Into<MaybeSignal<Constraint>>,

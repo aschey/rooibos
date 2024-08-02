@@ -23,6 +23,7 @@ futures = "0.3"
 rustc-hash = "2"
 terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
 tui-textarea = { git = "https://github.com/aschey/tui-textarea", rev = "c72fea065b69d08bf15c199a564368f65ba7656b", optional = true, default-features = false }
+paste = "1"
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

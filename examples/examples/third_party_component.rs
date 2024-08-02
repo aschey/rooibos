@@ -43,7 +43,7 @@ fn app() -> impl Render {
     text_area(text_area_widget).on_key_down(key_down)
 }
 
-fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget {
+fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget<()> {
     let text_area = text_area.into();
     DomWidget::new::<TextArea, _, _>(move || {
         let widget = text_area.get();

@@ -403,7 +403,6 @@ pub struct DomNodeInner {
     #[derivative(Debug = "ignore")]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
-    data: Vec<Rc<dyn Any>>,
 }
 
 impl Render<RooibosDom> for DomNodeInner {
@@ -641,7 +640,6 @@ impl DomNode {
             id: None,
             class: None,
             event_handlers: Default::default(),
-            data: vec![],
             rect: Default::default(),
         };
         let key = with_nodes_mut(|n| n.insert(inner));
@@ -662,7 +660,6 @@ impl DomNode {
             id: fragment.id,
             class: fragment.class,
             event_handlers: fragment.event_handlers,
-            data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
         };
         let key = with_nodes_mut(|n| n.insert(inner));
@@ -683,7 +680,6 @@ impl DomNode {
             id: fragment.id,
             class: fragment.class,
             event_handlers: fragment.event_handlers,
-            data: vec![],
             rect: Rc::new(RefCell::new(Rect::default())),
         };
         with_nodes_mut(|n| n[self.key] = inner);
@@ -704,7 +700,6 @@ impl DomNode {
                 focusable,
                 event_handlers,
                 rect,
-                data,
             } = &nodes[self.key];
             let name = name.clone();
             let node_type = node_type.clone();
@@ -713,7 +708,6 @@ impl DomNode {
             let id = id.clone();
             let class = class.clone();
             let event_handlers = event_handlers.clone();
-            let data = data.clone();
             let rect = rect.clone();
 
             let new = &mut nodes[node.key];
@@ -725,16 +719,11 @@ impl DomNode {
             new.id = id;
             new.class = class;
             new.event_handlers = event_handlers;
-            new.data = data;
             new.rect = rect;
         });
         unmount_child(self.key, true);
 
         self.key = node.key;
-    }
-
-    pub(crate) fn add_data(&self, data: impl Any) {
-        with_nodes_mut(|n| n[self.key].data.push(Rc::new(data)));
     }
 
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {

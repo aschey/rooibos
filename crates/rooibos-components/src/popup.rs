@@ -72,6 +72,8 @@ impl Popup {
 }
 
 impl Constrainable for Popup {
+    type Output = Self;
+
     fn constraint<S>(mut self, constraint: S) -> Self
     where
         S: Into<MaybeSignal<Constraint>>,
