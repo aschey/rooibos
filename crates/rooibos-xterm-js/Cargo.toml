@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "dfd38a462e16c63d781f521a2fdb463934bb7347" }
-crossterm = { version = "0.27", features = ["event-stream"] }
+ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "aca69e7cb77f67c100cf4fa1d99171cbc159f6aa" }
+crossterm = { version = "0.28.1", features = ["event-stream"] }
 futures = "0.3"
 ratatui = { version = "0.27", default-features = false }
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }

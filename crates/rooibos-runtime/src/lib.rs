@@ -1,5 +1,6 @@
 pub mod backend;
 
+use std::any::Any;
 use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::fmt::Display;
@@ -97,6 +98,23 @@ pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>
     + Send
     + Sync;
 
+pub trait AsAnyMut: Send {
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+type TerminalFn<B> = dyn FnMut(&mut Terminal<B>) + Send;
+
+struct TerminalFnBoxed<B: TuiBackend>(Box<TerminalFn<B>>);
+
+impl<B> AsAnyMut for TerminalFnBoxed<B>
+where
+    B: TuiBackend + Send + 'static,
+{
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
 #[derive(Clone, Derivative)]
 #[derivative(Debug)]
 pub enum TerminalCommand {
@@ -107,6 +125,7 @@ pub enum TerminalCommand {
     EnterAltScreen,
     LeaveAltScreen,
     SetTitle(String),
+    Custom(#[derivative(Debug = "ignore")] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
     #[cfg(feature = "clipboard")]
     SetClipboard(String, backend::ClipboardKind),
     #[cfg(not(target_arch = "wasm32"))]
@@ -526,6 +545,15 @@ impl<B: Backend + 'static> Runtime<B> {
             TerminalCommand::SetClipboard(content, kind) => {
                 self.backend.set_clipboard(terminal, content, kind)?;
             }
+            TerminalCommand::Custom(f) => {
+                let mut terminal_fn = f.lock().unwrap();
+
+                let terminal_fn = terminal_fn
+                    .as_any_mut()
+                    .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
+                    .unwrap();
+                terminal_fn.0(terminal);
+            }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
                 self.cancellation_token.cancel();
@@ -723,6 +751,27 @@ pub fn set_title<T: Display>(title: T) {
                 .unwrap()
                 .term_command_tx
                 .send(TerminalCommand::SetTitle(title.to_string()))
+        })
+        .unwrap();
+}
+
+pub fn run_with_terminal<F, B>(f: F)
+where
+    F: FnMut(&mut Terminal<B>) + Send + 'static,
+    B: TuiBackend + Send + 'static,
+{
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE
+        .with(|s| {
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .term_command_tx
+                .send(TerminalCommand::Custom(Arc::new(std::sync::Mutex::new(
+                    Box::new(TerminalFnBoxed(Box::new(f))),
+                ))))
         })
         .unwrap();
 }
