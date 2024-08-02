@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-crossterm = "0.27"
+crossterm = "0.28.1"
 rooibos = { path = "../crates/rooibos", features = [
     "ssh",
     "terminal-widget",
@@ -23,7 +23,7 @@ tracing-subscriber = { version = "0.3.18", features = [
     "env-filter",
 ] }
 rand = "0.8.5"
-tui-textarea = "0.5.0"
+tui-textarea = { git = "https://github.com/aschey/tui-textarea", rev = "c72fea065b69d08bf15c199a564368f65ba7656b" }
 tui-tree-widget = "0.21.0"
 reqwest = { version = "0.12.4", features = ["json"] }
 serde = "1.0.203"
