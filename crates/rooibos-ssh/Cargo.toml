@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-crossterm = { version = "0.28.1", optional = true }
+crossterm = { version = "0.27", optional = true }
 russh-keys = "0.44"
 russh = "0.44"
 rooibos-runtime = { path = "../rooibos-runtime" }
@@ -19,7 +19,7 @@ reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "tracing",
     "effects",
 ] }
-terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
+terminput = { git = "https://github.com/aschey/terminput", rev = "85e84fb29e77ee9c26ed09c80ca1eec002a75c55" }
 
 [features]
 crossterm = ["dep:crossterm"]
