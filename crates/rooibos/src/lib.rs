@@ -30,4 +30,5 @@ pub mod xterm_js {
 }
 
 pub use ratatui as tui;
+pub use rooibos_component_macros::*;
 pub use rooibos_runtime_macros::*;

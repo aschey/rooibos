@@ -8,9 +8,9 @@ use std::time::Duration;
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{Button, Input, Notification, Notifications, Notifier, Popup, Show};
 use rooibos::dom::{
-    block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay, percentage,
-    props, row, span, text, transition, widget_ref, Constrainable, Errors, IntoAny, NodeId, Render,
-    WidgetState,
+    after_render, block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay,
+    percentage, props, row, span, text, transition, widget_ref, Constrainable, Errors, IntoAny,
+    NodeId, Render, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -20,7 +20,7 @@ use rooibos::reactive::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Track, With};
 use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
+use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -207,8 +207,8 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
                 widget_ref!(Paragraph::new(text.get()))
             ])
             .render(editing, move || {
-                // Focus after mounting
-                wasm_compat::spawn_local(async move {
+                // Focus after the next render
+                after_render(move || {
                     focus_id(input_id.get_value());
                 });
 

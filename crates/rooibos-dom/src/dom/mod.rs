@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use ratatui::buffer::Buffer;
@@ -647,4 +648,14 @@ pub fn focus_prev() {
     if let Some(prev) = focusable_nodes.last() {
         dom_state::set_focused(*prev);
     }
+}
+
+pub fn after_render_async(fut: impl Future<Output = ()> + 'static) {
+    wasm_compat::futures::spawn_local(fut)
+}
+
+pub fn after_render(f: impl FnOnce() + 'static) {
+    wasm_compat::futures::spawn_local(async move {
+        f();
+    })
 }

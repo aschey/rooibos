@@ -24,6 +24,9 @@ rustc-hash = "2"
 terminput = { git = "https://github.com/aschey/terminput", rev = "85e84fb29e77ee9c26ed09c80ca1eec002a75c55" }
 tui-textarea = { version = "0.5.2", optional = true, default-features = false }
 paste = "1"
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "84c52ad6b049e169ca7f7c0a566ba45817cb31dd", features = [
+    "all",
+] }
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
