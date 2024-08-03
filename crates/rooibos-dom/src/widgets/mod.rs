@@ -11,63 +11,81 @@ use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
 pub use sparkline::*;
 
-use crate::DomWidget;
+use crate::{DomWidget, Props};
 
 #[macro_export]
 macro_rules! widget_ref {
+    ($properties:expr; $($x:tt)*) => {
+        $crate::widget_ref($properties, move || $($x)*)
+    };
+    ($($properties:expr),+ $(,)?; $($x:tt)*) => {
+        $crate::widget_ref(($($properties),+), move || $($x)*)
+    };
     ($($x:tt)*) => {
-        $crate::widget_ref(move || $($x)*)
+        $crate::widget_ref($crate::props(()), move || $($x)*)
     };
 }
 
 #[macro_export]
 macro_rules! widget {
     ($($x:tt)*) => {
-        $crate::widget(move || $($x)*)
+        $crate::widget($crate::props(()), move || $($x)*)
+    };
+    ($properties:expr; $($x:tt)*) => {
+        $crate::widget($properties, move || $($x)*)
+    };
+    ($($properties:expr),+ $(,)?; $($x:tt)*) => {
+        $crate::widget(($($properties),+), move || $($x)*)
     };
 }
 
 #[macro_export]
 macro_rules! stateful_widget {
     ($x:expr, $y:expr) => {
-        $crate::stateful_widget(move || $x, move || $y)
+        $crate::stateful_widget($crate::props(()), move || $x, move || $y)
+    };
+    ($properties:expr; $x:expr, $y:expr) => {
+        $crate::stateful_widget($properties, move || $x, move || $y)
+    };
+    ($($properties:expr),+ $(,)?; $x:expr, $y:expr) => {
+        $crate::stateful_widget(($($properties),+), move || $x, move || $y)
     };
 }
 
-pub fn widget_ref<F, W>(props: F) -> DomWidget<()>
+pub fn widget_ref<P, F, W>(props: Props<P>, widget_props: F) -> DomWidget<P>
 where
     F: Fn() -> W + 'static,
     W: WidgetRef + 'static,
 {
-    DomWidget::new::<W, _, _>(move || {
-        let props = props();
+    DomWidget::new_with_properties::<W, _, _>(props, move || {
+        let props = widget_props();
         move |rect: Rect, buf: &mut Buffer| {
             props.render_ref(rect, buf);
         }
     })
 }
 
-pub fn widget<F, W>(props: F) -> DomWidget<()>
+pub fn widget<P, F, W>(props: Props<P>, widget_props: F) -> DomWidget<P>
 where
     F: Fn() -> W + 'static,
     W: Widget + Clone + 'static,
 {
-    DomWidget::new::<W, _, _>(move || {
-        let props = props();
+    DomWidget::new_with_properties::<W, _, _>(props, move || {
+        let props = widget_props();
         move |rect: Rect, buf: &mut Buffer| {
             props.clone().render(rect, buf);
         }
     })
 }
 
-pub fn stateful_widget<F1, F2, W>(props: F1, state: F2) -> DomWidget<()>
+pub fn stateful_widget<P, F1, F2, W>(props: Props<P>, widget_props: F1, state: F2) -> DomWidget<P>
 where
     F1: Fn() -> W + 'static,
     F2: Fn() -> W::State + 'static,
     W: StatefulWidget + Clone + 'static,
 {
-    DomWidget::new::<W, _, _>(move || {
-        let props = props();
+    DomWidget::new_with_properties::<W, _, _>(props, move || {
+        let props = widget_props();
         let mut state = state();
         move |rect: Rect, buf: &mut Buffer| {
             props.clone().render(rect, buf, &mut state);

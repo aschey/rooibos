@@ -1,10 +1,11 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use reactive_graph::computed::ArcMemo;
+use reactive_graph::effect::RenderEffect;
 use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Update, With};
 use rustc_hash::FxHashMap;
-use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use throw_error::{Error, ErrorHook, ErrorId};
 
@@ -28,118 +29,129 @@ where
 
     // provide the error hook and render children
     throw_error::set_error_hook(Arc::clone(&hook));
-    let mut children = Some(children);
-
-    move || ErrorBoundaryView {
-        errors_empty: errors_empty.get(),
-        children: children.take(),
-        fallback: Some((fallback.clone())(errors.clone())),
+    ErrorBoundaryView {
+        hook,
+        errors_empty,
+        children,
+        fallback,
+        errors,
     }
 }
 
-#[derive(Debug)]
-struct ErrorBoundaryView<Chil, Fal> {
-    errors_empty: bool,
-    children: Option<Chil>,
-    fallback: Fal,
+struct ErrorBoundaryView<Chil, FalFn> {
+    hook: Arc<dyn ErrorHook>,
+    errors_empty: ArcMemo<bool>,
+    children: Chil,
+    fallback: FalFn,
+    errors: ArcRwSignal<Errors>,
 }
 
 struct ErrorBoundaryViewState<Chil, Fal>
 where
-    Chil: RenderAny,
-    Fal: RenderAny,
+    Chil: Mountable<RooibosDom>,
+    Fal: Mountable<RooibosDom>,
 {
-    showing_fallback: bool,
     // both the children and the fallback are always present, and we toggle between the two of them
     // as needed
-    children: Chil::State,
-    fallback: Fal::State,
-    placeholder: DomNode,
+    children: Chil,
+    fallback: Option<Fal>,
 }
 
 impl<Chil, Fal> Mountable<RooibosDom> for ErrorBoundaryViewState<Chil, Fal>
 where
-    Chil: RenderAny,
-    Fal: RenderAny,
+    Chil: Mountable<RooibosDom>,
+    Fal: Mountable<RooibosDom>,
 {
     fn unmount(&mut self) {
-        if self.showing_fallback {
-            self.fallback.unmount();
+        if let Some(fallback) = &mut self.fallback {
+            fallback.unmount();
         } else {
             self.children.unmount();
         }
-        self.placeholder.unmount();
     }
 
     fn mount(&mut self, parent: &DomNode, marker: Option<&DomNode>) {
-        if self.showing_fallback {
-            self.fallback.mount(parent, marker);
+        if let Some(fallback) = &mut self.fallback {
+            fallback.mount(parent, marker);
         } else {
             self.children.mount(parent, marker);
         }
-        self.placeholder.mount(parent, marker);
     }
 
     fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
-        if self.showing_fallback {
-            self.fallback.insert_before_this(child)
+        if let Some(fallback) = &self.fallback {
+            fallback.insert_before_this(child)
         } else {
             self.children.insert_before_this(child)
         }
     }
 }
 
-impl<Chil, Fal> Render<RooibosDom> for ErrorBoundaryView<Chil, Fal>
+impl<Chil, FalFn, Fal> Render<RooibosDom> for ErrorBoundaryView<Chil, FalFn>
 where
-    Chil: RenderAny,
-    Fal: RenderAny,
+    Chil: RenderAny + 'static,
+    FalFn: FnMut(ArcRwSignal<Errors>) -> Fal + Send + 'static,
+    Fal: RenderAny + 'static,
 {
-    type State = ErrorBoundaryViewState<Chil, Fal>;
+    type State = RenderEffect<ErrorBoundaryViewState<Chil::State, Fal::State>>;
 
-    fn build(self) -> Self::State {
-        let placeholder = RooibosDom::create_placeholder();
-        let children = (self
-            .children
-            .expect("tried to build ErrorBoundary but children were not present"))
-        .build();
-        let fallback = self.fallback.build();
-        ErrorBoundaryViewState {
-            showing_fallback: !self.errors_empty,
-            children,
-            fallback,
-            placeholder,
-        }
+    fn build(mut self) -> Self::State {
+        let hook = Arc::clone(&self.hook);
+        let _hook = throw_error::set_error_hook(Arc::clone(&hook));
+        let mut children = Some(self.children.build());
+        RenderEffect::new(
+            move |prev: Option<ErrorBoundaryViewState<Chil::State, Fal::State>>| {
+                let _hook = throw_error::set_error_hook(Arc::clone(&hook));
+                if let Some(mut state) = prev {
+                    match (self.errors_empty.get(), &mut state.fallback) {
+                        // no errors, and was showing fallback
+                        (true, Some(fallback)) => {
+                            fallback.insert_before_this(&mut state.children);
+                            fallback.unmount();
+                            state.fallback = None;
+                        }
+                        // yes errors, and was showing children
+                        (false, None) => {
+                            state.fallback = Some((self.fallback)(self.errors.clone()).build());
+                            state.children.insert_before_this(&mut state.fallback);
+                            state.children.unmount();
+                        }
+                        // either there were no errors, and we were already showing the children
+                        // or there are errors, but we were already showing the fallback
+                        // in either case, rebuilding doesn't require us to do anything
+                        _ => {}
+                    }
+                    state
+                } else {
+                    let fallback = (!self.errors_empty.get())
+                        .then(|| (self.fallback)(self.errors.clone()).build());
+                    ErrorBoundaryViewState {
+                        children: children.take().unwrap(),
+                        fallback,
+                    }
+                }
+            },
+        )
     }
 
     fn rebuild(self, state: &mut Self::State) {
-        match (self.errors_empty, state.showing_fallback) {
-            // no errors, and was showing fallback
-            (true, true) => {
-                state.fallback.unmount();
-                RooibosDom::try_mount_before(&mut state.children, state.placeholder.as_ref());
-            }
-            // yes errors, and was showing children
-            (false, false) => {
-                state.children.unmount();
-                RooibosDom::try_mount_before(&mut state.fallback, state.placeholder.as_ref());
-            }
-            // either there were no errors, and we were already showing the children
-            // or there are errors, but we were already showing the fallback
-            // in either case, rebuilding doesn't require us to do anything
-            _ => {}
-        }
-        state.showing_fallback = !self.errors_empty;
+        let new = self.build();
+        let mut old = std::mem::replace(state, new);
+        old.insert_before_this(state);
+        old.unmount();
     }
 }
 
 #[derive(Debug)]
 struct ErrorBoundaryErrorHook {
     errors: ArcRwSignal<Errors>,
+    id: AtomicUsize,
 }
 
 impl ErrorBoundaryErrorHook {
     pub fn new(initial_errors: impl IntoIterator<Item = (ErrorId, Error)>) -> Self {
         Self {
+            id: AtomicUsize::new(0),
             errors: ArcRwSignal::new(Errors(initial_errors.into_iter().collect())),
         }
     }
@@ -148,7 +160,7 @@ impl ErrorBoundaryErrorHook {
 impl ErrorHook for ErrorBoundaryErrorHook {
     fn throw(&self, error: Error) -> ErrorId {
         // generate a unique ID
-        let key = ErrorId::default(); // TODO unique ID...
+        let key = ErrorId::from(self.id.fetch_add(1, Ordering::Relaxed));
 
         // add it to the reactive map of errors
         self.errors.update(|map| {

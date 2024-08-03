@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::components::{notifications, Button, Notification, Notifier};
-use rooibos::dom::{col, row, text, widget_ref, Constrainable, KeyCode, KeyEvent, Render};
+use rooibos::components::{Button, Notification, Notifications, Notifier};
+use rooibos::dom::{col, length, props, row, text, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -36,22 +36,22 @@ fn app() -> impl Render {
 
     col![
         row![
+            props!(length(3));
             col![
+                props!(length(21));
                 Button::new()
                     .on_click(move || {
                         set_clipboard(count.get(), ClipboardKind::Clipboard);
-                        notifier.notify(Notification::new("Current count copied to clipboard"));
+                        notifier.notify(Notification::new(" Current count copied to clipboard "));
                     })
                     .render(text!("Copy to clipboard")),
             ]
-            .length(21)
-        ]
-        .length(3),
+        ],
         col![
             widget_ref!(format!("count: {}", count.get()))
                 .on_key_down(key_down)
                 .on_click(move |_, _| update_count()),
         ],
-        notifications()
+        Notifications::new().width(40).render()
     ]
 }

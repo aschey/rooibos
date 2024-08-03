@@ -1,14 +1,17 @@
 use ratatui::layout::Constraint;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{col, derive_signal, row, Constrainable, IntoView, Render, RenderAny};
+use rooibos_dom::{
+    col, constraint, derive_signal, percentage, props, row, Constrainable, IntoView, Render,
+    RenderAny,
+};
 
 use crate::Show;
 
 fn popup_inner<M>(
     percent_x: MaybeSignal<u16>,
     percent_y: MaybeSignal<u16>,
-    constraint: Option<MaybeSignal<Constraint>>,
+    constraint_: Option<MaybeSignal<Constraint>>,
     children: M,
 ) -> impl Render
 where
@@ -18,16 +21,16 @@ where
     let inverse_x = derive_signal!((100 - percent_x.get()) / 2);
 
     col![
-        row![].percentage(inverse_y),
+        props!(constraint(constraint_.unwrap_or_default().get()));
+        row![props!(percentage(inverse_y));],
         row![
-            col![].percentage(inverse_x),
+            props!(percentage(percent_y));
+            col![props!(percentage(inverse_x));],
             col![children].percentage(percent_x),
-            col![].percentage(inverse_x),
-        ]
-        .percentage(percent_y),
-        row![].percentage(inverse_y)
+            col![props!(percentage(inverse_x));],
+        ],
+        row![props!(percentage(inverse_y));]
     ]
-    .constraint(constraint.unwrap_or_default().get())
 }
 
 #[derive(Default)]

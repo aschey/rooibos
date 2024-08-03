@@ -6,10 +6,11 @@ use std::io::Stdout;
 use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
-use rooibos::components::{notifications, Button, Input, Notification, Notifier, Popup, Show};
+use rooibos::components::{Button, Input, Notification, Notifications, Notifier, Popup, Show};
 use rooibos::dom::{
-    clear, col, derive_signal, focus_id, line, overlay, row, span, text, transition, widget_ref,
-    Constrainable, Errors, IntoAny, NodeId, Render, WidgetState,
+    block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay, percentage,
+    props, row, span, text, transition, widget_ref, Constrainable, Errors, IntoAny, NodeId, Render,
+    WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -98,10 +99,13 @@ fn app(notification_timeout: Duration) -> impl Render {
     overlay![
         col![
             row![
-                col![widget_ref!("Add a Todo")]
-                    .block(Block::default())
-                    .length(12),
+                props!(length(3));
                 col![
+                    props!(length(12), block(Block::default()));
+                    widget_ref!("Add a Todo")
+                ],
+                col![
+                    props!(percentage(80));
                     Input::default()
                         .block(|state| Block::bordered()
                             .fg(if state == WidgetState::Focused {
@@ -118,39 +122,44 @@ fn app(notification_timeout: Duration) -> impl Render {
                         .length(3)
                         .render(input_ref)
                 ]
-                .percentage(80)
-            ]
-            .length(3),
-            row![col![transition!(
-                widget_ref!(line!(" Loading...".gray())),
-                {
-                    todos.await.map(|todos| {
-                        col![if todos.is_empty() {
-                            widget_ref!("No todos".gray()).into_any()
-                        } else {
-                            todos
-                                .into_iter()
-                                .map(|t| todo_item(t.id, t.text, editing_id))
-                                .collect::<Vec<_>>()
-                                .into_any()
-                        }]
-                    })
-                },
-                fallback
-            )]]
-            .block(Block::bordered().title("Todos")),
-            notifications()
+            ],
+            row![
+                props!(block(Block::bordered().title("Todos")));
+                col![
+                    transition!(
+                        widget_ref!(line!(" Loading...".gray())),
+                        {
+                            todos.await.map(|todos| {
+                                col![if todos.is_empty() {
+                                    widget_ref!("No todos".gray()).into_any()
+                                } else {
+                                    todos
+                                        .into_iter()
+                                        .map(|t| todo_item(t.id, t.text, editing_id))
+                                        .collect::<Vec<_>>()
+                                        .into_any()
+                                }]
+                            })
+                        },
+                        fallback
+                    )
+                ]
+            ],
+            Notifications::new().render()
         ],
         Popup::default()
             .percent_x(50)
             .percent_y(50)
             .render(pending, move || col![
-                col![].fill(1),
-                clear![widget_ref!(
-                    Paragraph::new("Saving...").block(Block::bordered())
-                )]
-                .length(3),
-                col![].fill(1),
+                col![props!(fill(1));],
+                clear![
+                    props!(length(3));
+                    widget_ref![
+                        props!(block(Block::bordered()));
+                        Paragraph::new("Saving...")
+                    ]
+                ],
+                col![props!(fill(1));],
             ])
     ]
 }
@@ -174,6 +183,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_id = StoredValue::new(NodeId::new_auto());
 
     row![
+        props!(length(3));
         Button::new()
             .length(5)
             .id(add_edit_id.get_value())
@@ -192,7 +202,10 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
             })
             .render(text!("x".red())),
         Show::new()
-            .fallback(move || col![widget_ref!(Paragraph::new(text.get()))].margin(1))
+            .fallback(move || col![
+                props!(margin(1));
+                widget_ref!(Paragraph::new(text.get()))
+            ])
             .render(editing, move || {
                 // Focus after mounting
                 wasm_compat::spawn_local(async move {
@@ -224,7 +237,6 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
                     .render(input_ref)
             })
     ]
-    .length(3)
 }
 
 #[cfg(test)]

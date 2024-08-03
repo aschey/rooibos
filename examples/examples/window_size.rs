@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{col, row, use_window_size, widget_ref, Constrainable, Render};
+use rooibos::dom::{col, length, props, row, use_window_size, widget_ref, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -24,14 +24,16 @@ async fn main() -> Result<()> {
 fn app() -> impl Render {
     let window_size = use_window_size();
     col![
-        widget_ref!({
-            let window_size = window_size.get();
-            format!(
-                "window size width={} height={}",
-                window_size.width, window_size.height
-            )
-        })
-        .length(2),
+        widget_ref![
+            props!(length(2));
+            {
+                let window_size = window_size.get();
+                format!(
+                    "window size width={} height={}",
+                    window_size.width, window_size.height
+                )
+            }
+        ],
         row![show_size(), show_size()],
         row![show_size(), show_size()]
     ]

@@ -1,4 +1,4 @@
-use rooibos::dom::{col, row, widget_ref, Constrainable, Render};
+use rooibos::dom::{col, percentage, props, row, widget_ref, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::owner::StoredValue;
 use rooibos::reactive::traits::Get;
@@ -37,8 +37,8 @@ pub(crate) fn tab1() -> impl Render {
     ]);
 
     row![
-        col![demo_table(servers)].percentage(30),
-        col![demo_map(servers, true)].percentage(70)
+        col![props!(percentage(30)); demo_table(servers)],
+        col![props!(percentage(70)); demo_map(servers, true)]
     ]
 }
 

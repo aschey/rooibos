@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::dom::{
-    col, focus_next, focus_prev, row, use_focus, widget_ref, Constrainable, KeyCode, Render,
+    col, focus_next, focus_prev, percentage, props, row, use_focus, widget_ref, KeyCode, Render,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
@@ -38,12 +38,12 @@ fn app() -> impl Render {
 
     row![
         col![
-            row![focus_block("item 1")].percentage(50),
-            row![focus_block("item 2")].percentage(50)
+            row![props!(percentage(50)); focus_block("item 1")],
+            row![props!(percentage(50)); focus_block("item 2")]
         ],
         col![
-            row![focus_block("item 3")].percentage(50),
-            row![focus_block("item 4")].percentage(50)
+            row![props!(percentage(50)); focus_block("item 3")],
+            row![props!(percentage(50)); focus_block("item 4")]
         ]
     ]
 }

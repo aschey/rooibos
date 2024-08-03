@@ -2,7 +2,9 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{for_each, Button};
-use rooibos::dom::{col, row, text, widget_ref, Constrainable, KeyCode, Render};
+use rooibos::dom::{
+    col, constraint, length, props, row, text, widget_ref, Constrainable, KeyCode, Render,
+};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
@@ -25,7 +27,11 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn counter(id: i32, on_remove: impl Fn() + Clone + 'static, constraint: Constraint) -> impl Render {
+fn counter(
+    id: i32,
+    on_remove: impl Fn() + Clone + 'static,
+    counter_constraint: Constraint,
+) -> impl Render {
     let (count, set_count) = signal(0);
     let default_padding = Padding {
         left: 1,
@@ -37,6 +43,7 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + 'static, constraint: Constrai
     let update_count = move |change: i32| set_count.update(|c| *c += change);
 
     row![
+        props!(constraint(counter_constraint));
         Button::new()
             .length(6)
             .on_click(move || update_count(-1))
@@ -49,12 +56,13 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + 'static, constraint: Constrai
             .length(5)
             .on_click(on_remove)
             .render(text!("x".red())),
-        widget_ref!(Paragraph::new(format!("count: {}", count.get())).block(block.get()))
-            .length(15)
-            .on_click(move |_, _| update_count(1))
-            .id(id.to_string())
+        widget_ref![
+            props!(length(15));
+            Paragraph::new(format!("count: {}", count.get())).block(block.get())
+        ]
+        .on_click(move |_, _| update_count(1))
+        .id(id.to_string())
     ]
-    .constraint(constraint)
 }
 
 fn app() -> impl Render {
@@ -81,12 +89,12 @@ fn app() -> impl Render {
 
     col![
         row![
+            props!(length(3));
             Button::new()
                 .on_click(add_counter)
                 .length(20)
                 .render(text!("Add Counter"))
-        ]
-        .length(3),
+        ],
         for_each(
             move || ids.get(),
             |k| *k,

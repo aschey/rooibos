@@ -5,7 +5,7 @@ use reactive_graph::owner::{provide_context, Owner};
 use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Track, With};
 use slotmap::{DefaultKey, SlotMap};
-use tachys::reactive_graph::OwnedView;
+use tachys::reactive_graph::{OwnedView, OwnedViewState};
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
 use tachys::view::{Mountable, Render};
 
@@ -83,7 +83,14 @@ where
     provide_context(SuspenseContext {
         tasks: tasks.clone(),
     });
-    let none_pending = ArcMemo::new(move |_| tasks.with(SlotMap::is_empty));
+    let none_pending = ArcMemo::new(move |prev| {
+        tasks.track();
+        if prev.is_none() {
+            false
+        } else {
+            tasks.with(SlotMap::is_empty)
+        }
+    });
     OwnedView::new(SuspenseBoundary::<true, _, _> {
         none_pending,
         fallback,
@@ -103,37 +110,40 @@ where
     Fal: RenderAny + Send + 'static,
     Chil: RenderAny + Send + 'static,
 {
-    type State = RenderEffect<EitherKeepAliveState<Chil::State, Fal::State>>;
+    type State =
+        RenderEffect<OwnedViewState<EitherKeepAliveState<Chil::State, Fal::State>, RooibosDom>>;
 
     fn build(self) -> Self::State {
         let mut children = Some(self.children);
         let mut fallback = Some(self.fallback);
         let none_pending = self.none_pending;
         let mut nth_run = 0;
+        let outer_owner = Owner::new();
 
-        RenderEffect::new(
-            move |prev: Option<EitherKeepAliveState<Chil::State, Fal::State>>| {
-                // show the fallback if
-                // 1) there are pending futures, and
-                // 2) we are either in a Suspense (not Transition), or it's the first fallback
-                //    (because we initially render the children to register Futures, the "first
-                //    fallback" is probably the 2nd run
-                let show_b = !none_pending.get() && (!TRANSITION || nth_run < 2);
-                nth_run += 1;
-                let this = EitherKeepAlive {
+        RenderEffect::new(move |prev| {
+            // show the fallback if
+            // 1) there are pending futures, and
+            // 2) we are either in a Suspense (not Transition), or it's the first fallback (because
+            //    we initially render the children to register Futures, the "first fallback" is
+            //    probably the 2nd run
+            let show_b = !none_pending.get() && (!TRANSITION || nth_run < 2);
+            nth_run += 1;
+            let this = OwnedView::new_with_owner(
+                EitherKeepAlive {
                     a: children.take(),
                     b: fallback.take(),
                     show_b,
-                };
+                },
+                outer_owner.clone(),
+            );
 
-                if let Some(mut state) = prev {
-                    this.rebuild(&mut state);
-                    state
-                } else {
-                    this.build()
-                }
-            },
-        )
+            if let Some(mut state) = prev {
+                this.rebuild(&mut state);
+                state
+            } else {
+                this.build()
+            }
+        })
     }
 
     fn rebuild(self, state: &mut Self::State) {

@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 use std::time::Duration;
 
-use rooibos::components::{notifications, Notification, Notifier};
+use rooibos::components::{Notification, Notifications, Notifier};
 use rooibos::dom::{col, line, widget_ref, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{wasm_compat, Runtime, RuntimeSettings};
@@ -40,6 +40,6 @@ fn app() -> impl Render {
             ])
             .block(Block::bordered())
         ),
-        notifications()
+        Notifications::new().render()
     ]
 }

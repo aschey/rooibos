@@ -1,6 +1,6 @@
 use rooibos::dom::{
-    col, derive_signal, line, row, span, stateful_widget, widget_ref, Chart, Constrainable,
-    Dataset, KeyCode, Render,
+    col, constraint, derive_signal, line, percentage, props, row, span, stateful_widget,
+    widget_ref, Chart, Dataset, KeyCode, Render,
 };
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -16,7 +16,7 @@ use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
 use crate::random::RandomData;
 use crate::Tick;
 
-pub(crate) fn charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+pub(crate) fn charts(enhanced_graphics: bool, chart_constraint: Constraint) -> impl Render {
     let show_chart = RwSignal::new(true);
 
     let term_signal = use_keypress();
@@ -32,18 +32,21 @@ pub(crate) fn charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
     let percentage2 = derive_signal!(100 - percentage1.get());
 
     row![
+        props!(constraint(chart_constraint));
         col![
+            props!(percentage(percentage1));
             row![
-                col![task_list()].percentage(50),
-                col![logs()].percentage(50)
-            ]
-            .percentage(50),
+                props!(percentage(50));
+                col![props!(percentage(50)); task_list()],
+                col![props!(percentage(50)); logs()]
+            ],
             row![demo_bar_chart(enhanced_graphics)]
+        ],
+        col![
+            props!(percentage(percentage2));
+            demo_chart(enhanced_graphics)
         ]
-        .percentage(percentage1),
-        col![demo_chart(enhanced_graphics)].percentage(percentage2)
     ]
-    .constraint(constraint)
 }
 
 #[derive(Clone)]

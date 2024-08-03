@@ -2,7 +2,9 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{col, line, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{
+    block, col, line, props, row, Constrainable, EventData, KeyCode, KeyEvent, Render,
+};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -102,6 +104,7 @@ fn inner_tabs() -> impl Render {
     };
 
     row![
+        props!(block(Block::bordered()));
         TabView::new()
             .header_constraint(Length(3))
             .block(tab_block)
@@ -118,5 +121,4 @@ fn inner_tabs() -> impl Render {
             .on_key_down(on_key_down)
             .render(focused_tab, tabs),
     ]
-    .block(Block::bordered())
 }

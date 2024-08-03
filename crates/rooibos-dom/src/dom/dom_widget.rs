@@ -15,7 +15,7 @@ use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use super::{AsDomNode, Focusable, Property};
+use super::{AsDomNode, Focusable, Property, Props};
 use crate::widgets::WidgetRole;
 use crate::{
     next_node_id, refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, Role, RooibosDom,
@@ -110,6 +110,22 @@ impl DomWidget<()> {
 }
 
 impl<P> DomWidget<P> {
+    pub fn new_with_properties<
+        T: 'static,
+        F1: Fn() -> F2 + 'static,
+        F2: FnMut(Rect, &mut Buffer) + 'static,
+    >(
+        props: Props<P>,
+        f: F1,
+    ) -> Self {
+        let dom_widget_node = DomWidgetNode::new::<T, _, _>(f);
+        let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
+        Self {
+            inner,
+            properties: props.0,
+        }
+    }
+
     pub fn id(self, id: impl Into<NodeId>) -> Self {
         self.inner.set_id(id);
         self
@@ -297,14 +313,14 @@ where
     }
 
     fn rebuild(mut self, state: &mut Self::State) {
-        if self.inner != state.node.0 {
-            self.inner.replace_node(&state.node.0);
-            self.properties.build(&state.node.0);
-            refresh_dom();
-        } else {
+        if self.inner == state.node.0 {
             self.inner.rebuild(&mut state.node);
             self.properties
                 .rebuild(&state.node.0, &mut state.prop_state);
+        } else {
+            self.inner.replace_node(&state.node.0);
+            *state = self.build();
+            refresh_dom();
         }
     }
 }

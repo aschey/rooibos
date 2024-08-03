@@ -2,7 +2,9 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{use_router, Button, KeyedWrappingList, Route, Router, Tab, TabView};
-use rooibos::dom::{col, line, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{
+    col, length, line, props, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
+};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -61,6 +63,7 @@ fn tabs() -> impl Render {
     };
 
     row![
+        props!(length(10));
         TabView::new()
             .header_constraint(Length(3))
             .block(Block::bordered().title("Demo"))
@@ -80,6 +83,5 @@ fn tabs() -> impl Render {
                 })
                 .render(text!("Previous"))
         ]
-        .length(10)
     ]
 }

@@ -10,7 +10,8 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    derive_signal, widget_ref, Constrainable, KeyCode, KeyEvent, NodeId, Render, WidgetState,
+    constraint, derive_signal, props, widget_ref, Constrainable, KeyCode, KeyEvent, NodeId, Render,
+    WidgetState,
 };
 use rooibos_runtime::{delay, supports_key_up};
 
@@ -100,7 +101,7 @@ impl Button {
     {
         let Self {
             on_click,
-            constraint,
+            constraint: constraint_,
             border_color,
             focused_border_color,
             active_border_color,
@@ -143,7 +144,8 @@ impl Button {
             }
         };
         let children = children.into();
-        let mut button = widget_ref!(
+        let mut button = widget_ref![
+            props!(constraint(constraint_));
             rooibos_dom::Button::new(children.get())
                 .block(
                     Block::bordered()
@@ -151,8 +153,7 @@ impl Button {
                         .border_style(Style::default().fg(current_border_color.get()))
                 )
                 .centered()
-        )
-        .constraint(constraint)
+        ]
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
         .on_click(move |_, _| on_enter_())

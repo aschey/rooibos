@@ -14,7 +14,10 @@ use tachys::reactive_graph::RenderEffectState;
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
 use super::AsDomNode;
-use crate::{refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, RenderAny, RooibosDom};
+use crate::{
+    derive_signal, refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, RenderAny,
+    RooibosDom,
+};
 
 pub trait Property {
     type State;
@@ -33,6 +36,10 @@ impl Property for () {
 }
 
 pub struct Margin(MaybeSignal<u16>);
+
+pub fn margin(margin: impl Into<MaybeSignal<u16>>) -> Margin {
+    Margin(margin.into())
+}
 
 impl Property for Margin {
     type State = RenderEffectState<()>;
@@ -106,6 +113,10 @@ impl Property for Spacing {
 
 pub struct Block(MaybeSignal<ratatui::widgets::Block<'static>>);
 
+pub fn block(block: impl Into<MaybeSignal<ratatui::widgets::Block<'static>>>) -> Block {
+    Block(block.into())
+}
+
 impl Property for Block {
     type State = RenderEffectState<()>;
 
@@ -129,6 +140,10 @@ impl Property for Block {
 }
 
 pub struct Focusable(pub(crate) MaybeSignal<bool>);
+
+pub fn focusable(focusable: impl Into<MaybeSignal<bool>>) -> Focusable {
+    Focusable(focusable.into())
+}
 
 impl Property for Focusable {
     type State = RenderEffectState<()>;
@@ -275,6 +290,42 @@ impl<C, P> Element<C, P> {
 
 pub struct Constraint(pub(crate) MaybeSignal<ratatui::layout::Constraint>);
 
+pub fn constraint(
+    constraint: impl Into<MaybeSignal<ratatui::layout::Constraint>>,
+) -> (Constraint,) {
+    (Constraint(constraint.into()),)
+}
+
+pub fn length(length: impl Into<MaybeSignal<u16>>) -> (Constraint,) {
+    let length = length.into();
+    constraint(derive_signal!(ratatui::layout::Constraint::Length(
+        length.get()
+    )))
+}
+
+pub fn percentage(percentage: impl Into<MaybeSignal<u16>>) -> (Constraint,) {
+    let percentage = percentage.into();
+    constraint(derive_signal!(ratatui::layout::Constraint::Percentage(
+        percentage.get()
+    )))
+}
+
+pub fn fill(fill: impl Into<MaybeSignal<u16>>) -> (Constraint,) {
+    let fill = fill.into();
+    constraint(derive_signal!(ratatui::layout::Constraint::Fill(
+        fill.get()
+    )))
+}
+
+pub fn ratio(from: impl Into<MaybeSignal<u32>>, to: impl Into<MaybeSignal<u32>>) -> (Constraint,) {
+    let from = from.into();
+    let to = to.into();
+    constraint(derive_signal!(ratatui::layout::Constraint::Ratio(
+        from.get(),
+        to.get()
+    )))
+}
+
 impl Property for Constraint {
     type State = RenderEffectState<()>;
 
@@ -320,52 +371,85 @@ where
 #[macro_export]
 macro_rules! row {
     () => (
-        $crate::row(())
+        $crate::row($crate::props(()), ())
     );
-    ($x:expr) => (
-        $crate::row(($x,))
+    ($children:expr) => (
+        $crate::row($crate::props(()), ($children,))
     );
-    ($($x:expr),+ $(,)?) => (
-        $crate::row(($($x),+))
+    ($($children:expr),+ $(,)?) => (
+        $crate::row($crate::props(()), ($($children),+))
+    );
+    ($properties:expr;) => (
+        $crate::row($properties, ())
+    );
+    ($properties:expr; $children:expr) => (
+        $crate::row($properties, ($children,))
+    );
+    ($properties:expr; $($children:expr),+ $(,)?) => (
+        $crate::row($properties, ($($children),+))
     );
 }
 
 #[macro_export]
 macro_rules! col {
     () => (
-        $crate::col(())
+        $crate::col($crate::props(()), ())
     );
-    ($x:expr) => (
-        $crate::col(($x,))
+    ($children:expr) => (
+        $crate::col($crate::props(()), ($children,))
     );
-    ($($x:expr),+ $(,)?) => (
-        $crate::col(($($x),+))
+    ($($children:expr),+ $(,)?) => (
+        $crate::col($crate::props(()), ($($children),+))
+    );
+    ($properties:expr;) => (
+        $crate::col($properties, ())
+    );
+    ($properties:expr; $children:expr) => (
+        $crate::col($properties, ($children,))
+    );
+    ($properties:expr; $($children:expr),+ $(,)?) => (
+        $crate::col($properties, ($($children),+))
     );
 }
 
 #[macro_export]
 macro_rules! overlay {
     () => (
-        $crate::overlay(())
+        $crate::overlay($crate::props(()), ())
     );
-    ($x:expr) => (
-        $crate::overlay(($x,))
+    ($children:expr) => (
+        $crate::overlay($crate::props(()), ($children,))
     );
-    ($($x:expr),+ $(,)?) => (
-        $crate::overlay(($($x),+))
+    ($($children:expr),+ $(,)?) => (
+        $crate::overlay($crate::props(()), ($($children),+))
+    );
+    ($properties:expr;) => (
+        $crate::overlay($properties, ())
+    );
+    ($properties:expr; $children:expr) => (
+        $crate::overlay($properties, ($children,))
+    );
+    ($properties:expr; $($children:expr),+ $(,)?) => (
+        $crate::overlay($properties, ($($children),+))
     );
 }
 
 #[macro_export]
 macro_rules! clear {
     () => (
-        $crate::overlay($crate::widget_ref!($crate::__widgets::Clear))
+        $crate::overlay((), $crate::widget_ref!($crate::__widgets::Clear))
     );
     ($x:expr) => (
-        $crate::overlay(($crate::widget_ref!($crate::__widgets::Clear),$x,))
+        $crate::overlay($crate::props(()), ($crate::widget_ref!($crate::__widgets::Clear),$x,))
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::overlay(($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+        $crate::overlay($crate::props(()), ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+    );
+    ($properties:expr; $x:expr) => (
+        $crate::overlay($properties, ($crate::widget_ref!($crate::__widgets::Clear),$x,))
+    );
+    ($properties:expr; $($x:expr),+ $(,)?) => (
+        $crate::overlay($properties, ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
     );
 }
 
@@ -382,27 +466,46 @@ macro_rules! absolute {
     );
 }
 
-pub fn row<C>(children: C) -> Element<C, ()> {
+#[macro_export]
+macro_rules! props {
+    () => (
+        $crate::props(())
+    );
+    ($x:expr) => (
+        $crate::props(($x,))
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::props(($($x),+))
+    );
+}
+
+pub struct Props<P>(pub(crate) P);
+
+pub fn props<P>(props: P) -> Props<P> {
+    Props(props)
+}
+
+pub fn row<C, P>(props: Props<P>, children: C) -> Element<C, P> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::row()),
         children,
-        properties: (),
+        properties: props.0,
     }
 }
 
-pub fn col<C>(children: C) -> Element<C, ()> {
+pub fn col<C, P>(props: Props<P>, children: C) -> Element<C, P> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::col()),
         children,
-        properties: (),
+        properties: props.0,
     }
 }
 
-pub fn overlay<C>(children: C) -> Element<C, ()> {
+pub fn overlay<C, P>(props: Props<P>, children: C) -> Element<C, P> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::overlay()),
         children,
-        properties: (),
+        properties: props.0,
     }
 }
 

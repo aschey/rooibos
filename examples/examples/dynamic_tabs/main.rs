@@ -3,7 +3,7 @@ use std::io::Stdout;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::{
-    col, line, row, span, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
+    col, length, line, props, row, span, text, EventData, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
@@ -97,7 +97,9 @@ fn app() -> impl Render {
             .on_key_down(on_key_down)
             .render(focused, tabs),
         col![
+            props!(length(5));
             row![
+                props!(length(3));
                 Button::new()
                     .on_click(move || {
                         tabs.update(|t| {
@@ -119,9 +121,7 @@ fn app() -> impl Render {
                     })
                     .render(text!("+".green()))
             ]
-            .length(3)
         ]
-        .length(5)
     ]
 }
 

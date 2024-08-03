@@ -7,8 +7,8 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, derive_signal, line, span, widget_ref, BlurEvent, ChildrenFn, Constrainable, EventData,
-    FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    col, constraint, derive_signal, line, props, span, widget_ref, BlurEvent, ChildrenFn,
+    Constrainable, EventData, FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -218,7 +218,7 @@ impl TabView {
             on_focus,
             on_blur,
             on_key_down,
-            constraint,
+            constraint: constraint_,
             fit,
             header_constraint,
             divider,
@@ -331,11 +331,11 @@ impl TabView {
             })
         });
 
-        let constraint = derive_signal!({
+        let constraint_ = derive_signal!({
             if fit.get() {
                 Length(headers_len.get())
             } else {
-                constraint.get()
+                constraint_.get()
             }
         });
 
@@ -394,30 +394,30 @@ impl TabView {
         };
 
         col![
-            widget_ref!({
-                let headers = Tabs::new(headers.get())
-                    .divider(divider.get())
-                    .style(style.get())
-                    .highlight_style(Style::default())
-                    .select(cur_tab.get().map(|t| t.1).unwrap_or(0))
-                    .padding(padding_left.get(), padding_right.get());
-                if let Some(block) = block.get() {
-                    headers.block(block)
-                } else {
-                    headers
-                }
-            })
-            .focusable(true)
+            props!(constraint(constraint_));
+            widget_ref![
+                props!(constraint(header_constraint));
+                {
+                    let headers = Tabs::new(headers.get())
+                        .divider(divider.get())
+                        .style(style.get())
+                        .highlight_style(Style::default())
+                        .select(cur_tab.get().map(|t| t.1).unwrap_or(0))
+                        .padding(padding_left.get(), padding_right.get());
+                    if let Some(block) = block.get() {
+                        headers.block(block)
+                    } else {
+                        headers
+                    }
+            }]
             .on_click(on_click)
             .on_key_down(on_key_down)
             .on_focus(on_focus)
-            .on_blur(on_blur)
-            .constraint(header_constraint.get()),
+            .on_blur(on_blur),
             move || cur_tab
                 .get()
                 .map(|c| c.0())
                 .unwrap_or_else(|| ().into_any())
         ]
-        .constraint(constraint)
     }
 }

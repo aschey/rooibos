@@ -5,7 +5,7 @@ use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
 use rooibos::dom::{
-    col, line, row, span, suspense, text, widget_ref, Constrainable, Errors, Render,
+    col, length, line, props, row, span, suspense, text, widget_ref, Errors, Render,
 };
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
@@ -41,17 +41,15 @@ fn app() -> impl Render {
     };
 
     col![
-        row![
-            col![
+        row![ props!(length(3));
+            col![ props!(length(20));
                 Button::new()
                     .on_click(move || {
                         set_id.set(rand::thread_rng().gen_range(1..80));
                     })
                     .render(text!("fetch next")),
             ]
-            .length(20)
-        ]
-        .length(3),
+        ],
         row![col![suspense!(
             widget_ref!(line!(" Loading...".gray())),
             character
