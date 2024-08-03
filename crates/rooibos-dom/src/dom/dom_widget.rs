@@ -15,7 +15,7 @@ use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use super::{AsDomNode, Focusable, Property, Props};
+use super::{AsDomNode, Constraint, Focusable, Property, Props};
 use crate::widgets::WidgetRole;
 use crate::{
     next_node_id, refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, Role, RooibosDom,
@@ -28,6 +28,12 @@ pub struct DomWidget<P> {
     inner: DomNode,
     properties: P,
 }
+
+pub trait WidgetProperty: Property {}
+
+impl WidgetProperty for () {}
+impl WidgetProperty for Constraint {}
+impl WidgetProperty for Focusable {}
 
 #[derive(Clone)]
 pub struct DomWidgetNode {
@@ -261,7 +267,7 @@ where
 
 pub struct DomWidgetState<P>
 where
-    P: Property,
+    P: WidgetProperty,
 {
     node: <DomNode as Render<RooibosDom>>::State,
     prop_state: <P as Property>::State,
@@ -269,7 +275,7 @@ where
 
 impl<P> AsDomNode for DomWidgetState<P>
 where
-    P: Property,
+    P: WidgetProperty,
 {
     fn as_dom_node(&self) -> &DomNode {
         self.node.as_dom_node()
@@ -278,7 +284,7 @@ where
 
 impl<P> Mountable<RooibosDom> for DomWidgetState<P>
 where
-    P: Property,
+    P: WidgetProperty,
 {
     fn unmount(&mut self) {
         self.node.unmount();
@@ -299,7 +305,7 @@ where
 
 impl<P> Render<RooibosDom> for DomWidget<P>
 where
-    P: Property,
+    P: WidgetProperty,
 {
     type State = DomWidgetState<P>;
 
@@ -324,3 +330,50 @@ where
         }
     }
 }
+
+macro_rules! impl_widget_property_for_tuples {
+    ($($ty:ident),* $(,)?) => {
+        impl<$($ty,)*> WidgetProperty for ($($ty,)*)
+            where $($ty: WidgetProperty,)*
+        { }
+    }
+}
+
+impl_widget_property_for_tuples!(A);
+impl_widget_property_for_tuples!(A, B);
+impl_widget_property_for_tuples!(A, B, C);
+impl_widget_property_for_tuples!(A, B, C, D);
+impl_widget_property_for_tuples!(A, B, C, D, E);
+impl_widget_property_for_tuples!(A, B, C, D, E, F);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S);
+impl_widget_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T);
+impl_widget_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U
+);
+impl_widget_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V
+);
+impl_widget_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W
+);
+impl_widget_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X
+);
+impl_widget_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y
+);
+impl_widget_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
+);
