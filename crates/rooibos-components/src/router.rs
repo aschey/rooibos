@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::owner::{provide_context, use_context, Owner, StoredValue};
 use reactive_graph::signal::{signal, WriteSignal};
@@ -10,17 +12,68 @@ use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use url::Url;
 
+pub trait ToRoute {
+    fn to_route(&self) -> String;
+}
+
+impl ToRoute for Box<dyn ToRoute> {
+    fn to_route(&self) -> String {
+        (**self).to_route()
+    }
+}
+
+pub trait ToRouteTemplateStatic {
+    fn to_route_template() -> &'static str;
+}
+
+pub trait ToRouteTemplate {
+    fn to_route_template(&self) -> &'static str;
+}
+
+pub struct Param(pub Cow<'static, str>);
+
+pub struct Query(pub Cow<'static, str>);
+
 pub struct Route {
     path: String,
     children: ChildrenFnMut,
 }
 
-impl Route {
-    pub fn new(path: impl Into<String>, children: impl IntoChildrenFnMut) -> Self {
+pub trait RouteFromStatic {
+    fn new<T: ToRouteTemplateStatic>(children: impl IntoChildrenFnMut) -> Self;
+}
+
+pub trait RouteFrom {
+    fn new(route: impl ToRouteTemplate, children: impl IntoChildrenFnMut) -> Self;
+}
+
+impl RouteFromStatic for Route {
+    fn new<T: ToRouteTemplateStatic>(children: impl IntoChildrenFnMut) -> Self {
         Self {
-            path: path.into(),
+            path: T::to_route_template().to_string(),
             children: children.into_children_fn_mut(),
         }
+    }
+}
+impl RouteFrom for Route {
+    fn new(route: impl ToRouteTemplate, children: impl IntoChildrenFnMut) -> Self {
+        Self {
+            path: route.to_route_template().to_string(),
+            children: children.into_children_fn_mut(),
+        }
+    }
+}
+pub struct DefaultRoute;
+
+impl ToRoute for DefaultRoute {
+    fn to_route(&self) -> String {
+        "/".to_string()
+    }
+}
+
+impl ToRouteTemplateStatic for DefaultRoute {
+    fn to_route_template() -> &'static str {
+        "/"
     }
 }
 
@@ -32,10 +85,14 @@ pub struct RouteContext {
 }
 
 impl RouteContext {
-    pub fn push(&self, route: impl AsRef<str>) {
+    pub fn push(&self, route: impl ToRoute) {
+        self.push_str(route.to_route())
+    }
+
+    fn push_str(&self, route: String) {
         let url = Url::options()
             .base_url(Some(&"app://".parse().unwrap()))
-            .parse(route.as_ref())
+            .parse(&route)
             .unwrap();
         self.set_history.update(|h| {
             // prevent storing duplicate history entries
@@ -61,29 +118,27 @@ impl RouteContext {
         self.current_route.get()
     }
 
-    pub fn try_use_param(&self, param: impl Into<String>) -> Signal<Option<String>> {
+    pub fn try_use_param(&self, param: Param) -> Signal<Option<String>> {
         let router = self.router.get_value();
-        let param = param.into();
         let current_route = self.current_route;
         derive_signal!({
             let route = current_route.get();
             let params = router.at(route.path()).unwrap().params;
-            params.get(&param).map(|s| s.to_owned())
+            params.get(&param.0).map(|s| s.to_owned())
         })
     }
 
-    pub fn use_param(&self, param: impl Into<String>) -> Signal<String> {
+    pub fn use_param(&self, param: Param) -> Signal<String> {
         let param = self.try_use_param(param);
         derive_signal!(param.get().unwrap())
     }
 
-    pub fn try_use_query(&self, query: impl Into<String>) -> Signal<Option<String>> {
-        let query = query.into();
+    pub fn try_use_query(&self, query: Query) -> Signal<Option<String>> {
         let current_route = self.current_route;
         derive_signal!({
             current_route.with(|r| {
                 r.query_pairs().find_map(|q| {
-                    if q.0 == query {
+                    if q.0 == query.0 {
                         Some(q.1.to_string())
                     } else {
                         None
@@ -93,7 +148,7 @@ impl RouteContext {
         })
     }
 
-    pub fn use_query(&self, query: impl Into<String>) -> Signal<String> {
+    pub fn use_query(&self, query: Query) -> Signal<String> {
         let query = self.try_use_query(query);
         derive_signal!(query.get().unwrap())
     }
@@ -110,7 +165,7 @@ fn init_router(initial: String) {
         router: StoredValue::new(matchit::Router::new()),
         current_route: derive_signal!(history.with(|h| h.last().cloned().unwrap())),
     };
-    context.push(initial);
+    context.push_str(initial);
     provide_context(context);
 }
 
@@ -129,7 +184,7 @@ impl Router {
     pub fn new() -> Self {
         Self {
             routes: Vec::default(),
-            initial: "/".to_string(),
+            initial: DefaultRoute.to_route(),
         }
     }
 
@@ -138,8 +193,8 @@ impl Router {
         self
     }
 
-    pub fn initial(mut self, initial: impl Into<String>) -> Self {
-        self.initial = initial.into();
+    pub fn initial(mut self, initial: impl ToRoute) -> Self {
+        self.initial = initial.to_route();
         self
     }
 }

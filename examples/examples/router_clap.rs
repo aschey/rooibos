@@ -1,8 +1,8 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
-use rooibos::components::{use_router, Route, Router};
+use clap::{Args, Parser, Subcommand};
+use rooibos::components::{use_router, DefaultRoute, Route, RouteFromStatic, Router, ToRoute};
 use rooibos::dom::{after_render, col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
@@ -10,12 +10,9 @@ use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::widgets::Paragraph;
-use rooibos::Routes;
+use rooibos::Route;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
-
-static CHILD1: &str = "child1";
-static CHILD2: &str = "child2";
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -24,37 +21,54 @@ struct Cli {
     command: CliCommands,
 }
 
-#[derive(Parser, Debug, Routes)]
+#[derive(Subcommand, Debug)]
 #[command(version, about)]
 enum CliCommands {
-    #[route(CHILD1)]
-    Cmd1 {
-        #[arg(short, long)]
-        id: Option<i32>,
-    },
-    #[route(CHILD2)]
-    Cmd2 {
-        #[arg(short, long)]
-        id: i32,
-    },
+    #[command(name = "child1")]
+    Cmd1(Cmd1),
+    #[command(name = "child2")]
+    Cmd2(Cmd2),
     Cmd3,
 }
 
-fn main() -> Result<()> {
-    let command = Cli::command();
-    let (matches, route) = CliCommands::create_route_from(command);
+#[derive(Args, Debug, Route)]
+struct Cmd1 {
+    #[arg(short, long)]
+    id: Option<i32>,
+}
 
-    if let Some(route) = route {
-        run_tui(route)
-    } else {
-        let cmd = CliCommands::from_arg_matches(&matches).unwrap();
-        println!("{cmd:?}");
-        Ok(())
+impl Cmd1 {
+    fn new(id: Option<i32>) -> Self {
+        Self { id }
+    }
+}
+
+#[derive(Args, Debug, Route)]
+struct Cmd2 {
+    #[arg(short, long)]
+    id: i32,
+}
+
+impl Cmd2 {
+    fn new(id: i32) -> Self {
+        Self { id }
+    }
+}
+
+fn main() -> Result<()> {
+    let matches = Cli::parse();
+    match matches.command {
+        CliCommands::Cmd1(cmd1) => run_tui(cmd1),
+        CliCommands::Cmd2(cmd2) => run_tui(cmd2),
+        res => {
+            println!("{res:?}");
+            Ok(())
+        }
     }
 }
 
 #[rooibos::main]
-async fn run_tui(route: String) -> Result<()> {
+async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
         CrosstermBackend::<Stdout>::default(),
@@ -65,14 +79,15 @@ async fn run_tui(route: String) -> Result<()> {
     Ok(())
 }
 
-fn app(initial_route: String) -> impl Render {
+fn app(initial_route: impl ToRoute) -> impl Render {
     let child2_id = RwSignal::new(0);
+
     col![
         Router::new()
             .routes([
-                Route::new("/", child0),
-                Route::new(format!("/{CHILD1}"), move || child1(child2_id)),
-                Route::new(format!("/{CHILD2}/{{id}}"), child2)
+                Route::new::<DefaultRoute>(child0),
+                Route::new::<Cmd1>(move || child1(child2_id)),
+                Route::new::<Cmd2>(child2)
             ])
             .initial(initial_route)
     ]
@@ -87,7 +102,7 @@ fn child0() -> impl Render {
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
-            router.push(format!("/{CHILD1}?id=1"));
+            router.push(Cmd1::new(Some(1)));
         }
     };
 
@@ -98,7 +113,7 @@ fn child0() -> impl Render {
 
 fn child1(child2_id: RwSignal<i32>) -> impl Render {
     let router = use_router();
-    let id = router.try_use_query("id");
+    let id = router.try_use_query(Cmd1::ID);
 
     after_render(move || {
         focus_id("child1");
@@ -106,7 +121,7 @@ fn child1(child2_id: RwSignal<i32>) -> impl Render {
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
-            router.push(format!("/{CHILD2}/{}", child2_id.get()));
+            router.push(Cmd2::new(child2_id.get()));
             child2_id.update(|id| *id += 1);
         }
     };
@@ -121,7 +136,7 @@ fn child1(child2_id: RwSignal<i32>) -> impl Render {
 
 fn child2() -> impl Render {
     let router = use_router();
-    let id = router.use_param("id");
+    let id = router.use_param(Cmd2::ID);
 
     after_render(move || {
         focus_id("child2");
@@ -129,7 +144,7 @@ fn child2() -> impl Render {
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
-            router.push(format!("/{CHILD1}?id=1"));
+            router.push(Cmd1::new(Some(1)));
         }
     };
 

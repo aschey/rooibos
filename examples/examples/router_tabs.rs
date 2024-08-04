@@ -1,7 +1,9 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::components::{use_router, Button, KeyedWrappingList, Route, Router, Tab, TabView};
+use rooibos::components::{
+    use_router, Button, KeyedWrappingList, Route, RouteFromStatic, Router, Tab, TabView,
+};
 use rooibos::dom::{
     col, length, line, props, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
 };
@@ -12,6 +14,7 @@ use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
+use rooibos::Route;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -26,23 +29,38 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[derive(Route)]
+struct Tabs {
+    id: String,
+}
+
+impl Tabs {
+    const TAB1: &'static str = "tab1";
+    const TAB2: &'static str = "tab2";
+    const TAB3: &'static str = "tab3";
+
+    fn new(id: impl Into<String>) -> Self {
+        Self { id: id.into() }
+    }
+}
+
 fn app() -> impl Render {
     col![
         Router::new()
-            .initial("/tabs/tab1")
-            .routes([Route::new("/tabs/{id}", tabs)])
+            .initial(Tabs::new(Tabs::TAB1))
+            .routes([Route::new::<Tabs>(tabs)])
     ]
 }
 
 fn tabs() -> impl Render {
     let router = use_router();
     let count = RwSignal::new(0);
-    let current_route = router.use_param("id");
+    let current_route = router.use_param(Tabs::ID);
 
     let tabs = KeyedWrappingList(vec![
-        Tab::new(line!("Tab1"), "tab1", move || "tab1"),
-        Tab::new(line!("Tab2"), "tab2", move || "tab2"),
-        Tab::new(line!("Tab3"), "tab3", move || "tab3"),
+        Tab::new(line!("Tab1"), Tabs::TAB1, move || "tab1"),
+        Tab::new(line!("Tab2"), Tabs::TAB2, move || "tab2"),
+        Tab::new(line!("Tab3"), Tabs::TAB3, move || "tab3"),
     ]);
 
     let on_key_down = {
@@ -50,12 +68,12 @@ fn tabs() -> impl Render {
         move |key_event: KeyEvent, _: EventData| match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&current_route.get()) {
-                    router.push(format!("/tabs/{}", prev.get_value()));
+                    router.push(Tabs::new(prev.get_value()));
                 }
             }
             KeyCode::Right => {
                 if let Some(next) = tabs.next_item(&current_route.get()) {
-                    router.push(format!("/tabs/{}", next.get_value()));
+                    router.push(Tabs::new(next.get_value()));
                 }
             }
             _ => {}
@@ -63,7 +81,6 @@ fn tabs() -> impl Render {
     };
 
     row![
-        props!(length(10));
         TabView::new()
             .header_constraint(Length(3))
             .block(Block::bordered().title("Demo"))
@@ -71,11 +88,12 @@ fn tabs() -> impl Render {
             .fit(true)
             .on_title_click(move |_, tab| {
                 count.update(|c| *c += 1);
-                router.push(format!("/tabs/{tab}"));
+                router.push(Tabs::new(tab));
             })
             .on_key_down(on_key_down)
             .render(current_route, tabs),
         col![
+            props!(length(10));
             Button::new()
                 .length(3)
                 .on_click(move || {
