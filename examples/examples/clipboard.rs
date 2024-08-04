@@ -6,13 +6,13 @@ use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::backend::ClipboardKind;
-use rooibos::runtime::{set_clipboard, Runtime, RuntimeSettings};
+use rooibos::runtime::{set_clipboard, Runtime};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
     runtime.run().await?;
 
     Ok(())

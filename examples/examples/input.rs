@@ -4,7 +4,7 @@ use rooibos::components::Input;
 use rooibos::dom::{col, widget_ref, Constrainable, Render, WidgetState};
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
@@ -13,7 +13,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
     runtime.run().await?;
     Ok(())
 }

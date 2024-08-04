@@ -42,7 +42,7 @@ impl SshHandler for SshApp {
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();
-        let runtime = Runtime::initialize(
+        let runtime = Runtime::initialize_with_settings(
             RuntimeSettings::default(),
             SshBackend::new(
                 CrosstermBackend::new(TerminalSettings::from_writer(move || handle.clone())),

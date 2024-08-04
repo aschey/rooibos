@@ -79,7 +79,7 @@ impl TestHarness {
     {
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
-        let mut runtime = Runtime::initialize(runtime_settings, backend, f);
+        let mut runtime = Runtime::initialize_with_settings(runtime_settings, backend, f);
         let mut terminal = runtime.setup_terminal().unwrap();
         terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
         focus_next();

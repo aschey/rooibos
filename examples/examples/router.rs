@@ -6,7 +6,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::Paragraph;
 use rooibos::Route;
 
@@ -36,7 +36,7 @@ impl Child2 {
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
     runtime.run().await?;
     Ok(())
 }

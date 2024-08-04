@@ -5,7 +5,7 @@ use rooibos::dom::{block, col, line, row, Constrainable, EventData, KeyCode, Key
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
@@ -14,7 +14,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
     runtime.run().await?;
     Ok(())
 }

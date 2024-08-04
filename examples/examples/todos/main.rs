@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .unwrap();
 
-    let runtime = Runtime::initialize(
+    let runtime = Runtime::initialize_with_settings(
         RuntimeSettings::default(),
         CrosstermBackend::stdout(),
         || app(Duration::from_secs(3)),

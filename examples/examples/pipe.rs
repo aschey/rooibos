@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
         buffer
     };
 
-    let runtime = Runtime::initialize(
+    let runtime = Runtime::initialize_with_settings(
         RuntimeSettings::default(),
         CrosstermBackend::stdout(),
         || app(input),

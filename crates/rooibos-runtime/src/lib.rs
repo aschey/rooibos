@@ -251,7 +251,16 @@ pub enum RuntimeCommand {
 }
 
 impl<B: Backend + 'static> Runtime<B> {
-    pub fn initialize<F, M>(settings: RuntimeSettings, backend: B, f: F) -> Self
+    pub fn initialize<F, M>(backend: B, f: F) -> Self
+    where
+        F: FnOnce() -> M + 'static,
+        M: Render,
+        <M as Render>::DomState: 'static,
+    {
+        Self::initialize_with_settings(RuntimeSettings::default(), backend, f)
+    }
+
+    pub fn initialize_with_settings<F, M>(settings: RuntimeSettings, backend: B, f: F) -> Self
     where
         F: FnOnce() -> M + 'static,
         M: Render,

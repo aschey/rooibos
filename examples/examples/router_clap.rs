@@ -68,7 +68,7 @@ fn main() -> Result<()> {
 
 #[rooibos::main]
 async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
-    let runtime = Runtime::initialize(
+    let runtime = Runtime::initialize_with_settings(
         RuntimeSettings::default(),
         CrosstermBackend::stdout(),
         move || app(route),

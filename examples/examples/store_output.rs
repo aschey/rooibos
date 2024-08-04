@@ -15,7 +15,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
+    let runtime = Runtime::initialize_with_settings(
         RuntimeSettings::default(),
         CrosstermBackend::new(
             TerminalSettings::<Stderr>::new()

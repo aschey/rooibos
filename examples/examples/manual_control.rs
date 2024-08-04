@@ -4,14 +4,13 @@ use rooibos::dom::{focus_next, render_dom, unmount, widget_ref, KeyCode, KeyEven
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings, TickResult};
+use rooibos::runtime::{Runtime, TickResult};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let mut runtime =
-        Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
+    let mut runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
     let mut terminal = runtime.setup_terminal()?;
 
     terminal.draw(|f| render_dom(f.buffer_mut()))?;
