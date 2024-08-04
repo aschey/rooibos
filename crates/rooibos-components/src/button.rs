@@ -10,7 +10,7 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    constraint, derive_signal, props, widget_ref, Constrainable, KeyCode, KeyEvent, NodeId, Render,
+    constraint, derive_signal, widget_ref, Constrainable, KeyCode, KeyEvent, NodeId, Render,
     WidgetState,
 };
 use rooibos_runtime::{delay, supports_key_up};
@@ -145,7 +145,7 @@ impl Button {
         };
         let children = children.into();
         let mut button = widget_ref![
-            props!(constraint(constraint_));
+            props(constraint(constraint_)),
             rooibos_dom::Button::new(children.get())
                 .block(
                     Block::bordered()

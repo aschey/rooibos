@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{col, constraint, length, props, row, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, constraint, length, row, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -41,7 +41,7 @@ fn counter(id: i32, counter_constraint: Constraint) -> impl Render {
     };
 
     widget_ref![
-        props!(constraint(counter_constraint));
+        props(constraint(counter_constraint)),
         Paragraph::new(format!("count: {}", count.get())).block(block.get())
     ]
     .on_focus(move |_, _| block.set(Block::bordered().blue()))
@@ -53,7 +53,7 @@ fn counter(id: i32, counter_constraint: Constraint) -> impl Render {
 
 fn app() -> impl Render {
     row![col![
-        props!(length(15));
+        props(length(15)),
         (0..5).map(|i| counter(i, Length(3))).collect::<Vec<_>>()
     ]]
 }

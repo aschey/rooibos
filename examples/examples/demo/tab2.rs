@@ -1,10 +1,10 @@
-use rooibos::dom::{col, constraint, props, ratio, row, widget_ref, Render};
+use rooibos::dom::{col, constraint, ratio, row, widget_ref, Render};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {
-    row![colors_table(Ratio(2, 1)), col![props!(ratio(2, 1));]]
+    row![colors_table(Ratio(2, 1)), col![props(ratio(2, 1))]]
 }
 
 fn colors_table(table_constraint: Constraint) -> impl Render {
@@ -29,7 +29,7 @@ fn colors_table(table_constraint: Constraint) -> impl Render {
     ];
 
     widget_ref![
-        props!(constraint(table_constraint));
+        props(constraint(table_constraint)),
         Table::new(
             colors.iter().map(|c| {
                 Row::new(vec![

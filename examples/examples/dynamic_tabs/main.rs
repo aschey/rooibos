@@ -2,9 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{
-    col, length, line, props, row, span, text, EventData, KeyCode, KeyEvent, Render,
-};
+use rooibos::dom::{col, length, line, row, span, text, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -97,9 +95,9 @@ fn app() -> impl Render {
             .on_key_down(on_key_down)
             .render(focused, tabs),
         col![
-            props!(length(5));
+            props(length(5)),
             row![
-                props!(length(3));
+                props(length(3)),
                 Button::new()
                     .on_click(move || {
                         tabs.update(|t| {

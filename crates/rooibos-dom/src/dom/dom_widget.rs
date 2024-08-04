@@ -15,7 +15,7 @@ use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
-use super::{AsDomNode, Constraint, Focusable, Property, Props};
+use super::{AsDomNode, Constraint, Focusable, Property};
 use crate::widgets::WidgetRole;
 use crate::{
     next_node_id, refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, Role, RooibosDom,
@@ -121,14 +121,14 @@ impl<P> DomWidget<P> {
         F1: Fn() -> F2 + 'static,
         F2: FnMut(Rect, &mut Buffer) + 'static,
     >(
-        props: Props<P>,
+        props: P,
         f: F1,
     ) -> Self {
         let dom_widget_node = DomWidgetNode::new::<T, _, _>(f);
         let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
         Self {
             inner,
-            properties: props.0,
+            properties: props,
         }
     }
 

@@ -11,8 +11,8 @@ use rooibos::components::{
 };
 use rooibos::dom::{
     after_render, block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay,
-    percentage, props, row, span, text, transition, widget_ref, Constrainable, Errors, IntoAny,
-    NodeId, Render, RenderAny, WidgetState,
+    percentage, row, span, text, transition, widget_ref, Constrainable, Errors, IntoAny, NodeId,
+    Render, RenderAny, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -67,21 +67,16 @@ fn app(notification_timeout: Duration) -> impl Render {
     overlay![
         col![
             row![
-                props!(length(3));
+                props(length(3)),
                 col![
-                    props!(length(12), block(Block::default()));
+                    props(length(12), block(Block::default())),
                     widget_ref!("Add a Todo")
                 ],
-                col![
-                    props!(percentage(80));
-                    create_todos_input()
-                ]
+                col![props(percentage(80)), create_todos_input()]
             ],
             row![
-                props!(block(Block::bordered().title("Todos")));
-                col![
-                    todos_body(editing_id, notification_timeout)
-                ]
+                props(block(Block::bordered().title("Todos"))),
+                col![todos_body(editing_id, notification_timeout)]
             ],
             Notifications::new().render()
         ],
@@ -184,14 +179,12 @@ fn saving_popup() -> impl RenderAny {
         .percent_y(50)
         .render(pending, move || {
             col![
-                col![props!(fill(1));],
+                col![props(fill(1))],
                 clear![
-                    props!(length(3));
-                    widget_ref![
-                        Paragraph::new("Saving...").block(Block::bordered())
-                    ]
+                    props(length(3)),
+                    widget_ref![Paragraph::new("Saving...").block(Block::bordered())]
                 ],
-                col![props!(fill(1));],
+                col![props(fill(1))],
             ]
         })
 }
@@ -205,14 +198,11 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_ref = Input::get_ref();
 
     row![
-        props!(length(3));
+        props(length(3)),
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![
-                props!(margin(1));
-                widget_ref!(Paragraph::new(text.get()))
-            ])
+            .fallback(move || col![props(margin(1)), widget_ref!(Paragraph::new(text.get()))])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })

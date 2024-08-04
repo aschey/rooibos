@@ -2,8 +2,7 @@ use ratatui::layout::Constraint;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    col, constraint, derive_signal, percentage, props, row, Constrainable, IntoView, Render,
-    RenderAny,
+    col, constraint, derive_signal, percentage, row, Constrainable, IntoView, Render, RenderAny,
 };
 
 use crate::Show;
@@ -21,15 +20,15 @@ where
     let inverse_x = derive_signal!((100 - percent_x.get()) / 2);
 
     col![
-        props!(constraint(constraint_.unwrap_or_default().get()));
-        row![props!(percentage(inverse_y));],
+        props(constraint(constraint_.unwrap_or_default().get())),
+        row![props(percentage(inverse_y))],
         row![
-            props!(percentage(percent_y));
-            col![props!(percentage(inverse_x));],
+            props(percentage(percent_y)),
+            col![props(percentage(inverse_x))],
             col![children].percentage(percent_x),
-            col![props!(percentage(inverse_x));],
+            col![props(percentage(inverse_x))],
         ],
-        row![props!(percentage(inverse_y));]
+        row![props(percentage(inverse_y))]
     ]
 }
 

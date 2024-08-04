@@ -3,7 +3,7 @@ use std::io::Stdout;
 
 use rooibos::components::{for_each, Button};
 use rooibos::dom::{
-    col, constraint, length, props, row, text, widget_ref, Constrainable, KeyCode, Render,
+    col, constraint, length, row, text, widget_ref, Constrainable, KeyCode, Render,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
@@ -43,7 +43,7 @@ fn counter(
     let update_count = move |change: i32| set_count.update(|c| *c += change);
 
     row![
-        props!(constraint(counter_constraint));
+        props(constraint(counter_constraint)),
         Button::new()
             .length(6)
             .on_click(move || update_count(-1))
@@ -57,7 +57,7 @@ fn counter(
             .on_click(on_remove)
             .render(text!("x".red())),
         widget_ref![
-            props!(length(15));
+            props(length(15)),
             Paragraph::new(format!("count: {}", count.get())).block(block.get())
         ]
         .on_click(move |_, _| update_count(1))
@@ -89,7 +89,7 @@ fn app() -> impl Render {
 
     col![
         row![
-            props!(length(3));
+            props(length(3)),
             Button::new()
                 .on_click(add_counter)
                 .length(20)

@@ -4,9 +4,7 @@ use std::io::Stdout;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::{
-    col, length, line, props, row, span, suspense, text, widget_ref, Errors, Render,
-};
+use rooibos::dom::{col, length, line, row, span, suspense, text, widget_ref, Errors, Render};
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
 use rooibos::reactive::traits::{Get, Set, With};
@@ -41,8 +39,10 @@ fn app() -> impl Render {
     };
 
     col![
-        row![ props!(length(3));
-            col![ props!(length(20));
+        row![
+            props(length(3)),
+            col![
+                props(length(20)),
                 Button::new()
                     .on_click(move || {
                         set_id.set(rand::thread_rng().gen_range(1..80));

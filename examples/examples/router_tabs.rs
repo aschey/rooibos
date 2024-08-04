@@ -5,7 +5,7 @@ use rooibos::components::{
     use_router, Button, KeyedWrappingList, Route, RouteFromStatic, Router, Tab, TabView,
 };
 use rooibos::dom::{
-    col, length, line, props, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
+    col, length, line, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
@@ -93,7 +93,7 @@ fn tabs() -> impl Render {
             .on_key_down(on_key_down)
             .render(current_route, tabs),
         col![
-            props!(length(10));
+            props(length(10)),
             Button::new()
                 .length(3)
                 .on_click(move || {

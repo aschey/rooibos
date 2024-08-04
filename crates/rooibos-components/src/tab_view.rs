@@ -7,8 +7,8 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, constraint, derive_signal, line, props, span, widget_ref, BlurEvent, ChildrenFn,
-    Constrainable, EventData, FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    col, constraint, derive_signal, line, span, widget_ref, BlurEvent, ChildrenFn, Constrainable,
+    EventData, FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -394,21 +394,19 @@ impl TabView {
         };
 
         col![
-            props!(constraint(constraint_));
-            widget_ref![
-                props!(constraint(header_constraint));
-                {
-                    let headers = Tabs::new(headers.get())
-                        .divider(divider.get())
-                        .style(style.get())
-                        .highlight_style(Style::default())
-                        .select(cur_tab.get().map(|t| t.1).unwrap_or(0))
-                        .padding(padding_left.get(), padding_right.get());
-                    if let Some(block) = block.get() {
-                        headers.block(block)
-                    } else {
-                        headers
-                    }
+            props(constraint(constraint_)),
+            widget_ref![props(constraint(header_constraint)), {
+                let headers = Tabs::new(headers.get())
+                    .divider(divider.get())
+                    .style(style.get())
+                    .highlight_style(Style::default())
+                    .select(cur_tab.get().map(|t| t.1).unwrap_or(0))
+                    .padding(padding_left.get(), padding_right.get());
+                if let Some(block) = block.get() {
+                    headers.block(block)
+                } else {
+                    headers
+                }
             }]
             .on_click(on_click)
             .on_key_down(on_key_down)

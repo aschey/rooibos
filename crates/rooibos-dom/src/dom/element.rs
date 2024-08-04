@@ -371,66 +371,51 @@ where
 #[macro_export]
 macro_rules! row {
     () => (
-        $crate::row($crate::props(()), ())
+        $crate::row((), ())
     );
-    ($children:expr) => (
-        $crate::row($crate::props(()), ($children,))
+    (props($($properties:expr),+ $(,)?)) => (
+        $crate::row(($($properties),+), ())
+    );
+    (props($($properties:expr),+), $($children:expr),+ $(,)?) => (
+        $crate::row(($($properties),+), ($($children),+))
+    );
+    (props($($properties:expr),+), $children:expr) => (
+        $crate::row(($($properties),+), ($children,))
     );
     ($($children:expr),+ $(,)?) => (
-        $crate::row($crate::props(()), ($($children),+))
-    );
-    ($properties:expr;) => (
-        $crate::row($properties, ())
-    );
-    ($properties:expr; $children:expr) => (
-        $crate::row($properties, ($children,))
-    );
-    ($properties:expr; $($children:expr),+ $(,)?) => (
-        $crate::row($properties, ($($children),+))
+        $crate::row((), ($($children),+))
     );
 }
 
 #[macro_export]
 macro_rules! col {
     () => (
-        $crate::col($crate::props(()), ())
+        $crate::col((), ())
     );
-    ($children:expr) => (
-        $crate::col($crate::props(()), ($children,))
+    (props($($properties:expr),+ $(,)?)) => (
+        $crate::col(($($properties),+), ())
+    );
+    (props($($properties:expr),+), $($children:expr),+ $(,)?) => (
+        $crate::col(($($properties),+), ($($children),+))
     );
     ($($children:expr),+ $(,)?) => (
-        $crate::col($crate::props(()), ($($children),+))
-    );
-    ($properties:expr;) => (
-        $crate::col($properties, ())
-    );
-    ($properties:expr; $children:expr) => (
-        $crate::col($properties, ($children,))
-    );
-    ($properties:expr; $($children:expr),+ $(,)?) => (
-        $crate::col($properties, ($($children),+))
+        $crate::col((), ($($children),+))
     );
 }
 
 #[macro_export]
 macro_rules! overlay {
     () => (
-        $crate::overlay($crate::props(()), ())
+        $crate::overlay((), ())
     );
-    ($children:expr) => (
-        $crate::overlay($crate::props(()), ($children,))
+    (props($($properties:expr),+ $(,)?)) => (
+        $crate::overlay(($($properties),+), ())
+    );
+    (props($($properties:expr),+), $($children:expr),+ $(,)?) => (
+        $crate::overlay(($($properties),+), ($($children),+))
     );
     ($($children:expr),+ $(,)?) => (
-        $crate::overlay($crate::props(()), ($($children),+))
-    );
-    ($properties:expr;) => (
-        $crate::overlay($properties, ())
-    );
-    ($properties:expr; $children:expr) => (
-        $crate::overlay($properties, ($children,))
-    );
-    ($properties:expr; $($children:expr),+ $(,)?) => (
-        $crate::overlay($properties, ($($children),+))
+        $crate::overlay((), ($($children),+))
     );
 }
 
@@ -439,17 +424,14 @@ macro_rules! clear {
     () => (
         $crate::overlay((), $crate::widget_ref!($crate::__widgets::Clear))
     );
-    ($x:expr) => (
-        $crate::overlay($crate::props(()), ($crate::widget_ref!($crate::__widgets::Clear),$x,))
+    (props($properties:expr), $($x:expr),+ $(,)?) => (
+        $crate::overlay($properties, ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+    );
+    (props($($properties:expr),+), $($x:expr),+ $(,)?) => (
+        $crate::overlay(($($properties),+), ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::overlay($crate::props(()), ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
-    );
-    ($properties:expr; $x:expr) => (
-        $crate::overlay($properties, ($crate::widget_ref!($crate::__widgets::Clear),$x,))
-    );
-    ($properties:expr; $($x:expr),+ $(,)?) => (
-        $crate::overlay($properties, ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+        $crate::overlay((), ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
     );
 }
 
@@ -466,46 +448,27 @@ macro_rules! absolute {
     );
 }
 
-#[macro_export]
-macro_rules! props {
-    () => (
-        $crate::props(())
-    );
-    ($x:expr) => (
-        $crate::props(($x,))
-    );
-    ($($x:expr),+ $(,)?) => (
-        $crate::props(($($x),+))
-    );
-}
-
-pub struct Props<P>(pub(crate) P);
-
-pub fn props<P>(props: P) -> Props<P> {
-    Props(props)
-}
-
-pub fn row<C, P>(props: Props<P>, children: C) -> Element<C, P> {
+pub fn row<C, P>(props: P, children: C) -> Element<C, P> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::row()),
         children,
-        properties: props.0,
+        properties: props,
     }
 }
 
-pub fn col<C, P>(props: Props<P>, children: C) -> Element<C, P> {
+pub fn col<C, P>(props: P, children: C) -> Element<C, P> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::col()),
         children,
-        properties: props.0,
+        properties: props,
     }
 }
 
-pub fn overlay<C, P>(props: Props<P>, children: C) -> Element<C, P> {
+pub fn overlay<C, P>(props: P, children: C) -> Element<C, P> {
     Element {
         inner: DomNode::from_fragment(DocumentFragment::overlay()),
         children,
-        properties: props.0,
+        properties: props,
     }
 }
 
@@ -539,7 +502,6 @@ pub fn absolute<C>(pos: impl Into<MaybeSignal<(u16, u16)>>, children: C) -> Elem
     let prop = Absolute(pos_rc.clone(), pos.into());
 
     let inner = DomNode::from_fragment(DocumentFragment::absolute(pos_rc));
-    // inner.add_data(effect);
     Element {
         inner,
         children,

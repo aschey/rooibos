@@ -3,7 +3,7 @@ use std::io::Stdout;
 use std::path::PathBuf;
 
 use rooibos::components::Image;
-use rooibos::dom::{col, length, props, row, KeyCode, Render};
+use rooibos::dom::{col, length, row, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
@@ -49,7 +49,7 @@ fn app() -> impl Render {
     });
 
     col![row![
-        props!(length(image_length));
+        props(length(image_length)),
         Image::from_url(image_url).render()
     ]]
 }

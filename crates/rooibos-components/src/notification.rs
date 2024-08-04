@@ -10,8 +10,7 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Update};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    absolute, clear, col, derive_signal, length, props, use_window_size, widget_ref, Constrainable,
-    Render,
+    absolute, clear, col, derive_signal, length, use_window_size, widget_ref, Constrainable, Render,
 };
 use rooibos_runtime::wasm_compat;
 use tokio::sync::mpsc;
@@ -134,15 +133,16 @@ impl Notifications {
                 move |n| {
                     let height = n.content.height();
                     clear![
-                         // +2 for borders
-                        props!(length(height as u16 + 2));
+                        // +2 for borders
+                        props(length(height as u16 + 2)),
                         widget_ref!(
                             Paragraph::new(n.content.clone()).block(
                                 Block::bordered()
                                     .border_type(BorderType::Rounded)
                                     .border_style(Style::new().blue())
                             )
-                    )]
+                        )
+                    ]
                     .length(height as u16 + 2)
                 }
             )]

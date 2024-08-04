@@ -1,6 +1,6 @@
 use rooibos::dom::{
-    col, constraint, derive_signal, line, percentage, props, row, span, stateful_widget,
-    widget_ref, Chart, Dataset, KeyCode, Render,
+    col, constraint, derive_signal, line, percentage, row, span, stateful_widget, widget_ref,
+    Chart, Dataset, KeyCode, Render,
 };
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -32,18 +32,18 @@ pub(crate) fn charts(enhanced_graphics: bool, chart_constraint: Constraint) -> i
     let percentage2 = derive_signal!(100 - percentage1.get());
 
     row![
-        props!(constraint(chart_constraint));
+        props(constraint(chart_constraint)),
         col![
-            props!(percentage(percentage1));
+            props(percentage(percentage1)),
             row![
-                props!(percentage(50));
-                col![props!(percentage(50)); task_list()],
-                col![props!(percentage(50)); logs()]
+                props(percentage(50)),
+                col![props(percentage(50)), task_list()],
+                col![props(percentage(50)), logs()]
             ],
             row![demo_bar_chart(enhanced_graphics)]
         ],
         col![
-            props!(percentage(percentage2));
+            props(percentage(percentage2)),
             demo_chart(enhanced_graphics)
         ]
     ]

@@ -1,4 +1,4 @@
-use rooibos::dom::{col, constraint, line, props, span, widget_ref, Render};
+use rooibos::dom::{col, constraint, line, span, widget_ref, Render};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
@@ -19,7 +19,7 @@ pub(crate) fn tab0() -> impl Render {
 
 fn footer(footer_constraint: Constraint) -> impl Render {
     widget_ref![
-        props!(constraint(footer_constraint));
+        props(constraint(footer_constraint)),
         Paragraph::new(vec![
             line!(
                 "This is a paragraph with several lines. You can style your text the way you want"

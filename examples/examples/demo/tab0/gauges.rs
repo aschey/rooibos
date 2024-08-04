@@ -1,4 +1,4 @@
-use rooibos::dom::{block, col, constraint, props, widget_ref, Render, Sparkline};
+use rooibos::dom::{block, col, constraint, widget_ref, Render, Sparkline};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
@@ -35,7 +35,10 @@ pub(crate) fn gauges(enhanced_graphics: bool, gauge_constraint: Constraint) -> i
     });
 
     col![
-        props!(block(Block::bordered().title("Graphs")), constraint(gauge_constraint));
+        props(
+            block(Block::bordered().title("Graphs")),
+            constraint(gauge_constraint)
+        ),
         demo_gauge(enhanced_graphics, progress, Length(2)),
         demo_sparkline(enhanced_graphics, Length(3)),
         demo_line_gauge(enhanced_graphics, progress, Length(2))
@@ -48,7 +51,7 @@ fn demo_gauge(
     gauge_constraint: Constraint,
 ) -> impl Render {
     widget_ref![
-        props!(constraint(gauge_constraint));
+        props(constraint(gauge_constraint)),
         Gauge::default()
             .block(Block::new().title("Gauge:"))
             .gauge_style(Style::new().magenta().on_black().italic().bold())
@@ -64,7 +67,7 @@ fn demo_line_gauge(
     gauge_constraint: Constraint,
 ) -> impl Render {
     widget_ref![
-        props!(constraint(gauge_constraint));
+        props(constraint(gauge_constraint)),
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
             .filled_style(Style::new().magenta())
@@ -100,7 +103,7 @@ fn demo_sparkline(enhanced_graphics: bool, line_constraint: Constraint) -> impl 
     });
 
     widget_ref![
-        props!(constraint(line_constraint));
+        props(constraint(line_constraint)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()
