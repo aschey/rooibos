@@ -147,6 +147,18 @@ impl Default for CrosstermBackend<Stderr> {
     }
 }
 
+impl CrosstermBackend<Stdout> {
+    pub fn stdout() -> Self {
+        Self::default()
+    }
+}
+
+impl CrosstermBackend<Stderr> {
+    pub fn stderr() -> Self {
+        Self::default()
+    }
+}
+
 impl<W: Write> Backend for CrosstermBackend<W> {
     type TuiBackend = ratatui::backend::CrosstermBackend<W>;
 

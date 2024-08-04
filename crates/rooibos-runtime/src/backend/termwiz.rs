@@ -77,6 +77,30 @@ impl Default for TermwizBackend<Stdout> {
     }
 }
 
+impl Default for TermwizBackend<Stderr> {
+    fn default() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
+impl TermwizBackend<Stdout> {
+    pub fn stdout() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
+impl TermwizBackend<Stderr> {
+    pub fn stderr() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
 impl<W: io::Write> TermwizBackend<W> {
     pub fn new(settings: TerminalSettings<W>) -> Self {
         Self { settings }

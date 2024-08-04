@@ -1,6 +1,5 @@
 use std::env;
 use std::error::Error;
-use std::io::Stdout;
 
 use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
@@ -16,7 +15,7 @@ async fn main() -> Result<()> {
 
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
+        CrosstermBackend::stdout(),
         || app(editor, Vec::new()),
     );
     runtime.run().await?;

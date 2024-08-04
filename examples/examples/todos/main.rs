@@ -2,7 +2,6 @@ mod client;
 mod server;
 
 use std::error::Error;
-use std::io::Stdout;
 use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
@@ -36,7 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
+        CrosstermBackend::stdout(),
         || app(Duration::from_secs(3)),
     );
     tokio::spawn(run_server(listener));

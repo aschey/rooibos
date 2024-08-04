@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::io::{stdin, IsTerminal, Stdout};
+use std::io::{stdin, IsTerminal};
 
 use rooibos::dom::{line, widget_ref, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -23,7 +23,7 @@ async fn main() -> Result<()> {
 
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
+        CrosstermBackend::stdout(),
         || app(input),
     );
     runtime.run().await?;

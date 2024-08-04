@@ -48,6 +48,26 @@ impl Default for TermionBackend<Stdout> {
     }
 }
 
+impl Default for TermionBackend<Stderr> {
+    fn default() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
+impl TermionBackend<Stdout> {
+    pub fn stdout() -> Self {
+        Self::default()
+    }
+}
+
+impl TermionBackend<Stderr> {
+    pub fn stderr() -> Self {
+        Self::default()
+    }
+}
+
 impl<W: Write + AsFd> Backend for TermionBackend<W> {
     type TuiBackend =
         ratatui::backend::TermionBackend<MouseTerminal<AlternateScreen<RawTerminal<W>>>>;

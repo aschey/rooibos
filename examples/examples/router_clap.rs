@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::io::Stdout;
 
 use clap::{Args, Parser, Subcommand};
 use rooibos::components::{use_router, DefaultRoute, Route, RouteFromStatic, Router, ToRoute};
@@ -71,7 +70,7 @@ fn main() -> Result<()> {
 async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
     let runtime = Runtime::initialize(
         RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
+        CrosstermBackend::stdout(),
         move || app(route),
     );
     runtime.run().await?;

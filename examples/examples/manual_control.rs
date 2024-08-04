@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::io::Stdout;
 
 use rooibos::dom::{focus_next, render_dom, unmount, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
@@ -11,11 +10,8 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let mut runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
+    let mut runtime =
+        Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
     let mut terminal = runtime.setup_terminal()?;
 
     terminal.draw(|f| render_dom(f.buffer_mut()))?;

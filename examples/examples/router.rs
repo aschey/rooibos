@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::io::Stdout;
 
 use rooibos::components::{use_router, DefaultRoute, Route, RouteFromStatic, Router};
 use rooibos::dom::{after_render, col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
@@ -37,11 +36,7 @@ impl Child2 {
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
+    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
     runtime.run().await?;
     Ok(())
 }

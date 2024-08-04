@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::io::Stdout;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
@@ -65,11 +64,7 @@ async fn main() -> Result<()> {
         })
         .init();
 
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
+    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
     runtime.run().await?;
     guard.stop().await.unwrap();
     Ok(())

@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::io::Stdout;
 
 use rooibos::dom::{col, length, row, use_window_size, widget_ref, Render};
 use rooibos::reactive::signal::RwSignal;
@@ -12,11 +11,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
+    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
     runtime.run().await?;
     Ok(())
 }

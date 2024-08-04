@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::io::Stdout;
 
 use rooibos::components::{
     use_router, Button, KeyedWrappingList, Route, RouteFromStatic, Router, Tab, TabView,
@@ -20,11 +19,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
+    let runtime = Runtime::initialize(RuntimeSettings::default(), CrosstermBackend::stdout(), app);
     runtime.run().await?;
     Ok(())
 }
