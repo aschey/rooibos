@@ -43,7 +43,7 @@ fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget<
     DomWidget::new::<TextArea, _, _>(move || {
         let widget = text_area.get();
         move |area: Rect, buf: &mut Buffer| {
-            widget.widget().render(area, buf);
+            widget.render(area, buf);
         }
     })
 }

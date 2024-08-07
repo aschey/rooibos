@@ -5,7 +5,7 @@ use ratatui::widgets::{Block, Widget};
 use reactive_graph::effect::Effect;
 use reactive_graph::owner::StoredValue;
 use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Set, Update, UpdateUntracked, With};
+use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
     derive_signal, BlurEvent, Constrainable, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
@@ -276,9 +276,9 @@ impl Input {
         };
 
         let mut widget = DomWidget::new::<TextArea, _, _>(move || {
-            let text_area = text_area.get();
+            text_area.track();
             move |area: Rect, buf: &mut Buffer| {
-                text_area.widget().render(area, buf);
+                text_area.with(|t| t.render(area, buf));
             }
         })
         .constraint(constraint)

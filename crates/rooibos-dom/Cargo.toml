@@ -14,7 +14,7 @@ tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
 any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
 throw_error = { path = "../../../leptos/any_error" }
 next_tuple = { path = "../../../leptos/next_tuple" }
-ratatui = { version = "0.27", features = ["unstable"] }
+ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
 bitflags = "2"
@@ -22,7 +22,7 @@ derivative = "2"
 futures = "0.3"
 rustc-hash = "2"
 terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
-tui-textarea = { git = "https://github.com/aschey/tui-textarea", rev = "c72fea065b69d08bf15c199a564368f65ba7656b", optional = true, default-features = false }
+tui-textarea = { version = "0.6", optional = true, default-features = false }
 paste = "1"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "84c52ad6b049e169ca7f7c0a566ba45817cb31dd", features = [
     "all",

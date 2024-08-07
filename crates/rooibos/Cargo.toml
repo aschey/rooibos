@@ -16,7 +16,7 @@ rooibos-component-macros = { path = "../rooibos-component-macros" }
 rooibos-tester = { path = "../rooibos-tester" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
-ratatui = { version = "0.27", features = ["unstable"] }
+ratatui = { version = "0.28", features = ["unstable"] }
 
 [features]
 nightly = [

@@ -31,7 +31,7 @@ impl TerminalView for Buffer {
         let mut string_buf = String::with_capacity((width * height) as usize);
         for row in 0..*height {
             for col in 0..*width {
-                let cell = self.get(col, row);
+                let cell = self.cell((col, row)).unwrap();
                 write!(&mut string_buf, "{}", cell.symbol()).unwrap();
             }
             writeln!(&mut string_buf).unwrap();
@@ -48,8 +48,8 @@ impl TerminalView for Buffer {
         });
         for row in rect.y..rect.y + rect.height {
             for col in rect.x..rect.x + rect.width {
-                let cur = self.get(col, row);
-                let new = buf.get_mut(col - rect.x, row - rect.y);
+                let cur = self.cell((col, row)).unwrap();
+                let new = buf.cell_mut((col - rect.x, row - rect.y)).unwrap();
 
                 new.set_skip(cur.skip);
                 new.set_style(cur.style());
