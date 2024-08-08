@@ -52,6 +52,7 @@ struct RuntimeState {
     supports_keyboard_enhancement: bool,
     pixel_size: Option<Size>,
     restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
+    before_exit: wasm_compat::Mutex<Box<dyn FnMut() -> ExitResult + Send>>,
 }
 
 impl RuntimeState {
@@ -66,6 +67,7 @@ impl RuntimeState {
             supports_keyboard_enhancement: false,
             pixel_size: None,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
+            before_exit: wasm_compat::Mutex::new(Box::new(|| ExitResult::Exit)),
         }
     }
 }
@@ -480,7 +482,7 @@ impl<B: Backend + 'static> Runtime<B> {
                                 term_event_tx.send(event).ok();
 
                             }
-                            _ => {
+                            Err(_) => {
                                 parser_running.store(false, Ordering::SeqCst);
                                 return;
                             }
@@ -511,6 +513,21 @@ impl<B: Backend + 'static> Runtime<B> {
                     terminal.draw(|f| render_dom(f.buffer_mut()))?;
                 }
                 TickResult::Exit => {
+                    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+                    let exit_result = STATE.with(|s| {
+                        #[cfg(debug_assertions)]
+                        let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                        s.get()
+                            .unwrap()
+                            .read()
+                            .get(&current_runtime)
+                            .unwrap()
+                            .before_exit
+                            .lock_mut()()
+                    });
+                    if exit_result == ExitResult::PreventExit {
+                        continue;
+                    }
                     if !self.settings.show_final_output {
                         terminal.clear()?;
                     }
@@ -824,6 +841,28 @@ where
                 })
         })
         .unwrap();
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ExitResult {
+    Exit,
+    PreventExit,
+}
+
+pub fn before_exit<F>(f: F)
+where
+    F: FnMut() -> ExitResult + Send + 'static,
+{
+    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+    STATE.with(|s| {
+        *s.get()
+            .unwrap()
+            .read()
+            .get(&current_runtime)
+            .unwrap()
+            .before_exit
+            .lock_mut() = Box::new(f)
+    });
 }
 
 pub fn exit() {
