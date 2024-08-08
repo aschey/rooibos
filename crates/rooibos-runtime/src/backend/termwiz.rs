@@ -110,7 +110,7 @@ impl<W: io::Write> TermwizBackend<W> {
 impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
     type TuiBackend = ratatui::backend::TermwizBackend;
 
-    fn setup_terminal(&self) -> io::Result<ratatui::terminal::Terminal<Self::TuiBackend>> {
+    fn setup_terminal(&self) -> io::Result<ratatui::Terminal<Self::TuiBackend>> {
         let caps = Capabilities::new_from_env().unwrap();
         let terminal =
             SystemTerminal::new_with(caps, &io::stdin(), &(self.settings.get_writer)()).unwrap();
@@ -125,7 +125,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             terminal.add_change(Change::Title(title.clone()));
         }
 
-        let terminal = ratatui::terminal::Terminal::with_options(
+        let terminal = ratatui::Terminal::with_options(
             ratatui::backend::TermwizBackend::with_buffered_terminal(terminal),
             ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
@@ -148,7 +148,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
     fn enter_alt_screen(
         &self,
-        terminal: &mut ratatui::terminal::Terminal<Self::TuiBackend>,
+        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
     ) -> io::Result<()> {
         terminal
             .backend_mut()
@@ -161,7 +161,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
     fn leave_alt_screen(
         &self,
-        terminal: &mut ratatui::terminal::Terminal<Self::TuiBackend>,
+        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
     ) -> io::Result<()> {
         terminal
             .backend_mut()
@@ -215,7 +215,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
     fn poll_input(
         &self,
-        terminal: &mut ratatui::terminal::Terminal<Self::TuiBackend>,
+        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
         term_tx: &broadcast::Sender<rooibos_dom::Event>,
     ) -> io::Result<()> {
         if let Ok(Some(event)) = terminal
