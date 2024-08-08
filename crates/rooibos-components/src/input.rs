@@ -141,7 +141,7 @@ impl Default for Input {
             alignment: Alignment::Left.into(),
             block: Box::new(move |_| None),
             constraint: Constraint::default().into(),
-            cursor_style: Style::default().reversed().into(),
+            cursor_style: Style::reset().reversed().into(),
             placeholder_style: Style::default().dark_gray().into(),
             placeholder_text: String::new().into(),
             style: Style::default().into(),
@@ -243,7 +243,14 @@ impl Input {
                 t.set_cursor_line_style(Style::default());
                 t.set_alignment(alignment.get());
                 t.set_style(style.get());
-                t.set_cursor_style(cursor_style.get());
+                t.set_cursor_style(Style::new());
+                if widget_state.get() == WidgetState::Focused {
+                    t.set_cursor_style(cursor_style.get());
+                } else {
+                    // hide cursor when not focused
+                    t.set_cursor_style(Style::reset());
+                }
+
                 t.set_placeholder_text(placeholder_text.get());
                 t.set_placeholder_style(placeholder_style.get());
                 if let Some(block) = block.get() {

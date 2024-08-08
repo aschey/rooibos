@@ -88,6 +88,7 @@ fn create_todos_input() -> impl Render {
     let input_ref = Input::get_ref();
 
     Input::default()
+        .placeholder_text("Add a todo")
         .block(|state| {
             Block::bordered()
                 .fg(if state == WidgetState::Focused {
