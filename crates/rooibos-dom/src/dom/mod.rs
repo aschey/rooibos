@@ -656,6 +656,7 @@ pub fn after_render_async(fut: impl Future<Output = ()> + 'static) {
 
 pub fn after_render(f: impl FnOnce() + 'static) {
     wasm_compat::futures::spawn_local(async move {
+        any_spawner::Executor::tick().await;
         f();
     })
 }

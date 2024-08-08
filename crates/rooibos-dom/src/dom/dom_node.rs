@@ -10,8 +10,8 @@ use derivative::Derivative;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
 use ratatui::widgets::{Block, WidgetRef};
+use reactive_graph::effect::RenderEffect;
 use slotmap::{new_key_type, SlotMap};
-use tachys::reactive_graph::RenderEffectState;
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -184,7 +184,7 @@ impl Debug for NodeType {
 }
 
 impl Render<RooibosDom> for NodeType {
-    type State = Option<RenderEffectState<()>>;
+    type State = Option<RenderEffect<()>>;
 
     fn build(self) -> Self::State {
         match self {

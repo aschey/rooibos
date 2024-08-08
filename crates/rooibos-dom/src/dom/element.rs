@@ -9,7 +9,6 @@ use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
-use tachys::reactive_graph::RenderEffectState;
 
 use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
@@ -42,19 +41,18 @@ pub fn margin(margin: impl Into<MaybeSignal<u16>>) -> Margin {
 }
 
 impl Property for Margin {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let layout_props = node.layout_props();
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let margin = self.0;
             let margin = Memo::new(move |_| margin.get());
             move |_| {
                 layout_props.borrow_mut().margin = margin.get();
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
@@ -66,19 +64,18 @@ impl Property for Margin {
 pub struct Flex(MaybeSignal<ratatui::layout::Flex>);
 
 impl Property for Flex {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let layout_props = node.layout_props();
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let flex = self.0;
             let flex = Memo::new(move |_| flex.get());
             move |_| {
                 layout_props.borrow_mut().flex = flex.get();
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
@@ -90,19 +87,18 @@ impl Property for Flex {
 pub struct Spacing(MaybeSignal<u16>);
 
 impl Property for Spacing {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let layout_props = node.layout_props();
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let spacing = self.0;
             let spacing = Memo::new(move |_| spacing.get());
             move |_| {
                 layout_props.borrow_mut().spacing = spacing.get();
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
@@ -118,19 +114,18 @@ pub fn block(block: impl Into<MaybeSignal<ratatui::widgets::Block<'static>>>) ->
 }
 
 impl Property for Block {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let layout_props = node.layout_props();
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let block = self.0;
             let block = Memo::new(move |_| block.get());
             move |_| {
                 layout_props.borrow_mut().block = Some(block.get());
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
@@ -146,12 +141,12 @@ pub fn focusable(focusable: impl Into<MaybeSignal<bool>>) -> Focusable {
 }
 
 impl Property for Focusable {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let focusable_rc = Rc::new(RefCell::new(false));
         node.set_focusable(focusable_rc.clone());
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let focusable = self.0;
             let focusable = Memo::new(move |_| focusable.get());
             let focusable_rc = focusable_rc.clone();
@@ -159,8 +154,7 @@ impl Property for Focusable {
                 *focusable_rc.borrow_mut() = focusable.get();
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
@@ -327,12 +321,12 @@ pub fn ratio(from: impl Into<MaybeSignal<u32>>, to: impl Into<MaybeSignal<u32>>)
 }
 
 impl Property for Constraint {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let constraint_rc = Rc::new(RefCell::new(ratatui::layout::Constraint::default()));
         node.set_constraint(constraint_rc.clone());
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let constraint = self.0;
             let constraint = Memo::new(move |_| constraint.get());
             let constraint_rc = constraint_rc.clone();
@@ -340,8 +334,7 @@ impl Property for Constraint {
                 *constraint_rc.borrow_mut() = constraint.get();
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
@@ -475,11 +468,11 @@ pub fn overlay<C, P>(props: P, children: C) -> Element<C, P> {
 pub struct Absolute(Rc<RefCell<(u16, u16)>>, MaybeSignal<(u16, u16)>);
 
 impl Property for Absolute {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
     fn build(self, _node: &DomNode) -> Self::State {
         let pos_rc = self.0;
 
-        let effect = RenderEffect::new({
+        RenderEffect::new({
             let pos_rc = pos_rc.clone();
             let pos = self.1;
             let pos = Memo::new(move |_| pos.get());
@@ -487,8 +480,7 @@ impl Property for Absolute {
                 *pos_rc.borrow_mut() = pos.get();
                 refresh_dom();
             }
-        });
-        effect.into()
+        })
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {

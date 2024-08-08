@@ -513,25 +513,9 @@ impl<B: Backend + 'static> Runtime<B> {
                     terminal.draw(|f| render_dom(f.buffer_mut()))?;
                 }
                 TickResult::Exit => {
-                    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-                    let exit_result = STATE.with(|s| {
-                        #[cfg(debug_assertions)]
-                        let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                        s.get()
-                            .unwrap()
-                            .read()
-                            .get(&current_runtime)
-                            .unwrap()
-                            .before_exit
-                            .lock_mut()()
-                    });
-                    if exit_result == ExitResult::PreventExit {
+                    if self.handle_exit(&mut terminal)? == ExitResult::PreventExit {
                         continue;
                     }
-                    if !self.settings.show_final_output {
-                        terminal.clear()?;
-                    }
-                    unmount();
                     return Ok(());
                 }
                 TickResult::Command(command) => {
@@ -540,6 +524,30 @@ impl<B: Backend + 'static> Runtime<B> {
                 TickResult::Continue => {}
             }
         }
+    }
+
+    pub fn handle_exit(&self, terminal: &mut Terminal<B::TuiBackend>) -> io::Result<ExitResult> {
+        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+        let exit_result = STATE.with(|s| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            s.get()
+                .unwrap()
+                .read()
+                .get(&current_runtime)
+                .unwrap()
+                .before_exit
+                .lock_mut()()
+        });
+        if exit_result == ExitResult::PreventExit {
+            return Ok(exit_result);
+        }
+
+        if !self.settings.show_final_output {
+            terminal.clear()?;
+        }
+        unmount();
+        Ok(exit_result)
     }
 
     pub async fn handle_terminal_command(

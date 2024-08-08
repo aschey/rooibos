@@ -10,7 +10,6 @@ use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
-use tachys::reactive_graph::RenderEffectState;
 use terminput::{KeyEvent, MouseEvent};
 
 use super::document_fragment::DocumentFragment;
@@ -82,7 +81,7 @@ impl DomWidgetNode {
 }
 
 impl Render<RooibosDom> for DomWidgetNode {
-    type State = RenderEffectState<()>;
+    type State = RenderEffect<()>;
 
     fn build(self) -> Self::State {
         RenderEffect::new({
@@ -93,7 +92,6 @@ impl Render<RooibosDom> for DomWidgetNode {
                 refresh_dom();
             }
         })
-        .into()
     }
 
     fn rebuild(self, state: &mut Self::State) {
