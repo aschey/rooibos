@@ -6,7 +6,7 @@ use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, With};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
-use rooibos::runtime::{exit, Runtime, RuntimeSettings};
+use rooibos::runtime::{exit, Runtime};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
 use rooibos::tui::Viewport;
@@ -15,8 +15,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default(),
+    let runtime = Runtime::initialize(
         CrosstermBackend::new(
             TerminalSettings::<Stderr>::new()
                 .alternate_screen(false)

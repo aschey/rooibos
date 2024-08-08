@@ -21,7 +21,7 @@ use rooibos::reactive::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Track, With};
 use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -33,11 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .unwrap();
 
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default(),
-        CrosstermBackend::stdout(),
-        || app(Duration::from_secs(3)),
-    );
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), || app(Duration::from_secs(3)));
     tokio::spawn(run_server(listener));
     runtime.run().await?;
 

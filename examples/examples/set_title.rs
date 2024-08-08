@@ -6,14 +6,13 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
-use rooibos::runtime::{set_title, Runtime, RuntimeSettings};
+use rooibos::runtime::{set_title, Runtime};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default(),
+    let runtime = Runtime::initialize(
         CrosstermBackend::<Stdout>::new(TerminalSettings::default().title("initial title")),
         app,
     );

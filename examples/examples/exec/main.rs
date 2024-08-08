@@ -5,7 +5,7 @@ use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{exec, Runtime, RuntimeSettings};
+use rooibos::runtime::{exec, Runtime};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -13,11 +13,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 async fn main() -> Result<()> {
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
 
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default(),
-        CrosstermBackend::stdout(),
-        || app(editor, Vec::new()),
-    );
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), || app(editor, Vec::new()));
     runtime.run().await?;
     Ok(())
 }

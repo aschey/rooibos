@@ -4,7 +4,7 @@ use clap::Parser;
 use rooibos::components::{use_router, Route, RouteFrom, Router, ToRoute};
 use rooibos::dom::{after_render, col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::Paragraph;
 use rooibos::Route;
 
@@ -24,11 +24,7 @@ fn main() -> Result<()> {
 
 #[rooibos::main]
 async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default(),
-        CrosstermBackend::stdout(),
-        move || app(route),
-    );
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), move || app(route));
     runtime.run().await?;
 
     Ok(())
