@@ -7,7 +7,7 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::Paragraph;
 use rooibos::Route;
 
@@ -21,7 +21,6 @@ struct Cli {
 }
 
 #[derive(Subcommand, Debug)]
-#[command(version, about)]
 enum CliCommands {
     #[command(name = "child1")]
     Cmd1(Cmd1),
@@ -68,11 +67,7 @@ fn main() -> Result<()> {
 
 #[rooibos::main]
 async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default(),
-        CrosstermBackend::stdout(),
-        move || app(route),
-    );
+    let runtime = Runtime::initialize(CrosstermBackend::stdout(), move || app(route));
     runtime.run().await?;
 
     Ok(())
