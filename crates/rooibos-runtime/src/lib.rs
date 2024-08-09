@@ -7,12 +7,15 @@ use std::fmt::Display;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
+use std::pin::Pin;
 use std::process::ExitStatus;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
 use backend::Backend;
+pub use background_service::ServiceContext;
+use background_service::{BackgroundService, LocalBackgroundService, Manager, TaskId};
 use derivative::Derivative;
 use futures_util::StreamExt;
 use ratatui::backend::Backend as TuiBackend;
@@ -28,7 +31,9 @@ use rooibos_dom::{
     Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 use tap::TapFallible;
-use tokio::sync::broadcast;
+use tokio::runtime::Handle;
+use tokio::sync::{broadcast, mpsc};
+use tokio::task::LocalSet;
 use tokio::{task, task_local};
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
@@ -45,14 +50,18 @@ pub mod wasm_compat {
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
+type ExitResultFuture = dyn Future<Output = ExitResult> + Send;
+
 struct RuntimeState {
     term_tx: broadcast::Sender<rooibos_dom::Event>,
     term_command_tx: broadcast::Sender<TerminalCommand>,
     runtime_command_tx: broadcast::Sender<RuntimeCommand>,
     supports_keyboard_enhancement: bool,
     pixel_size: Option<Size>,
+    service_manager: Option<Manager>,
+    context: ServiceContext,
     restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
-    before_exit: wasm_compat::Mutex<Box<dyn FnMut() -> ExitResult + Send>>,
+    before_exit: wasm_compat::Mutex<Box<dyn Fn() -> Pin<Box<ExitResultFuture>> + Send>>,
 }
 
 impl RuntimeState {
@@ -60,6 +69,11 @@ impl RuntimeState {
         let (term_tx, _) = broadcast::channel(32);
         let (term_command_tx, _) = broadcast::channel(32);
         let (runtime_command_tx, _) = broadcast::channel(32);
+        let cancellation_token = CancellationToken::new();
+        let service_manager = Manager::new(
+            cancellation_token.clone(),
+            background_service::Settings::default(),
+        );
         Self {
             term_tx,
             term_command_tx,
@@ -67,7 +81,11 @@ impl RuntimeState {
             supports_keyboard_enhancement: false,
             pixel_size: None,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
-            before_exit: wasm_compat::Mutex::new(Box::new(|| ExitResult::Exit)),
+            before_exit: wasm_compat::Mutex::new(Box::new(move || {
+                Box::pin(async move { ExitResult::Exit })
+            })),
+            context: service_manager.get_context(),
+            service_manager: Some(service_manager),
         }
     }
 }
@@ -240,8 +258,10 @@ pub struct Runtime<B: Backend> {
     term_parser_tx: broadcast::Sender<Event>,
     dom_update_rx: DomUpdateReceiver,
     backend: Arc<B>,
-    cancellation_token: CancellationToken,
     parser_running: Arc<AtomicBool>,
+    input_task_id: Option<TaskId>,
+    service_manager: Manager,
+    service_context: ServiceContext,
 }
 
 #[derive(Debug, Clone)]
@@ -268,43 +288,45 @@ impl<B: Backend + 'static> Runtime<B> {
         M: Render,
         <M as Render>::DomState: 'static,
     {
-        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
         let backend = Arc::new(backend);
 
         let (term_parser_tx, _) = broadcast::channel(32);
 
-        let (term_command_tx, runtime_command_tx) = STATE.with(|s| {
-            let s = s.get().unwrap().read();
-            let s = s.get(&current_runtime).unwrap();
-            (s.term_command_tx.clone(), s.runtime_command_tx.clone())
-        });
+        let (term_command_tx, runtime_command_tx) =
+            with_state(|s| (s.term_command_tx.clone(), s.runtime_command_tx.clone()));
+        let service_manager = Manager::new(
+            CancellationToken::new(),
+            background_service::Settings::default(),
+        );
+        let service_context = service_manager.get_context();
 
         if !backend.supports_async_input() {
-            wasm_compat::spawn(async move {
+            service_context.spawn(("input_poller", |context: ServiceContext| async move {
                 loop {
-                    wasm_compat::sleep(Duration::from_millis(20)).await;
-                    let _ = term_command_tx.send(TerminalCommand::Poll);
+                    tokio::select! {
+                        _ =  wasm_compat::sleep(Duration::from_millis(20)) => {
+                            let _ = term_command_tx.send(TerminalCommand::Poll);
+                        }
+                        _ = context.cancelled() => {
+                            return Ok(());
+                        }
+                    }
                 }
-            })
+            }));
         }
 
         let dom_update_rx = dom_update_receiver();
 
         // We need to query this info before reading events
-        STATE.with(|s| {
-            s.get()
-                .unwrap()
-                .write()
-                .get_mut(&current_runtime)
-                .unwrap()
-                .supports_keyboard_enhancement = backend.supports_keyboard_enhancement()
+        with_state_mut(|s| {
+            s.supports_keyboard_enhancement = backend.supports_keyboard_enhancement()
         });
 
         #[cfg(not(target_arch = "wasm32"))]
         if settings.enable_signal_handler {
             use async_signal::{Signal, Signals};
             let runtime_command_tx = runtime_command_tx.clone();
-            wasm_compat::spawn(async move {
+            service_context.spawn(("signal_handler", |context: ServiceContext| async move {
                 #[cfg(unix)]
                 // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
                 let mut signals = Signals::new([
@@ -319,42 +341,33 @@ impl<B: Backend + 'static> Runtime<B> {
                 #[cfg(windows)]
                 let mut signals = Signals::new([Signal::Int]).unwrap();
 
-                while let Some(Ok(signal)) = signals.next().await {
-                    match signal {
-                        Signal::Tstp => {
-                            let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
+                loop {
+                    tokio::select! {
+                        Some(Ok(signal)) = signals.next() => {
+                            match signal {
+                                Signal::Tstp => {
+                                    let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
+                                }
+                                Signal::Cont => {
+                                    let _ = runtime_command_tx.send(RuntimeCommand::Resume);
+                                }
+                                _ => {
+                                    let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
+                                }
+                            }
                         }
-                        Signal::Cont => {
-                            let _ = runtime_command_tx.send(RuntimeCommand::Resume);
-                        }
-                        _ => {
-                            let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
+                        _ = context.cancelled() => {
+                            return Ok(());
                         }
                     }
                 }
-            });
+            }));
         }
 
         mount(f);
 
-        let term_command_tx = STATE.with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .clone()
-        });
-        let term_event_tx = STATE.with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_tx
-                .clone()
-        });
+        let term_command_tx = with_state(|s| s.term_command_tx.clone());
+        let term_event_tx = with_state(|s| s.term_tx.clone());
 
         Self {
             term_command_rx: term_command_tx.subscribe(),
@@ -366,22 +379,19 @@ impl<B: Backend + 'static> Runtime<B> {
             runtime_command_tx,
             settings,
             dom_update_rx,
-            cancellation_token: CancellationToken::new(),
             parser_running: Arc::new(AtomicBool::new(false)),
+            input_task_id: None,
+            service_manager,
+            service_context,
         }
     }
 
     pub fn setup_terminal(&mut self) -> io::Result<Terminal<B::TuiBackend>> {
         let mut terminal = self.backend.setup_terminal()?;
-        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
+
         if let Ok(window_size) = terminal.backend_mut().window_size() {
-            STATE.with(|s| {
-                s.get()
-                    .unwrap()
-                    .write()
-                    .get_mut(&current_runtime)
-                    .unwrap()
-                    .pixel_size = Some(Size {
+            with_state_mut(|s| {
+                s.pixel_size = Some(Size {
                     width: window_size.pixels.width / window_size.columns_rows.width,
                     height: window_size.pixels.height / window_size.columns_rows.height,
                 })
@@ -394,26 +404,24 @@ impl<B: Backend + 'static> Runtime<B> {
 
             let term_parser_tx = self.term_parser_tx.clone();
             // Reset cancellation token so the next input reader can start
-            self.cancellation_token = CancellationToken::new();
-            let cancellation_token = self.cancellation_token.clone();
+            // self.cancellation_token = CancellationToken::new();
+            // let cancellation_token = self.cancellation_token.clone();
             if backend.supports_async_input() {
-                wasm_compat::spawn(async move {
-                    backend.read_input(term_parser_tx, cancellation_token).await;
-                });
+                self.input_task_id = Some(self.service_context.spawn((
+                    "input_reader",
+                    move |context: ServiceContext| async move {
+                        backend.read_input(term_parser_tx, context).await;
+                        Ok(())
+                    },
+                )));
             }
 
             self.handle_term_events();
         }
         let show_final_output = self.settings.show_final_output;
 
-        STATE.with(|s| {
-            *s.get()
-                .unwrap()
-                .write()
-                .get_mut(&current_runtime)
-                .unwrap()
-                .restore_terminal
-                .lock_mut() = Box::new(move || {
+        with_state(|s| {
+            *s.restore_terminal.lock_mut() = Box::new(move || {
                 backend.restore_terminal()?;
                 if show_final_output {
                     backend.write_all(b"\n")?;
@@ -435,7 +443,8 @@ impl<B: Backend + 'static> Runtime<B> {
             return;
         }
         let parser_running = self.parser_running.clone();
-        wasm_compat::spawn(async move {
+
+        self.service_context.spawn(("input_handler",move |context: ServiceContext| async move {
             let mut last_move_time = wasm_compat::now();
             let mut pending_move = None;
             loop {
@@ -484,17 +493,20 @@ impl<B: Backend + 'static> Runtime<B> {
                             }
                             Err(_) => {
                                 parser_running.store(false, Ordering::SeqCst);
-                                return;
+                                return Ok(());
                             }
                         }
                     }
+                    _ = context.cancelled() => {
+                        parser_running.store(false, Ordering::SeqCst);
+                        return Ok(());
+                    }
                     _ = send_next_move, if pending_move.is_some() => {
                         term_event_tx.send(pending_move.take().unwrap()).ok();
-
                     }
                 }
             }
-        });
+        }));
     }
 
     pub async fn run(mut self) -> io::Result<()> {
@@ -513,10 +525,10 @@ impl<B: Backend + 'static> Runtime<B> {
                     terminal.draw(|f| render_dom(f.buffer_mut()))?;
                 }
                 TickResult::Exit => {
-                    if self.handle_exit(&mut terminal)? == ExitResult::PreventExit {
-                        continue;
+                    if self.should_exit().await {
+                        self.handle_exit(&mut terminal).await.unwrap();
+                        return Ok(());
                     }
-                    return Ok(());
                 }
                 TickResult::Command(command) => {
                     self.handle_terminal_command(command, &mut terminal).await?;
@@ -526,28 +538,42 @@ impl<B: Backend + 'static> Runtime<B> {
         }
     }
 
-    pub fn handle_exit(&self, terminal: &mut Terminal<B::TuiBackend>) -> io::Result<ExitResult> {
-        let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-        let exit_result = STATE.with(|s| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .before_exit
-                .lock_mut()()
-        });
-        if exit_result == ExitResult::PreventExit {
-            return Ok(exit_result);
-        }
+    pub async fn should_exit(&self) -> bool {
+        let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+        let exit_result = with_state_mut(|s| (s.before_exit.lock())());
+        exit_result.await == ExitResult::Exit
+    }
 
+    pub async fn handle_exit(mut self, terminal: &mut Terminal<B::TuiBackend>) -> io::Result<()> {
         if !self.settings.show_final_output {
             terminal.clear()?;
         }
-        unmount();
-        Ok(exit_result)
+
+        let cancel_fut = with_state_mut(|s| s.service_manager.take().unwrap().cancel());
+        let (tx, mut rx) = mpsc::channel(1);
+        wasm_compat::spawn(async move {
+            let res = cancel_fut.await;
+            tx.send(res).await.unwrap();
+        });
+        loop {
+            tokio::select! {
+                res = rx.recv() => {
+                    res.unwrap().unwrap();
+                    self.service_manager.cancel().await.unwrap();
+                    unmount();
+                    return Ok(());
+                }
+                tick_result = self.tick() => {
+                    match tick_result {
+                        TickResult::Redraw => {
+                            terminal.draw(|f| render_dom(f.buffer_mut()))?;
+                        }
+                        TickResult::Continue => {}
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
     pub async fn handle_terminal_command(
@@ -590,7 +616,11 @@ impl<B: Backend + 'static> Runtime<B> {
             }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
-                self.cancellation_token.cancel();
+                if let Some(input_task_id) = self.input_task_id.take() {
+                    let input_service = self.service_context.take_service(&input_task_id).unwrap();
+                    input_service.cancel();
+                    input_service.wait_for_shutdown().await.unwrap();
+                }
 
                 restore_terminal()?;
                 terminal.clear()?;
@@ -623,7 +653,7 @@ impl<B: Backend + 'static> Runtime<B> {
             signal = self.runtime_command_rx.recv() => {
                 match signal {
                     Ok(RuntimeCommand::Suspend) => {
-                        self.cancellation_token.cancel();
+                        // self.cancellation_token.cancel();
                         restore_terminal().unwrap();
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();
@@ -663,16 +693,7 @@ impl<B: Backend + 'static> Runtime<B> {
 }
 
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    let mut term_rx = STATE.with(|s| {
-        s.get()
-            .unwrap()
-            .read()
-            .get(&current_runtime)
-            .unwrap()
-            .term_tx
-            .subscribe()
-    });
+    let mut term_rx = with_state(|s| s.term_tx.subscribe());
     let (term_signal, set_term_signal) = signal(None);
     wasm_compat::spawn_local(async move {
         // TODO: this doesn't work?
@@ -692,27 +713,11 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
 }
 
 pub fn supports_key_up() -> bool {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE.with(|s| {
-        s.get()
-            .unwrap()
-            .read()
-            .get(&current_runtime)
-            .unwrap()
-            .supports_keyboard_enhancement
-    })
+    with_state(|s| s.supports_keyboard_enhancement)
 }
 
 pub fn pixel_size() -> Option<Size> {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE.with(|s| {
-        s.get()
-            .unwrap()
-            .read()
-            .get(&current_runtime)
-            .unwrap()
-            .pixel_size
-    })
+    with_state(|s| s.pixel_size)
 }
 
 pub fn restore_terminal() -> io::Result<()> {
@@ -727,66 +732,29 @@ pub fn restore_terminal() -> io::Result<()> {
 }
 
 pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::InsertBefore {
-                    height,
-                    text: text.into(),
-                })
+    with_state(|s| {
+        s.term_command_tx.send(TerminalCommand::InsertBefore {
+            height,
+            text: text.into(),
         })
-        .unwrap();
+    })
+    .unwrap();
 }
 
 pub fn enter_alt_screen() {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::EnterAltScreen)
-        })
-        .unwrap();
+    with_state(|s| s.term_command_tx.send(TerminalCommand::EnterAltScreen)).unwrap();
 }
 
 pub fn leave_alt_screen() {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::LeaveAltScreen)
-        })
-        .unwrap();
+    with_state(|s| s.term_command_tx.send(TerminalCommand::LeaveAltScreen)).unwrap();
 }
 
 pub fn set_title<T: Display>(title: T) {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::SetTitle(title.to_string()))
-        })
-        .unwrap();
+    with_state(|s| {
+        s.term_command_tx
+            .send(TerminalCommand::SetTitle(title.to_string()))
+    })
+    .unwrap();
 }
 
 pub fn run_with_terminal<F, B>(f: F)
@@ -794,36 +762,63 @@ where
     F: FnMut(&mut Terminal<B>) + Send + 'static,
     B: TuiBackend + Send + 'static,
 {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::Custom(Arc::new(std::sync::Mutex::new(
-                    Box::new(TerminalFnBoxed(Box::new(f))),
-                ))))
-        })
-        .unwrap();
+    with_state(|s| {
+        s.term_command_tx
+            .send(TerminalCommand::Custom(Arc::new(std::sync::Mutex::new(
+                Box::new(TerminalFnBoxed(Box::new(f))),
+            ))))
+    })
+    .unwrap();
+}
+
+pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
+    with_state(|s| s.context.spawn(service))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_service_on<S: BackgroundService + Send + 'static>(
+    service: S,
+    handle: &Handle,
+) -> TaskId {
+    with_state(|s| s.context.spawn_on(service, handle))
+}
+
+pub fn spawn_local_service<S: LocalBackgroundService + 'static>(service: S) -> TaskId {
+    with_state(|s| s.context.spawn_local(service))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_local_service_on<S: LocalBackgroundService + 'static>(
+    service: S,
+    local_set: &LocalSet,
+) -> TaskId {
+    with_state(|s| s.context.spawn_local_on(service, local_set))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_blocking_service<S: background_service::BlockingBackgroundService + Send + 'static>(
+    service: S,
+) -> TaskId {
+    with_state(|s| s.context.spawn_blocking(service))
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_blocking_service_on<
+    S: background_service::BlockingBackgroundService + Send + 'static,
+>(
+    service: S,
+    handle: &Handle,
+) -> TaskId {
+    with_state(|s| s.context.spawn_blocking_on(service, handle))
 }
 
 #[cfg(feature = "clipboard")]
 pub fn set_clipboard<T: Display>(title: T, kind: backend::ClipboardKind) {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::SetClipboard(title.to_string(), kind))
-        })
-        .unwrap();
+    with_state(|s| {
+        s.term_command_tx
+            .send(TerminalCommand::SetClipboard(title.to_string(), kind))
+    })
+    .unwrap();
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -857,19 +852,16 @@ pub enum ExitResult {
     PreventExit,
 }
 
-pub fn before_exit<F>(f: F)
+pub fn before_exit<F, Fut>(f: F)
 where
-    F: FnMut() -> ExitResult + Send + 'static,
+    F: Fn() -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = ExitResult> + Send + 'static,
 {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE.with(|s| {
-        *s.get()
-            .unwrap()
-            .read()
-            .get(&current_runtime)
-            .unwrap()
-            .before_exit
-            .lock_mut() = Box::new(f)
+    with_state(|s| {
+        *s.before_exit.lock_mut() = Box::new(move || {
+            let out = f();
+            Box::pin(out)
+        })
     });
 }
 
@@ -911,4 +903,22 @@ where
         wasm_compat::sleep(duration).await;
         f.await;
     });
+}
+
+fn current_runtime() -> u32 {
+    CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0)
+}
+
+fn with_state<F: FnOnce(&RuntimeState) -> T, T>(f: F) -> T {
+    STATE.with(|s| f(s.get().unwrap().read().get(&current_runtime()).unwrap()))
+}
+
+fn with_state_mut<F: FnOnce(&mut RuntimeState) -> T, T>(f: F) -> T {
+    STATE.with(|s| {
+        f(s.get()
+            .unwrap()
+            .write()
+            .get_mut(&current_runtime())
+            .unwrap())
+    })
 }

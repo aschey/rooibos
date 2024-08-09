@@ -4,7 +4,7 @@ use rooibos::dom::{focus_next, render_dom, widget_ref, KeyCode, KeyEvent, Render
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{ExitResult, Runtime, TickResult};
+use rooibos::runtime::{Runtime, TickResult};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -26,10 +26,10 @@ async fn main() -> Result<()> {
                 terminal.draw(|f| render_dom(f.buffer_mut()))?;
             }
             TickResult::Exit => {
-                if runtime.handle_exit(&mut terminal)? == ExitResult::PreventExit {
-                    continue;
+                if runtime.should_exit().await {
+                    runtime.handle_exit(&mut terminal).await.unwrap();
+                    return Ok(());
                 }
-                return Ok(());
             }
             TickResult::Command(command) => {
                 runtime

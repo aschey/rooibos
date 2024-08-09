@@ -276,7 +276,8 @@ impl TestHarness {
         loop {
             tokio::select! {
                 tick_result = self.runtime.tick() => {
-                    if matches!(tick_result, TickResult::Exit) {
+                    if matches!(tick_result, TickResult::Exit) && self.runtime.should_exit().await {
+                        self.runtime.handle_exit(&mut self.terminal).await.unwrap();
                         return;
                     }
                 }

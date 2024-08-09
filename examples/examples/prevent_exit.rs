@@ -24,7 +24,7 @@ fn app() -> impl Render {
     let show_popup = RwSignal::new(false);
     let quit_confirmed = RwSignal::new(false);
 
-    before_exit(move || {
+    before_exit(move || async move {
         if quit_confirmed.get() {
             return ExitResult::Exit;
         }

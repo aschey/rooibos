@@ -9,6 +9,7 @@ pub mod test;
 use std::fmt::Display;
 use std::{future, io};
 
+use background_service::ServiceContext;
 use futures_util::Future;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
@@ -74,7 +75,7 @@ pub trait Backend: Send + Sync {
     fn read_input(
         &self,
         _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _cancellation_token: crate::CancellationToken,
+        _context: ServiceContext,
     ) -> impl Future<Output = ()> + Send {
         future::ready(())
     }
@@ -83,7 +84,7 @@ pub trait Backend: Send + Sync {
     fn read_input(
         &self,
         _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _cancellation_token: crate::CancellationToken,
+        _context: ServiceContext,
     ) -> impl Future<Output = ()> {
         future::ready(())
     }

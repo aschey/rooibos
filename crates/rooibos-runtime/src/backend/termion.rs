@@ -1,6 +1,7 @@
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::os::fd::AsFd;
 
+use background_service::ServiceContext;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use termion::input::{MouseTerminal, TermRead};
@@ -8,7 +9,6 @@ use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
 use tokio::sync::broadcast;
 use tokio::task::spawn_blocking;
-use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
 use super::Backend;
@@ -140,7 +140,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
     async fn read_input(
         &self,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-        cancellation_token: CancellationToken,
+        service_context: ServiceContext,
     ) {
         let reader = spawn_blocking(move || {
             let stdin = io::stdin();
@@ -154,7 +154,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         });
         tokio::select! {
             _ = reader => {}
-            _ = cancellation_token.cancelled() => {}
+            _ = service_context.cancelled() => {}
         }
     }
 }

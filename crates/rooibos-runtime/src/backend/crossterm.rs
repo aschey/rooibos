@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 
+use background_service::ServiceContext;
 use crossterm::cursor::{Hide, Show};
 use crossterm::event::{
     DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
@@ -16,7 +17,6 @@ use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
 use tokio::sync::broadcast;
-use tokio_util::sync::CancellationToken;
 use tracing::warn;
 
 use super::{Backend, ClipboardKind};
@@ -265,13 +265,13 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     async fn read_input(
         &self,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-        cancellation_token: CancellationToken,
+        service_context: ServiceContext,
     ) {
         let mut event_reader = EventStream::new().fuse();
 
         loop {
             tokio::select! {
-                _ = cancellation_token.cancelled() => {
+                _ = service_context.cancelled() => {
                     return;
                 }
                 event = event_reader.next() => {

@@ -1,8 +1,8 @@
 use std::io;
 
+use background_service::ServiceContext;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
-use tokio_util::sync::CancellationToken;
 
 use super::Backend;
 
@@ -75,12 +75,12 @@ impl Backend for TestBackend {
     async fn read_input(
         &self,
         tx: broadcast::Sender<rooibos_dom::Event>,
-        cancellation_token: CancellationToken,
+        service_context: ServiceContext,
     ) {
         let mut rx = self.event_tx.subscribe();
         loop {
             tokio::select! {
-                _ = cancellation_token.cancelled() => {
+                _ = service_context.cancelled() => {
                     return;
                 }
                 Ok(event) = rx.recv() => {

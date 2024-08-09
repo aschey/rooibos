@@ -15,7 +15,7 @@ use ratatui::{Terminal, Viewport};
 use ratatui_xterm_js::xterm::Theme;
 use ratatui_xterm_js::{init_terminal, EventStream, TerminalHandle, XtermJsBackend};
 use rooibos_runtime::backend::Backend;
-use rooibos_runtime::CancellationToken;
+use rooibos_runtime::ServiceContext;
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::warn;
@@ -216,13 +216,13 @@ impl Backend for WasmBackend {
     async fn read_input(
         &self,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-        cancellation_token: CancellationToken,
+        context: ServiceContext,
     ) {
         let mut event_reader = EventStream::new().fuse();
 
         loop {
             tokio::select! {
-                _ = cancellation_token.cancelled() => {
+                _ = context.cancelled() => {
                     return;
                 }
                 event = event_reader.next() => {

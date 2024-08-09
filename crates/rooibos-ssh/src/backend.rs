@@ -4,7 +4,7 @@ use std::sync::Mutex;
 use ratatui::Terminal;
 use rooibos_dom::Event;
 use rooibos_runtime::backend::Backend;
-use rooibos_runtime::CancellationToken;
+use rooibos_runtime::ServiceContext;
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
@@ -78,7 +78,7 @@ impl<B: Backend> Backend for SshBackend<B> {
     async fn read_input(
         &self,
         term_tx: broadcast::Sender<rooibos_dom::Event>,
-        cancellation_token: CancellationToken,
+        context: ServiceContext,
     ) {
         let mut event_rx = self.event_rx.lock().unwrap().take().unwrap();
         loop {
@@ -90,7 +90,7 @@ impl<B: Backend> Backend for SshBackend<B> {
                             .tap_err(|e| warn!("failed to send event {e:?}"));
                     }
                 }
-                _ = cancellation_token.cancelled() => {
+                _ = context.cancelled() => {
                     return;
                 }
             }
