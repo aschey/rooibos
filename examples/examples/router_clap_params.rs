@@ -90,7 +90,7 @@ fn app(initial_route: impl ToRoute) -> impl Render {
 fn child0() -> impl Render {
     let router = use_router();
 
-    Effect::new(move |_| {
+    Effect::new(move || {
         focus_id("child0");
     });
 

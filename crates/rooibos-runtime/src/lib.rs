@@ -17,7 +17,8 @@ use backend::Backend;
 pub use background_service::ServiceContext;
 use background_service::{BackgroundService, LocalBackgroundService, Manager, TaskId};
 use derivative::Derivative;
-use futures_util::StreamExt;
+use futures_cancel::FutureExt;
+use futures_util::{FutureExt as _, StreamExt};
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::layout::Size;
 use ratatui::text::Text;
@@ -32,7 +33,7 @@ use rooibos_dom::{
 };
 use tap::TapFallible;
 use tokio::runtime::Handle;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 use tokio::{task, task_local};
 pub use tokio_util::sync::CancellationToken;
@@ -303,13 +304,14 @@ impl<B: Backend + 'static> Runtime<B> {
         if !backend.supports_async_input() {
             service_context.spawn(("input_poller", |context: ServiceContext| async move {
                 loop {
-                    tokio::select! {
-                        _ =  wasm_compat::sleep(Duration::from_millis(20)) => {
-                            let _ = term_command_tx.send(TerminalCommand::Poll);
-                        }
-                        _ = context.cancelled() => {
-                            return Ok(());
-                        }
+                    if wasm_compat::sleep(Duration::from_millis(20))
+                        .cancel_with(context.cancelled())
+                        .await
+                        .is_ok()
+                    {
+                        let _ = term_command_tx.send(TerminalCommand::Poll);
+                    } else {
+                        return Ok(());
                     }
                 }
             }));
@@ -341,26 +343,23 @@ impl<B: Backend + 'static> Runtime<B> {
                 #[cfg(windows)]
                 let mut signals = Signals::new([Signal::Int]).unwrap();
 
-                loop {
-                    tokio::select! {
-                        Some(Ok(signal)) = signals.next() => {
-                            match signal {
-                                Signal::Tstp => {
-                                    let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
-                                }
-                                Signal::Cont => {
-                                    let _ = runtime_command_tx.send(RuntimeCommand::Resume);
-                                }
-                                _ => {
-                                    let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
-                                }
-                            }
+                while let Ok(Some(Ok(signal))) =
+                    signals.next().cancel_with(context.cancelled()).await
+                {
+                    match signal {
+                        Signal::Tstp => {
+                            let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
                         }
-                        _ = context.cancelled() => {
-                            return Ok(());
+                        Signal::Cont => {
+                            let _ = runtime_command_tx.send(RuntimeCommand::Resume);
+                        }
+                        _ => {
+                            let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
                         }
                     }
                 }
+
+                Ok(())
             }));
         }
 
@@ -549,16 +548,12 @@ impl<B: Backend + 'static> Runtime<B> {
             terminal.clear()?;
         }
 
-        let cancel_fut = with_state_mut(|s| s.service_manager.take().unwrap().cancel());
-        let (tx, mut rx) = mpsc::channel(1);
-        wasm_compat::spawn(async move {
-            let res = cancel_fut.await;
-            tx.send(res).await.unwrap();
-        });
+        let cancel_fut = with_state_mut(|s| s.service_manager.take().unwrap().cancel()).shared();
+
         loop {
             tokio::select! {
-                res = rx.recv() => {
-                    res.unwrap().unwrap();
+                res = cancel_fut.clone() => {
+                    res.unwrap();
                     self.service_manager.cancel().await.unwrap();
                     unmount();
                     return Ok(());

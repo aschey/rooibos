@@ -13,6 +13,7 @@ use crossterm::terminal::{
     LeaveAlternateScreen, SetTitle,
 };
 use crossterm::{execute, queue};
+use futures_cancel::FutureExt;
 use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
 use tap::TapFallible;
@@ -268,23 +269,19 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         service_context: ServiceContext,
     ) {
         let mut event_reader = EventStream::new().fuse();
-
-        loop {
-            tokio::select! {
-                _ = service_context.cancelled() => {
-                    return;
+        while let Ok(event) = event_reader
+            .next()
+            .cancel_with(service_context.cancelled())
+            .await
+        {
+            if let Some(Ok(event)) = event {
+                if let Ok(event) = event.try_into() {
+                    let _ = term_tx
+                        .send(event)
+                        .tap_err(|e| warn!("failed to send event {e:?}"));
                 }
-                event = event_reader.next() => {
-                    if let Some(Ok(event)) = event {
-                        if let Ok(event) = event.try_into() {
-                            let _ = term_tx
-                                .send(event)
-                                .tap_err(|e| warn!("failed to send event {e:?}"));
-                        }
-                    } else {
-                        return;
-                    }
-                }
+            } else {
+                return;
             }
         }
     }

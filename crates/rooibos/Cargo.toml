@@ -13,7 +13,7 @@ rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
 rooibos-components = { path = "../rooibos-components" }
 rooibos-component-macros = { path = "../rooibos-component-macros" }
-rooibos-config = { path = "../rooibos-config" }
+rooibos-config = { path = "../rooibos-config", optional = true }
 rooibos-tester = { path = "../rooibos-tester" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
@@ -42,6 +42,7 @@ termwiz = [
     "rooibos-components/termwiz",
 ]
 xterm-js = ["rooibos-xterm-js"]
+config = ["rooibos-config"]
 default = ["crossterm"]
 ssh = ["rooibos-ssh"]
 input-search = ["rooibos-components/input-search"]

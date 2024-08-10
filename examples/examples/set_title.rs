@@ -25,7 +25,7 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    Effect::new(move |prev| {
+    Effect::new(move |prev: Option<()>| {
         let count = count.get();
         if prev.is_some() {
             set_title(format!("count {count}"));

@@ -23,7 +23,8 @@ tokio-util = "0.7"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
     "all",
 ] }
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "719b0302567ddcdc82ecc03903bc08cc6a6763b8" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 
 [target.'cfg(unix)'.dependencies]
 termion = { version = "4", optional = true }

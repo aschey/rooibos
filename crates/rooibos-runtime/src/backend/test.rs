@@ -1,6 +1,7 @@
 use std::io;
 
 use background_service::ServiceContext;
+use futures_cancel::FutureExt;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
 
@@ -78,15 +79,8 @@ impl Backend for TestBackend {
         service_context: ServiceContext,
     ) {
         let mut rx = self.event_tx.subscribe();
-        loop {
-            tokio::select! {
-                _ = service_context.cancelled() => {
-                    return;
-                }
-                Ok(event) = rx.recv() => {
-                    tx.send(event).unwrap();
-                }
-            }
+        while let Ok(event) = rx.recv().cancel_with(service_context.cancelled()).await {
+            tx.send(event.unwrap()).unwrap();
         }
     }
 }

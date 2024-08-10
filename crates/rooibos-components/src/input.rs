@@ -238,7 +238,7 @@ impl Input {
             }
         });
 
-        Effect::new(move |_| {
+        Effect::new(move || {
             text_area.update(|t| {
                 t.set_cursor_line_style(Style::default());
                 t.set_alignment(alignment.get());

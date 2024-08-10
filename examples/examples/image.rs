@@ -25,7 +25,7 @@ fn app() -> impl Render {
 
     let image_url = RwSignal::new(PathBuf::from("./examples/assets/cat.jpg"));
 
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(key) = keypress.get() {
             if key.code == KeyCode::Down && image_length.get_untracked() > 1 {
                 image_length.update(|l| *l -= 1);

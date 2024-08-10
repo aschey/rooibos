@@ -56,7 +56,7 @@ impl Image {
 
         let image = RwSignal::new(None);
 
-        Effect::new(move |_| match &image_source {
+        Effect::new(move || match &image_source {
             ImageSource::Url(url) => {
                 let url = url.get();
                 thread::spawn(move || {

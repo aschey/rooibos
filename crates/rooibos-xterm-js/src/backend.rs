@@ -11,6 +11,7 @@ use crossterm::terminal::{
 };
 use crossterm::{execute, queue};
 use futures::StreamExt;
+use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use ratatui_xterm_js::xterm::Theme;
 use ratatui_xterm_js::{init_terminal, EventStream, TerminalHandle, XtermJsBackend};
@@ -220,22 +221,15 @@ impl Backend for WasmBackend {
     ) {
         let mut event_reader = EventStream::new().fuse();
 
-        loop {
-            tokio::select! {
-                _ = context.cancelled() => {
-                    return;
+        while let Ok(event) = event_reader.next().cancel_with(context.cancelled()).await {
+            if let Some(Ok(event)) = event {
+                if let Ok(event) = event.try_into() {
+                    let _ = term_tx
+                        .send(event)
+                        .tap_err(|e| warn!("failed to send event {e:?}"));
                 }
-                event = event_reader.next() => {
-                    if let Some(Ok(event)) = event {
-                        if let Ok(event) = event.try_into() {
-                            let _ = term_tx
-                                .send(event)
-                                .tap_err(|e| warn!("failed to send event {e:?}"));
-                        }
-                    } else {
-                        return;
-                    }
-                }
+            } else {
+                return;
             }
         }
     }

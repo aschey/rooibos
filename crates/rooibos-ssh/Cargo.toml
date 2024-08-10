@@ -20,6 +20,7 @@ reactive_graph = { path = "../../../leptos/reactive_graph", features = [
     "effects",
 ] }
 terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 
 [features]
 crossterm = ["dep:crossterm"]

@@ -74,7 +74,7 @@ fn app() -> impl Render {
     };
 
     let term_signal = use_keypress();
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
             if term_signal.code == KeyCode::Char('a') {
                 add_counter();

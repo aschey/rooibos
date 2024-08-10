@@ -14,6 +14,7 @@ pub mod components {
     pub use rooibos_components::*;
 }
 
+#[cfg(feature = "config")]
 pub mod config {
     pub use rooibos_config::*;
 }

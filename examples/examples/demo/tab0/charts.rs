@@ -20,7 +20,7 @@ pub(crate) fn charts(enhanced_graphics: bool, chart_constraint: Constraint) -> i
     let show_chart = RwSignal::new(true);
 
     let term_signal = use_keypress();
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
             if term_signal.code == KeyCode::Char('t') {
                 show_chart.update(|s| *s = !*s);
@@ -237,7 +237,7 @@ fn task_list() -> impl Render {
     };
 
     let term_signal = use_keypress();
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
             if term_signal.code == KeyCode::Up {
                 update_current_task(-1)

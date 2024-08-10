@@ -115,7 +115,7 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     let delete_version = delete_todo.version();
     let notifier = Notifier::new();
 
-    Effect::new(move |_| {
+    Effect::new(move || {
         // Version 0 is the initial render, nothing has updated yet
         if update_version.get() > 0 {
             notifier.notify(

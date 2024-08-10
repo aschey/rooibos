@@ -1,6 +1,7 @@
 use std::io;
 use std::sync::Mutex;
 
+use futures_cancel::FutureExt;
 use ratatui::Terminal;
 use rooibos_dom::Event;
 use rooibos_runtime::backend::Backend;
@@ -81,18 +82,11 @@ impl<B: Backend> Backend for SshBackend<B> {
         context: ServiceContext,
     ) {
         let mut event_rx = self.event_rx.lock().unwrap().take().unwrap();
-        loop {
-            tokio::select! {
-                event = event_rx.recv() => {
-                    if let Some(event) = event {
-                        let _ = term_tx
-                            .send(event)
-                            .tap_err(|e| warn!("failed to send event {e:?}"));
-                    }
-                }
-                _ = context.cancelled() => {
-                    return;
-                }
+        while let Ok(event) = event_rx.recv().cancel_with(context.cancelled()).await {
+            if let Some(event) = event {
+                let _ = term_tx
+                    .send(event)
+                    .tap_err(|e| warn!("failed to send event {e:?}"));
             }
         }
     }
