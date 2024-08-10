@@ -1,0 +1,13 @@
+[package]
+name = "rooibos-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "22d150c387f0f9961cdd9167dfa3ecaa6d1817a4" }
+reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+    "tracing",
+    "effects",
+] }
+rooibos-runtime = { path = "../rooibos-runtime" }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }

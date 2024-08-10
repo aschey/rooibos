@@ -30,6 +30,7 @@ serde = "1.0.203"
 axum = "0.7.5"
 tokio-stream = { version = "0.1.15", features = ["sync"] }
 clap = { version = "4.5.13", features = ["derive"] }
+schematic = { version = "0.17" }
 
 [dev-dependencies]
 insta = "1.39.0"

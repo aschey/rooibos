@@ -14,6 +14,10 @@ pub mod components {
     pub use rooibos_components::*;
 }
 
+pub mod config {
+    pub use rooibos_config::*;
+}
+
 pub mod tester {
     pub use rooibos_tester::*;
 }

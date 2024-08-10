@@ -1,5 +1,5 @@
 [workspace]
-members = ["./crates/*", "examples", "examples/wasm"]
+members = ["./crates/*", "crates/rooibos-config", "examples", "examples/wasm"]
 resolver = "2"
 
 [patch.crates-io]
