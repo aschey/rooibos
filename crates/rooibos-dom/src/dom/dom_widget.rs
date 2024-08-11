@@ -12,7 +12,6 @@ use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
 use terminput::{KeyEvent, MouseEvent};
 
-use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
 use super::{AsDomNode, Constraint, Focusable, Property};
 use crate::widgets::WidgetRole;
@@ -105,7 +104,7 @@ impl DomWidget<()> {
         f: F1,
     ) -> Self {
         let dom_widget_node = DomWidgetNode::new::<T, _, _>(f);
-        let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
+        let inner = DomNode::widget(dom_widget_node);
         Self {
             inner,
             properties: (),
@@ -123,7 +122,7 @@ impl<P> DomWidget<P> {
         f: F1,
     ) -> Self {
         let dom_widget_node = DomWidgetNode::new::<T, _, _>(f);
-        let inner = DomNode::from_fragment(DocumentFragment::widget(dom_widget_node));
+        let inner = DomNode::widget(dom_widget_node);
         Self {
             inner,
             properties: props,

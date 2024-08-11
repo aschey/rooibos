@@ -16,7 +16,6 @@ use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::document_fragment::DocumentFragment;
 use super::dom_state::{self, DomState};
 use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, DOM_NODES};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
@@ -104,12 +103,13 @@ pub struct LayoutProps {
     pub block: Option<Block<'static>>,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Default)]
 pub enum NodeType {
     Layout(Rc<RefCell<LayoutProps>>),
     Overlay,
     Absolute(Rc<RefCell<(u16, u16)>>),
     Widget(DomWidgetNode),
+    #[default]
     Placeholder,
 }
 
@@ -389,7 +389,7 @@ impl DomNodeRepr {
     }
 }
 
-#[derive(Derivative)]
+#[derive(Derivative, Default)]
 #[derivative(Debug)]
 pub struct DomNodeInner {
     pub(crate) node_type: NodeType,
@@ -649,18 +649,11 @@ impl DomNode {
         }
     }
 
-    pub(crate) fn from_fragment(fragment: DocumentFragment) -> Self {
+    pub(crate) fn widget(widget: DomWidgetNode) -> Self {
         let inner = DomNodeInner {
-            name: fragment.name.clone(),
-            node_type: fragment.node_type,
-            constraint: Rc::new(RefCell::new(fragment.constraint)),
-            children: vec![],
-            parent: None,
-            focusable: Rc::new(RefCell::new(fragment.focusable)),
-            id: fragment.id,
-            class: fragment.class,
-            event_handlers: fragment.event_handlers,
-            rect: Rc::new(RefCell::new(Rect::default())),
+            name: widget.widget_type.clone(),
+            node_type: NodeType::Widget(widget),
+            ..Default::default()
         };
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
@@ -669,20 +662,62 @@ impl DomNode {
         }
     }
 
-    pub(crate) fn replace_fragment(&self, fragment: DocumentFragment) {
+    pub(crate) fn row() -> Self {
         let inner = DomNodeInner {
-            name: fragment.name.clone(),
-            node_type: fragment.node_type,
-            constraint: Rc::new(RefCell::new(fragment.constraint)),
-            children: vec![],
-            parent: self.get_parent_key(),
-            focusable: Rc::new(RefCell::new(fragment.focusable)),
-            id: fragment.id,
-            class: fragment.class,
-            event_handlers: fragment.event_handlers,
-            rect: Rc::new(RefCell::new(Rect::default())),
+            name: "row".to_string(),
+            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutProps {
+                direction: Direction::Horizontal,
+                ..Default::default()
+            }))),
+            ..Default::default()
         };
-        with_nodes_mut(|n| n[self.key] = inner);
+        let key = with_nodes_mut(|n| n.insert(inner));
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub(crate) fn col() -> Self {
+        let inner = DomNodeInner {
+            name: "col".to_string(),
+            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutProps {
+                direction: Direction::Vertical,
+                ..Default::default()
+            }))),
+            ..Default::default()
+        };
+        let key = with_nodes_mut(|n| n.insert(inner));
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub(crate) fn overlay() -> Self {
+        let inner = DomNodeInner {
+            name: "overlay".to_string(),
+            node_type: NodeType::Overlay,
+            ..Default::default()
+        };
+        let key = with_nodes_mut(|n| n.insert(inner));
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub(crate) fn absolute(pos: Rc<RefCell<(u16, u16)>>) -> Self {
+        let inner = DomNodeInner {
+            name: "absolute".to_string(),
+            node_type: NodeType::Absolute(pos),
+            ..Default::default()
+        };
+        let key = with_nodes_mut(|n| n.insert(inner));
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
     }
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
@@ -724,6 +759,16 @@ impl DomNode {
         unmount_child(self.key, true);
 
         self.key = node.key;
+    }
+
+    pub(crate) fn replace_widget(&self, widget: DomWidgetNode) {
+        let inner = DomNodeInner {
+            name: widget.widget_type.clone(),
+            node_type: NodeType::Widget(widget),
+            parent: self.get_parent_key(),
+            ..Default::default()
+        };
+        with_nodes_mut(|n| n[self.key] = inner);
     }
 
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {

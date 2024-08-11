@@ -20,7 +20,6 @@ use crate::{derive_signal, line, text, widget_ref, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
-mod document_fragment;
 mod dom_node;
 mod dom_state;
 mod dom_widget;
@@ -30,7 +29,6 @@ mod into_view;
 
 pub use any_view::*;
 pub use children::*;
-pub use document_fragment::*;
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use element::*;
@@ -236,14 +234,12 @@ impl Renderer for RooibosDom {
 
     fn set_text(node: &Self::Text, text: &str) {
         let text = text.to_string();
-        node.replace_fragment(DocumentFragment::widget(
-            DomWidgetNode::new::<String, _, _>(move || {
-                let text = text.clone();
-                move |rect, buf| {
-                    text.render_ref(rect, buf);
-                }
-            }),
-        ));
+        node.replace_widget(DomWidgetNode::new::<String, _, _>(move || {
+            let text = text.clone();
+            move |rect, buf| {
+                text.render_ref(rect, buf);
+            }
+        }));
         node.clone().build();
     }
 

@@ -10,7 +10,6 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::*;
 
-use super::document_fragment::DocumentFragment;
 use super::dom_node::{DomNode, NodeId};
 use super::AsDomNode;
 use crate::{
@@ -443,7 +442,7 @@ macro_rules! absolute {
 
 pub fn row<C, P>(props: P, children: C) -> Element<C, P> {
     Element {
-        inner: DomNode::from_fragment(DocumentFragment::row()),
+        inner: DomNode::row(),
         children,
         properties: props,
     }
@@ -451,7 +450,7 @@ pub fn row<C, P>(props: P, children: C) -> Element<C, P> {
 
 pub fn col<C, P>(props: P, children: C) -> Element<C, P> {
     Element {
-        inner: DomNode::from_fragment(DocumentFragment::col()),
+        inner: DomNode::col(),
         children,
         properties: props,
     }
@@ -459,7 +458,7 @@ pub fn col<C, P>(props: P, children: C) -> Element<C, P> {
 
 pub fn overlay<C, P>(props: P, children: C) -> Element<C, P> {
     Element {
-        inner: DomNode::from_fragment(DocumentFragment::overlay()),
+        inner: DomNode::overlay(),
         children,
         properties: props,
     }
@@ -493,7 +492,7 @@ pub fn absolute<C>(pos: impl Into<MaybeSignal<(u16, u16)>>, children: C) -> Elem
     let pos_rc = Rc::new(RefCell::new((0, 0)));
     let prop = Absolute(pos_rc.clone(), pos.into());
 
-    let inner = DomNode::from_fragment(DocumentFragment::absolute(pos_rc));
+    let inner = DomNode::absolute(pos_rc);
     Element {
         inner,
         children,
