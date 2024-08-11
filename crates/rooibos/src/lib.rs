@@ -19,6 +19,11 @@ pub mod config {
     pub use rooibos_config::*;
 }
 
+#[cfg(feature = "router")]
+pub mod router {
+    pub use rooibos_router::*;
+}
+
 pub mod tester {
     pub use rooibos_tester::*;
 }
@@ -33,7 +38,5 @@ pub mod xterm_js {
     #[cfg(target_arch = "wasm32")]
     pub use rooibos_xterm_js::*;
 }
-
 pub use ratatui as tui;
-pub use rooibos_component_macros::*;
 pub use rooibos_runtime_macros::*;

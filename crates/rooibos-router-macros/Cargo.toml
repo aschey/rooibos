@@ -1,5 +1,5 @@
 [package]
-name = "rooibos-component-macros"
+name = "rooibos-router-macros"
 version = "0.1.0"
 edition = "2021"
 

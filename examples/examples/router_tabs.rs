@@ -1,19 +1,17 @@
 use std::error::Error;
 
-use rooibos::components::{
-    use_router, Button, KeyedWrappingList, Route, RouteFromStatic, Router, Tab, TabView,
-};
+use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::{
     col, length, line, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::router::{use_router, Route, RouteFromStatic, Router};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
 use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
-use rooibos::Route;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 

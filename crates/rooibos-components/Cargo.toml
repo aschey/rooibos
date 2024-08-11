@@ -13,10 +13,8 @@ crossterm = { version = "0.28.1", optional = true }
 tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
 next_tuple = { path = "../../../leptos/next_tuple" }
 either_of = { path = "../../../leptos/either_of" }
-matchit = "0.8"
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-runtime = { path = "../rooibos-runtime" }
-url = "2"
 derivative = "2"
 ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }

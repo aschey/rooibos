@@ -1,14 +1,13 @@
 use std::error::Error;
 
-use rooibos::components::{use_router, DefaultRoute, Route, RouteFromStatic, Router};
 use rooibos::dom::{after_render, col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::router::{use_router, DefaultRoute, Route, RouteFromStatic, Router};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::Paragraph;
-use rooibos::Route;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 

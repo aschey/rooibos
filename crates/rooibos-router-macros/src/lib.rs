@@ -13,16 +13,16 @@ pub fn derive_route(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
 fn get_components_import() -> proc_macro2::TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {
-            FoundCrate::Itself => quote::quote!(crate::components),
+            FoundCrate::Itself => quote::quote!(crate::router),
             FoundCrate::Name(name) => {
                 let ident = Ident::new(&name, Span::call_site());
-                quote::quote!(#ident::components)
+                quote::quote!(#ident::router)
             }
         }
     } else {
-        let found_crate = crate_name("rooibos-components").expect("rooibos-components not found");
+        let found_crate = crate_name("rooibos-router").expect("rooibos-router not found");
         match found_crate {
-            FoundCrate::Itself => quote::quote!(::rooibos_components),
+            FoundCrate::Itself => quote::quote!(::rooibos_router),
             FoundCrate::Name(name) => {
                 let ident = Ident::new(&name, Span::call_site());
                 quote::quote!(#ident)

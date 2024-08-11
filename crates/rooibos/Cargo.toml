@@ -12,11 +12,11 @@ reactive_graph = { path = "../../../leptos/reactive_graph", features = [
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
 rooibos-components = { path = "../rooibos-components" }
-rooibos-component-macros = { path = "../rooibos-component-macros" }
 rooibos-config = { path = "../rooibos-config", optional = true }
 rooibos-tester = { path = "../rooibos-tester" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
+rooibos-router = { path = "../rooibos-router", optional = true }
 ratatui = { version = "0.28", features = ["unstable"] }
 
 [features]
@@ -45,6 +45,7 @@ xterm-js = ["rooibos-xterm-js"]
 config = ["rooibos-config"]
 default = ["crossterm"]
 ssh = ["rooibos-ssh"]
+router = ["rooibos-router"]
 input-search = ["rooibos-components/input-search"]
 terminal-widget = ["rooibos-components/terminal-widget"]
 input = ["rooibos-components/input", "rooibos-dom/input"]

@@ -8,6 +8,7 @@ use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::{
     derive_signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom,
 };
+pub use rooibos_router_macros::*;
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use url::Url;

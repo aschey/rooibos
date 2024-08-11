@@ -1,0 +1,15 @@
+[package]
+name = "rooibos-router"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+matchit = "0.8"
+tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
+url = "2"
+reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+    "tracing",
+    "effects",
+] }
+rooibos-dom = { path = "../rooibos-dom" }
+rooibos-router-macros = { path = "../rooibos-router-macros" }
