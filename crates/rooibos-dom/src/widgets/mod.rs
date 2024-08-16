@@ -14,27 +14,13 @@ pub use sparkline::*;
 use crate::DomWidget;
 
 #[macro_export]
-macro_rules! widget_ref {
-    (props($($properties:expr),+), $($x:tt)*) => {
-        $crate::widget_ref(($($properties),+), move || $($x)*)
-    };
-    ($($x:tt)*) => {
-        $crate::widget_ref((), move || $($x)*)
-    };
-}
-
-#[macro_export]
-macro_rules! widget {
+macro_rules! wgt {
     (props($($properties:expr),+), $($x:tt)*) => {
         $crate::widget(($($properties),+), move || $($x)*)
     };
-    ($($x:tt)*) => {
-        $crate::widget((), move || $($x)*)
+    ($x:expr) => {
+        $crate::widget((), move || $x)
     };
-}
-
-#[macro_export]
-macro_rules! stateful_widget {
     ($x:expr, $y:expr) => {
         $crate::stateful_widget((), move || $x, move || $y)
     };
@@ -43,7 +29,27 @@ macro_rules! stateful_widget {
     };
 }
 
-pub fn widget_ref<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
+#[macro_export]
+macro_rules! wgt_o {
+    (props($($properties:expr),+), $($x:tt)*) => {
+        $crate::widget_owned(($($properties),+), move || $($x)*)
+    };
+    ($($x:tt)*) => {
+        $crate::widget_owned((), move || $($x)*)
+    };
+}
+
+// #[macro_export]
+// macro_rules! wgt_s {
+//     ($x:expr, $y:expr) => {
+//         $crate::stateful_widget((), move || $x, move || $y)
+//     };
+//     (props($($properties:expr),+), $x:expr, $y:expr) => {
+//         $crate::stateful_widget(($($properties),+), move || $x, move || $y)
+//     };
+// }
+
+pub fn widget<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
 where
     F: Fn() -> W + 'static,
     W: WidgetRef + 'static,
@@ -56,7 +62,7 @@ where
     })
 }
 
-pub fn widget<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
+pub fn widget_owned<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
 where
     F: Fn() -> W + 'static,
     W: Widget + Clone + 'static,

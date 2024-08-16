@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use rooibos::components::{Button, Notification, Notifications, Notifier};
-use rooibos::dom::{col, length, row, text, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, length, row, text, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -43,7 +43,7 @@ fn app() -> impl Render {
             ]
         ],
         col![
-            widget_ref!(format!("count: {}", count.get()))
+            wgt!(format!("count: {}", count.get()))
                 .on_key_down(key_down)
                 .on_click(move |_, _| update_count()),
         ],

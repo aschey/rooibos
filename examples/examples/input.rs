@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use rooibos::components::Input;
-use rooibos::dom::{col, widget_ref, Constrainable, Render, WidgetState};
+use rooibos::dom::{col, wgt, Constrainable, Render, WidgetState};
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
@@ -39,6 +39,6 @@ fn app() -> impl Render {
                 textarea.delete_line_by_head();
             })
             .render(textarea),
-        widget_ref!(format!("You typed {}", text.get()))
+        wgt!(format!("You typed {}", text.get()))
     ]
 }

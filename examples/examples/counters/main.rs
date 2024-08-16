@@ -2,7 +2,7 @@ use std::error::Error;
 
 use rooibos::components::{for_each, Button};
 use rooibos::dom::{
-    col, constraint, length, row, text, widget_ref, Constrainable, KeyCode, Render,
+    col, constraint, length, row, text, wgt, Constrainable, KeyCode, Render,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
@@ -51,7 +51,7 @@ fn counter(
             .length(5)
             .on_click(on_remove)
             .render(text!("x".red())),
-        widget_ref![
+        wgt![
             props(length(15)),
             Paragraph::new(format!("count: {}", count.get())).block(block.get())
         ]

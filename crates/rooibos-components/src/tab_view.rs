@@ -7,8 +7,8 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, constraint, derive_signal, line, span, widget_ref, BlurEvent, ChildrenFn, Constrainable,
-    EventData, FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    col, constraint, derive_signal, line, span, wgt, BlurEvent, ChildrenFn,
+    Constrainable, EventData, FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -395,7 +395,7 @@ impl TabView {
 
         col![
             props(constraint(constraint_)),
-            widget_ref![props(constraint(header_constraint)), {
+            wgt![props(constraint(header_constraint)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())
                     .style(style.get())

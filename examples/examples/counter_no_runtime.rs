@@ -8,8 +8,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use rooibos::dom::{
-    dom_update_receiver, focus_next, line, mount, render_dom, send_event, span, unmount,
-    widget_ref, Event, KeyCode, KeyEvent, KeyModifiers, Render,
+    dom_update_receiver, focus_next, line, mount, render_dom, send_event, span, unmount, wgt, Event, KeyCode, KeyEvent, KeyModifiers, Render,
 };
 use rooibos::reactive::owner::Owner;
 use rooibos::reactive::signal::signal;
@@ -106,7 +105,7 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(line!("count: ".bold(), span!(count.get()).cyan()))
+    wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_down)
         .on_click(move |_, _| update_count())
 }

@@ -1,6 +1,5 @@
 use rooibos::dom::{
-    col, constraint, derive_signal, line, percentage, row, span, stateful_widget, widget_ref,
-    Chart, Dataset, KeyCode, Render,
+    col, constraint, derive_signal, line, percentage, row, span, wgt, Chart, Dataset, KeyCode, Render,
 };
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -114,7 +113,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let window_start = Memo::new(move |_| window.get()[0]);
     let window_end = Memo::new(move |_| window.get()[1]);
 
-    widget_ref!(
+    wgt!(
         Chart::new(vec![
             Dataset::default()
                 .name("data2")
@@ -200,7 +199,7 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
         seq
     });
 
-    widget_ref!(
+    wgt!(
         BarChart::default()
             .block(Block::bordered().title("Bar chart"))
             .data(&bar_chart_data.get())
@@ -247,7 +246,7 @@ fn task_list() -> impl Render {
         }
     });
 
-    stateful_widget!(
+    wgt!(
         List::new(TASKS.map(|t| ListItem::new(span!(t))))
             .block(Block::bordered().title("List"))
             .highlight_style(Style::new().bold())
@@ -324,7 +323,7 @@ fn logs() -> impl Render {
             .collect::<Vec<_>>()
     });
 
-    widget_ref!(
+    wgt!(
         List::new(logs.get().iter().map(|(evt, level, style)| {
             ListItem::new(line!(span!(*style; "{level:<9}"), span!(*evt)))
         }))

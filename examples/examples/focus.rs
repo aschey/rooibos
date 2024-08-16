@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use rooibos::dom::{
-    col, focus_next, focus_prev, percentage, row, use_focus, widget_ref, KeyCode, Render,
+    col, focus_next, focus_prev, percentage, row, use_focus, wgt, KeyCode, Render,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
@@ -46,9 +46,7 @@ fn app() -> impl Render {
 fn focus_block(title: &'static str) -> impl Render {
     let (id, focused) = use_focus();
 
-    widget_ref!(
-        Paragraph::new(format!("{title} - focused: {}", focused.get())).block(Block::default())
-    )
-    .id(id)
-    .focusable(true)
+    wgt!(Paragraph::new(format!("{title} - focused: {}", focused.get())).block(Block::default()))
+        .id(id)
+        .focusable(true)
 }

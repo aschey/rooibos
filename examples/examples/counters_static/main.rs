@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rooibos::dom::{col, constraint, length, row, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, constraint, length, row, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -35,7 +35,7 @@ fn counter(id: i32, counter_constraint: Constraint) -> impl Render {
         }
     };
 
-    widget_ref![
+    wgt![
         props(constraint(counter_constraint)),
         Paragraph::new(format!("count: {}", count.get())).block(block.get())
     ]

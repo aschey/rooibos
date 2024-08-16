@@ -2,7 +2,8 @@ use ratatui::layout::Rect;
 use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
 use reactive_graph::traits::Set;
 
-use super::dom_node::{DomNodeKey, NodeId};
+use super::dom_node::NodeId;
+use super::node_tree::DomNodeKey;
 use super::{with_nodes, with_state, with_state_mut};
 use crate::{BlurEvent, EventData, FocusEvent};
 

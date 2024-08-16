@@ -2,7 +2,7 @@ use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{stateful_widget, BlurEvent, EventData, FocusEvent, KeyEvent, Render};
+use rooibos_dom::{wgt, BlurEvent, EventData, FocusEvent, KeyEvent, Render};
 
 use crate::WrappingList;
 
@@ -134,7 +134,7 @@ impl<T> ListView<T> {
         let selected: MaybeSignal<Option<usize>> = selected.into();
         {
             let items = items.clone();
-            stateful_widget!(
+            wgt!(
                 {
                     let mut list = List::new(items.get().0.into_iter().map(Into::into))
                         .highlight_style(highlight_style.get())

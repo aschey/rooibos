@@ -34,6 +34,8 @@ tokio-stream = { version = "0.1.15", features = ["sync"] }
 clap = { version = "4.5.13", features = ["derive"] }
 schematic = { version = "0.17" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+slotmap = "1.0.7"
+taffy = "0.5.2"
 
 [dev-dependencies]
 insta = "1.39.0"

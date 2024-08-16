@@ -2,7 +2,7 @@ use std::error::Error;
 
 use rooibos::components::Popup;
 use rooibos::dom::{
-    clear, col, fill, line, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render,
+    clear, col, fill, line, overlay, wgt, Constrainable, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;
@@ -29,7 +29,7 @@ fn app() -> impl Render {
     };
 
     overlay![
-        widget_ref!(
+        wgt!(
             Paragraph::new(vec![
                 line!("text1"),
                 line!("text2"),
@@ -44,10 +44,7 @@ fn app() -> impl Render {
             .percent_y(50)
             .render(show_popup, move || col![
                 col![props(fill(1))],
-                clear![widget_ref!(
-                    Paragraph::new("popup text").block(Block::bordered())
-                )]
-                .length(3),
+                clear![wgt!(Paragraph::new("popup text").block(Block::bordered()))].length(3),
                 col![props(fill(1))],
             ])
     ]

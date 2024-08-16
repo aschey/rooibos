@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::Stdout;
 
-use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
@@ -38,7 +38,7 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(format!("count {}", count.get()))
+    wgt!(format!("count {}", count.get()))
         .on_key_down(key_down)
         .on_click(move |_, _| update_count())
 }

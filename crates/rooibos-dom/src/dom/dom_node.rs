@@ -1,23 +1,25 @@
 use core::fmt::Debug;
 use std::any::Any;
 use std::cell::RefCell;
-use std::fmt::{self, Display};
+use std::fmt::{self};
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use derivative::Derivative;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Direction, Flex, Layout, Rect};
+use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::widgets::{Block, WidgetRef};
 use reactive_graph::effect::RenderEffect;
-use slotmap::{new_key_type, SlotMap};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::dom_state::{self, DomState};
-use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, DOM_NODES};
+use super::node_tree::{DomNodeKey, NodeTree};
+use super::{
+    unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, Property, DOM_NODES,
+};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -39,7 +41,7 @@ impl NodeId {
     }
 }
 
-impl Display for NodeId {
+impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
             NodeIdInner::Auto(val) => std::fmt::Display::fmt(&val, f),
@@ -60,52 +62,108 @@ impl From<&str> for NodeId {
     }
 }
 
-new_key_type! {pub(crate) struct DomNodeKey; }
-
-impl DomNodeKey {
-    pub(crate) fn traverse<F, T>(&self, f: F, stop_on_first_match: bool) -> Vec<T>
-    where
-        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
-    {
-        let mut out_list = vec![];
-        self.traverse_inner(f, &mut out_list, stop_on_first_match);
-        out_list
-    }
-
-    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, stop_on_first_match: bool)
-    where
-        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
-    {
-        if let Some(out) = with_nodes(|nodes| f(*self, &nodes[*self])) {
-            out_list.push(out);
-            if stop_on_first_match {
-                return;
-            }
-        }
-        let children = with_nodes(|nodes| nodes[*self].children.clone());
-        for child in children {
-            child.traverse_inner(f.clone(), out_list, stop_on_first_match);
-        }
-    }
-}
-
 pub(crate) struct NodeTypeStructure {
     pub(crate) name: &'static str,
     pub(crate) attrs: Option<String>,
 }
 
 #[derive(PartialEq, Eq, Clone, Default, Debug)]
-pub struct LayoutProps {
-    pub direction: Direction,
+pub struct LayoutPropsOld {
+    pub direction: ratatui::layout::Direction,
     pub flex: Flex,
     pub margin: u16,
     pub spacing: u16,
     pub block: Option<Block<'static>>,
 }
 
+// #[derive(Clone, Debug)]
+// pub(crate) struct FlexContainer {
+//     pub(crate) direction: MaybeSignal<taffy::FlexDirection>,
+//     pub(crate) wrap: Wrap,
+//     pub(crate) align_items: Option<MaybeSignal<AlignItems>>,
+//     pub(crate) justify_items: Option<MaybeSignal<AlignItems>>,
+//     pub(crate) align_content: Option<MaybeSignal<AlignContent>>,
+//     pub(crate) justify_content: Option<MaybeSignal<JustifyContent>>,
+//     pub(crate) gap: MaybeSignal<Size<LengthPercentage>>,
+// }
+
+// #[derive(Debug, Clone, Copy, PartialEq)]
+// pub struct FlexGrow(f32);
+
+// impl Eq for FlexGrow {}
+
+// impl Deref for FlexGrow {
+//     type Target = f32;
+
+//     fn deref(&self) -> &Self::Target {
+//         &self.0
+//     }
+// }
+
+// impl DerefMut for FlexGrow {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.0
+//     }
+// }
+
+// impl From<f32> for FlexGrow {
+//     fn from(value: f32) -> Self {
+//         Self(value)
+//     }
+// }
+
+// #[derive(Debug, Clone, Copy, PartialEq)]
+// pub struct FlexShrink(f32);
+
+// impl Eq for FlexShrink {}
+
+// impl Deref for FlexShrink {
+//     type Target = f32;
+
+//     fn deref(&self) -> &Self::Target {
+//         &self.0
+//     }
+// }
+
+// impl DerefMut for FlexShrink {
+//     fn deref_mut(&mut self) -> &mut Self::Target {
+//         &mut self.0
+//     }
+// }
+
+// impl From<f32> for FlexShrink {
+//     fn from(value: f32) -> Self {
+//         Self(value)
+//     }
+// }
+
+// #[derive(PartialEq, Clone, Debug)]
+// pub(crate) struct FlexItem {
+//     pub(crate) grow: Rc<RefCell<FlexGrow>>,
+//     pub(crate) shrink: Rc<RefCell<FlexShrink>>,
+//     pub(crate) align_self: Rc<RefCell<Option<AlignSelf>>>,
+// }
+
+// #[derive(Clone, Debug)]
+// pub(crate) enum Display {
+//     Flex {
+//         container: FlexContainer,
+//         item: FlexItem,
+//     },
+//     Block,
+//     None,
+// }
+
+// #[derive(Clone, Debug)]
+// pub struct LayoutProps {
+//     pub(crate) size: Size<Dimension>,
+//     pub(crate) display: Display,
+//     pub(crate) block: Option<Block<'static>>,
+// }
+
 #[derive(Clone, PartialEq, Eq, Default)]
 pub enum NodeType {
-    Layout(Rc<RefCell<LayoutProps>>),
+    Layout(Rc<RefCell<LayoutPropsOld>>),
     Overlay,
     Absolute(Rc<RefCell<(u16, u16)>>),
     Widget(DomWidgetNode),
@@ -117,7 +175,7 @@ impl NodeType {
     pub(crate) fn structure(&self) -> NodeTypeStructure {
         match self {
             NodeType::Layout(layout_props) => {
-                let LayoutProps {
+                let LayoutPropsOld {
                     direction,
                     flex,
                     margin,
@@ -159,7 +217,7 @@ impl Debug for NodeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             NodeType::Layout(layout_props) => {
-                let LayoutProps {
+                let LayoutPropsOld {
                     direction,
                     flex,
                     margin,
@@ -244,7 +302,7 @@ impl Mountable<RooibosDom> for Box<dyn AnyMountable> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
-    Layout(LayoutProps),
+    Layout(LayoutPropsOld),
     Overlay,
     Absolute,
     Widget,
@@ -381,7 +439,7 @@ impl DomNodeRepr {
     pub fn focus(&self) {
         let found_node = with_nodes(|nodes| {
             nodes
-                .iter()
+                .iter_nodes()
                 .find_map(|(key, _)| if key == self.key { Some(key) } else { None })
         })
         .unwrap();
@@ -422,7 +480,7 @@ struct RenderProps<'a> {
     rect: Rect,
     window: Rect,
     key: DomNodeKey,
-    dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
+    dom_nodes: &'a NodeTree,
     dom_state: &'a mut DomState,
     parent_layout: Layout,
 }
@@ -431,54 +489,70 @@ impl DomNodeInner {
     fn render(&self, props: RenderProps) {
         let RenderProps {
             buf,
-            rect,
+            mut rect,
             window,
             key,
             dom_nodes,
             dom_state,
             parent_layout,
         } = props;
+        let use_taffy = true;
         let prev_rect = *self.rect.borrow();
+        if use_taffy {
+            rect = dom_nodes.layout(key);
+        }
         *self.rect.borrow_mut() = rect;
 
         if *self.focusable.borrow() {
             dom_state.add_focusable(key);
         }
 
-        match &self.node_type {
-            NodeType::Layout(layout_props) => {
-                let LayoutProps {
-                    direction,
-                    flex,
-                    mut margin,
-                    spacing,
-                    block,
-                } = layout_props.borrow().clone();
-                if let Some(block) = block {
-                    // Need margin to prevent block from rendering over the content
-                    if margin < 1 {
-                        margin = 1;
-                    }
-                    block.render_ref(rect, buf);
-                };
+        if use_taffy {
+            match &self.node_type {
+                NodeType::Layout(layout_props) => {
+                    let LayoutPropsOld {
+                        direction,
+                        flex,
+                        mut margin,
+                        spacing,
+                        block,
+                    } = layout_props.borrow().clone();
+                    if let Some(block) = block {
+                        // Need margin to prevent block from rendering over the content
+                        if margin < 1 {
+                            margin = 1;
+                        }
+                        block.render_ref(rect, buf);
+                    };
 
-                let constraints = self
-                    .layout_children(dom_nodes)
-                    .map(|key| *dom_nodes[*key].constraint.borrow());
-                let layout = Layout::default()
-                    .direction(direction)
-                    .flex(flex)
-                    .margin(margin)
-                    .spacing(spacing)
-                    .constraints(constraints);
+                    // let constraints = self
+                    //     .layout_children(dom_nodes)
+                    //     .map(|key| *dom_nodes[*key].constraint.borrow());
+                    // let layout = Layout::default()
+                    //     .direction(direction)
+                    //     .flex(flex)
+                    //     .margin(margin)
+                    //     .spacing(spacing)
+                    //     .constraints(constraints);
 
-                let chunks = layout.split(rect);
-                self.layout_children(dom_nodes)
-                    .zip(chunks.iter())
-                    .for_each(|(key, chunk)| {
+                    // let chunks = layout.split(rect);
+                    self.layout_children(dom_nodes)
+                        // .zip(chunks.iter())
+                        .for_each(|key| {
+                            dom_nodes[*key].render(RenderProps {
+                                buf,
+                                rect: Default::default(),
+                                window,
+                                key: *key,
+                                dom_nodes,
+                                dom_state,
+                                parent_layout: Layout::default(),
+                            });
+                        });
+                    self.absolute_children(dom_nodes).for_each(|key| {
                         dom_nodes[*key].render(RenderProps {
                             buf,
-                            rect: *chunk,
+                            rect: window,
                             window,
                             key: *key,
                             dom_nodes,
@@ -486,55 +560,137 @@ impl DomNodeInner {
                             parent_layout: Layout::default(),
                         });
                     });
-                self.absolute_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        buf,
-                        rect: window,
-                        window,
-                        key: *key,
-                        dom_nodes,
-                        dom_state,
-                        parent_layout: Layout::default(),
+                }
+                NodeType::Overlay => {
+                    // let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
+                    // let chunks = parent_layout.split(rect);
+                    self.renderable_children(dom_nodes).for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            buf,
+                            rect: Default::default(),
+                            window,
+                            key: *key,
+                            dom_nodes,
+                            dom_state,
+                            parent_layout: parent_layout.clone(),
+                        });
                     });
-                });
-            }
-            NodeType::Overlay => {
-                let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                let chunks = parent_layout.split(rect);
-                self.renderable_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        buf,
-                        rect: chunks[0],
-                        window,
-                        key: *key,
-                        dom_nodes,
-                        dom_state,
-                        parent_layout: parent_layout.clone(),
+                }
+                NodeType::Absolute(pos) => {
+                    // let (x, y) = *pos.borrow();
+                    // let rect = Rect::new(x, y, window.width - x, window.height - y);
+                    self.renderable_children(dom_nodes).for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            buf,
+                            rect,
+                            window,
+                            key: *key,
+                            dom_nodes,
+                            dom_state,
+                            parent_layout: parent_layout.clone(),
+                        });
                     });
-                });
+                }
+                NodeType::Widget(widget) => {
+                    // let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
+                    // let chunks = parent_layout.split(rect);
+                    widget.render(rect, buf);
+                    // *self.rect.borrow_mut() = chunks[0];
+                }
+                NodeType::Placeholder => {}
             }
-            NodeType::Absolute(pos) => {
-                let (x, y) = *pos.borrow();
-                let rect = Rect::new(x, y, window.width - x, window.height - y);
-                self.renderable_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        buf,
-                        rect,
-                        window,
-                        key: *key,
-                        dom_nodes,
-                        dom_state,
-                        parent_layout: parent_layout.clone(),
+        } else {
+            match &self.node_type {
+                NodeType::Layout(layout_props) => {
+                    let LayoutPropsOld {
+                        direction,
+                        flex,
+                        mut margin,
+                        spacing,
+                        block,
+                    } = layout_props.borrow().clone();
+                    if let Some(block) = block {
+                        // Need margin to prevent block from rendering over the content
+                        if margin < 1 {
+                            margin = 1;
+                        }
+                        block.render_ref(rect, buf);
+                    };
+
+                    let constraints = self
+                        .layout_children(dom_nodes)
+                        .map(|key| *dom_nodes[*key].constraint.borrow());
+                    let layout = Layout::default()
+                        .direction(direction)
+                        .flex(flex)
+                        .margin(margin)
+                        .spacing(spacing)
+                        .constraints(constraints);
+
+                    let chunks = layout.split(rect);
+                    self.layout_children(dom_nodes)
+                        .zip(chunks.iter())
+                        .for_each(|(key, chunk)| {
+                            dom_nodes[*key].render(RenderProps {
+                                buf,
+                                rect: *chunk,
+                                window,
+                                key: *key,
+                                dom_nodes,
+                                dom_state,
+                                parent_layout: Layout::default(),
+                            });
+                        });
+                    self.absolute_children(dom_nodes).for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            buf,
+                            rect: window,
+                            window,
+                            key: *key,
+                            dom_nodes,
+                            dom_state,
+                            parent_layout: Layout::default(),
+                        });
                     });
-                });
+                }
+                NodeType::Overlay => {
+                    let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
+                    let chunks = parent_layout.split(rect);
+                    self.renderable_children(dom_nodes).for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            buf,
+                            rect: chunks[0],
+                            window,
+                            key: *key,
+                            dom_nodes,
+                            dom_state,
+                            parent_layout: parent_layout.clone(),
+                        });
+                    });
+                }
+                NodeType::Absolute(pos) => {
+                    let (x, y) = *pos.borrow();
+                    let rect = Rect::new(x, y, window.width - x, window.height - y);
+                    self.renderable_children(dom_nodes).for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            buf,
+                            rect,
+                            window,
+                            key: *key,
+                            dom_nodes,
+                            dom_state,
+                            parent_layout: parent_layout.clone(),
+                        });
+                    });
+                }
+                NodeType::Widget(widget) => {
+                    let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
+                    let chunks = parent_layout.split(rect);
+                    widget.render(chunks[0], buf);
+                    *self.rect.borrow_mut() = chunks[0];
+                }
+                NodeType::Placeholder => {}
             }
-            NodeType::Widget(widget) => {
-                let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                let chunks = parent_layout.split(rect);
-                widget.render(chunks[0], buf);
-                *self.rect.borrow_mut() = chunks[0];
-            }
-            NodeType::Placeholder => {}
         }
 
         let rect = *self.rect.borrow();
@@ -547,31 +703,28 @@ impl DomNodeInner {
 
     fn renderable_children<'a>(
         &'a self,
-        dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
+        dom_nodes: &'a NodeTree,
     ) -> impl Iterator<Item = &DomNodeKey> {
         self.children
             .iter()
             .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Placeholder))
     }
 
-    fn layout_children<'a>(
-        &'a self,
-        dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
-    ) -> impl Iterator<Item = &DomNodeKey> {
+    fn layout_children<'a>(&'a self, dom_nodes: &'a NodeTree) -> impl Iterator<Item = &DomNodeKey> {
         self.renderable_children(dom_nodes)
             .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Absolute(_)))
     }
 
     fn absolute_children<'a>(
         &'a self,
-        dom_nodes: &'a SlotMap<DomNodeKey, DomNodeInner>,
+        dom_nodes: &'a NodeTree,
     ) -> impl Iterator<Item = &DomNodeKey> {
         self.renderable_children(dom_nodes)
             .filter(|c| matches!(dom_nodes[**c].node_type, NodeType::Absolute(_)))
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DomNode {
     key: DomNodeKey,
     unmounted: Arc<AtomicBool>,
@@ -655,7 +808,14 @@ impl DomNode {
             node_type: NodeType::Widget(widget),
             ..Default::default()
         };
-        let key = with_nodes_mut(|n| n.insert(inner));
+        let key = with_nodes_mut(|n| {
+            let key = n.insert(inner);
+            n.update_layout(key, |style| {
+                // style.size.width = Dimension::Percent(1.0);
+                // style.size.height = Dimension::Percent(1.0);
+            });
+            key
+        });
         Self {
             key,
             unmounted: Arc::new(AtomicBool::new(false)),
@@ -665,8 +825,8 @@ impl DomNode {
     pub(crate) fn row() -> Self {
         let inner = DomNodeInner {
             name: "row".to_string(),
-            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutProps {
-                direction: Direction::Horizontal,
+            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutPropsOld {
+                direction: ratatui::layout::Direction::Horizontal,
                 ..Default::default()
             }))),
             ..Default::default()
@@ -678,11 +838,55 @@ impl DomNode {
         }
     }
 
+    pub(crate) fn flex_row() -> Self {
+        let inner = DomNodeInner {
+            name: "flex_row".to_string(),
+            node_type: NodeType::Layout(Default::default()),
+            ..Default::default()
+        };
+        let key = with_nodes_mut(|n| {
+            let key = n.insert(inner);
+            n.update_layout(key, |style| {
+                style.display = taffy::Display::Flex;
+                style.flex_direction = taffy::FlexDirection::Row;
+                // style.size.width = Dimension::Percent(1.0);
+                // style.size.height = Dimension::Percent(1.0);
+            });
+            key
+        });
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub(crate) fn flex_col() -> Self {
+        let inner = DomNodeInner {
+            name: "flex_col".to_string(),
+            node_type: NodeType::Layout(Default::default()),
+            ..Default::default()
+        };
+        let key = with_nodes_mut(|n| {
+            let key = n.insert(inner);
+            n.update_layout(key, |style| {
+                style.display = taffy::Display::Flex;
+                style.flex_direction = taffy::FlexDirection::Column;
+                // style.size.width = Dimension::Percent(1.0);
+                // style.size.height = Dimension::Percent(1.0);
+            });
+            key
+        });
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
     pub(crate) fn col() -> Self {
         let inner = DomNodeInner {
             name: "col".to_string(),
-            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutProps {
-                direction: Direction::Vertical,
+            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutPropsOld {
+                direction: ratatui::layout::Direction::Vertical,
                 ..Default::default()
             }))),
             ..Default::default()
@@ -722,39 +926,40 @@ impl DomNode {
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|nodes| {
-            // This is annoyingly verbose, but we use destructuring here to ensure we account for
-            // any new properties that get added to DomNodeInner
-            let DomNodeInner {
-                node_type,
-                name,
-                constraint,
-                children: _children,
-                parent: _parent,
-                id,
-                class,
-                focusable,
-                event_handlers,
-                rect,
-            } = &nodes[self.key];
-            let name = name.clone();
-            let node_type = node_type.clone();
-            let constraint = constraint.clone();
-            let focusable = focusable.clone();
-            let id = id.clone();
-            let class = class.clone();
-            let event_handlers = event_handlers.clone();
-            let rect = rect.clone();
+            nodes.replace_node(self.key, node.key);
+            // // This is annoyingly verbose, but we use destructuring here to ensure we account for
+            // // any new properties that get added to DomNodeInner
+            // let DomNodeInner {
+            //     node_type,
+            //     name,
+            //     constraint,
+            //     children: _children,
+            //     parent: _parent,
+            //     id,
+            //     class,
+            //     focusable,
+            //     event_handlers,
+            //     rect,
+            // } = &nodes[self.key];
+            // let name = name.clone();
+            // let node_type = node_type.clone();
+            // let constraint = constraint.clone();
+            // let focusable = focusable.clone();
+            // let id = id.clone();
+            // let class = class.clone();
+            // let event_handlers = event_handlers.clone();
+            // let rect = rect.clone();
 
-            let new = &mut nodes[node.key];
+            // let new = &mut nodes[node.key];
 
-            new.name = name;
-            new.node_type = node_type;
-            new.constraint = constraint;
-            new.focusable = focusable;
-            new.id = id;
-            new.class = class;
-            new.event_handlers = event_handlers;
-            new.rect = rect;
+            // new.name = name;
+            // new.node_type = node_type;
+            // new.constraint = constraint;
+            // new.focusable = focusable;
+            // new.id = id;
+            // new.class = class;
+            // new.event_handlers = event_handlers;
+            // new.rect = rect;
         });
         unmount_child(self.key, true);
 
@@ -768,43 +973,42 @@ impl DomNode {
             parent: self.get_parent_key(),
             ..Default::default()
         };
-        with_nodes_mut(|n| n[self.key] = inner);
+        with_nodes_mut(|n| n.replace_inner(self.key, inner));
     }
 
     pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
-        with_nodes_mut(|n| n[self.key].constraint = constraint);
+        with_nodes_mut(|n| n.set_constraint(self.key, constraint));
     }
 
     pub(crate) fn set_focusable(&self, focusable: Rc<RefCell<bool>>) {
-        with_nodes_mut(|n| n[self.key].focusable = focusable);
+        with_nodes_mut(|n| n.set_focusable(self.key, focusable));
     }
 
     pub(crate) fn update_event_handlers<F>(&self, update: F)
     where
         F: FnOnce(EventHandlers) -> EventHandlers,
     {
-        with_nodes_mut(|n| n[self.key].event_handlers = update(n[self.key].event_handlers.clone()));
+        with_nodes_mut(|n| n.update_event_handlers(self.key, update));
     }
 
     pub(crate) fn set_id(&self, id: impl Into<NodeId>) {
         with_nodes_mut(|n| {
-            n[self.key].id = Some(id.into());
-            *n[self.key].focusable.borrow_mut() = true;
+            n.set_id(self.key, id);
         });
     }
 
     pub(crate) fn set_class(&self, class: impl Into<String>) {
         with_nodes_mut(|n| {
-            n[self.key].class = Some(class.into());
+            n.set_class(self.key, class);
         });
     }
 
-    pub(crate) fn layout_props(&self) -> Rc<RefCell<LayoutProps>> {
+    pub(crate) fn layout_props(&self) -> Rc<RefCell<LayoutPropsOld>> {
         with_nodes(|n| {
             if let NodeType::Layout(layout_props) = &n[self.key].node_type {
                 layout_props.clone()
             } else {
-                Rc::new(RefCell::new(LayoutProps::default()))
+                Rc::new(RefCell::new(LayoutPropsOld::default()))
             }
         })
     }
@@ -828,19 +1032,20 @@ impl DomNode {
 
     pub(crate) fn insert_before(&self, child: &DomNode, reference: Option<&DomNode>) {
         with_nodes_mut(|nodes| {
-            if let Some(reference) = reference {
-                if let Some(reference_pos) = nodes[self.key]
-                    .children
-                    .iter()
-                    .position(|c| *c == reference.key)
-                {
-                    nodes[self.key].children.insert(reference_pos, child.key);
-                    nodes[child.key].parent = Some(self.key);
-                }
-            } else {
-                nodes[self.key].children.push(child.key);
-                nodes[child.key].parent = Some(self.key);
-            }
+            nodes.insert_before(self.key, child.key, reference.map(|r| r.key))
+            // if let Some(reference) = reference {
+            //     if let Some(reference_pos) = nodes[self.key]
+            //         .children
+            //         .iter()
+            //         .position(|c| *c == reference.key)
+            //     {
+            //         nodes[self.key].children.insert(reference_pos, child.key);
+            //         nodes[child.key].parent = Some(self.key);
+            //     }
+            // } else {
+            //     nodes[self.key].children.push(child.key);
+            //     nodes[child.key].parent = Some(self.key);
+            // }
         })
     }
 

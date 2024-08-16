@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use clap::Parser;
-use rooibos::dom::{after_render, col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
 use rooibos::router::{use_router, Route, RouteFrom, Router, ToRoute};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
@@ -53,7 +53,7 @@ fn child1() -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new("child1"))
+    wgt!(Paragraph::new("child1"))
         .on_key_down(key_down)
         .id("child1")
 }
@@ -71,7 +71,7 @@ fn child2() -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new("child2"))
+    wgt!(Paragraph::new("child2"))
         .on_key_down(key_down)
         .id("child2")
 }

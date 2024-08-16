@@ -1,4 +1,4 @@
-use rooibos::dom::{col, percentage, row, widget_ref, Render};
+use rooibos::dom::{col, percentage, row, wgt, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::owner::StoredValue;
 use rooibos::reactive::traits::Get;
@@ -66,7 +66,7 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
             .collect::<Vec<_>>()
     });
 
-    widget_ref!(
+    wgt!(
         Table::new(rows.get(), [Length(15), Length(15), Length(10),])
             .header(
                 Row::new(vec!["Server", "Location", "Status"])
@@ -119,7 +119,7 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
         }
     };
 
-    widget_ref!(
+    wgt!(
         Canvas::default()
             .block(Block::bordered().title("World"))
             .paint(paint_map)

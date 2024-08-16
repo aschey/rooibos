@@ -1,7 +1,7 @@
 use std::env;
 use std::error::Error;
 
-use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -34,7 +34,7 @@ fn app(editor: String, args: Vec<String>) -> impl Render {
         }
     };
 
-    widget_ref!(format!(
+    wgt!(format!(
         "count: {}. Press 'e' to open your editor.",
         count.get()
     ))

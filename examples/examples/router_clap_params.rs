@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use clap::{Args, Parser, Subcommand};
-use rooibos::dom::{after_render, col, focus_id, widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
@@ -99,7 +99,7 @@ fn child0() -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new("child0"))
+    wgt!(Paragraph::new("child0"))
         .on_key_down(key_down)
         .id("child0")
 }
@@ -119,7 +119,7 @@ fn child1(child2_id: RwSignal<i32>) -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new(format!(
+    wgt!(Paragraph::new(format!(
         "child1 id={}",
         id.get().unwrap_or_else(|| "N/A".to_string())
     )))
@@ -141,7 +141,7 @@ fn child2() -> impl Render {
         }
     };
 
-    widget_ref!(Paragraph::new(format!("child2 id={}", id.get())))
+    wgt!(Paragraph::new(format!("child2 id={}", id.get())))
         .on_key_down(key_down)
         .id("child2")
 }

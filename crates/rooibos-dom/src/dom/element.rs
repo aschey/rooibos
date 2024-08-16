@@ -414,16 +414,16 @@ macro_rules! overlay {
 #[macro_export]
 macro_rules! clear {
     () => (
-        $crate::overlay((), $crate::widget_ref!($crate::__widgets::Clear))
+        $crate::overlay((), $crate::wgt!($crate::__widgets::Clear))
     );
     (props($properties:expr), $($x:expr),+ $(,)?) => (
-        $crate::overlay($properties, ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+        $crate::overlay($properties, ($crate::wgt!($crate::__widgets::Clear),$($x),+))
     );
     (props($($properties:expr),+), $($x:expr),+ $(,)?) => (
-        $crate::overlay(($($properties),+), ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+        $crate::overlay(($($properties),+), ($crate::wgt!($crate::__widgets::Clear),$($x),+))
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::overlay((), ($crate::widget_ref!($crate::__widgets::Clear),$($x),+))
+        $crate::overlay((), ($crate::wgt!($crate::__widgets::Clear),$($x),+))
     );
 }
 

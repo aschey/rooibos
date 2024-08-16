@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::io::{stdin, IsTerminal};
 
-use rooibos::dom::{line, widget_ref, Render};
+use rooibos::dom::{line, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
 use rooibos::tui::style::Stylize;
@@ -27,5 +27,5 @@ async fn main() -> Result<()> {
 }
 
 fn app(text: String) -> impl Render {
-    widget_ref!(line!("You typed: ", text.clone().bold().green()))
+    wgt!(line!("You typed: ", text.clone().bold().green()))
 }

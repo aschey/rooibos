@@ -4,7 +4,7 @@ use rooibos::config::watch_config::backend::schematic::AppConfig;
 use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
-use rooibos::dom::{text, widget_ref, Render};
+use rooibos::dom::{text, wgt, Render};
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
@@ -35,5 +35,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 fn app() -> impl Render {
     let config = use_config::<AppConfigExample>();
-    widget_ref!(text!(format!("{:?}", config.get().new)))
+    wgt!(text!(format!("{:?}", config.get().new)))
 }

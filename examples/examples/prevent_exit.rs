@@ -2,8 +2,8 @@ use std::error::Error;
 
 use rooibos::components::Popup;
 use rooibos::dom::{
-    after_render, clear, col, fill, focus_id, line, overlay, widget_ref, Constrainable, KeyCode,
-    NodeId, Render,
+    after_render, clear, col, fill, focus_id, line, overlay, wgt, Constrainable,
+    KeyCode, NodeId, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
@@ -33,7 +33,7 @@ fn app() -> impl Render {
     });
 
     overlay![
-        widget_ref!(
+        wgt!(
             Paragraph::new(vec![
                 line!("text1"),
                 line!("text2"),
@@ -59,7 +59,7 @@ fn app() -> impl Render {
                 col![
                     col![props(fill(1))],
                     clear![
-                        widget_ref!(
+                        wgt!(
                             Paragraph::new("Are you sure you want to quit? [yN]")
                                 .block(Block::bordered())
                         )

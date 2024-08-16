@@ -1,4 +1,4 @@
-use rooibos::dom::{col, constraint, ratio, row, widget_ref, Render};
+use rooibos::dom::{col, constraint, ratio, row, wgt, Render};
 use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
@@ -28,7 +28,7 @@ fn colors_table(table_constraint: Constraint) -> impl Render {
         Color::White,
     ];
 
-    widget_ref![
+    wgt![
         props(constraint(table_constraint)),
         Table::new(
             colors.iter().map(|c| {

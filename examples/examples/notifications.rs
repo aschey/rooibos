@@ -2,7 +2,7 @@ use std::error::Error;
 use std::time::Duration;
 
 use rooibos::components::{Notification, Notifications, Notifier};
-use rooibos::dom::{col, line, widget_ref, Render};
+use rooibos::dom::{col, line, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{wasm_compat, Runtime};
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -26,7 +26,7 @@ fn app() -> impl Render {
         notifier.notify(Notification::new("notify 2"));
     });
     col![
-        widget_ref!(
+        wgt!(
             Paragraph::new(vec![
                 line!("text1"),
                 line!("text2"),

@@ -1,4 +1,4 @@
-use rooibos::dom::{block, col, constraint, widget_ref, Render, Sparkline};
+use rooibos::dom::{block, col, constraint, wgt, Render, Sparkline};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
@@ -50,7 +50,7 @@ fn demo_gauge(
     progress: ReadSignal<f64>,
     gauge_constraint: Constraint,
 ) -> impl Render {
-    widget_ref![
+    wgt![
         props(constraint(gauge_constraint)),
         Gauge::default()
             .block(Block::new().title("Gauge:"))
@@ -66,7 +66,7 @@ fn demo_line_gauge(
     progress: ReadSignal<f64>,
     gauge_constraint: Constraint,
 ) -> impl Render {
-    widget_ref![
+    wgt![
         props(constraint(gauge_constraint)),
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
@@ -102,7 +102,7 @@ fn demo_sparkline(enhanced_graphics: bool, line_constraint: Constraint) -> impl 
         seq
     });
 
-    widget_ref![
+    wgt![
         props(constraint(line_constraint)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))

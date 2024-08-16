@@ -10,8 +10,8 @@ use rooibos::components::{
 };
 use rooibos::dom::{
     after_render, block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay,
-    percentage, row, span, text, transition, widget_ref, Constrainable, Errors, IntoAny, NodeId,
-    Render, RenderAny, WidgetState,
+    percentage, row, span, text, transition, wgt, Constrainable, Errors, IntoAny,
+    NodeId, Render, RenderAny, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -65,7 +65,7 @@ fn app(notification_timeout: Duration) -> impl Render {
                 props(length(3)),
                 col![
                     props(length(12), block(Block::default())),
-                    widget_ref!("Add a Todo")
+                    wgt!("Add a Todo")
                 ],
                 col![props(percentage(80)), create_todos_input()]
             ],
@@ -135,15 +135,15 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
         let error_list =
             move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
 
-        widget_ref!(Paragraph::new(line!(error_list())))
+        wgt!(Paragraph::new(line!(error_list())))
     };
 
     transition!(
-        widget_ref!(line!(" Loading...".gray())),
+        wgt!(line!(" Loading...".gray())),
         {
             todos.await.map(|todos| {
                 col![if todos.is_empty() {
-                    widget_ref!("No todos".gray()).into_any()
+                    wgt!("No todos".gray()).into_any()
                 } else {
                     todos
                         .into_iter()
@@ -178,7 +178,7 @@ fn saving_popup() -> impl RenderAny {
                 col![props(fill(1))],
                 clear![
                     props(length(3)),
-                    widget_ref![Paragraph::new("Saving...").block(Block::bordered())]
+                    wgt![Paragraph::new("Saving...").block(Block::bordered())]
                 ],
                 col![props(fill(1))],
             ]
@@ -198,7 +198,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin(1)), widget_ref!(Paragraph::new(text.get()))])
+            .fallback(move || col![props(margin(1)), wgt!(Paragraph::new(text.get()))])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })

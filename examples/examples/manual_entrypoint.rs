@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
+use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -31,5 +31,5 @@ fn app() -> impl Render {
         }
     };
 
-    widget_ref!(format!("count {}", count.get())).on_key_down(key_down)
+    wgt!(format!("count {}", count.get())).on_key_down(key_down)
 }

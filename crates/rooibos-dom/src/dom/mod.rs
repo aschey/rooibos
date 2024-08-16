@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
+use node_tree::{DomNodeKey, NodeTree};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::text::Line;
@@ -9,14 +10,13 @@ use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use reactive_graph::signal::ReadSignal;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
-use slotmap::SlotMap;
 use tachys::renderer::{CastFrom, Renderer};
 use tachys::view::Render as _;
 use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{derive_signal, line, text, widget_ref, EventData, MouseEventFn};
+use crate::{derive_signal, line, text, wgt, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
@@ -24,8 +24,11 @@ mod dom_node;
 mod dom_state;
 mod dom_widget;
 mod element;
+pub mod flex_node;
 mod focus;
 mod into_view;
+mod layout_tree;
+mod node_tree;
 
 pub use any_view::*;
 pub use children::*;
@@ -45,6 +48,12 @@ where
 {
     fn as_dom_node(&self) -> &DomNode {
         self.0.as_dom_node()
+    }
+}
+
+impl AsDomNode for Box<dyn AsDomNode> {
+    fn as_dom_node(&self) -> &DomNode {
+        (**self).as_dom_node()
     }
 }
 
@@ -149,9 +158,8 @@ impl DomUpdateReceiver {
 }
 
 thread_local! {
-    static DOM_ROOT: RefCell<Option<Box<dyn AsDomNode>>> = const { RefCell::new(None) };
-    static DOM_NODES: RefCell<SlotMap<DomNodeKey, DomNodeInner>> =
-        RefCell::new(SlotMap::<DomNodeKey, DomNodeInner>::default());
+    // static DOM_ROOT: RefCell<Option<Box<dyn AsDomNode>>> = const { RefCell::new(None) };
+    static DOM_NODES: RefCell<NodeTree> = RefCell::new(NodeTree::new());
     static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
     static DOM_UPDATE_TX: RefCell<watch::Sender<()>> = {
         let (tx, _) = watch::channel(());
@@ -179,26 +187,27 @@ where
 {
     DOM_STATE.with(|s| s.borrow_mut().as_mut().map(f).unwrap())
 }
+
 fn with_nodes<F, R>(f: F) -> R
 where
-    F: FnOnce(&SlotMap<DomNodeKey, DomNodeInner>) -> R,
+    F: FnOnce(&NodeTree) -> R,
 {
     DOM_NODES.with(|n| f(&n.borrow()))
 }
 
 fn with_nodes_mut<F, R>(f: F) -> R
 where
-    F: FnOnce(&mut SlotMap<DomNodeKey, DomNodeInner>) -> R,
+    F: FnOnce(&mut NodeTree) -> R,
 {
     DOM_NODES.with(|n| f(&mut n.borrow_mut()))
 }
 
-fn with_root<F, R>(f: F) -> R
-where
-    F: FnOnce(Option<DomNode>) -> R,
-{
-    DOM_ROOT.with(|n| f(n.borrow().as_deref().map(|r| r.as_dom_node().clone())))
-}
+// fn with_root<F, R>(f: F) -> R
+// where
+//     F: FnOnce(Option<DomNode>) -> R,
+// {
+//     DOM_ROOT.with(|n| f(n.borrow().as_deref().map(|r| r.as_dom_node().clone())))
+// }
 
 #[derive(Debug)]
 pub struct RooibosDom;
@@ -221,10 +230,7 @@ impl Renderer for RooibosDom {
 
     fn create_text_node(text: &str) -> Self::Text {
         let text = text.to_owned();
-        widget_ref!(text!(text.clone()))
-            .build()
-            .as_dom_node()
-            .clone()
+        wgt!(text!(text.clone())).build().as_dom_node().clone()
     }
 
     fn create_placeholder() -> Self::Placeholder {
@@ -326,16 +332,17 @@ fn clear_children(parent: DomNodeKey) {
 
 fn unmount_child(child: DomNodeKey, cleanup: bool) {
     with_nodes_mut(|nodes| {
-        let child_node = &nodes[child];
-        if let Some(parent) = child_node.parent {
-            let child_pos = nodes[parent]
-                .children
-                .iter()
-                .position(|c| c == &child)
-                .unwrap();
-            nodes[parent].children.remove(child_pos);
-        }
-        nodes[child].parent = None;
+        nodes.unmount_child(child);
+        // let child_node = &nodes[child];
+        // if let Some(parent) = child_node.parent {
+        //     let child_pos = nodes[parent]
+        //         .children
+        //         .iter()
+        //         .position(|c| c == &child)
+        //         .unwrap();
+        //     nodes[parent].children.remove(child_pos);
+        // }
+        // nodes[child].parent = None;
     });
 
     cleanup_removed_nodes(&child, cleanup);
@@ -343,27 +350,19 @@ fn unmount_child(child: DomNodeKey, cleanup: bool) {
 }
 
 pub fn print_dom() -> Paragraph<'static> {
-    let lines = with_root(|dom| {
-        with_nodes(|nodes| print_dom_inner(nodes, dom.as_ref().unwrap().key(), ""))
-    });
+    let lines = with_nodes(|nodes| print_dom_inner(nodes, nodes.root().as_dom_node().key(), ""));
     Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
 }
 
 pub fn root() -> DomNodeRepr {
-    with_root(|r| {
-        with_nodes(|nodes| {
-            let root = r.as_ref().unwrap();
-            let node = &nodes[root.key()];
-            DomNodeRepr::from_node(root.key(), node)
-        })
+    with_nodes(|nodes| {
+        let root = nodes.root().as_dom_node().key();
+        let node = &nodes[root];
+        DomNodeRepr::from_node(root, node)
     })
 }
 
-fn print_dom_inner(
-    dom_ref: &SlotMap<DomNodeKey, DomNodeInner>,
-    key: DomNodeKey,
-    indent: &str,
-) -> Vec<Line<'static>> {
+fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Line<'static>> {
     let node = &dom_ref[key];
     let NodeTypeStructure { name, attrs } = node.node_type.structure();
     let node_name = node.name.clone();
@@ -379,7 +378,8 @@ fn print_dom_inner(
     if let Some(attrs) = attrs {
         line += &format!(" {attrs}");
     }
-    line += &format!(" constraint={}>", node.constraint.borrow().clone());
+    line += &format!(" layout={:?}>", dom_ref.layout_raw(key).location);
+    // line += &format!(" constraint={}>", node.constraint.borrow().clone());
 
     let mut lines = vec![line!(line)];
 
@@ -405,13 +405,14 @@ where
     <M as Render>::DomState: 'static,
 {
     let node = f().build();
-    DOM_ROOT.with(|d| *d.borrow_mut() = Some(Box::new(node)));
+    with_nodes_mut(|n| {
+        n.set_root(Box::new(node));
+    });
 }
 
 pub fn unmount() {
-    DOM_ROOT.with(|d| *d.borrow_mut() = None);
     DOM_STATE.with(|d| *d.borrow_mut() = None);
-    with_nodes_mut(|d| (*d).clear());
+    with_nodes_mut(|d| *d = NodeTree::new());
 }
 
 pub fn render_dom(buf: &mut Buffer) {
@@ -420,17 +421,23 @@ pub fn render_dom(buf: &mut Buffer) {
     }
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
-        print_dom().render_ref(buf.area, buf);
+        crossterm::terminal::disable_raw_mode().unwrap();
+        // print_dom().render_ref(buf.area, buf);
+        with_nodes_mut(|n| n.print_layout_tree());
     } else {
-        with_root(|d| d.as_ref().unwrap().render(buf, buf.area));
+        with_nodes_mut(|nodes| {
+            nodes.recompute_layout(buf.area);
+        });
+        let root = with_nodes(|nodes| nodes.root().as_dom_node().clone());
+        root.render(buf, buf.area);
     }
 }
 
 pub fn focus(id: impl Into<NodeId>) {
     let id = id.into();
     let node = with_nodes(|d| {
-        d.iter().find_map(|(k, v)| {
-            if v.id.as_ref() == Some(&id) {
+        d.iter_nodes().find_map(|(k, v)| {
+            if v.inner.id.as_ref() == Some(&id) {
                 Some(k)
             } else {
                 None
@@ -601,8 +608,8 @@ pub fn send_event(event: Event) {
 pub fn focus_id(id: impl Into<NodeId>) {
     let id = id.into();
     let found_node = with_nodes(|nodes| {
-        nodes.iter().find_map(|(key, node)| {
-            if let Some(current_id) = &node.id {
+        nodes.iter_nodes().find_map(|(key, node)| {
+            if let Some(current_id) = &node.inner.id {
                 if &id == current_id {
                     return Some(key);
                 }

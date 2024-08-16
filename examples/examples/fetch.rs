@@ -3,7 +3,9 @@ use std::error::Error;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::{col, length, line, row, span, suspense, text, widget_ref, Errors, Render};
+use rooibos::dom::{
+    col, length, line, row, span, suspense, text, wgt, Errors, Render,
+};
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
 use rooibos::reactive::traits::{Get, Set, With};
@@ -30,7 +32,7 @@ fn app() -> impl Render {
         let error_list =
             move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
 
-        widget_ref!(Paragraph::new(line!(error_list())))
+        wgt!(Paragraph::new(line!(error_list())))
     };
 
     col![
@@ -46,10 +48,8 @@ fn app() -> impl Render {
             ]
         ],
         row![col![suspense!(
-            widget_ref!(line!(" Loading...".gray())),
-            character
-                .await
-                .map(|c| widget_ref!(line!(" ", c.clone().green()))),
+            wgt!(line!(" Loading...".gray())),
+            character.await.map(|c| wgt!(line!(" ", c.clone().green()))),
             fallback
         )]]
     ]
