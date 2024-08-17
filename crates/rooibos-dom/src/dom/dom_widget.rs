@@ -13,6 +13,9 @@ use tachys::prelude::*;
 use terminput::{KeyEvent, MouseEvent};
 
 use super::dom_node::{DomNode, NodeId};
+use super::layout::{
+    align_self, aspect_ratio, basis, border, grow, height, margin, max_height, max_width, min_height, min_width, padding, shrink, width, AlignSelf, AspectRatio, Basis, Border, Grow, Height, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Shrink, Width,
+};
 use super::{AsDomNode, Constraint, Focusable, Property};
 use crate::widgets::WidgetRole;
 use crate::{
@@ -327,6 +330,43 @@ where
         }
     }
 }
+
+macro_rules! widget_prop {
+    ($struct_name:ident, $fn:ident, $inner:ty) => {
+        impl WidgetProperty for $struct_name {}
+
+        impl<P> DomWidget<P>
+        where
+            P: NextTuple,
+        {
+            pub fn $fn<S>(self, val: S) -> DomWidget<P::Output<$struct_name>>
+            where
+                S: Into<MaybeSignal<$inner>>,
+            {
+                DomWidget {
+                    inner: self.inner,
+                    properties: self.properties.next_tuple($fn(val).0),
+                }
+            }
+        }
+    };
+}
+
+widget_prop!(Width, width, taffy::Dimension);
+widget_prop!(Height, height, taffy::Dimension);
+widget_prop!(MinWidth, min_width, taffy::Dimension);
+widget_prop!(MinHeight, min_height, taffy::Dimension);
+widget_prop!(MaxWidth, max_width, taffy::Dimension);
+widget_prop!(MaxHeight, max_height, taffy::Dimension);
+widget_prop!(AspectRatio, aspect_ratio, f32);
+widget_prop!(Margin, margin, taffy::Rect<taffy::LengthPercentageAuto>);
+widget_prop!(Padding, padding, taffy::Rect<taffy::LengthPercentage>);
+widget_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>);
+
+widget_prop!(Grow, grow, f32);
+widget_prop!(Shrink, shrink, f32);
+widget_prop!(AlignSelf, align_self, taffy::AlignSelf);
+widget_prop!(Basis, basis, taffy::Dimension);
 
 macro_rules! impl_widget_property_for_tuples {
     ($($ty:ident),* $(,)?) => {

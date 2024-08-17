@@ -20,6 +20,7 @@ use crate::{derive_signal, line, text, wgt, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
+pub mod div;
 mod dom_node;
 mod dom_state;
 mod dom_widget;
@@ -27,6 +28,7 @@ mod element;
 pub mod flex_node;
 mod focus;
 mod into_view;
+pub mod layout;
 mod layout_tree;
 mod node_tree;
 

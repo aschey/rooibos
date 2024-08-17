@@ -452,6 +452,7 @@ impl DomNodeRepr {
 pub struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
+    pub(crate) original_display: taffy::Display,
     pub(crate) constraint: Rc<RefCell<Constraint>>,
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
@@ -794,6 +795,7 @@ impl DomNode {
             class: None,
             event_handlers: Default::default(),
             rect: Default::default(),
+            original_display: taffy::Display::Block,
         };
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
@@ -806,16 +808,10 @@ impl DomNode {
         let inner = DomNodeInner {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
+            original_display: taffy::Display::Block,
             ..Default::default()
         };
-        let key = with_nodes_mut(|n| {
-            let key = n.insert(inner);
-            n.update_layout(key, |style| {
-                // style.size.width = Dimension::Percent(1.0);
-                // style.size.height = Dimension::Percent(1.0);
-            });
-            key
-        });
+        let key = with_nodes_mut(|n| n.insert(inner));
         Self {
             key,
             unmounted: Arc::new(AtomicBool::new(false)),
@@ -842,6 +838,7 @@ impl DomNode {
         let inner = DomNodeInner {
             name: "flex_row".to_string(),
             node_type: NodeType::Layout(Default::default()),
+            original_display: taffy::Display::Flex,
             ..Default::default()
         };
         let key = with_nodes_mut(|n| {
@@ -849,8 +846,26 @@ impl DomNode {
             n.update_layout(key, |style| {
                 style.display = taffy::Display::Flex;
                 style.flex_direction = taffy::FlexDirection::Row;
-                // style.size.width = Dimension::Percent(1.0);
-                // style.size.height = Dimension::Percent(1.0);
+            });
+            key
+        });
+        Self {
+            key,
+            unmounted: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub(crate) fn div() -> Self {
+        let inner = DomNodeInner {
+            name: "div".to_string(),
+            node_type: NodeType::Layout(Default::default()),
+            original_display: taffy::Display::Block,
+            ..Default::default()
+        };
+        let key = with_nodes_mut(|n| {
+            let key = n.insert(inner);
+            n.update_layout(key, |style| {
+                style.display = taffy::Display::Block;
             });
             key
         });
@@ -864,6 +879,7 @@ impl DomNode {
         let inner = DomNodeInner {
             name: "flex_col".to_string(),
             node_type: NodeType::Layout(Default::default()),
+            original_display: taffy::Display::Flex,
             ..Default::default()
         };
         let key = with_nodes_mut(|n| {
@@ -871,8 +887,6 @@ impl DomNode {
             n.update_layout(key, |style| {
                 style.display = taffy::Display::Flex;
                 style.flex_direction = taffy::FlexDirection::Column;
-                // style.size.width = Dimension::Percent(1.0);
-                // style.size.height = Dimension::Percent(1.0);
             });
             key
         });

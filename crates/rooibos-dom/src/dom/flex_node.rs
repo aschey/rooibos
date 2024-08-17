@@ -1,13 +1,16 @@
 use next_tuple::NextTuple;
-use reactive_graph::effect::RenderEffect;
-use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
 
-use super::{with_nodes_mut, AsDomNode, DomNode, Property, RenderAny, RooibosDom};
-use crate::WidgetProperty;
+use super::layout::{
+    align_content, align_items, align_self, aspect_ratio, basis, border, gap, grow, height, hide,
+    justify_content, margin, max_height, max_width, min_height, min_width, padding, shrink, width,
+    wrap, AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, Border, Gap, Grow, Height, Hide,
+    JustifyContent, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Shrink, Width, Wrap,
+};
+use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct FlexNode<C, P> {
@@ -45,46 +48,13 @@ pub fn col<C, P>(props: P, children: C) -> FlexNode<C, P> {
     }
 }
 
-trait UpdateLayout {
-    fn update_layout(&self, style: &mut taffy::Style);
-}
-
-impl<T> Property for T
-where
-    T: UpdateLayout + 'static,
-{
-    type State = RenderEffect<()>;
-
-    fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
-        RenderEffect::new(move |_| {
-            with_nodes_mut(|nodes| nodes.update_layout(key, |s| self.update_layout(s)));
-        })
-    }
-
-    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
-        let new = self.build(node);
-        *state = new;
-    }
-}
-
 trait FlexProperty {}
 
 impl FlexProperty for () {}
 
-macro_rules! layout_prop {
-    ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
-        pub struct $struct_name(MaybeSignal<$inner>);
-
-        impl UpdateLayout for $struct_name {
-            fn update_layout(&self, style: &mut taffy::Style) {
-                style.$($prop).* = self.0.get();
-            }
-        }
-
-        pub fn $fn(val: impl Into<MaybeSignal<$inner>>) -> ($struct_name,) {
-            ($struct_name(val.into()),)
-        }
+macro_rules! flex_prop {
+    ($struct_name:ident, $fn:ident, $inner:ty) => {
+        impl FlexProperty for $struct_name {}
 
         impl<C, P> FlexNode<C, P>
         where
@@ -97,93 +67,34 @@ macro_rules! layout_prop {
                 FlexNode {
                     inner: self.inner,
                     children: self.children,
-                    properties: self.properties.next_tuple($struct_name(val.into())),
+                    properties: self.properties.next_tuple($fn(val).0),
                 }
             }
         }
     };
 }
 
-macro_rules! layout_prop_opt {
-    ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
-        pub struct $struct_name(MaybeSignal<$inner>);
+flex_prop!(Width, width, taffy::Dimension);
+flex_prop!(Height, height, taffy::Dimension);
+flex_prop!(MinWidth, min_width, taffy::Dimension);
+flex_prop!(MinHeight, min_height, taffy::Dimension);
+flex_prop!(MaxWidth, max_width, taffy::Dimension);
+flex_prop!(MaxHeight, max_height, taffy::Dimension);
+flex_prop!(AspectRatio, aspect_ratio, f32);
+flex_prop!(Margin, margin, taffy::Rect<taffy::LengthPercentageAuto>);
+flex_prop!(Padding, padding, taffy::Rect<taffy::LengthPercentage>);
+flex_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>);
+flex_prop!(Hide, hide, bool);
 
-        impl UpdateLayout for $struct_name {
-            fn update_layout(&self, style: &mut taffy::Style) {
-                style.$($prop).* = Some(self.0.get());
-            }
-        }
-
-        pub fn $fn(val: impl Into<MaybeSignal<$inner>>) -> ($struct_name,) {
-            ($struct_name(val.into()),)
-        }
-
-        impl<C, P> FlexNode<C, P>
-        where
-            P: NextTuple,
-        {
-            pub fn $fn<S>(self, val: S) -> FlexNode<C, P::Output<$struct_name>>
-            where
-                S: Into<MaybeSignal<$inner>>,
-            {
-                FlexNode {
-                    inner: self.inner,
-                    children: self.children,
-                    properties: self.properties.next_tuple($struct_name(val.into())),
-                }
-            }
-        }
-    };
-}
-
-layout_prop!(Width, width, taffy::Dimension, size.width);
-impl WidgetProperty for Width {}
-impl FlexProperty for Width {}
-layout_prop!(Height, height, taffy::Dimension, size.height);
-impl WidgetProperty for Height {}
-impl FlexProperty for Height {}
-
-layout_prop!(Wrap, wrap, taffy::FlexWrap, flex_wrap);
-impl FlexProperty for Wrap {}
-layout_prop_opt!(AlignItems, align_items, taffy::AlignItems, align_items);
-impl FlexProperty for AlignItems {}
-layout_prop_opt!(
-    AlignContent,
-    align_content,
-    taffy::AlignContent,
-    align_content
-);
-impl FlexProperty for AlignContent {}
-layout_prop_opt!(
-    JustifyContent,
-    justify_content,
-    taffy::JustifyContent,
-    justify_content
-);
-impl FlexProperty for JustifyContent {}
-layout_prop!(Gap, gap, taffy::Size<taffy::LengthPercentage>, gap);
-impl FlexProperty for Gap {}
-
-layout_prop!(Grow, grow, f32, flex_grow);
-impl WidgetProperty for Grow {}
-impl FlexProperty for Grow {}
-layout_prop!(Shrink, shrink, f32, flex_shrink);
-impl WidgetProperty for Shrink {}
-impl FlexProperty for Shrink {}
-layout_prop_opt!(AlignSelf, align_self, taffy::AlignSelf, align_self);
-impl WidgetProperty for AlignSelf {}
-impl FlexProperty for AlignSelf {}
-layout_prop!(Basis, basis, taffy::Dimension, flex_basis);
-impl WidgetProperty for Basis {}
-impl FlexProperty for Basis {}
-
-pub fn chars(val: f32) -> taffy::Dimension {
-    taffy::Dimension::Length(val)
-}
-
-pub fn pct(val: f32) -> taffy::Dimension {
-    taffy::Dimension::Percent(val / 100.0)
-}
+flex_prop!(Wrap, wrap, taffy::FlexWrap);
+flex_prop!(AlignItems, align_items, taffy::AlignItems);
+flex_prop!(AlignContent, align_content, taffy::AlignContent);
+flex_prop!(JustifyContent, justify_content, taffy::JustifyContent);
+flex_prop!(Gap, gap, taffy::Size<taffy::LengthPercentage>);
+flex_prop!(Grow, grow, f32);
+flex_prop!(Shrink, shrink, f32);
+flex_prop!(AlignSelf, align_self, taffy::AlignSelf);
+flex_prop!(Basis, basis, taffy::Dimension);
 
 pub struct FlexNodeState<C, P>
 where

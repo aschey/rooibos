@@ -1,11 +1,12 @@
 use std::error::Error;
 
-use rooibos::dom::flex_node::taffy;
+use rooibos::dom::layout::hide;
 use rooibos::dom::{flex_col, flex_row, use_window_size, wgt, Render};
+use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set};
+use rooibos::reactive::traits::{Get, Set, Track, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::Runtime;
+use rooibos::runtime::{use_keypress, Runtime};
 use rooibos::tui::layout::Rect;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -20,6 +21,14 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let window_size = use_window_size();
+    let hide_row = RwSignal::new(true);
+    let keypress = use_keypress();
+    Effect::new(move |init: Option<()>| {
+        keypress.track();
+        if init.is_some() {
+            hide_row.update(|h| *h = !*h);
+        }
+    });
     flex_col![
         wgt![{
             let window_size = window_size.get();
@@ -28,7 +37,7 @@ fn app() -> impl Render {
                 window_size.width, window_size.height
             )
         }],
-        flex_row![show_size(1), show_size(2)],
+        flex_row![props(hide(hide_row)), show_size(1), show_size(2)],
         flex_row![show_size(3), show_size(4)]
     ]
 }

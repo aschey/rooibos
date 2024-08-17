@@ -153,19 +153,28 @@ impl NodeTree {
     {
         let value = &self.dom_nodes[node];
         let mut style = self.layout_tree.style(value.layout_id).unwrap().clone();
-        let before = style.size;
+        let before = style.clone();
         f(&mut style);
         let context = self
             .layout_tree
             .get_node_context_mut(value.layout_id)
             .unwrap();
-        if style.size.width != before.width {
+        if style.size.width != before.size.width {
             context.width_auto = false;
         }
-        if style.size.height != before.height {
+        if style.size.height != before.size.height {
             context.height_auto = false;
         }
-        self.layout_tree.set_style(value.layout_id, style).unwrap();
+        self.layout_tree
+            .set_style(value.layout_id, style.clone())
+            .unwrap();
+        let parent = self.layout_tree.parent(value.layout_id);
+        if let Some(parent) = parent {
+            if before.display != style.display {
+                self.update_sizes(parent);
+            }
+        }
+
         refresh_dom();
     }
 
@@ -196,28 +205,30 @@ impl NodeTree {
         let num_children = children.len() as f32;
         for child in children {
             let mut style = self.layout_tree.style(child).unwrap().clone();
-            let context = self.layout_tree.get_node_context(child).unwrap();
-            // println!("{:?}", style.size);
-            if parent_style.display == Display::Flex
-                && parent_style.flex_direction == FlexDirection::Row
-            {
-                if context.width_auto {
-                    style.size.width = Dimension::Percent(1. / num_children);
+            if style.display != Display::None {
+                let context = self.layout_tree.get_node_context(child).unwrap();
+                // println!("{:?}", style.size);
+                if parent_style.display == Display::Flex
+                    && parent_style.flex_direction == FlexDirection::Row
+                {
+                    if context.width_auto {
+                        style.size.width = Dimension::Percent(1. / num_children);
+                    }
+                    if context.height_auto {
+                        style.size.height = Dimension::Percent(1.);
+                    }
+                } else if parent_style.display == Display::Flex
+                    && parent_style.flex_direction == FlexDirection::Column
+                {
+                    if context.height_auto {
+                        style.size.height = Dimension::Percent(1. / num_children);
+                    }
+                    if context.width_auto {
+                        style.size.width = Dimension::Percent(1.);
+                    }
                 }
-                if context.height_auto {
-                    style.size.height = Dimension::Percent(1.);
-                }
-            } else if parent_style.display == Display::Flex
-                && parent_style.flex_direction == FlexDirection::Column
-            {
-                if context.height_auto {
-                    style.size.height = Dimension::Percent(1. / num_children);
-                }
-                if context.width_auto {
-                    style.size.width = Dimension::Percent(1.);
-                }
+                self.layout_tree.set_style(child, style).unwrap();
             }
-            self.layout_tree.set_style(child, style).unwrap();
             self.update_sizes(child);
         }
     }
@@ -333,6 +344,7 @@ impl NodeTree {
             focusable,
             event_handlers,
             rect,
+            original_display,
         } = &self.dom_nodes[old_key].inner;
         // let layout_id = self.dom_nodes[old_key].layout_id;
         let name = name.clone();
@@ -343,6 +355,7 @@ impl NodeTree {
         let class = class.clone();
         let event_handlers = event_handlers.clone();
         let rect = rect.clone();
+        let original_display = *original_display;
 
         let new = &mut self.dom_nodes[new_key].inner;
 
@@ -354,6 +367,7 @@ impl NodeTree {
         new.class = class;
         new.event_handlers = event_handlers;
         new.rect = rect;
+        new.original_display = original_display;
         // self.dom_nodes[new_key].layout_id = layout_id;
     }
 
