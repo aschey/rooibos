@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use rooibos::dom::layout::{hide, pct, width};
-use rooibos::dom::{flex_col, flex_row, props, use_window_size, wgt, LayoutProps, Render};
+use rooibos::dom::{flex_col, flex_row, props, use_window_size, wgt, width, LayoutProps, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Track, Update};
@@ -29,6 +29,7 @@ fn app() -> impl Render {
             hide_row.update(|h| *h = !*h);
         }
     });
+    let width = RwSignal::new(25.);
     flex_col![
         wgt![{
             let window_size = window_size.get();
@@ -39,12 +40,12 @@ fn app() -> impl Render {
         }],
         flex_row![
             props(hide(hide_row)),
-            show_size(props!(width(pct(25.))), 1),
-            show_size(props!(width(pct(75.))), 2)
+            show_size(props!(width!(width%)), 1),
+            show_size(props!(width!(75.%)), 2)
         ],
         flex_row![
-            show_size(props!(width(pct(75.))), 3),
-            show_size(props!(width(pct(25.))), 4)
+            show_size(props!(width!(75.%)), 3),
+            show_size(props!(width!(25.%)), 4)
         ]
     ]
 }

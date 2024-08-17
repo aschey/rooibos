@@ -1,20 +1,23 @@
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
-use reactive_graph::wrappers::read::MaybeSignal;
+use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use taffy::Display;
 
 use super::{with_nodes_mut, DomNode, Property};
+use crate::derive_signal;
 
 trait UpdateLayout {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style);
 }
 
-pub fn chars(val: f32) -> taffy::Dimension {
-    taffy::Dimension::Length(val)
+pub fn chars(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::Dimension> {
+    let val = val.into();
+    derive_signal!(taffy::Dimension::Length(val.get()))
 }
 
-pub fn pct(val: f32) -> taffy::Dimension {
-    taffy::Dimension::Percent(val / 100.0)
+pub fn pct(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::Dimension> {
+    let val = val.into();
+    derive_signal!(taffy::Dimension::Percent(val.get() / 100.0))
 }
 
 pub struct Hide(MaybeSignal<bool>);
@@ -53,6 +56,66 @@ where
         let new = self.build(node);
         *state = new;
     }
+}
+
+#[macro_export]
+macro_rules! width {
+    ($val:tt %) => {
+        $crate::layout::width($crate::layout::pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::width($crate::layout::chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! height {
+    ($val:tt %) => {
+        $crate::layout::height($crate::layout::pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::height($crate::layout::chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! min_width {
+    ($val:tt %) => {
+        $crate::layout::min_width($crate::layout::pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::min_width($crate::layout::chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! min_height {
+    ($val:tt %) => {
+        $crate::layout::min_height($crate::layout::pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::min_height($crate::layout::chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! max_width {
+    ($val:tt %) => {
+        $crate::layout::min_width($crate::layout::pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::min_width($crate::layout::chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! max_height {
+    ($val:tt %) => {
+        $crate::layout::max_height($crate::layout::pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::max_height($crate::layout::chars($val))
+    };
 }
 
 macro_rules! layout_prop {
