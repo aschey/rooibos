@@ -1,7 +1,7 @@
 use std::error::Error;
 
-use rooibos::dom::layout::hide;
-use rooibos::dom::{flex_col, flex_row, use_window_size, wgt, Render};
+use rooibos::dom::layout::{hide, pct, width};
+use rooibos::dom::{flex_col, flex_row, props, use_window_size, wgt, LayoutProps, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Track, Update};
@@ -37,12 +37,19 @@ fn app() -> impl Render {
                 window_size.width, window_size.height
             )
         }],
-        flex_row![props(hide(hide_row)), show_size(1), show_size(2)],
-        flex_row![show_size(3), show_size(4)]
+        flex_row![
+            props(hide(hide_row)),
+            show_size(props!(width(pct(25.))), 1),
+            show_size(props!(width(pct(75.))), 2)
+        ],
+        flex_row![
+            show_size(props!(width(pct(75.))), 3),
+            show_size(props!(width(pct(25.))), 4)
+        ]
     ]
 }
 
-fn show_size(id: usize) -> impl Render {
+fn show_size(props: LayoutProps, id: usize) -> impl Render {
     let widget_size = RwSignal::new(Rect::default());
     wgt!({
         let widget_size = widget_size.get();
@@ -51,5 +58,6 @@ fn show_size(id: usize) -> impl Render {
             widget_size.x, widget_size.y, widget_size.width, widget_size.height
         )
     })
+    .layout_props(props)
     .on_size_change(move |rect| widget_size.set(rect))
 }

@@ -57,36 +57,44 @@ where
 
 macro_rules! layout_prop {
     ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
-        pub struct $struct_name(MaybeSignal<$inner>);
+        #[derive(Default, Clone)]
+        pub struct $struct_name(pub(crate) Option<MaybeSignal<$inner>>);
 
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
-                style.$($prop).* = self.0.get();
+                if let Some(inner) = self.0 {
+                    style.$($prop).* = inner.get();
+                }
+
             }
         }
 
         pub fn $fn(val: impl Into<MaybeSignal<$inner>>) -> ($struct_name,) {
-            ($struct_name(val.into()),)
+            ($struct_name(Some(val.into())),)
         }
     };
 }
 
 macro_rules! layout_prop_opt {
     ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
-        pub struct $struct_name(MaybeSignal<$inner>);
+        #[derive(Default, Clone)]
+        pub struct $struct_name(pub(crate) Option<MaybeSignal<$inner>>);
 
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
-                style.$($prop).* = Some(self.0.get());
+                if let Some(inner) = self.0 {
+                    style.$($prop).* = Some(inner.get());
+                }
             }
         }
 
         pub fn $fn(val: impl Into<MaybeSignal<$inner>>) -> ($struct_name,) {
-            ($struct_name(val.into()),)
+            ($struct_name(Some(val.into())),)
         }
     };
 }
 
+// Generic properties
 layout_prop!(Width, width, taffy::Dimension, size.width);
 layout_prop!(Height, height, taffy::Dimension, size.height);
 layout_prop!(MinWidth, min_width, taffy::Dimension, min_size.width);
@@ -107,7 +115,9 @@ layout_prop!(
     padding
 );
 layout_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>, border);
+layout_prop!(Position, position, taffy::style::Position, position);
 
+// Flex properties
 layout_prop!(Wrap, wrap, taffy::FlexWrap, flex_wrap);
 layout_prop_opt!(AlignItems, align_items, taffy::AlignItems, align_items);
 layout_prop_opt!(

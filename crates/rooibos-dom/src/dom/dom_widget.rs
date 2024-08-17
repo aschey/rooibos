@@ -14,7 +14,9 @@ use terminput::{KeyEvent, MouseEvent};
 
 use super::dom_node::{DomNode, NodeId};
 use super::layout::{
-    align_self, aspect_ratio, basis, border, grow, height, margin, max_height, max_width, min_height, min_width, padding, shrink, width, AlignSelf, AspectRatio, Basis, Border, Grow, Height, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Shrink, Width,
+    align_self, aspect_ratio, basis, border, grow, height, margin, max_height, max_width,
+    min_height, min_width, padding, shrink, width, AlignSelf, AspectRatio, Basis, Border, Grow,
+    Height, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Shrink, Width,
 };
 use super::{AsDomNode, Constraint, Focusable, Property};
 use crate::widgets::WidgetRole;
@@ -244,6 +246,16 @@ where
             .update_event_handlers(|event_handlers| event_handlers.on_size_change(handler));
         self
     }
+
+    pub fn layout_props(
+        self,
+        layout_props: LayoutProps,
+    ) -> DomWidget<P::Output<impl NextTuple + WidgetProperty>> {
+        DomWidget {
+            inner: self.inner,
+            properties: self.properties.next_tuple(layout_props.into_tuple()),
+        }
+    }
 }
 
 impl<P> Constrainable for DomWidget<P>
@@ -331,6 +343,133 @@ where
     }
 }
 
+pub trait UpdateLayoutPropsBorrowed {
+    fn update_props(self, props: &mut LayoutProps);
+}
+
+pub struct LayoutPropsTuple<P>(P);
+
+impl<P: NextTuple + WidgetProperty + UpdateLayoutPropsBorrowed> LayoutPropsTuple<P> {
+    pub fn new(props: P) -> Self {
+        Self(props)
+    }
+
+    pub fn to_props(self) -> LayoutProps {
+        let mut props = LayoutProps::default();
+        self.0.update_props(&mut props);
+        props
+    }
+}
+
+impl<P> NextTuple for LayoutPropsTuple<P>
+where
+    P: NextTuple + WidgetProperty + UpdateLayoutPropsBorrowed,
+{
+    type Output<Next> = P::Output<Next>;
+    fn next_tuple<Next>(self, next: Next) -> Self::Output<Next> {
+        self.0.next_tuple(next)
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct LayoutProps {
+    width: Width,
+    height: Height,
+    min_width: MinWidth,
+    min_height: MinHeight,
+    max_width: MaxWidth,
+    max_height: MaxHeight,
+    aspect_ratio: AspectRatio,
+    margin: Margin,
+    padding: Padding,
+    border: Border,
+    grow: Grow,
+    shrink: Shrink,
+    basis: Basis,
+    align_self: AlignSelf,
+}
+
+impl LayoutProps {
+    fn into_tuple(self) -> impl NextTuple + WidgetProperty {
+        let Self {
+            width,
+            height,
+            min_width,
+            min_height,
+            max_width,
+            max_height,
+            aspect_ratio,
+            margin,
+            padding,
+            border,
+            grow,
+            shrink,
+            basis,
+            align_self,
+        } = self;
+        (width,)
+            .next_tuple(height)
+            .next_tuple(min_width)
+            .next_tuple(min_height)
+            .next_tuple(max_width)
+            .next_tuple(max_height)
+            .next_tuple(aspect_ratio)
+            .next_tuple(margin)
+            .next_tuple(padding)
+            .next_tuple(border)
+            .next_tuple(grow)
+            .next_tuple(shrink)
+            .next_tuple(basis)
+            .next_tuple(align_self)
+    }
+}
+
+macro_rules! update_props {
+    ($fn:ident, $inner:ty) => {
+        fn $fn<S>(self, val: S) -> Self
+        where
+            S: Into<MaybeSignal<$inner>>,
+        {
+            let props = self.layout_props().$fn(val);
+            self.update_props(props)
+        }
+    };
+}
+
+pub trait UpdateLayoutProps
+where
+    Self: Sized,
+{
+    fn layout_props(&self) -> LayoutProps;
+    fn update_props(self, props: LayoutProps) -> Self;
+
+    update_props!(width, taffy::Dimension);
+    update_props!(height, taffy::Dimension);
+    update_props!(min_width, taffy::Dimension);
+    update_props!(min_height, taffy::Dimension);
+    update_props!(max_width, taffy::Dimension);
+    update_props!(max_height, taffy::Dimension);
+    update_props!(aspect_ratio, f32);
+    update_props!(margin, taffy::Rect<taffy::LengthPercentageAuto>);
+    update_props!(padding, taffy::Rect<taffy::LengthPercentage>);
+    update_props!(border, taffy::Rect<taffy::LengthPercentage>);
+
+    update_props!(grow, f32);
+    update_props!(shrink, f32);
+    update_props!(align_self, taffy::AlignSelf);
+    update_props!(basis, taffy::Dimension);
+}
+
+#[macro_export]
+macro_rules! props {
+    () => (
+        $crate::LayoutPropsTuple::new(()).to_props()
+    );
+    ($($properties:expr),+ $(,)?) => (
+        $crate::LayoutPropsTuple::new(($($properties),+)).to_props()
+    );
+}
+
 macro_rules! widget_prop {
     ($struct_name:ident, $fn:ident, $inner:ty) => {
         impl WidgetProperty for $struct_name {}
@@ -347,6 +486,22 @@ macro_rules! widget_prop {
                     inner: self.inner,
                     properties: self.properties.next_tuple($fn(val).0),
                 }
+            }
+        }
+
+        impl UpdateLayoutPropsBorrowed for $struct_name {
+            fn update_props(self, props: &mut LayoutProps) {
+                props.$fn = self;
+            }
+        }
+
+        impl LayoutProps {
+            pub fn $fn<S>(mut self, val: S) -> Self
+            where
+                S: Into<MaybeSignal<$inner>>,
+            {
+                self.$fn = $fn(val).0;
+                self
             }
         }
     };
@@ -373,6 +528,16 @@ macro_rules! impl_widget_property_for_tuples {
         impl<$($ty,)*> WidgetProperty for ($($ty,)*)
             where $($ty: WidgetProperty,)*
         { }
+
+        impl<$($ty,)*> UpdateLayoutPropsBorrowed for ($($ty,)*)
+            where $($ty: UpdateLayoutPropsBorrowed,)*
+        {
+            fn update_props(self, props: &mut LayoutProps) {
+                #[allow(non_snake_case)]
+                let ($($ty,)*) = self;
+                ($($ty.update_props(props),)*);
+            }
+        }
     }
 }
 

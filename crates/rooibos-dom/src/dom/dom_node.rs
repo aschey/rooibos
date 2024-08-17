@@ -17,9 +17,7 @@ use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::dom_state::{self, DomState};
 use super::node_tree::{DomNodeKey, NodeTree};
-use super::{
-    unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, Property, DOM_NODES,
-};
+use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, DOM_NODES};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
 
 #[derive(Clone, PartialEq, Eq, Debug)]
