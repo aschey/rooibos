@@ -1,12 +1,12 @@
 use std::error::Error;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
+use rooibos::dom::layout::chars;
 use rooibos::dom::{block, col, line, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
-use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 
@@ -49,7 +49,7 @@ fn app() -> impl Render {
     row![
         col![
             TabView::new()
-                .header_constraint(Length(3))
+                .header_height(chars(3.))
                 .block(tab_block)
                 .highlight_style(Style::new().yellow())
                 .fit(true)
@@ -99,7 +99,7 @@ fn inner_tabs() -> impl Render {
     row![
         props(block(Block::bordered())),
         TabView::new()
-            .header_constraint(Length(3))
+            .header_height(chars(3.))
             .block(tab_block)
             .highlight_style(Style::new().yellow())
             .on_title_click(move |_, tab| {

@@ -2,13 +2,14 @@ use std::error::Error;
 use std::io::{stdout, Stdout};
 
 use any_spawner::Executor;
-use crossterm::event::EventStream;
+use crossterm::event::{DisableMouseCapture, EnableMouseCapture, EventStream};
 use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use rooibos::dom::{
-    dom_update_receiver, focus_next, line, mount, render_dom, send_event, span, unmount, wgt, Event, KeyCode, KeyEvent, KeyModifiers, Render,
+    dom_update_receiver, focus_next, line, mount, render_dom, send_event, span, unmount, wgt,
+    Event, KeyCode, KeyEvent, KeyModifiers, Render,
 };
 use rooibos::reactive::owner::Owner;
 use rooibos::reactive::signal::signal;
@@ -82,7 +83,7 @@ fn should_exit(event: &Event) -> bool {
 fn setup_terminal() -> Result<Terminal> {
     enable_raw_mode()?;
     let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let terminal = Terminal::new(backend)?;
     Ok(terminal)
@@ -90,7 +91,11 @@ fn setup_terminal() -> Result<Terminal> {
 
 fn restore_terminal(mut terminal: Terminal) -> Result<()> {
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    execute!(
+        terminal.backend_mut(),
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    )?;
     Ok(())
 }
 

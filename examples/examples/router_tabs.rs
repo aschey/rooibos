@@ -1,6 +1,7 @@
 use std::error::Error;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
+use rooibos::dom::layout::chars;
 use rooibos::dom::{
     col, length, line, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
 };
@@ -9,7 +10,6 @@ use rooibos::reactive::traits::{Get, Update};
 use rooibos::router::{use_router, Route, RouteFromStatic, Router};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
-use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 
@@ -75,7 +75,7 @@ fn tabs() -> impl Render {
 
     row![
         TabView::new()
-            .header_constraint(Length(3))
+            .header_height(chars(3.))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .fit(true)
