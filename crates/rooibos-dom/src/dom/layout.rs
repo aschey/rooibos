@@ -46,20 +46,20 @@ pub fn length_percentage_auto_chars(
     derive_signal!(taffy::LengthPercentageAuto::Length(val.get()))
 }
 
-pub struct Hide(MaybeSignal<bool>);
+pub struct Show(MaybeSignal<bool>);
 
-impl UpdateLayout for Hide {
+impl UpdateLayout for Show {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style) {
         style.display = if self.0.get() {
-            Display::None
-        } else {
             original_display
+        } else {
+            Display::None
         }
     }
 }
 
-pub fn hide(val: impl Into<MaybeSignal<bool>>) -> (Hide,) {
-    (Hide(val.into()),)
+pub fn show(val: impl Into<MaybeSignal<bool>>) -> (Show,) {
+    (Show(val.into()),)
 }
 
 pub struct Block(pub(crate) MaybeSignal<ratatui::widgets::Block<'static>>);

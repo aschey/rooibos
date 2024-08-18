@@ -415,7 +415,7 @@ impl DomNodeInner {
         let use_taffy = true;
         let prev_rect = *self.rect.borrow();
         if use_taffy {
-            rect = dom_nodes.layout(key);
+            rect = dom_nodes.rect(key);
         }
         *self.rect.borrow_mut() = rect;
 

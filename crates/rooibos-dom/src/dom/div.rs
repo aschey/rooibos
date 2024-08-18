@@ -5,13 +5,14 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    aspect_ratio, border, border_bottom, border_left, border_right, border_top,
-    border_x, border_y, height, hide, margin, margin_bottom, margin_left, margin_right,
-    margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width, padding,
-    padding_bottom, padding_left, padding_right, padding_top, padding_x, padding_y, width, AspectRatio, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Height, Hide, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
-    MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
-    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Width,
+    aspect_ratio, border, border_bottom, border_left, border_right, border_top, border_x, border_y,
+    height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y,
+    max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, show, width, AspectRatio, Border,
+    BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY, Height, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
+    PaddingY, Show, Width,
 };
 use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
 
@@ -108,7 +109,7 @@ div_prop!(BorderX, border_x, taffy::LengthPercentage);
 div_prop!(BorderY, border_y, taffy::LengthPercentage);
 div_prop!(Border, border, taffy::LengthPercentage);
 
-div_prop!(Hide, hide, bool);
+div_prop!(Show, show, bool);
 
 pub struct DivState<C, P>
 where

@@ -127,7 +127,7 @@ pub struct Input {
 impl Constrainable for Input {
     type Output = Self;
 
-    fn constraint<S>(mut self, constraint: S) -> Self
+    fn constraint<S>(self, constraint: S) -> Self
     where
         S: Into<MaybeSignal<Constraint>>,
     {

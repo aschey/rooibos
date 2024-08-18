@@ -192,7 +192,7 @@ impl NodeTree {
         refresh_dom();
     }
 
-    pub(crate) fn layout(&self, key: DomNodeKey) -> Rect {
+    pub(crate) fn rect(&self, key: DomNodeKey) -> Rect {
         let context = self
             .layout_tree
             .get_node_context(self.dom_nodes[key].layout_id)
@@ -205,18 +205,21 @@ impl NodeTree {
         )
     }
 
-    pub(crate) fn layout_raw(&self, key: DomNodeKey) -> taffy::Layout {
-        *self
-            .layout_tree
-            .layout(self.dom_nodes[key].layout_id)
+    pub(crate) fn style(&self, key: DomNodeKey) -> taffy::Style {
+        self.layout_tree
+            .style(self.dom_nodes[key].layout_id)
             .unwrap()
+            .clone()
     }
 
     fn update_sizes(&mut self, parent: NodeId) {
         let parent_style = self.layout_tree.style(parent).unwrap().clone();
 
         let children = self.layout_tree.children(parent).unwrap();
-        let num_children = children.len() as f32;
+        let num_children = children
+            .iter()
+            .filter(|c| self.layout_tree.style(**c).unwrap().display != Display::None)
+            .count() as f32;
         for child in children {
             let mut style = self.layout_tree.style(child).unwrap().clone();
             if style.display != Display::None {

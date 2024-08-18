@@ -5,9 +5,9 @@ use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::div::taffy::Dimension;
-use rooibos_dom::layout::height;
+use rooibos_dom::layout::{height, pct};
 use rooibos_dom::{
-    derive_signal, flex_col, line, span, wgt, BlurEvent, ChildrenFn, EventData, FocusEvent,
+    derive_signal, flex_col, height, line, span, wgt, BlurEvent, ChildrenFn, EventData, FocusEvent,
     IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
@@ -100,7 +100,7 @@ impl Default for TabView {
             fit: false.into(),
             divider: span!(symbols::line::VERTICAL).into(),
             header_height: Dimension::Length(1.).into(),
-            width: Dimension::Percent(100.).into(),
+            width: pct(100.).into(),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
         }
@@ -402,10 +402,10 @@ impl TabView {
             .on_key_down(on_key_down)
             .on_focus(on_focus)
             .on_blur(on_blur),
-            move || cur_tab
+            flex_col![props(height!(100.%)), move || cur_tab
                 .get()
                 .map(|c| c.0())
-                .unwrap_or_else(|| ().into_any())
+                .unwrap_or_else(|| ().into_any())]
         ]
     }
 }

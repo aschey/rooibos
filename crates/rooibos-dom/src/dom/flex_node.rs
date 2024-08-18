@@ -7,15 +7,15 @@ pub use taffy;
 
 use super::layout::{
     align_content, align_items, align_self, aspect_ratio, basis, border, border_bottom,
-    border_left, border_right, border_top, border_x, border_y, gap, grow, height, hide,
-    justify_content, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x,
-    margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, shrink, width, wrap, AlignContent,
-    AlignItems, AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom, BorderLeft,
-    BorderRight, BorderTop, BorderX, BorderY, Gap, Grow, Height, Hide, JustifyContent, Margin,
-    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Shrink, Width, Wrap,
+    border_left, border_right, border_top, border_x, border_y, gap, grow, height, justify_content,
+    margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
+    max_width, min_height, min_width, padding, padding_bottom, padding_left, padding_right,
+    padding_top, padding_x, padding_y, show, shrink, width, wrap, AlignContent, AlignItems,
+    AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
+    BorderX, BorderY, Gap, Grow, Height, JustifyContent, Margin, MarginBottom, MarginLeft,
+    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
+    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Show, Shrink, Width,
+    Wrap,
 };
 use super::{AsDomNode, DomNode, NodeId, Property, RenderAny, RooibosDom};
 use crate::{BlurEvent, EventData, FocusEvent};
@@ -176,7 +176,7 @@ flex_prop!(BorderX, border_x, taffy::LengthPercentage);
 flex_prop!(BorderY, border_y, taffy::LengthPercentage);
 flex_prop!(Border, border, taffy::LengthPercentage);
 
-flex_prop!(Hide, hide, bool);
+flex_prop!(Show, show, bool);
 
 flex_prop!(Wrap, wrap, taffy::FlexWrap);
 flex_prop!(AlignItems, align_items, taffy::AlignItems);

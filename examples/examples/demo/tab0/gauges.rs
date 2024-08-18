@@ -1,18 +1,19 @@
-use rooibos::dom::{block, col, constraint, wgt, Render, Sparkline};
+use rooibos::dom::layout::{block, chars, height};
+use rooibos::dom::{flex_col, wgt, Render, Sparkline};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::tui::layout::Constraint;
-use rooibos::tui::layout::Constraint::*;
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Block, Gauge, LineGauge};
+use taffy::Dimension;
 
 use crate::random::{RandomData, RandomDistribution};
 use crate::Tick;
 
-pub(crate) fn gauges(enhanced_graphics: bool, gauge_constraint: Constraint) -> impl Render {
+pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -> impl Render {
     let (progress, set_progress) = signal(0.0);
 
     let tick = use_context::<Tick>().unwrap();
@@ -34,24 +35,24 @@ pub(crate) fn gauges(enhanced_graphics: bool, gauge_constraint: Constraint) -> i
         seq
     });
 
-    col![
+    flex_col![
         props(
             block(Block::bordered().title("Graphs")),
-            constraint(gauge_constraint)
+            height(gauge_height)
         ),
-        demo_gauge(enhanced_graphics, progress, Length(2)),
-        demo_sparkline(enhanced_graphics, Length(3)),
-        demo_line_gauge(enhanced_graphics, progress, Length(2))
+        demo_gauge(enhanced_graphics, progress, chars(2.)),
+        demo_sparkline(enhanced_graphics, chars(3.)),
+        demo_line_gauge(enhanced_graphics, progress, chars(2.))
     ]
 }
 
 fn demo_gauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
-    gauge_constraint: Constraint,
+    gauge_height: Signal<Dimension>,
 ) -> impl Render {
     wgt![
-        props(constraint(gauge_constraint)),
+        props(height(gauge_height)),
         Gauge::default()
             .block(Block::new().title("Gauge:"))
             .gauge_style(Style::new().magenta().on_black().italic().bold())
@@ -64,10 +65,10 @@ fn demo_gauge(
 fn demo_line_gauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
-    gauge_constraint: Constraint,
+    gauge_height: Signal<Dimension>,
 ) -> impl Render {
     wgt![
-        props(constraint(gauge_constraint)),
+        props(height(gauge_height)),
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
             .filled_style(Style::new().magenta())
@@ -80,7 +81,7 @@ fn demo_line_gauge(
     ]
 }
 
-fn demo_sparkline(enhanced_graphics: bool, line_constraint: Constraint) -> impl Render {
+fn demo_sparkline(enhanced_graphics: bool, line_height: Signal<Dimension>) -> impl Render {
     let mut rand_signal = RandomDistribution::new(0, 100);
     let sparkline_points = rand_signal.by_ref().take(300).collect();
     let sparkline_signal = RwSignal::new(RandomData {
@@ -103,7 +104,7 @@ fn demo_sparkline(enhanced_graphics: bool, line_constraint: Constraint) -> impl 
     });
 
     wgt![
-        props(constraint(line_constraint)),
+        props(height(line_height)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()

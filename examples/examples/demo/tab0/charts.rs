@@ -1,21 +1,21 @@
-use rooibos::dom::{
-    col, constraint, derive_signal, line, percentage, row, span, wgt, Chart, Dataset, KeyCode, Render,
-};
+use rooibos::dom::layout::{min_width, show};
+use rooibos::dom::{flex_col, flex_row, line, span, wgt, Chart, Dataset, KeyCode, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::use_keypress;
-use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
+use taffy::Dimension;
 
 use crate::random::RandomData;
 use crate::Tick;
 
-pub(crate) fn charts(enhanced_graphics: bool, chart_constraint: Constraint) -> impl Render {
+pub(crate) fn charts(enhanced_graphics: bool, chart_min_width: Signal<Dimension>) -> impl Render {
     let show_chart = RwSignal::new(true);
 
     let term_signal = use_keypress();
@@ -27,24 +27,13 @@ pub(crate) fn charts(enhanced_graphics: bool, chart_constraint: Constraint) -> i
         }
     });
 
-    let percentage1 = derive_signal!(if show_chart.get() { 50 } else { 100 });
-    let percentage2 = derive_signal!(100 - percentage1.get());
-
-    row![
-        props(constraint(chart_constraint)),
-        col![
-            props(percentage(percentage1)),
-            row![
-                props(percentage(50)),
-                col![props(percentage(50)), task_list()],
-                col![props(percentage(50)), logs()]
-            ],
-            row![demo_bar_chart(enhanced_graphics)]
+    flex_row![
+        props(min_width(chart_min_width)),
+        flex_col![
+            flex_row![task_list(), logs()],
+            demo_bar_chart(enhanced_graphics)
         ],
-        col![
-            props(percentage(percentage2)),
-            demo_chart(enhanced_graphics)
-        ]
+        flex_col![props(show(show_chart)), demo_chart(enhanced_graphics)]
     ]
 }
 

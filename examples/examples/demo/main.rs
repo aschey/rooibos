@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::chars;
-use rooibos::dom::{col, line, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::{line, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::traits::{Get, Set};
@@ -87,7 +87,7 @@ fn app() -> impl Render {
         }
     });
 
-    col![header_tabs()].length(3)
+    header_tabs()
 }
 
 const TAB0: &str = "Tab0";
@@ -122,13 +122,11 @@ fn header_tabs() -> impl Render {
         }
     };
 
-    col![
-        TabView::new()
-            .header_height(chars(3.))
-            .block(Block::bordered().title("Demo"))
-            .highlight_style(Style::new().yellow())
-            .on_key_down(on_key_down)
-            .on_title_click(move |_, tab| focused.set(tab.to_string()))
-            .render(focused, tabs)
-    ]
+    TabView::new()
+        .header_height(chars(3.))
+        .block(Block::bordered().title("Demo"))
+        .highlight_style(Style::new().yellow())
+        .on_key_down(on_key_down)
+        .on_title_click(move |_, tab| focused.set(tab.to_string()))
+        .render(focused, tabs)
 }

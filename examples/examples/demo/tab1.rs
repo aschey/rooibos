@@ -1,8 +1,8 @@
-use rooibos::dom::{col, percentage, row, wgt, Render};
+use rooibos::dom::{flex_col, flex_row, wgt, width, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::owner::StoredValue;
 use rooibos::reactive::traits::Get;
-use rooibos::tui::layout::Constraint::*;
+use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::canvas::{self, Canvas, Circle, Context, Map, MapResolution, Rectangle};
@@ -36,9 +36,9 @@ pub(crate) fn tab1() -> impl Render {
         },
     ]);
 
-    row![
-        col![props(percentage(30)), demo_table(servers)],
-        col![props(percentage(70)), demo_map(servers, true)]
+    flex_row![
+        flex_col![props(width!(30.%)), demo_table(servers)],
+        flex_col![props(width!(70.%)), demo_map(servers, true)]
     ]
 }
 
@@ -67,13 +67,20 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
     });
 
     wgt!(
-        Table::new(rows.get(), [Length(15), Length(15), Length(10),])
-            .header(
-                Row::new(vec!["Server", "Location", "Status"])
-                    .yellow()
-                    .bottom_margin(1)
-            )
-            .block(Block::bordered().title("Servers"))
+        Table::new(
+            rows.get(),
+            [
+                Constraint::Length(15),
+                Constraint::Length(15),
+                Constraint::Length(10),
+            ]
+        )
+        .header(
+            Row::new(vec!["Server", "Location", "Status"])
+                .yellow()
+                .bottom_margin(1)
+        )
+        .block(Block::bordered().title("Servers"))
     )
 }
 
