@@ -11,11 +11,11 @@ use super::layout::{
     justify_content, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x,
     margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
     padding_right, padding_top, padding_x, padding_y, shrink, width, wrap, AlignContent,
-    AlignItems, AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight,
-    BorderTop, BorderX, BorderY, Gap, Grow, Height, Hide, JustifyContent, Margin, MarginBottom,
-    MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth,
-    Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Shrink,
-    Width, Wrap,
+    AlignItems, AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom, BorderLeft,
+    BorderRight, BorderTop, BorderX, BorderY, Gap, Grow, Height, Hide, JustifyContent, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
+    PaddingY, Shrink, Width, Wrap,
 };
 use super::{AsDomNode, DomNode, NodeId, Property, RenderAny, RooibosDom};
 use crate::{BlurEvent, EventData, FocusEvent};
@@ -81,6 +81,24 @@ impl<C, P> FlexNode<C, P> {
     pub fn z_index(self, z_index: i32) -> Self {
         self.inner.set_z_index(z_index);
         self
+    }
+}
+
+impl FlexProperty for Block {}
+
+impl<C, P> FlexNode<C, P>
+where
+    P: NextTuple,
+{
+    pub fn block<S>(self, block: S) -> FlexNode<C, P::Output<Block>>
+    where
+        S: Into<MaybeSignal<ratatui::widgets::Block<'static>>>,
+    {
+        FlexNode {
+            inner: self.inner,
+            children: self.children,
+            properties: self.properties.next_tuple(Block(block.into())),
+        }
     }
 }
 

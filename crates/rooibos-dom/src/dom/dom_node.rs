@@ -376,6 +376,7 @@ pub struct DomNodeInner {
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
     pub(crate) z_index: i32,
+    pub(crate) block: Option<Block<'static>>,
 }
 
 impl Render<RooibosDom> for DomNodeInner {
@@ -428,15 +429,11 @@ impl DomNodeInner {
                     let LayoutPropsOld {
                         direction,
                         flex,
-                        mut margin,
+                        margin,
                         spacing,
                         block,
                     } = layout_props.borrow().clone();
-                    if let Some(block) = block {
-                        // Need margin to prevent block from rendering over the content
-                        if margin < 1 {
-                            margin = 1;
-                        }
+                    if let Some(block) = &self.block {
                         block.render_ref(rect, buf);
                     };
 

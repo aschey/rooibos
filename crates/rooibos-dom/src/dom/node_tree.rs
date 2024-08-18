@@ -4,6 +4,7 @@ use std::ops::Index;
 use std::rc::Rc;
 
 use ratatui::layout::{Constraint, Rect};
+use ratatui::widgets::Block;
 use slotmap::{new_key_type, SlotMap};
 use taffy::{
     AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Size, Style, TaffyTree,
@@ -362,6 +363,7 @@ impl NodeTree {
             event_handlers,
             rect,
             original_display,
+            block,
             z_index: _z_index,
         } = &self.dom_nodes[old_key].inner;
         // let layout_id = self.dom_nodes[old_key].layout_id;
@@ -374,6 +376,7 @@ impl NodeTree {
         let event_handlers = event_handlers.clone();
         let rect = rect.clone();
         let original_display = *original_display;
+        let block = block.clone();
 
         let new = &mut self.dom_nodes[new_key].inner;
 
@@ -386,6 +389,7 @@ impl NodeTree {
         new.event_handlers = event_handlers;
         new.rect = rect;
         new.original_display = original_display;
+        new.block = block;
         // self.dom_nodes[new_key].layout_id = layout_id;
     }
 
@@ -415,6 +419,10 @@ impl NodeTree {
 
     pub(crate) fn set_class(&mut self, node: DomNodeKey, class: impl Into<String>) {
         self.dom_nodes[node].inner.class = Some(class.into());
+    }
+
+    pub(crate) fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
+        self.dom_nodes[node].inner.block = Some(block);
     }
 
     pub(crate) fn set_z_index(&mut self, node: DomNodeKey, z_index: i32) {

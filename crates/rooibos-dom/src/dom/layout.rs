@@ -62,6 +62,31 @@ pub fn hide(val: impl Into<MaybeSignal<bool>>) -> (Hide,) {
     (Hide(val.into()),)
 }
 
+pub struct Block(pub(crate) MaybeSignal<ratatui::widgets::Block<'static>>);
+
+pub fn block(block: impl Into<MaybeSignal<ratatui::widgets::Block<'static>>>) -> Block {
+    Block(block.into())
+}
+
+impl Property for Block {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.key();
+        RenderEffect::new(move |_| {
+            with_nodes_mut(|nodes| {
+                nodes.set_block(key, self.0.get());
+                nodes.update_layout(key, |s| s.border = taffy::Rect::length(1.));
+            });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
 impl<T> Property for T
 where
     T: UpdateLayout + 'static,

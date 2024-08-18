@@ -1,8 +1,10 @@
 use std::error::Error;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::layout::chars;
-use rooibos::dom::{block, col, line, row, Constrainable, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::layout::{block, chars};
+use rooibos::dom::{
+    flex_col, flex_row, line, max_height, max_width, EventData, KeyCode, KeyEvent, Render,
+};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -46,27 +48,24 @@ fn app() -> impl Render {
         }
     };
 
-    row![
-        col![
-            TabView::new()
-                .header_height(chars(3.))
-                .block(tab_block)
-                .highlight_style(Style::new().yellow())
-                .fit(true)
-                .on_title_click(move |_, tab| {
-                    focused.set(tab.to_string());
-                })
-                .on_focus(move |_, _| {
-                    tab_block.set(Block::bordered().blue().title("Demo"));
-                })
-                .on_blur(move |_, _| {
-                    tab_block.set(Block::bordered().title("Demo"));
-                })
-                .on_key_down(on_key_down)
-                .render(focused, tabs),
-        ]
-        .block(Block::bordered())
-        .percentage(50)
+    flex_col![
+        props(max_width!(50.), max_height!(20.), block(Block::bordered())),
+        TabView::new()
+            .header_height(chars(3.))
+            .block(tab_block)
+            .highlight_style(Style::new().yellow())
+            .fit(true)
+            .on_title_click(move |_, tab| {
+                focused.set(tab.to_string());
+            })
+            .on_focus(move |_, _| {
+                tab_block.set(Block::bordered().blue().title("Demo"));
+            })
+            .on_blur(move |_, _| {
+                tab_block.set(Block::bordered().title("Demo"));
+            })
+            .on_key_down(on_key_down)
+            .render(focused, tabs),
     ]
 }
 
@@ -96,7 +95,7 @@ fn inner_tabs() -> impl Render {
         }
     };
 
-    row![
+    flex_row![
         props(block(Block::bordered())),
         TabView::new()
             .header_height(chars(3.))
