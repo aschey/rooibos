@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use rooibos::dom::layout::{chars, height};
-use rooibos::dom::{col, flex_col, height, row, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{flex_col, height, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::reactive::wrappers::read::Signal;

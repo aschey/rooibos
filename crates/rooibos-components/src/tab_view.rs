@@ -1,14 +1,14 @@
-use ratatui::layout::Constraint;
-use ratatui::layout::Constraint::*;
 use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
 use reactive_graph::traits::{Get, With};
 use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
+use rooibos_dom::div::taffy::Dimension;
+use rooibos_dom::layout::height;
 use rooibos_dom::{
-    col, constraint, derive_signal, line, span, wgt, BlurEvent, ChildrenFn,
-    Constrainable, EventData, FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    derive_signal, flex_col, line, span, wgt, BlurEvent, ChildrenFn, EventData, FocusEvent,
+    IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -72,10 +72,10 @@ pub struct TabView {
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
-    constraint: MaybeSignal<Constraint>,
     fit: MaybeSignal<bool>,
     divider: MaybeSignal<Span<'static>>,
-    header_constraint: MaybeSignal<Constraint>,
+    header_height: MaybeSignal<Dimension>,
+    width: MaybeSignal<Dimension>,
     padding_left: MaybeSignal<Line<'static>>,
     padding_right: MaybeSignal<Line<'static>>,
 }
@@ -97,25 +97,13 @@ impl Default for TabView {
             highlight_style: Default::default(),
             decorator_highlight_style: Default::default(),
             style: Default::default(),
-            constraint: Default::default(),
             fit: false.into(),
             divider: span!(symbols::line::VERTICAL).into(),
-            header_constraint: Constraint::Length(1).into(),
+            header_height: Dimension::Length(1.).into(),
+            width: Dimension::Percent(100.).into(),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
         }
-    }
-}
-
-impl Constrainable for TabView {
-    type Output = Self;
-
-    fn constraint<S>(mut self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        self.constraint = constraint.into();
-        self
     }
 }
 
@@ -129,11 +117,13 @@ impl TabView {
         self
     }
 
-    pub fn header_constraint(
-        mut self,
-        header_constraint: impl Into<MaybeSignal<Constraint>>,
-    ) -> Self {
-        self.header_constraint = header_constraint.into();
+    pub fn header_height(mut self, header_height: impl Into<MaybeSignal<Dimension>>) -> Self {
+        self.header_height = header_height.into();
+        self
+    }
+
+    pub fn width(mut self, width: impl Into<MaybeSignal<Dimension>>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -218,9 +208,9 @@ impl TabView {
             on_focus,
             on_blur,
             on_key_down,
-            constraint: constraint_,
+            width,
             fit,
-            header_constraint,
+            header_height,
             divider,
             padding_left,
             padding_right,
@@ -331,11 +321,11 @@ impl TabView {
             })
         });
 
-        let constraint_ = derive_signal!({
+        let width = derive_signal!({
             if fit.get() {
-                Length(headers_len.get())
+                Dimension::Length(headers_len.get() as f32)
             } else {
-                constraint_.get()
+                width.get()
             }
         });
 
@@ -393,9 +383,9 @@ impl TabView {
             }
         };
 
-        col![
-            props(constraint(constraint_)),
-            wgt![props(constraint(header_constraint)), {
+        flex_col![
+            props(rooibos_dom::layout::width(width)),
+            wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())
                     .style(style.get())

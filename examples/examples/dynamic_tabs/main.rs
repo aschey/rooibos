@@ -1,12 +1,14 @@
 use std::error::Error;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{col, length, line, row, span, text, EventData, KeyCode, KeyEvent, Render};
+use rooibos::dom::layout::chars;
+use rooibos::dom::{
+    flex_row, line, span, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
+};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
-use rooibos::tui::layout::Constraint::*;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -71,9 +73,9 @@ fn app() -> impl Render {
         }
     };
 
-    row![
+    flex_row![
         TabView::new()
-            .header_constraint(Length(3))
+            .header_height(chars(3.))
             .block(tabs_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
@@ -89,32 +91,26 @@ fn app() -> impl Render {
             .on_decorator_click(remove_tab)
             .on_key_down(on_key_down)
             .render(focused, tabs),
-        col![
-            props(length(5)),
-            row![
-                props(length(3)),
-                Button::new()
-                    .on_click(move || {
-                        tabs.update(|t| {
-                            let num = next_tab.get();
-                            t.push(
-                                Tab::new(
-                                    line!("Tab", span!(num)),
-                                    format!("tab{num}"),
-                                    move || format!("tab{num}"),
-                                )
-                                .decorator(line!("✕".red())),
-                            );
-                            next_tab.update(|t| *t += 1);
-                        });
-                        let tabs = tabs.get();
-                        if tabs.len() == 1 {
-                            focused.set(tabs[0].get_value().to_string());
-                        }
-                    })
-                    .render(text!("+".green()))
-            ]
-        ]
+        Button::new()
+            .width(chars(5.))
+            .height(chars(3.))
+            .on_click(move || {
+                tabs.update(|t| {
+                    let num = next_tab.get();
+                    t.push(
+                        Tab::new(line!("Tab", span!(num)), format!("tab{num}"), move || {
+                            format!("tab{num}")
+                        })
+                        .decorator(line!("✕".red())),
+                    );
+                    next_tab.update(|t| *t += 1);
+                });
+                let tabs = tabs.get();
+                if tabs.len() == 1 {
+                    focused.set(tabs[0].get_value().to_string());
+                }
+            })
+            .render(text!("+".green()))
     ]
 }
 

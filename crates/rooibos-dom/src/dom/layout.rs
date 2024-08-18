@@ -229,6 +229,12 @@ macro_rules! layout_prop {
         #[derive(Default, Clone)]
         pub struct $struct_name(pub(crate) Option<MaybeSignal<$inner>>);
 
+        impl $struct_name {
+            pub fn value(&self) -> Option<MaybeSignal<$inner>> {
+                self.0.clone()
+            }
+        }
+
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
                 if let Some(inner) = self.0 {
