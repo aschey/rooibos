@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::collections::{btree_map, BTreeMap};
+use std::collections::BTreeMap;
 use std::ops::Index;
 use std::rc::Rc;
 
@@ -318,8 +318,12 @@ impl NodeTree {
 
     pub(crate) fn remove(&mut self, node: DomNodeKey) -> Option<TreeValue> {
         let layout_id = self.dom_nodes[node].layout_id;
+        let parent = self.layout_tree.parent(layout_id);
         self.layout_tree.remove(layout_id).unwrap();
-        self.update_sizes(self.layout_tree.parent(layout_id).unwrap());
+        if let Some(parent) = parent {
+            self.update_sizes(parent);
+        }
+
         self.dom_nodes.remove(node)
     }
 
