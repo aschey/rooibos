@@ -1,4 +1,5 @@
 use next_tuple::NextTuple;
+use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
@@ -16,7 +17,8 @@ use super::layout::{
     Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Shrink,
     Width, Wrap,
 };
-use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
+use super::{AsDomNode, DomNode, NodeId, Property, RenderAny, RooibosDom};
+use crate::{BlurEvent, EventData, FocusEvent};
 
 #[derive(Debug)]
 pub struct FlexNode<C, P> {
@@ -39,6 +41,43 @@ where
 }
 
 impl<C, P> FlexNode<C, P> {
+    pub fn id(self, id: impl Into<NodeId>) -> Self {
+        self.inner.set_id(id);
+        self
+    }
+
+    pub fn class(self, class: impl Into<String>) -> Self {
+        self.inner.set_class(class);
+        self
+    }
+
+    pub fn on_focus<F>(self, handler: F) -> Self
+    where
+        F: FnMut(FocusEvent, EventData) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
+        self
+    }
+
+    pub fn on_blur<F>(self, handler: F) -> Self
+    where
+        F: FnMut(BlurEvent, EventData) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
+        self
+    }
+
+    pub fn on_size_change<F>(self, handler: F) -> Self
+    where
+        F: FnMut(Rect) + 'static,
+    {
+        self.inner
+            .update_event_handlers(|event_handlers| event_handlers.on_size_change(handler));
+        self
+    }
+
     pub fn z_index(self, z_index: i32) -> Self {
         self.inner.set_z_index(z_index);
         self

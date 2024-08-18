@@ -143,19 +143,20 @@ impl NodeTree {
     }
 
     fn recompute_offset(&mut self, parent: NodeId) {
-        let parent_layout = *self.layout_tree.layout(parent).unwrap();
+        let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
         let children = self.layout_tree.children(parent).unwrap();
         for child in &children {
             let child_layout = *self.layout_tree.layout(*child).unwrap();
-            if let Some(context) = self.layout_tree.get_node_context_mut(*child) {
-                let new_x = child_layout.location.x + parent_layout.location.x;
-                let new_y = child_layout.location.y + parent_layout.location.y;
-                // if context.0.x != new_x || context.0.y != new_y {
-                context.offset.x = new_x;
-                context.offset.y = new_y;
-                self.recompute_offset(*child);
-                // }
-            }
+            let Some(context) = self.layout_tree.get_node_context_mut(*child) else {
+                panic!()
+            };
+            let new_x = child_layout.location.x + parent_context.offset.x;
+            let new_y = child_layout.location.y + parent_context.offset.y;
+            // if context.0.x != new_x || context.0.y != new_y {
+            context.offset.x = new_x;
+            context.offset.y = new_y;
+            self.recompute_offset(*child);
+            // }
         }
     }
 

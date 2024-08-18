@@ -380,7 +380,7 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
     if let Some(attrs) = attrs {
         line += &format!(" {attrs}");
     }
-    line += &format!(" layout={:?}>", dom_ref.layout_raw(key).location);
+    line += &format!(" layout={:?}>", dom_ref.layout(key));
     // line += &format!(" constraint={}>", node.constraint.borrow().clone());
 
     let mut lines = vec![line!(line)];
@@ -423,9 +423,9 @@ pub fn render_dom(buf: &mut Buffer) {
     }
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
-        crossterm::terminal::disable_raw_mode().unwrap();
-        // print_dom().render_ref(buf.area, buf);
-        with_nodes_mut(|n| n.print_layout_tree());
+        // crossterm::terminal::disable_raw_mode().unwrap();
+        print_dom().render_ref(buf.area, buf);
+        // with_nodes_mut(|n| n.print_layout_tree());
     } else {
         with_nodes_mut(|nodes| {
             nodes.recompute_layout(buf.area);
@@ -474,7 +474,7 @@ pub fn send_event(event: Event) {
                 focus_next();
             } else if key_event.code == KeyCode::BackTab && key_event.kind == KeyEventKind::Press {
                 focus_prev();
-            } else if key_event.code == KeyCode::Char('p')
+            } else if key_event.code == KeyCode::Char('x')
                 && key_event.modifiers.contains(KeyModifiers::CONTROL)
             {
                 PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
