@@ -701,20 +701,18 @@ impl Drop for DomNode {
 impl DomNode {
     pub(crate) fn placeholder() -> Self {
         let inner = DomNodeInner {
-            name: "Placeholder".to_string(),
+            name: "placeholder".to_string(),
             node_type: NodeType::Placeholder,
-            constraint: Default::default(),
-            children: vec![],
-            parent: None,
-            focusable: Default::default(),
-            id: None,
-            class: None,
-            event_handlers: Default::default(),
-            rect: Default::default(),
-            original_display: taffy::Display::Block,
-            z_index: 0,
+            original_display: taffy::Display::None,
+            ..Default::default()
         };
-        let key = with_nodes_mut(|n| n.insert(inner));
+        let key = with_nodes_mut(|n| {
+            let key = n.insert(inner);
+            n.update_layout(key, |style| {
+                style.display = taffy::Display::None;
+            });
+            key
+        });
         Self {
             key,
             unmounted: Arc::new(AtomicBool::new(false)),

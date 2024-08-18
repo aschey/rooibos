@@ -1,11 +1,12 @@
 use std::error::Error;
 
-use rooibos::dom::{col, constraint, length, row, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::layout::{chars, height};
+use rooibos::dom::{col, flex_col, height, row, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
-use rooibos::tui::layout::Constraint::{self, *};
 use rooibos::tui::style::Stylize;
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -19,7 +20,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn counter(id: i32, counter_constraint: Constraint) -> impl Render {
+fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
     let (count, set_count) = signal(0);
 
     let block = RwSignal::new(Block::bordered().border_set(border::EMPTY));
@@ -36,7 +37,7 @@ fn counter(id: i32, counter_constraint: Constraint) -> impl Render {
     };
 
     wgt![
-        props(constraint(counter_constraint)),
+        props(height(row_height)),
         Paragraph::new(format!("count: {}", count.get())).block(block.get())
     ]
     .on_focus(move |_, _| block.set(Block::bordered().blue()))
@@ -47,10 +48,10 @@ fn counter(id: i32, counter_constraint: Constraint) -> impl Render {
 }
 
 fn app() -> impl Render {
-    row![col![
-        props(length(15)),
-        (0..5).map(|i| counter(i, Length(3))).collect::<Vec<_>>()
-    ]]
+    flex_col![
+        props(height!(15.)),
+        (0..5).map(|i| counter(i, chars(3.))).collect::<Vec<_>>()
+    ]
 }
 
 #[cfg(test)]
