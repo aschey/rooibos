@@ -1,7 +1,8 @@
 use std::error::Error;
 
 use rooibos::components::Input;
-use rooibos::dom::{col, wgt, Constrainable, Render, WidgetState};
+use rooibos::dom::layout::chars;
+use rooibos::dom::{flex_col, wgt, Render, UpdateLayoutProps, WidgetState};
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
@@ -22,7 +23,7 @@ fn app() -> impl Render {
     let textarea = Input::get_ref();
 
     let text = textarea.text();
-    col![
+    flex_col![
         Input::default()
             .block(|state| Block::bordered()
                 .fg(Color::Blue)
@@ -34,7 +35,7 @@ fn app() -> impl Render {
                 .title("Input")
                 .into())
             .placeholder_text("Enter some text")
-            .length(3)
+            .height(chars(3.))
             .on_submit(move |_| {
                 textarea.delete_line_by_head();
             })

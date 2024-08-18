@@ -9,7 +9,7 @@ use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
     derive_signal, BlurEvent, Constrainable, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
-    NodeId, Render, WidgetState,
+    LayoutProps, NodeId, Render, UpdateLayoutProps, WidgetState,
 };
 use rooibos_runtime::wasm_compat;
 use tokio::sync::broadcast;
@@ -109,7 +109,8 @@ impl InputRef {
 }
 
 pub struct Input {
-    constraint: MaybeSignal<Constraint>,
+    // constraint: MaybeSignal<Constraint>,
+    layout_props: LayoutProps,
     alignment: MaybeSignal<Alignment>,
     block: Box<dyn Fn(WidgetState) -> Option<Block<'static>> + Send + Sync>,
     cursor_style: MaybeSignal<Style>,
@@ -130,7 +131,7 @@ impl Constrainable for Input {
     where
         S: Into<MaybeSignal<Constraint>>,
     {
-        self.constraint = constraint.into();
+        // self.constraint = constraint.into();
         self
     }
 }
@@ -140,7 +141,7 @@ impl Default for Input {
         Self {
             alignment: Alignment::Left.into(),
             block: Box::new(move |_| None),
-            constraint: Constraint::default().into(),
+            layout_props: LayoutProps::default(),
             cursor_style: Style::reset().reversed().into(),
             placeholder_style: Style::default().dark_gray().into(),
             placeholder_text: String::new().into(),
@@ -151,6 +152,17 @@ impl Default for Input {
             initial_value: "".to_string(),
             id: None,
         }
+    }
+}
+
+impl UpdateLayoutProps for Input {
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
+
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
     }
 }
 
@@ -203,7 +215,7 @@ impl Input {
 
     pub fn render(self, input_ref: InputRef) -> impl Render {
         let Self {
-            constraint,
+            layout_props,
             alignment,
             block,
             cursor_style,
@@ -288,7 +300,7 @@ impl Input {
                 text_area.with(|t| t.render(area, buf));
             }
         })
-        .constraint(constraint)
+        .layout_props(layout_props)
         .on_key_down(key_down)
         .on_paste(paste)
         .on_focus(move |focus_event, event_data| {

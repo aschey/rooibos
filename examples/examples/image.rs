@@ -2,7 +2,7 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use rooibos::components::Image;
-use rooibos::dom::{col, length, row, KeyCode, Render};
+use rooibos::dom::{flex_col, height, width, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
@@ -19,7 +19,7 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    let image_length = RwSignal::new(5);
+    let image_length = RwSignal::new(10.);
 
     let keypress = use_keypress();
 
@@ -27,10 +27,10 @@ fn app() -> impl Render {
 
     Effect::new(move || {
         if let Some(key) = keypress.get() {
-            if key.code == KeyCode::Down && image_length.get_untracked() > 1 {
-                image_length.update(|l| *l -= 1);
-            } else if key.code == KeyCode::Up && image_length.get_untracked() < 10 {
-                image_length.update(|l| *l += 1);
+            if key.code == KeyCode::Down && image_length.get_untracked() > 5. {
+                image_length.update(|l| *l -= 1.);
+            } else if key.code == KeyCode::Up && image_length.get_untracked() < 20. {
+                image_length.update(|l| *l += 1.);
             } else if key.code == KeyCode::Char('t') {
                 image_url.update(|i| {
                     if i.to_string_lossy() == "./examples/assets/cat.jpg" {
@@ -43,8 +43,8 @@ fn app() -> impl Render {
         }
     });
 
-    col![row![
-        props(length(image_length)),
+    flex_col![
+        props(width!(image_length), height!(image_length)),
         Image::from_url(image_url).render()
-    ]]
+    ]
 }

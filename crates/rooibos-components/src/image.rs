@@ -76,12 +76,8 @@ impl Image {
         Effect::new(move |prev_picker: Option<Option<Picker>>| {
             let image = image.get();
             if let Some(image) = image {
-                if let Some(Some(mut picker)) = prev_picker {
-                    async_state.set(Some(ThreadProtocol::new(
-                        tx_worker.clone(),
-                        picker.new_resize_protocol(image),
-                    )));
-                    Some(picker)
+                let (mut picker, image) = if let Some(Some(picker)) = prev_picker {
+                    (picker, image)
                 } else {
                     let fallback_size = Size {
                         width: 8,
@@ -94,13 +90,14 @@ impl Image {
                     let mut picker = Picker::new((pixel_size.width, pixel_size.height));
                     picker.guess_protocol();
 
-                    async_state.set(Some(ThreadProtocol::new(
-                        tx_worker.clone(),
-                        picker.new_resize_protocol(image),
-                    )));
+                    (picker, image)
+                };
 
-                    Some(picker)
-                }
+                async_state.set(Some(ThreadProtocol::new(
+                    tx_worker.clone(),
+                    picker.new_resize_protocol(image),
+                )));
+                Some(picker)
             } else {
                 None
             }
