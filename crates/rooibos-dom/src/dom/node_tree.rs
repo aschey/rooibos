@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::collections::{btree_map, BTreeMap};
 use std::ops::Index;
 use std::rc::Rc;
 
@@ -65,7 +66,7 @@ impl Default for Context {
 pub(crate) struct NodeTree {
     dom_nodes: SlotMap<DomNodeKey, TreeValue>,
     layout_tree: TaffyTree<Context>,
-    root: Box<dyn AsDomNode>,
+    roots: BTreeMap<i32, Box<dyn AsDomNode>>,
 }
 
 impl Index<DomNodeKey> for NodeTree {
@@ -77,40 +78,34 @@ impl Index<DomNodeKey> for NodeTree {
 
 impl NodeTree {
     pub(crate) fn new() -> Self {
-        // let mut layout_tree = TaffyTree::<()>::default();
-        // let layout_root = layout_tree
-        //     .new_leaf(Style {
-        //         display: taffy::Display::Block,
-        //         ..Default::default()
-        //     })
-        //     .unwrap();
         Self {
-            // layout_root,
             layout_tree: TaffyTree::<Context>::new(),
-            root: Box::new(DomNode::default()),
+            roots: BTreeMap::default(),
             dom_nodes: Default::default(),
         }
     }
 
     pub(crate) fn recompute_layout(&mut self, rect: Rect) {
-        // let node = self.dom_nodes[self.root.as_dom_node().key()].layout_id;
-        // self.update_sizes(node);
-        let node = &self.dom_nodes[self.root.as_dom_node().key()];
-        self.layout_tree
-            .compute_layout(
-                node.layout_id,
-                Size::<AvailableSpace> {
-                    width: AvailableSpace::Definite(rect.width.into()),
-                    height: AvailableSpace::Definite(rect.height.into()),
-                },
-            )
-            .unwrap();
-        self.recompute_offsets();
+        let root_keys: Vec<_> = self.roots.values().map(|r| r.as_dom_node().key()).collect();
+        for root_key in root_keys {
+            let node = &self.dom_nodes[root_key];
+            self.layout_tree
+                .compute_layout(
+                    node.layout_id,
+                    Size::<AvailableSpace> {
+                        width: AvailableSpace::Definite(rect.width.into()),
+                        height: AvailableSpace::Definite(rect.height.into()),
+                    },
+                )
+                .unwrap();
+            self.recompute_offsets(root_key);
+        }
     }
 
-    pub(crate) fn set_root(&mut self, root: Box<dyn AsDomNode>) {
-        self.root = root;
-        let node = &self.dom_nodes[self.root.as_dom_node().key()];
+    pub(crate) fn set_root(&mut self, z_index: i32, root: Box<dyn AsDomNode>) {
+        let key = root.as_dom_node().key();
+        self.roots.insert(z_index, root);
+        let node = &self.dom_nodes[key];
         let mut style = self.layout_tree.style(node.layout_id).unwrap().clone();
         if style.size.width == Dimension::Auto {
             style.size.width = Dimension::Percent(1.);
@@ -121,12 +116,29 @@ impl NodeTree {
         self.layout_tree.set_style(node.layout_id, style).unwrap();
     }
 
-    pub(crate) fn root(&self) -> &dyn AsDomNode {
-        &self.root
+    pub(crate) fn root(&self, z_index: i32) -> &dyn AsDomNode {
+        &self.roots[&z_index]
     }
 
-    fn recompute_offsets(&mut self) {
-        let node = &self.dom_nodes[self.root.as_dom_node().key()];
+    pub(crate) fn roots_asc(&self) -> Vec<DomNode> {
+        self.roots
+            .values()
+            .map(|r| r.as_dom_node().clone())
+            .collect()
+    }
+
+    pub(crate) fn roots_desc(&self) -> Vec<DomNode> {
+        let mut roots: Vec<_> = self
+            .roots
+            .values()
+            .map(|r| r.as_dom_node().clone())
+            .collect();
+        roots.reverse();
+        roots
+    }
+
+    fn recompute_offsets(&mut self, root_key: DomNodeKey) {
+        let node = &self.dom_nodes[root_key];
         self.recompute_offset(node.layout_id);
     }
 
@@ -234,7 +246,7 @@ impl NodeTree {
     }
 
     pub(crate) fn print_layout_tree(&mut self) {
-        let key = self.root.as_dom_node().key();
+        let key = self.roots[&0].as_dom_node().key();
         let layout_id = self.dom_nodes[key].layout_id;
         self.layout_tree.print_tree(layout_id);
     }
@@ -345,6 +357,7 @@ impl NodeTree {
             event_handlers,
             rect,
             original_display,
+            z_index: _z_index,
         } = &self.dom_nodes[old_key].inner;
         // let layout_id = self.dom_nodes[old_key].layout_id;
         let name = name.clone();
@@ -397,6 +410,10 @@ impl NodeTree {
 
     pub(crate) fn set_class(&mut self, node: DomNodeKey, class: impl Into<String>) {
         self.dom_nodes[node].inner.class = Some(class.into());
+    }
+
+    pub(crate) fn set_z_index(&mut self, node: DomNodeKey, z_index: i32) {
+        self.dom_nodes[node].inner.z_index = z_index;
     }
 }
 

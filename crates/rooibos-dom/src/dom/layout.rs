@@ -6,7 +6,7 @@ use taffy::Display;
 use super::{with_nodes_mut, DomNode, Property};
 use crate::derive_signal;
 
-trait UpdateLayout {
+pub(crate) trait UpdateLayout {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style);
 }
 
@@ -18,6 +18,32 @@ pub fn chars(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::Dimension> {
 pub fn pct(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::Dimension> {
     let val = val.into();
     derive_signal!(taffy::Dimension::Percent(val.get() / 100.0))
+}
+
+pub fn length_percentage_pct(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::LengthPercentage> {
+    let val = val.into();
+    derive_signal!(taffy::LengthPercentage::Percent(val.get() / 100.0))
+}
+
+pub fn length_percentage_chars(
+    val: impl Into<MaybeSignal<f32>>,
+) -> Signal<taffy::LengthPercentage> {
+    let val = val.into();
+    derive_signal!(taffy::LengthPercentage::Length(val.get()))
+}
+
+pub fn length_percentage_auto_pct(
+    val: impl Into<MaybeSignal<f32>>,
+) -> Signal<taffy::LengthPercentageAuto> {
+    let val = val.into();
+    derive_signal!(taffy::LengthPercentageAuto::Percent(val.get() / 100.0))
+}
+
+pub fn length_percentage_auto_chars(
+    val: impl Into<MaybeSignal<f32>>,
+) -> Signal<taffy::LengthPercentageAuto> {
+    let val = val.into();
+    derive_signal!(taffy::LengthPercentageAuto::Length(val.get()))
 }
 
 pub struct Hide(MaybeSignal<bool>);
@@ -118,15 +144,95 @@ macro_rules! max_height {
     };
 }
 
+#[macro_export]
+macro_rules! padding_left {
+    ($val:tt %) => {
+        $crate::layout::padding_left($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding_left($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! padding_right {
+    ($val:tt %) => {
+        $crate::layout::padding_right($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding_right($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! padding_top {
+    ($val:tt %) => {
+        $crate::layout::padding_top($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding_top($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! padding_bottom {
+    ($val:tt %) => {
+        $crate::layout::padding_bottom($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding_bottom($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! padding_x {
+    ($val:tt %) => {
+        $crate::layout::padding_x($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding_x($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! padding_y {
+    ($val:tt %) => {
+        $crate::layout::padding_y($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding_y($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! padding {
+    ($val:tt %) => {
+        $crate::layout::padding($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::padding($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! margin {
+    ($val:tt %) => {
+        $crate::layout::margin($crate::layout::length_percentage_auto_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin($crate::layout::length_percentage_auto_chars($val))
+    };
+}
+
 macro_rules! layout_prop {
-    ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
+    ($struct_name:ident, $fn:ident, $inner:ty, $($($props:ident).+),+) => {
         #[derive(Default, Clone)]
         pub struct $struct_name(pub(crate) Option<MaybeSignal<$inner>>);
 
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
                 if let Some(inner) = self.0 {
-                    style.$($prop).* = inner.get();
+                    $(style.$($props).* = inner.get();)+
                 }
 
             }
@@ -165,19 +271,145 @@ layout_prop!(MinHeight, min_height, taffy::Dimension, min_size.height);
 layout_prop!(MaxWidth, max_width, taffy::Dimension, max_size.width);
 layout_prop!(MaxHeight, max_height, taffy::Dimension, max_size.height);
 layout_prop_opt!(AspectRatio, aspect_ratio, f32, aspect_ratio);
+
+layout_prop!(
+    MarginLeft,
+    margin_left,
+    taffy::LengthPercentageAuto,
+    margin.left
+);
+layout_prop!(
+    MarginRight,
+    margin_right,
+    taffy::LengthPercentageAuto,
+    margin.right
+);
+layout_prop!(
+    MarginTop,
+    margin_top,
+    taffy::LengthPercentageAuto,
+    margin.top
+);
+layout_prop!(
+    MarginBottom,
+    margin_bottom,
+    taffy::LengthPercentageAuto,
+    margin.bottom
+);
+layout_prop!(
+    MarginX,
+    margin_x,
+    taffy::LengthPercentageAuto,
+    margin.left,
+    margin.right
+);
+layout_prop!(
+    MarginY,
+    margin_y,
+    taffy::LengthPercentageAuto,
+    margin.top,
+    margin.bottom
+);
 layout_prop!(
     Margin,
     margin,
-    taffy::Rect<taffy::LengthPercentageAuto>,
-    margin
+    taffy::LengthPercentageAuto,
+    margin.top,
+    margin.bottom,
+    margin.left,
+    margin.right
+);
+
+layout_prop!(
+    PaddingLeft,
+    padding_left,
+    taffy::LengthPercentage,
+    padding.left
+);
+layout_prop!(
+    PaddingRight,
+    padding_right,
+    taffy::LengthPercentage,
+    padding.right
+);
+layout_prop!(
+    PaddingTop,
+    padding_top,
+    taffy::LengthPercentage,
+    padding.top
+);
+layout_prop!(
+    PaddingBottom,
+    padding_bottom,
+    taffy::LengthPercentage,
+    padding.bottom
+);
+layout_prop!(
+    PaddingX,
+    padding_x,
+    taffy::LengthPercentage,
+    padding.left,
+    padding.right
+);
+layout_prop!(
+    PaddingY,
+    padding_y,
+    taffy::LengthPercentage,
+    padding.top,
+    padding.bottom
 );
 layout_prop!(
     Padding,
     padding,
-    taffy::Rect<taffy::LengthPercentage>,
-    padding
+    taffy::LengthPercentage,
+    padding.top,
+    padding.bottom,
+    padding.left,
+    padding.right
 );
-layout_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>, border);
+
+layout_prop!(
+    BorderLeft,
+    border_left,
+    taffy::LengthPercentage,
+    border.left
+);
+layout_prop!(
+    BorderRight,
+    border_right,
+    taffy::LengthPercentage,
+    border.right
+);
+layout_prop!(BorderTop, border_top, taffy::LengthPercentage, border.top);
+layout_prop!(
+    BorderBottom,
+    border_bottom,
+    taffy::LengthPercentage,
+    border.bottom
+);
+layout_prop!(
+    BorderX,
+    border_x,
+    taffy::LengthPercentage,
+    border.left,
+    border.right
+);
+layout_prop!(
+    BorderY,
+    border_y,
+    taffy::LengthPercentage,
+    border.top,
+    border.bottom
+);
+layout_prop!(
+    Border,
+    border,
+    taffy::LengthPercentage,
+    border.top,
+    border.bottom,
+    border.left,
+    border.right
+);
 layout_prop!(Position, position, taffy::style::Position, position);
 
 // Flex properties

@@ -5,10 +5,16 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    align_content, align_items, align_self, aspect_ratio, basis, border, gap, grow, height, hide,
-    justify_content, margin, max_height, max_width, min_height, min_width, padding, shrink, width,
-    wrap, AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, Border, Gap, Grow, Height, Hide,
-    JustifyContent, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Shrink, Width, Wrap,
+    align_content, align_items, align_self, aspect_ratio, basis, border, border_bottom,
+    border_left, border_right, border_top, border_x, border_y, gap, grow, height, hide,
+    justify_content, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x,
+    margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, shrink, width, wrap, AlignContent,
+    AlignItems, AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight,
+    BorderTop, BorderX, BorderY, Gap, Grow, Height, Hide, JustifyContent, Margin, MarginBottom,
+    MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth,
+    Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Shrink,
+    Width, Wrap,
 };
 use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
 
@@ -29,6 +35,13 @@ where
             children: self.children.next_tuple(child),
             properties: self.properties,
         }
+    }
+}
+
+impl<C, P> FlexNode<C, P> {
+    pub fn z_index(self, z_index: i32) -> Self {
+        self.inner.set_z_index(z_index);
+        self
     }
 }
 
@@ -81,9 +94,31 @@ flex_prop!(MinHeight, min_height, taffy::Dimension);
 flex_prop!(MaxWidth, max_width, taffy::Dimension);
 flex_prop!(MaxHeight, max_height, taffy::Dimension);
 flex_prop!(AspectRatio, aspect_ratio, f32);
-flex_prop!(Margin, margin, taffy::Rect<taffy::LengthPercentageAuto>);
-flex_prop!(Padding, padding, taffy::Rect<taffy::LengthPercentage>);
-flex_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>);
+
+flex_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
+flex_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
+flex_prop!(MarginTop, margin_top, taffy::LengthPercentageAuto);
+flex_prop!(MarginBottom, margin_bottom, taffy::LengthPercentageAuto);
+flex_prop!(MarginX, margin_x, taffy::LengthPercentageAuto);
+flex_prop!(MarginY, margin_y, taffy::LengthPercentageAuto);
+flex_prop!(Margin, margin, taffy::LengthPercentageAuto);
+
+flex_prop!(PaddingLeft, padding_left, taffy::LengthPercentage);
+flex_prop!(PaddingRight, padding_right, taffy::LengthPercentage);
+flex_prop!(PaddingTop, padding_top, taffy::LengthPercentage);
+flex_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
+flex_prop!(PaddingX, padding_x, taffy::LengthPercentage);
+flex_prop!(PaddingY, padding_y, taffy::LengthPercentage);
+flex_prop!(Padding, padding, taffy::LengthPercentage);
+
+flex_prop!(BorderLeft, border_left, taffy::LengthPercentage);
+flex_prop!(BorderRight, border_right, taffy::LengthPercentage);
+flex_prop!(BorderTop, border_top, taffy::LengthPercentage);
+flex_prop!(BorderBottom, border_bottom, taffy::LengthPercentage);
+flex_prop!(BorderX, border_x, taffy::LengthPercentage);
+flex_prop!(BorderY, border_y, taffy::LengthPercentage);
+flex_prop!(Border, border, taffy::LengthPercentage);
+
 flex_prop!(Hide, hide, bool);
 
 flex_prop!(Wrap, wrap, taffy::FlexWrap);

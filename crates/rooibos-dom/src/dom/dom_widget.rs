@@ -14,9 +14,14 @@ use terminput::{KeyEvent, MouseEvent};
 
 use super::dom_node::{DomNode, NodeId};
 use super::layout::{
-    align_self, aspect_ratio, basis, border, grow, height, margin, max_height, max_width,
-    min_height, min_width, padding, shrink, width, AlignSelf, AspectRatio, Basis, Border, Grow,
-    Height, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Shrink, Width,
+    align_self, aspect_ratio, basis, border, border_bottom, border_left, border_right, border_top,
+    border_x, border_y, grow, height, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, shrink, width, AlignSelf,
+    AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY,
+    Grow, Height, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY,
+    MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight,
+    PaddingTop, PaddingX, PaddingY, Shrink, UpdateLayout, Width,
 };
 use super::{AsDomNode, Constraint, Focusable, Property};
 use crate::widgets::WidgetRole;
@@ -143,6 +148,11 @@ impl<P> DomWidget<P> {
         self.inner.set_class(class);
         self
     }
+
+    pub fn z_index(self, z_index: i32) -> Self {
+        self.inner.set_z_index(z_index);
+        self
+    }
 }
 
 impl<P> DomWidget<P>
@@ -250,10 +260,10 @@ where
     pub fn layout_props(
         self,
         layout_props: LayoutProps,
-    ) -> DomWidget<P::Output<impl NextTuple + WidgetProperty>> {
+    ) -> DomWidget<<P as NextTuple>::Output<(LayoutProps,)>> {
         DomWidget {
             inner: self.inner,
-            properties: self.properties.next_tuple(layout_props.into_tuple()),
+            properties: self.properties.next_tuple((layout_props,)),
         }
     }
 }
@@ -380,17 +390,41 @@ pub struct LayoutProps {
     max_width: MaxWidth,
     max_height: MaxHeight,
     aspect_ratio: AspectRatio,
+
+    margin_left: MarginLeft,
+    margin_right: MarginRight,
+    margin_top: MarginTop,
+    margin_bottom: MarginBottom,
+    margin_x: MarginX,
+    margin_y: MarginY,
     margin: Margin,
+
+    padding_left: PaddingLeft,
+    padding_right: PaddingRight,
+    padding_top: PaddingTop,
+    padding_bottom: PaddingBottom,
+    padding_x: PaddingX,
+    padding_y: PaddingY,
     padding: Padding,
+
+    border_left: BorderLeft,
+    border_right: BorderRight,
+    border_top: BorderTop,
+    border_bottom: BorderBottom,
+    border_x: BorderX,
+    border_y: BorderY,
     border: Border,
+
     grow: Grow,
     shrink: Shrink,
     basis: Basis,
     align_self: AlignSelf,
 }
 
-impl LayoutProps {
-    fn into_tuple(self) -> impl NextTuple + WidgetProperty {
+impl WidgetProperty for LayoutProps {}
+
+impl UpdateLayout for LayoutProps {
+    fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style) {
         let Self {
             width,
             height,
@@ -399,28 +433,70 @@ impl LayoutProps {
             max_width,
             max_height,
             aspect_ratio,
-            margin,
-            padding,
-            border,
             grow,
             shrink,
             basis,
             align_self,
+
+            margin_left,
+            margin_right,
+            margin_top,
+            margin_bottom,
+            margin_x,
+            margin_y,
+            margin,
+
+            padding_left,
+            padding_right,
+            padding_top,
+            padding_bottom,
+            padding_x,
+            padding_y,
+            padding,
+
+            border_left,
+            border_right,
+            border_top,
+            border_bottom,
+            border_x,
+            border_y,
+            border,
         } = self;
-        (width,)
-            .next_tuple(height)
-            .next_tuple(min_width)
-            .next_tuple(min_height)
-            .next_tuple(max_width)
-            .next_tuple(max_height)
-            .next_tuple(aspect_ratio)
-            .next_tuple(margin)
-            .next_tuple(padding)
-            .next_tuple(border)
-            .next_tuple(grow)
-            .next_tuple(shrink)
-            .next_tuple(basis)
-            .next_tuple(align_self)
+        width.update_layout(original_display, style);
+        height.update_layout(original_display, style);
+        min_width.update_layout(original_display, style);
+        min_height.update_layout(original_display, style);
+        max_width.update_layout(original_display, style);
+        max_height.update_layout(original_display, style);
+        aspect_ratio.update_layout(original_display, style);
+        grow.update_layout(original_display, style);
+        shrink.update_layout(original_display, style);
+        basis.update_layout(original_display, style);
+        align_self.update_layout(original_display, style);
+
+        margin_left.update_layout(original_display, style);
+        margin_right.update_layout(original_display, style);
+        margin_top.update_layout(original_display, style);
+        margin_bottom.update_layout(original_display, style);
+        margin_x.update_layout(original_display, style);
+        margin_y.update_layout(original_display, style);
+        margin.update_layout(original_display, style);
+
+        padding_left.update_layout(original_display, style);
+        padding_right.update_layout(original_display, style);
+        padding_top.update_layout(original_display, style);
+        padding_bottom.update_layout(original_display, style);
+        padding_x.update_layout(original_display, style);
+        padding_y.update_layout(original_display, style);
+        padding.update_layout(original_display, style);
+
+        border_left.update_layout(original_display, style);
+        border_right.update_layout(original_display, style);
+        border_top.update_layout(original_display, style);
+        border_bottom.update_layout(original_display, style);
+        border_x.update_layout(original_display, style);
+        border_y.update_layout(original_display, style);
+        border.update_layout(original_display, style);
     }
 }
 
@@ -450,9 +526,30 @@ where
     update_props!(max_width, taffy::Dimension);
     update_props!(max_height, taffy::Dimension);
     update_props!(aspect_ratio, f32);
-    update_props!(margin, taffy::Rect<taffy::LengthPercentageAuto>);
-    update_props!(padding, taffy::Rect<taffy::LengthPercentage>);
-    update_props!(border, taffy::Rect<taffy::LengthPercentage>);
+
+    update_props!(margin_left, taffy::LengthPercentageAuto);
+    update_props!(margin_right, taffy::LengthPercentageAuto);
+    update_props!(margin_top, taffy::LengthPercentageAuto);
+    update_props!(margin_bottom, taffy::LengthPercentageAuto);
+    update_props!(margin_x, taffy::LengthPercentageAuto);
+    update_props!(margin_y, taffy::LengthPercentageAuto);
+    update_props!(margin, taffy::LengthPercentageAuto);
+
+    update_props!(padding_left, taffy::LengthPercentage);
+    update_props!(padding_right, taffy::LengthPercentage);
+    update_props!(padding_top, taffy::LengthPercentage);
+    update_props!(padding_bottom, taffy::LengthPercentage);
+    update_props!(padding_x, taffy::LengthPercentage);
+    update_props!(padding_y, taffy::LengthPercentage);
+    update_props!(padding, taffy::LengthPercentage);
+
+    update_props!(border_left, taffy::LengthPercentage);
+    update_props!(border_right, taffy::LengthPercentage);
+    update_props!(border_top, taffy::LengthPercentage);
+    update_props!(border_bottom, taffy::LengthPercentage);
+    update_props!(border_x, taffy::LengthPercentage);
+    update_props!(border_y, taffy::LengthPercentage);
+    update_props!(border, taffy::LengthPercentage);
 
     update_props!(grow, f32);
     update_props!(shrink, f32);
@@ -514,9 +611,30 @@ widget_prop!(MinHeight, min_height, taffy::Dimension);
 widget_prop!(MaxWidth, max_width, taffy::Dimension);
 widget_prop!(MaxHeight, max_height, taffy::Dimension);
 widget_prop!(AspectRatio, aspect_ratio, f32);
-widget_prop!(Margin, margin, taffy::Rect<taffy::LengthPercentageAuto>);
-widget_prop!(Padding, padding, taffy::Rect<taffy::LengthPercentage>);
-widget_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>);
+
+widget_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
+widget_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
+widget_prop!(MarginTop, margin_top, taffy::LengthPercentageAuto);
+widget_prop!(MarginBottom, margin_bottom, taffy::LengthPercentageAuto);
+widget_prop!(MarginX, margin_x, taffy::LengthPercentageAuto);
+widget_prop!(MarginY, margin_y, taffy::LengthPercentageAuto);
+widget_prop!(Margin, margin, taffy::LengthPercentageAuto);
+
+widget_prop!(PaddingLeft, padding_left, taffy::LengthPercentage);
+widget_prop!(PaddingRight, padding_right, taffy::LengthPercentage);
+widget_prop!(PaddingTop, padding_top, taffy::LengthPercentage);
+widget_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
+widget_prop!(PaddingX, padding_x, taffy::LengthPercentage);
+widget_prop!(PaddingY, padding_y, taffy::LengthPercentage);
+widget_prop!(Padding, padding, taffy::LengthPercentage);
+
+widget_prop!(BorderLeft, border_left, taffy::LengthPercentage);
+widget_prop!(BorderRight, border_right, taffy::LengthPercentage);
+widget_prop!(BorderTop, border_top, taffy::LengthPercentage);
+widget_prop!(BorderBottom, border_bottom, taffy::LengthPercentage);
+widget_prop!(BorderX, border_x, taffy::LengthPercentage);
+widget_prop!(BorderY, border_y, taffy::LengthPercentage);
+widget_prop!(Border, border, taffy::LengthPercentage);
 
 widget_prop!(Grow, grow, f32);
 widget_prop!(Shrink, shrink, f32);

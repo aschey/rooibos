@@ -10,14 +10,15 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    constraint, derive_signal, wgt, Constrainable, KeyCode, KeyEvent, NodeId, Render,
-    WidgetState,
+    constraint, derive_signal, wgt, Constrainable, KeyCode, KeyEvent, LayoutProps, NodeId, Render,
+    UpdateLayoutProps, WidgetState,
 };
 use rooibos_runtime::{delay, supports_key_up};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
-    constraint: MaybeSignal<Constraint>,
+    // constraint: MaybeSignal<Constraint>,
+    layout_props: LayoutProps,
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
@@ -38,7 +39,18 @@ impl Constrainable for Button {
     where
         S: Into<MaybeSignal<Constraint>>,
     {
-        self.constraint = constraint.into();
+        // self.constraint = constraint.into();
+        self
+    }
+}
+
+impl UpdateLayoutProps for Button {
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
+
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
         self
     }
 }
@@ -47,13 +59,19 @@ impl Button {
     pub fn new() -> Self {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
-            constraint: Default::default(),
+            // constraint: Default::default(),
+            layout_props: LayoutProps::default(),
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
             id: None,
             class: None,
         }
+    }
+
+    pub fn style(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
     }
 
     pub fn id(mut self, id: impl Into<NodeId>) -> Self {
@@ -101,7 +119,8 @@ impl Button {
     {
         let Self {
             on_click,
-            constraint: constraint_,
+            layout_props,
+            // constraint: constraint_,
             border_color,
             focused_border_color,
             active_border_color,
@@ -145,7 +164,6 @@ impl Button {
         };
         let children = children.into();
         let mut button = wgt![
-            props(constraint(constraint_)),
             rooibos_dom::Button::new(children.get())
                 .block(
                     Block::bordered()
@@ -154,6 +172,7 @@ impl Button {
                 )
                 .centered()
         ]
+        .layout_props(layout_props)
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
         .on_click(move |_, _| on_enter_())

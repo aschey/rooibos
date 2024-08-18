@@ -460,6 +460,7 @@ pub struct DomNodeInner {
     #[derivative(Debug = "ignore")]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
+    pub(crate) z_index: i32,
 }
 
 impl Render<RooibosDom> for DomNodeInner {
@@ -794,6 +795,7 @@ impl DomNode {
             event_handlers: Default::default(),
             rect: Default::default(),
             original_display: taffy::Display::Block,
+            z_index: 0,
         };
         let key = with_nodes_mut(|n| n.insert(inner));
         Self {
@@ -1006,6 +1008,12 @@ impl DomNode {
     pub(crate) fn set_id(&self, id: impl Into<NodeId>) {
         with_nodes_mut(|n| {
             n.set_id(self.key, id);
+        });
+    }
+
+    pub(crate) fn set_z_index(&self, z_index: i32) {
+        with_nodes_mut(|n| {
+            n.set_z_index(self.key, z_index);
         });
     }
 

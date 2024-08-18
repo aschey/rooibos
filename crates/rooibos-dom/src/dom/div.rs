@@ -5,7 +5,14 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    aspect_ratio, border, height, margin, max_height, max_width, min_height, min_width, padding, width, AspectRatio, Border, Height, Margin, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, Width,
+    align_self, aspect_ratio, basis, border, border_bottom, border_left, border_right, border_top,
+    border_x, border_y, grow, height, hide, margin, margin_bottom, margin_left, margin_right,
+    margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width, padding,
+    padding_bottom, padding_left, padding_right, padding_top, padding_x, padding_y, shrink, width,
+    AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
+    BorderX, BorderY, Grow, Height, Hide, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
+    MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
+    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Shrink, Width,
 };
 use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
 
@@ -26,6 +33,13 @@ where
             children: self.children.next_tuple(child),
             properties: self.properties,
         }
+    }
+}
+
+impl<C, P> Div<C, P> {
+    pub fn z_index(self, z_index: i32) -> Self {
+        self.inner.set_z_index(z_index);
+        self
     }
 }
 
@@ -70,9 +84,32 @@ div_prop!(MinHeight, min_height, taffy::Dimension);
 div_prop!(MaxWidth, max_width, taffy::Dimension);
 div_prop!(MaxHeight, max_height, taffy::Dimension);
 div_prop!(AspectRatio, aspect_ratio, f32);
-div_prop!(Margin, margin, taffy::Rect<taffy::LengthPercentageAuto>);
-div_prop!(Padding, padding, taffy::Rect<taffy::LengthPercentage>);
-div_prop!(Border, border, taffy::Rect<taffy::LengthPercentage>);
+
+div_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
+div_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
+div_prop!(MarginTop, margin_top, taffy::LengthPercentageAuto);
+div_prop!(MarginBottom, margin_bottom, taffy::LengthPercentageAuto);
+div_prop!(MarginX, margin_x, taffy::LengthPercentageAuto);
+div_prop!(MarginY, margin_y, taffy::LengthPercentageAuto);
+div_prop!(Margin, margin, taffy::LengthPercentageAuto);
+
+div_prop!(PaddingLeft, padding_left, taffy::LengthPercentage);
+div_prop!(PaddingRight, padding_right, taffy::LengthPercentage);
+div_prop!(PaddingTop, padding_top, taffy::LengthPercentage);
+div_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
+div_prop!(PaddingX, padding_x, taffy::LengthPercentage);
+div_prop!(PaddingY, padding_y, taffy::LengthPercentage);
+div_prop!(Padding, padding, taffy::LengthPercentage);
+
+div_prop!(BorderLeft, border_left, taffy::LengthPercentage);
+div_prop!(BorderRight, border_right, taffy::LengthPercentage);
+div_prop!(BorderTop, border_top, taffy::LengthPercentage);
+div_prop!(BorderBottom, border_bottom, taffy::LengthPercentage);
+div_prop!(BorderX, border_x, taffy::LengthPercentage);
+div_prop!(BorderY, border_y, taffy::LengthPercentage);
+div_prop!(Border, border, taffy::LengthPercentage);
+
+div_prop!(Hide, hide, bool);
 
 pub struct DivState<C, P>
 where

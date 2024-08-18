@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::future::Future;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 use node_tree::{DomNodeKey, NodeTree};
@@ -351,13 +352,13 @@ fn unmount_child(child: DomNodeKey, cleanup: bool) {
 }
 
 pub fn print_dom() -> Paragraph<'static> {
-    let lines = with_nodes(|nodes| print_dom_inner(nodes, nodes.root().as_dom_node().key(), ""));
+    let lines = with_nodes(|nodes| print_dom_inner(nodes, nodes.root(0).as_dom_node().key(), ""));
     Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
 }
 
 pub fn root() -> DomNodeRepr {
     with_nodes(|nodes| {
-        let root = nodes.root().as_dom_node().key();
+        let root = nodes.root(0).as_dom_node().key();
         let node = &nodes[root];
         DomNodeRepr::from_node(root, node)
     })
@@ -407,7 +408,7 @@ where
 {
     let node = f().build();
     with_nodes_mut(|n| {
-        n.set_root(Box::new(node));
+        n.set_root(0, Box::new(node));
     });
 }
 
@@ -429,8 +430,10 @@ pub fn render_dom(buf: &mut Buffer) {
         with_nodes_mut(|nodes| {
             nodes.recompute_layout(buf.area);
         });
-        let root = with_nodes(|nodes| nodes.root().as_dom_node().clone());
-        root.render(buf, buf.area);
+        let roots = with_nodes(|nodes| nodes.roots_asc());
+        for root in roots {
+            root.render(buf, buf.area);
+        }
     }
 }
 
@@ -514,47 +517,58 @@ pub fn send_event(event: Event) {
         Event::Mouse(mouse_event) => match mouse_event.kind {
             MouseEventKind::Down(_) => {
                 let current = with_nodes(|nodes| {
-                    let mut current: Option<ClickEvent> = None;
-                    for key in nodes.keys() {
-                        let rect = nodes[key].rect.borrow();
-                        if rect.contains(Position {
-                            x: mouse_event.column,
-                            y: mouse_event.row,
-                        }) {
-                            let node = &nodes[key];
-                            if *node.focusable.borrow() || node.event_handlers.on_click.is_some() {
-                                current = Some(ClickEvent {
-                                    on_click: node.event_handlers.on_click.clone(),
-                                    rect: *rect,
-                                    key,
-                                });
-                            }
-                            if node.event_handlers.on_click.is_some() {
-                                break;
-                            }
+                    let current: Rc<RefCell<Option<ClickEvent>>> = Rc::new(RefCell::new(None));
+                    for root in nodes.roots_desc() {
+                        let found = root.key().traverse(
+                            |key, inner| {
+                                let rect = inner.rect.borrow();
+                                if rect.contains(Position {
+                                    x: mouse_event.column,
+                                    y: mouse_event.row,
+                                }) {
+                                    if *inner.focusable.borrow()
+                                        || inner.event_handlers.on_click.is_some()
+                                    {
+                                        *current.borrow_mut() = Some(ClickEvent {
+                                            on_click: inner.event_handlers.on_click.clone(),
+                                            rect: *rect,
+                                            key,
+                                        });
+                                    }
+                                    if inner.event_handlers.on_click.is_some() {
+                                        return Some(());
+                                    }
+                                }
+                                None
+                            },
+                            true,
+                        );
+                        if !found.is_empty() {
+                            break;
                         }
                     }
+
                     current
                 });
-
+                let current = current.borrow();
                 if let Some(ClickEvent {
                     on_click,
                     rect,
                     key,
-                }) = current
+                }) = current.as_ref()
                 {
                     let set_focus = with_nodes(|nodes| {
                         with_state(|state| {
-                            state.focused_key() != Some(key) && *nodes[key].focusable.borrow()
+                            state.focused_key() != Some(*key) && *nodes[*key].focusable.borrow()
                         })
                     });
                     if set_focus {
-                        dom_state::set_focused(key);
+                        dom_state::set_focused(*key);
                     }
                     if let Some(on_click) = on_click {
                         #[cfg(debug_assertions)]
                         let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                        on_click.borrow_mut()(mouse_event, EventData { rect });
+                        on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
                     }
                 }
             }
@@ -562,12 +576,26 @@ pub fn send_event(event: Event) {
             MouseEventKind::Drag(_) => {}
             MouseEventKind::Moved => {
                 let current = with_nodes(|nodes| {
-                    nodes.keys().find(|k| {
-                        nodes[*k].rect.borrow().contains(Position {
-                            x: mouse_event.column,
-                            y: mouse_event.row,
-                        }) && *nodes[*k].focusable.borrow()
-                    })
+                    for root in nodes.roots_desc() {
+                        let found = root.key().traverse(
+                            |key, inner| {
+                                if inner.rect.borrow().contains(Position {
+                                    x: mouse_event.column,
+                                    y: mouse_event.row,
+                                }) && *inner.focusable.borrow()
+                                {
+                                    Some(key)
+                                } else {
+                                    None
+                                }
+                            },
+                            true,
+                        );
+                        if let Some(found) = found.first() {
+                            return Some(*found);
+                        }
+                    }
+                    None
                 });
 
                 if let Some(current) = current {
