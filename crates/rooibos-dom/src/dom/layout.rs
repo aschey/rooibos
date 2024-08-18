@@ -271,6 +271,7 @@ layout_prop!(MinHeight, min_height, taffy::Dimension, min_size.height);
 layout_prop!(MaxWidth, max_width, taffy::Dimension, max_size.width);
 layout_prop!(MaxHeight, max_height, taffy::Dimension, max_size.height);
 layout_prop_opt!(AspectRatio, aspect_ratio, f32, aspect_ratio);
+layout_prop!(Position, position, taffy::style::Position, position);
 
 layout_prop!(
     MarginLeft,
@@ -410,7 +411,6 @@ layout_prop!(
     border.left,
     border.right
 );
-layout_prop!(Position, position, taffy::style::Position, position);
 
 // Flex properties
 layout_prop!(Wrap, wrap, taffy::FlexWrap, flex_wrap);
