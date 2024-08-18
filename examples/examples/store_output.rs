@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::io::Stderr;
+use std::io::{stdout, IsTerminal, Stderr};
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
@@ -15,6 +15,11 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
+    let output = stdout();
+    if output.is_terminal() {
+        return Err("Try redirecting the output")?;
+    }
+
     let runtime = Runtime::initialize(
         CrosstermBackend::new(
             TerminalSettings::<Stderr>::new()

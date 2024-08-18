@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::Stdout;
 
 use rooibos::components::Show;
-use rooibos::dom::{after_render, row, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{after_render, flex_row, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
@@ -41,7 +41,7 @@ fn app() -> impl Render {
         }
     };
 
-    row![
+    flex_row![
         Show::new()
             .fallback(move || {
                 wgt!(format!("count {}", count.get()))

@@ -1,7 +1,8 @@
 use std::error::Error;
 
 use rooibos::components::Button;
-use rooibos::dom::{col, derive_signal, length, line, row, span, Constrainable, Render};
+use rooibos::dom::layout::chars;
+use rooibos::dom::{derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::ReadSignal;
 use rooibos::reactive::traits::{FromStream, Get};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
@@ -57,15 +58,13 @@ impl SshHandler for SshApp {
 fn app(count_tx: watch::Sender<i32>) -> impl Render {
     let count_rx = count_tx.subscribe();
     let count = ReadSignal::from_stream(WatchStream::new(count_rx));
-    col![row![
-        props(length(3)),
-        Button::new()
-            .length(20)
-            .on_click(move || {
-                count_tx.send(count.get().unwrap_or_default() + 1).unwrap();
-            })
-            .render(derive_signal!(
-                line!("count ", span!(count.get().unwrap_or_default())).into()
-            ))
-    ]]
+    Button::new()
+        .width(chars(20.))
+        .height(chars(3.))
+        .on_click(move || {
+            count_tx.send(count.get().unwrap_or_default() + 1).unwrap();
+        })
+        .render(derive_signal!(
+            line!("count ", span!(count.get().unwrap_or_default())).into()
+        ))
 }

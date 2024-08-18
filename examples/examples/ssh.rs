@@ -1,7 +1,8 @@
 use std::error::Error;
 
 use rooibos::components::Button;
-use rooibos::dom::{col, derive_signal, length, line, row, span, Constrainable, Render};
+use rooibos::dom::layout::chars;
+use rooibos::dom::{col, derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
@@ -54,11 +55,9 @@ fn app() -> impl Render {
 
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
-    row![
-        props(length(3)),
-        Button::new()
-            .length(20)
-            .on_click(move || set_count.update(|c| *c += 1))
-            .render(derive_signal!(line!("count ", span!(count.get())).into()))
-    ]
+    Button::new()
+        .width(chars(20.))
+        .height(chars(3.))
+        .on_click(move || set_count.update(|c| *c += 1))
+        .render(derive_signal!(line!("count ", span!(count.get())).into()))
 }

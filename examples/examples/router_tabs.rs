@@ -3,7 +3,7 @@ use std::error::Error;
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    col, length, line, row, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
+    col, flex_row, line, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
@@ -73,7 +73,7 @@ fn tabs() -> impl Render {
         }
     };
 
-    row![
+    flex_row![
         TabView::new()
             .header_height(chars(3.))
             .block(Block::bordered().title("Demo"))
@@ -85,14 +85,12 @@ fn tabs() -> impl Render {
             })
             .on_key_down(on_key_down)
             .render(current_route, tabs),
-        col![
-            props(length(10)),
-            Button::new()
-                .length(3)
-                .on_click(move || {
-                    router.pop();
-                })
-                .render(text!("Previous"))
-        ]
+        Button::new()
+            .width(chars(20.))
+            .height(chars(3.))
+            .on_click(move || {
+                router.pop();
+            })
+            .render(text!("Previous"))
     ]
 }
