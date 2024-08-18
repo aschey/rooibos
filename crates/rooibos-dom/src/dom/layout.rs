@@ -127,10 +127,10 @@ macro_rules! min_height {
 #[macro_export]
 macro_rules! max_width {
     ($val:tt %) => {
-        $crate::layout::min_width($crate::layout::pct($val))
+        $crate::layout::max_width($crate::layout::pct($val))
     };
     ($val:tt) => {
-        $crate::layout::min_width($crate::layout::chars($val))
+        $crate::layout::max_width($crate::layout::chars($val))
     };
 }
 

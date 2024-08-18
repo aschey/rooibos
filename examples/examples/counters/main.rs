@@ -1,10 +1,10 @@
 use std::error::Error;
 
 use rooibos::components::{for_each, Button};
-use rooibos::dom::layout::{align_items, chars, height, padding, Height};
+use rooibos::dom::layout::{chars, height};
 use rooibos::dom::{
-    col, constraint, div, flex_col, flex_row, height, length, margin, padding, padding_x, props,
-    row, text, wgt, width, Constrainable, KeyCode, LayoutProps, Render, UpdateLayoutProps,
+    div, flex_col, flex_row, height, max_width, text, wgt, width, KeyCode, Render,
+    UpdateLayoutProps,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
@@ -14,7 +14,6 @@ use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::{use_keypress, Runtime};
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
-use taffy::AlignItems;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -86,7 +85,7 @@ fn app() -> impl Render {
     });
 
     flex_col![
-        props(align_items(AlignItems::Center), padding_x!(25.%)),
+        props(max_width!(50.)),
         flex_row![
             props(height!(3.)),
             Button::new()

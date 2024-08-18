@@ -10,7 +10,7 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    constraint, derive_signal, wgt, Constrainable, KeyCode, KeyEvent, LayoutProps, NodeId, Render,
+    derive_signal, wgt, Constrainable, KeyCode, KeyEvent, LayoutProps, NodeId, Render,
     UpdateLayoutProps, WidgetState,
 };
 use rooibos_runtime::{delay, supports_key_up};
@@ -35,7 +35,7 @@ impl Default for Button {
 impl Constrainable for Button {
     type Output = Self;
 
-    fn constraint<S>(mut self, constraint: S) -> Self
+    fn constraint<S>(self, constraint: S) -> Self
     where
         S: Into<MaybeSignal<Constraint>>,
     {

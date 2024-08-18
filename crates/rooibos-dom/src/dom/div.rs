@@ -5,14 +5,13 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    align_self, aspect_ratio, basis, border, border_bottom, border_left, border_right, border_top,
-    border_x, border_y, grow, height, hide, margin, margin_bottom, margin_left, margin_right,
+    aspect_ratio, border, border_bottom, border_left, border_right, border_top,
+    border_x, border_y, height, hide, margin, margin_bottom, margin_left, margin_right,
     margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width, padding,
-    padding_bottom, padding_left, padding_right, padding_top, padding_x, padding_y, shrink, width,
-    AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Grow, Height, Hide, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
+    padding_bottom, padding_left, padding_right, padding_top, padding_x, padding_y, width, AspectRatio, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
+    BorderX, BorderY, Height, Hide, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
     MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
-    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Shrink, Width,
+    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Width,
 };
 use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
 
