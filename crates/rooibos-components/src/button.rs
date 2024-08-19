@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use ratatui::layout::Constraint;
 use ratatui::style::{Color, Style};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
@@ -10,14 +9,13 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    derive_signal, wgt, Constrainable, KeyCode, KeyEvent, LayoutProps, NodeId, Render,
-    UpdateLayoutProps, WidgetState,
+    derive_signal, wgt, KeyCode, KeyEvent, LayoutProps, NodeId, Render, UpdateLayoutProps,
+    WidgetState,
 };
 use rooibos_runtime::{delay, supports_key_up};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
-    // constraint: MaybeSignal<Constraint>,
     layout_props: LayoutProps,
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
@@ -29,18 +27,6 @@ pub struct Button {
 impl Default for Button {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Constrainable for Button {
-    type Output = Self;
-
-    fn constraint<S>(self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        // self.constraint = constraint.into();
-        self
     }
 }
 
@@ -59,7 +45,6 @@ impl Button {
     pub fn new() -> Self {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
-            // constraint: Default::default(),
             layout_props: LayoutProps::default(),
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),

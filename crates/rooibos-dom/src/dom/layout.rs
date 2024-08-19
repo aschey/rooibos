@@ -87,6 +87,30 @@ impl Property for Block {
     }
 }
 
+pub struct ZIndex(pub(crate) MaybeSignal<i32>);
+
+pub fn z_index(z_index: impl Into<MaybeSignal<i32>>) -> ZIndex {
+    ZIndex(z_index.into())
+}
+
+impl Property for ZIndex {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.key();
+        RenderEffect::new(move |_| {
+            with_nodes_mut(|nodes| {
+                nodes.set_z_index(key, self.0.get());
+            });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
 impl<T> Property for T
 where
     T: UpdateLayout + 'static,

@@ -1,7 +1,9 @@
 use std::cell::RefCell;
+use std::cmp;
 use std::collections::BTreeMap;
 use std::ops::Index;
 use std::rc::Rc;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::layout::{Constraint, Rect};
 use ratatui::widgets::Block;
@@ -64,10 +66,43 @@ impl Default for Context {
     }
 }
 
+static ROOT_ID: AtomicU32 = AtomicU32::new(1);
+
+#[derive(PartialEq, Eq)]
+struct RootId {
+    z_index: i32,
+    id: u32,
+}
+
+impl RootId {
+    fn new(z_index: i32) -> Self {
+        Self {
+            z_index,
+            id: ROOT_ID.fetch_add(1, Ordering::Relaxed),
+        }
+    }
+}
+
+impl Ord for RootId {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.z_index.cmp(&other.z_index) {
+            cmp::Ordering::Equal => {}
+            ord => return ord,
+        }
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for RootId {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 pub(crate) struct NodeTree {
     dom_nodes: SlotMap<DomNodeKey, TreeValue>,
     layout_tree: TaffyTree<Context>,
-    roots: BTreeMap<i32, Box<dyn AsDomNode>>,
+    roots: BTreeMap<RootId, Box<dyn AsDomNode>>,
 }
 
 impl Index<DomNodeKey> for NodeTree {
@@ -105,7 +140,7 @@ impl NodeTree {
 
     pub(crate) fn set_root(&mut self, z_index: i32, root: Box<dyn AsDomNode>) {
         let key = root.as_dom_node().key();
-        self.roots.insert(z_index, root);
+        self.roots.insert(RootId::new(z_index), root);
         let node = &self.dom_nodes[key];
         let mut style = self.layout_tree.style(node.layout_id).unwrap().clone();
         if style.size.width == Dimension::Auto {
@@ -118,7 +153,8 @@ impl NodeTree {
     }
 
     pub(crate) fn root(&self, z_index: i32) -> &dyn AsDomNode {
-        &self.roots[&z_index]
+        let key = &self.roots.keys().find(|k| k.z_index == z_index).unwrap();
+        &self.roots[key]
     }
 
     pub(crate) fn roots_asc(&self) -> Vec<DomNode> {
@@ -224,9 +260,10 @@ impl NodeTree {
             let mut style = self.layout_tree.style(child).unwrap().clone();
             if style.display != Display::None {
                 let context = self.layout_tree.get_node_context(child).unwrap();
-                // println!("{:?}", style.size);
-                if parent_style.display == Display::Flex
-                    && parent_style.flex_direction == FlexDirection::Row
+
+                if parent_style.display == Display::Block
+                    || (parent_style.display == Display::Flex
+                        && parent_style.flex_direction == FlexDirection::Row)
                 {
                     if context.width_auto {
                         style.size.width = Dimension::Percent(1. / num_children);
@@ -251,7 +288,7 @@ impl NodeTree {
     }
 
     pub(crate) fn print_layout_tree(&mut self) {
-        let key = self.roots[&0].as_dom_node().key();
+        let key = self.root(0).as_dom_node().key();
         let layout_id = self.dom_nodes[key].layout_id;
         self.layout_tree.print_tree(layout_id);
     }
@@ -281,24 +318,29 @@ impl NodeTree {
 
     pub(crate) fn insert_before(
         &mut self,
-        parent: DomNodeKey,
-        child: DomNodeKey,
+        parent_key: DomNodeKey,
+        child_key: DomNodeKey,
         reference: Option<DomNodeKey>,
     ) {
+        let parent = &self.dom_nodes[parent_key];
+        let child = &self.dom_nodes[child_key];
+        if child.inner.z_index.is_some() && parent.inner.z_index != child.inner.z_index {
+            return;
+        }
         if let Some(reference) = reference {
-            if let Some(reference_pos) = self.dom_nodes[parent]
+            if let Some(reference_pos) = self.dom_nodes[parent_key]
                 .inner
                 .children
                 .iter()
                 .position(|c| *c == reference)
             {
-                self.dom_nodes[parent]
+                self.dom_nodes[parent_key]
                     .inner
                     .children
-                    .insert(reference_pos, child);
-                self.dom_nodes[child].inner.parent = Some(parent);
-                let parent_node = &self.dom_nodes[parent];
-                let child_node = &self.dom_nodes[child];
+                    .insert(reference_pos, child_key);
+                self.dom_nodes[child_key].inner.parent = Some(parent_key);
+                let parent_node = &self.dom_nodes[parent_key];
+                let child_node = &self.dom_nodes[child_key];
                 self.layout_tree
                     .insert_child_at_index(
                         parent_node.layout_id,
@@ -309,10 +351,10 @@ impl NodeTree {
                 self.update_sizes(parent_node.layout_id);
             }
         } else {
-            self.dom_nodes[parent].inner.children.push(child);
-            self.dom_nodes[child].inner.parent = Some(parent);
-            let parent_node = &self.dom_nodes[parent];
-            let child_node = &self.dom_nodes[child];
+            self.dom_nodes[parent_key].inner.children.push(child_key);
+            self.dom_nodes[child_key].inner.parent = Some(parent_key);
+            let parent_node = &self.dom_nodes[parent_key];
+            let child_node = &self.dom_nodes[child_key];
             self.layout_tree
                 .add_child(parent_node.layout_id, child_node.layout_id)
                 .unwrap();
@@ -368,6 +410,7 @@ impl NodeTree {
             original_display,
             block,
             z_index: _z_index,
+            unmounted: _unmounted,
         } = &self.dom_nodes[old_key].inner;
         // let layout_id = self.dom_nodes[old_key].layout_id;
         let name = name.clone();
@@ -428,8 +471,11 @@ impl NodeTree {
         self.dom_nodes[node].inner.block = Some(block);
     }
 
-    pub(crate) fn set_z_index(&mut self, node: DomNodeKey, z_index: i32) {
-        self.dom_nodes[node].inner.z_index = z_index;
+    pub(crate) fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
+        self.dom_nodes[key].inner.z_index = Some(z_index);
+        let unmounted = self.dom_nodes[key].inner.unmounted.clone();
+        let node = DomNode::from_existing(key, unmounted);
+        self.roots.insert(RootId::new(z_index), Box::new(node));
     }
 }
 

@@ -375,8 +375,9 @@ pub struct DomNodeInner {
     #[derivative(Debug = "ignore")]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
-    pub(crate) z_index: i32,
+    pub(crate) z_index: Option<i32>,
     pub(crate) block: Option<Block<'static>>,
+    pub(crate) unmounted: Arc<AtomicBool>,
 }
 
 impl Render<RooibosDom> for DomNodeInner {
@@ -696,11 +697,17 @@ impl Drop for DomNode {
 }
 
 impl DomNode {
+    pub(crate) fn from_existing(key: DomNodeKey, unmounted: Arc<AtomicBool>) -> Self {
+        Self { key, unmounted }
+    }
+
     pub(crate) fn placeholder() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "placeholder".to_string(),
             node_type: NodeType::Placeholder,
             original_display: taffy::Display::None,
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| {
@@ -710,47 +717,44 @@ impl DomNode {
             });
             key
         });
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn widget(widget: DomWidgetNode) -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
             original_display: taffy::Display::Block,
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| n.insert(inner));
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn row() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "row".to_string(),
             node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutPropsOld {
                 direction: ratatui::layout::Direction::Horizontal,
                 ..Default::default()
             }))),
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| n.insert(inner));
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn flex_row() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "flex_row".to_string(),
             node_type: NodeType::Layout(Default::default()),
             original_display: taffy::Display::Flex,
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| {
@@ -761,17 +765,16 @@ impl DomNode {
             });
             key
         });
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn div() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "div".to_string(),
             node_type: NodeType::Layout(Default::default()),
             original_display: taffy::Display::Block,
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| {
@@ -781,17 +784,16 @@ impl DomNode {
             });
             key
         });
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn flex_col() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "flex_col".to_string(),
             node_type: NodeType::Layout(Default::default()),
             original_display: taffy::Display::Flex,
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| {
@@ -802,52 +804,46 @@ impl DomNode {
             });
             key
         });
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn col() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "col".to_string(),
             node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutPropsOld {
                 direction: ratatui::layout::Direction::Vertical,
                 ..Default::default()
             }))),
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| n.insert(inner));
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn overlay() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "overlay".to_string(),
             node_type: NodeType::Overlay,
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| n.insert(inner));
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn absolute(pos: Rc<RefCell<(u16, u16)>>) -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "absolute".to_string(),
             node_type: NodeType::Absolute(pos),
+            unmounted: unmounted.clone(),
             ..Default::default()
         };
         let key = with_nodes_mut(|n| n.insert(inner));
-        Self {
-            key,
-            unmounted: Arc::new(AtomicBool::new(false)),
-        }
+        Self { key, unmounted }
     }
 
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
@@ -954,31 +950,16 @@ impl DomNode {
     }
 
     pub(crate) fn get_parent(&self) -> Option<DomNode> {
-        with_nodes(|n| {
-            n[self.key].parent.map(|p| DomNode {
-                key: p,
-                unmounted: Arc::new(AtomicBool::new(false)),
-            })
+        let parent_key = with_nodes(|n| n[self.key].parent);
+
+        parent_key.map(|k| {
+            let unmounted = with_nodes(|n| n[k].unmounted.clone());
+            DomNode::from_existing(k, unmounted)
         })
     }
 
     pub(crate) fn insert_before(&self, child: &DomNode, reference: Option<&DomNode>) {
-        with_nodes_mut(|nodes| {
-            nodes.insert_before(self.key, child.key, reference.map(|r| r.key))
-            // if let Some(reference) = reference {
-            //     if let Some(reference_pos) = nodes[self.key]
-            //         .children
-            //         .iter()
-            //         .position(|c| *c == reference.key)
-            //     {
-            //         nodes[self.key].children.insert(reference_pos, child.key);
-            //         nodes[child.key].parent = Some(self.key);
-            //     }
-            // } else {
-            //     nodes[self.key].children.push(child.key);
-            //     nodes[child.key].parent = Some(self.key);
-            // }
-        })
+        with_nodes_mut(|nodes| nodes.insert_before(self.key, child.key, reference.map(|r| r.key)))
     }
 
     pub(crate) fn render(&self, buf: &mut Buffer, rect: Rect) {

@@ -10,12 +10,12 @@ use super::layout::{
     border_left, border_right, border_top, border_x, border_y, gap, grow, height, justify_content,
     margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
     max_width, min_height, min_width, padding, padding_bottom, padding_left, padding_right,
-    padding_top, padding_x, padding_y, show, shrink, width, wrap, AlignContent, AlignItems,
-    AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Gap, Grow, Height, JustifyContent, Margin, MarginBottom, MarginLeft,
-    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
-    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Show, Shrink, Width,
-    Wrap,
+    padding_top, padding_x, padding_y, position, show, shrink, width, wrap, AlignContent,
+    AlignItems, AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom, BorderLeft,
+    BorderRight, BorderTop, BorderX, BorderY, Gap, Grow, Height, JustifyContent, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
+    PaddingY, Position, Show, Shrink, Width, Wrap, ZIndex,
 };
 use super::{AsDomNode, DomNode, NodeId, Property, RenderAny, RooibosDom};
 use crate::{BlurEvent, EventData, FocusEvent};
@@ -85,6 +85,7 @@ impl<C, P> FlexNode<C, P> {
 }
 
 impl FlexProperty for Block {}
+impl FlexProperty for ZIndex {}
 
 impl<C, P> FlexNode<C, P>
 where
@@ -151,6 +152,7 @@ flex_prop!(MinHeight, min_height, taffy::Dimension);
 flex_prop!(MaxWidth, max_width, taffy::Dimension);
 flex_prop!(MaxHeight, max_height, taffy::Dimension);
 flex_prop!(AspectRatio, aspect_ratio, f32);
+flex_prop!(Position, position, taffy::style::Position);
 
 flex_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
 flex_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
@@ -273,10 +275,10 @@ macro_rules! flex_row {
     (props($($properties:expr),+ $(,)?)) => (
         $crate::flex_node::row(($($properties),+), ())
     );
-    (props($($properties:expr),+), $($children:expr),+ $(,)?) => (
+    (props($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
         $crate::flex_node::row(($($properties),+), ($($children),+))
     );
-    (props($($properties:expr),+), $children:expr) => (
+    (props($($properties:expr),+ $(,)?), $children:expr) => (
         $crate::flex_node::row(($($properties),+), ($children,))
     );
     ($($children:expr),+ $(,)?) => (
@@ -292,7 +294,7 @@ macro_rules! flex_col {
     (props($($properties:expr),+ $(,)?)) => (
         $crate::flex_node::col(($($properties),+), ())
     );
-    (props($($properties:expr),+), $($children:expr),+ $(,)?) => (
+    (props($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
         $crate::flex_node::col(($($properties),+), ($($children),+))
     );
     ($($children:expr),+ $(,)?) => (

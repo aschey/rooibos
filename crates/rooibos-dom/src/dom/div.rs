@@ -8,11 +8,11 @@ use super::layout::{
     aspect_ratio, border, border_bottom, border_left, border_right, border_top, border_x, border_y,
     height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y,
     max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, show, width, AspectRatio, Border,
+    padding_right, padding_top, padding_x, padding_y, position, show, width, AspectRatio, Border,
     BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY, Height, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Show, Width,
+    PaddingY, Position, Show, Width,
 };
 use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
 
@@ -84,6 +84,7 @@ div_prop!(MinHeight, min_height, taffy::Dimension);
 div_prop!(MaxWidth, max_width, taffy::Dimension);
 div_prop!(MaxHeight, max_height, taffy::Dimension);
 div_prop!(AspectRatio, aspect_ratio, f32);
+div_prop!(Position, position, taffy::style::Position);
 
 div_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
 div_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);

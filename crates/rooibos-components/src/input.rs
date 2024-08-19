@@ -1,5 +1,5 @@
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Rect};
+use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
 use reactive_graph::effect::Effect;
@@ -8,8 +8,8 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, BlurEvent, Constrainable, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
-    LayoutProps, NodeId, Render, UpdateLayoutProps, WidgetState,
+    derive_signal, BlurEvent, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent, LayoutProps,
+    NodeId, Render, UpdateLayoutProps, WidgetState,
 };
 use rooibos_runtime::wasm_compat;
 use tokio::sync::broadcast;
@@ -122,18 +122,6 @@ pub struct Input {
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     initial_value: String,
     id: Option<NodeId>,
-}
-
-impl Constrainable for Input {
-    type Output = Self;
-
-    fn constraint<S>(self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        // self.constraint = constraint.into();
-        self
-    }
 }
 
 impl Default for Input {
