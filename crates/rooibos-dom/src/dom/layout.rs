@@ -127,6 +127,30 @@ impl Property for ZIndex {
     }
 }
 
+pub struct Clear(pub(crate) MaybeSignal<bool>);
+
+pub fn clear(clear: impl Into<MaybeSignal<bool>>) -> Clear {
+    Clear(clear.into())
+}
+
+impl Property for Clear {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.key();
+        RenderEffect::new(move |_| {
+            with_nodes_mut(|nodes| {
+                nodes.set_clear(key, self.0.get());
+            });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
 impl<T> Property for T
 where
     T: UpdateLayout + 'static,
@@ -139,6 +163,30 @@ where
             with_nodes_mut(|nodes| {
                 let original_display = nodes[key].original_display;
                 nodes.update_layout(key, |s| self.update_layout(original_display, s))
+            });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
+pub struct Focusable(pub(crate) MaybeSignal<bool>);
+
+pub fn focusable(focusable: impl Into<MaybeSignal<bool>>) -> Focusable {
+    Focusable(focusable.into())
+}
+
+impl Property for Focusable {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.key();
+        RenderEffect::new(move |_| {
+            with_nodes_mut(|nodes| {
+                nodes.set_focusable(key, self.0.get());
             });
         })
     }
@@ -503,3 +551,68 @@ layout_prop!(Grow, grow, f32, flex_grow);
 layout_prop!(Shrink, shrink, f32, flex_shrink);
 layout_prop_opt!(AlignSelf, align_self, taffy::AlignSelf, align_self);
 layout_prop!(Basis, basis, taffy::Dimension, flex_basis);
+
+macro_rules! impl_property_for_tuples {
+    ($($ty:ident),* $(,)?) => {
+        impl<$($ty,)*> Property for ($($ty,)*)
+            where $($ty: Property,)*
+        {
+            type State = ($($ty::State,)*);
+
+            fn build(self, element: &DomNode) -> Self::State {
+                #[allow(non_snake_case)]
+                let ($($ty,)*) = self;
+                ($($ty.build(element),)*)
+            }
+
+            fn rebuild(self, element: &DomNode, state: &mut Self::State) {
+                paste::paste! {
+                    #[allow(non_snake_case)]
+                    let ($($ty,)*) = self;
+                    #[allow(non_snake_case)]
+                    let ($([<state_ $ty:lower>],)*) = state;
+                    $($ty.rebuild(element, [<state_ $ty:lower>]));*
+                }
+            }
+        }
+    }
+}
+
+impl_property_for_tuples!(A);
+impl_property_for_tuples!(A, B);
+impl_property_for_tuples!(A, B, C);
+impl_property_for_tuples!(A, B, C, D);
+impl_property_for_tuples!(A, B, C, D, E);
+impl_property_for_tuples!(A, B, C, D, E, F);
+impl_property_for_tuples!(A, B, C, D, E, F, G);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S);
+impl_property_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T);
+impl_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U
+);
+impl_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V
+);
+impl_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W
+);
+impl_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X
+);
+impl_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y
+);
+impl_property_for_tuples!(
+    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
+);

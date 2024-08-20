@@ -12,7 +12,7 @@ use super::layout::{
     max_width, min_height, min_width, padding, padding_bottom, padding_left, padding_right,
     padding_top, padding_x, padding_y, position, show, shrink, width, wrap, AlignContent,
     AlignItems, AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom, BorderLeft,
-    BorderRight, BorderTop, BorderX, BorderY, Gap, Grow, Height, JustifyContent, Margin,
+    BorderRight, BorderTop, BorderX, BorderY, Clear, Gap, Grow, Height, JustifyContent, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
     PaddingY, Position, Property, Show, Shrink, Width, Wrap, ZIndex,
@@ -86,6 +86,7 @@ impl<C, P> FlexNode<C, P> {
 
 impl FlexProperty for Block {}
 impl FlexProperty for ZIndex {}
+impl FlexProperty for Clear {}
 
 impl<C, P> FlexNode<C, P>
 where

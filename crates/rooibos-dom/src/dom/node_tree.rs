@@ -403,7 +403,6 @@ impl NodeTree {
         let DomNodeInner {
             node_type,
             name,
-            constraint,
             children: _children,
             parent: _parent,
             id,
@@ -413,26 +412,26 @@ impl NodeTree {
             rect,
             original_display,
             block,
+            clear,
             z_index: _z_index,
             unmounted: _unmounted,
         } = &self.dom_nodes[old_key].inner;
         // let layout_id = self.dom_nodes[old_key].layout_id;
         let name = name.clone();
         let node_type = node_type.clone();
-        let constraint = constraint.clone();
-        let focusable = focusable.clone();
+        let focusable = *focusable;
         let id = id.clone();
         let class = class.clone();
         let event_handlers = event_handlers.clone();
         let rect = rect.clone();
         let original_display = *original_display;
         let block = block.clone();
+        let clear = *clear;
 
         let new = &mut self.dom_nodes[new_key].inner;
 
         new.name = name;
         new.node_type = node_type;
-        new.constraint = constraint;
         new.focusable = focusable;
         new.id = id;
         new.class = class;
@@ -440,6 +439,7 @@ impl NodeTree {
         new.rect = rect;
         new.original_display = original_display;
         new.block = block;
+        new.clear = clear;
         // self.dom_nodes[new_key].layout_id = layout_id;
     }
 
@@ -447,7 +447,7 @@ impl NodeTree {
         self.dom_nodes[node].inner = inner;
     }
 
-    pub(crate) fn set_focusable(&mut self, node: DomNodeKey, focusable: Rc<RefCell<bool>>) {
+    pub(crate) fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
         self.dom_nodes[node].inner.focusable = focusable;
     }
 
@@ -476,6 +476,10 @@ impl NodeTree {
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();
         let node = DomNode::from_existing(key, unmounted);
         self.roots.insert(RootId::new(z_index), Box::new(node));
+    }
+
+    pub(crate) fn set_clear(&mut self, key: DomNodeKey, clear: bool) {
+        self.dom_nodes[key].inner.clear = clear;
     }
 }
 

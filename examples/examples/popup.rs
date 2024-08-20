@@ -1,14 +1,15 @@
 use std::error::Error;
 
-use rooibos::components::Popup;
+use rooibos::dom::layout::{align_items, clear, justify_content, position, show};
 use rooibos::dom::{
-    clear, col, fill, line, overlay, wgt, Constrainable, KeyCode, KeyEvent, Render,
+    flex_col, flex_row, height, line, max_height, max_width, wgt, width, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::{Block, Paragraph};
+use taffy::{AlignItems, JustifyContent, Position};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -20,7 +21,7 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    let show_popup = RwSignal::new(false);
+    let show_popup = RwSignal::new(true);
 
     let key_down = move |key_event: KeyEvent, _| {
         if key_event.code == KeyCode::Enter {
@@ -28,7 +29,8 @@ fn app() -> impl Render {
         }
     };
 
-    overlay![
+    flex_col![
+        props(max_width!(50.), max_height!(20.)),
         wgt!(
             Paragraph::new(vec![
                 line!("text1"),
@@ -37,15 +39,21 @@ fn app() -> impl Render {
                 line!("text4")
             ])
             .block(Block::bordered())
-        )
-        .on_key_down(key_down),
-        Popup::default()
-            .percent_x(50)
-            .percent_y(50)
-            .render(show_popup, move || col![
-                col![props(fill(1))],
-                clear![wgt!(Paragraph::new("popup text").block(Block::bordered()))].length(3),
-                col![props(fill(1))],
-            ])
+        ),
+        flex_row![
+            props(
+                width!(100.%),
+                height!(100.%),
+                position(Position::Absolute),
+                align_items(AlignItems::Center),
+                justify_content(JustifyContent::Center),
+                show(show_popup)
+            ),
+            wgt!(
+                props(clear(true), width!(25.), height!(5.)),
+                Paragraph::new("popup text").block(Block::bordered())
+            )
+            .on_key_down(key_down)
+        ],
     ]
 }

@@ -8,11 +8,11 @@ use super::layout::{
     aspect_ratio, border, border_bottom, border_left, border_right, border_top, border_x, border_y,
     height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y,
     max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, show, width, AspectRatio, Border,
-    BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY, Height, Margin,
-    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Position, Property, Show, Width,
+    padding_right, padding_top, padding_x, padding_y, position, show, width, AspectRatio, Block,
+    Border, BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY, Clear, Height,
+    Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight,
+    MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
+    PaddingX, PaddingY, Position, Property, Show, Width, ZIndex,
 };
 use super::{AsDomNode, DomNode, RenderAny, RooibosDom};
 
@@ -54,6 +54,9 @@ pub fn div<C, P>(props: P, children: C) -> Div<C, P> {
 pub trait DivProperty: Property {}
 
 impl DivProperty for () {}
+impl DivProperty for Block {}
+impl DivProperty for ZIndex {}
+impl DivProperty for Clear {}
 
 macro_rules! div_prop {
     ($struct_name:ident, $fn:ident, $inner:ty) => {

@@ -19,12 +19,12 @@ use super::layout::{
     margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
     padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
     AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Grow, Height, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
-    MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
-    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink,
-    UpdateLayout, Width,
+    BorderX, BorderY, Clear, Focusable, Grow, Height, Margin, MarginBottom, MarginLeft,
+    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
+    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
+    Shrink, UpdateLayout, Width,
 };
-use super::{AsDomNode, Focusable};
+use super::AsDomNode;
 use crate::widgets::WidgetRole;
 use crate::{next_node_id, refresh_dom, BlurEvent, EventData, FocusEvent, Role, RooibosDom};
 
@@ -39,8 +39,8 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
-// impl WidgetProperty for Constraint {}
 impl WidgetProperty for Focusable {}
+impl WidgetProperty for Clear {}
 
 #[derive(Clone)]
 pub struct DomWidgetNode {

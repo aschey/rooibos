@@ -125,8 +125,8 @@ impl TestHarness {
         let text = text.as_ref();
         let buf = self.buffer();
         node.find(|node| {
-            if let NodeTypeRepr::Layout(props) = node.node_type() {
-                if props.block.is_some() {
+            if let NodeTypeRepr::Layout { block } = node.node_type() {
+                if block.is_some() {
                     let rect = node.rect();
 
                     // Check top of block

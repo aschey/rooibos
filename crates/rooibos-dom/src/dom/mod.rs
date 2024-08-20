@@ -23,7 +23,6 @@ pub mod div;
 mod dom_node;
 mod dom_state;
 mod dom_widget;
-mod element;
 pub mod flex_node;
 mod focus;
 mod into_view;
@@ -34,7 +33,6 @@ pub use any_view::*;
 pub use children::*;
 pub use dom_node::*;
 pub use dom_widget::*;
-pub use element::*;
 pub use focus::*;
 pub use into_view::*;
 
@@ -458,9 +456,7 @@ pub fn send_event(event: Event) {
                                     x: mouse_event.column,
                                     y: mouse_event.row,
                                 }) {
-                                    if *inner.focusable.borrow()
-                                        || inner.event_handlers.on_click.is_some()
-                                    {
+                                    if inner.focusable || inner.event_handlers.on_click.is_some() {
                                         *current.borrow_mut() = Some(ClickEvent {
                                             on_click: inner.event_handlers.on_click.clone(),
                                             rect: *rect,
@@ -491,7 +487,7 @@ pub fn send_event(event: Event) {
                 {
                     let set_focus = with_nodes(|nodes| {
                         with_state(|state| {
-                            state.focused_key() != Some(*key) && *nodes[*key].focusable.borrow()
+                            state.focused_key() != Some(*key) && nodes[*key].focusable
                         })
                     });
                     if set_focus {
@@ -514,7 +510,7 @@ pub fn send_event(event: Event) {
                                 if inner.rect.borrow().contains(Position {
                                     x: mouse_event.column,
                                     y: mouse_event.row,
-                                }) && *inner.focusable.borrow()
+                                }) && inner.focusable
                                 {
                                     Some(key)
                                 } else {

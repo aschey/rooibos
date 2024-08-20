@@ -8,8 +8,8 @@ use std::sync::Arc;
 
 use derivative::Derivative;
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Constraint, Flex, Layout, Rect};
-use ratatui::widgets::{Block, WidgetRef};
+use ratatui::layout::Rect;
+use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
 use reactive_graph::effect::RenderEffect;
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
@@ -65,18 +65,9 @@ pub(crate) struct NodeTypeStructure {
     pub(crate) attrs: Option<String>,
 }
 
-#[derive(PartialEq, Eq, Clone, Default, Debug)]
-pub struct LayoutPropsOld {
-    pub direction: ratatui::layout::Direction,
-    pub flex: Flex,
-    pub margin: u16,
-    pub spacing: u16,
-    pub block: Option<Block<'static>>,
-}
-
 #[derive(Clone, PartialEq, Eq, Default)]
 pub enum NodeType {
-    Layout(Rc<RefCell<LayoutPropsOld>>),
+    Layout,
     Overlay,
     Absolute(Rc<RefCell<(u16, u16)>>),
     Widget(DomWidgetNode),
@@ -87,22 +78,10 @@ pub enum NodeType {
 impl NodeType {
     pub(crate) fn structure(&self) -> NodeTypeStructure {
         match self {
-            NodeType::Layout(layout_props) => {
-                let LayoutPropsOld {
-                    direction,
-                    flex,
-                    margin,
-                    spacing,
-                    block,
-                } = layout_props.borrow().clone();
-                NodeTypeStructure {
-                    name: "Layout",
-                    attrs: Some(format!(
-                        "direction={direction}, flex={flex}, margin={margin}, spacing={spacing}, \
-                         block={block:?}"
-                    )),
-                }
-            }
+            NodeType::Layout => NodeTypeStructure {
+                name: "Layout",
+                attrs: None,
+            },
             NodeType::Absolute(pos) => {
                 let (x, y) = *pos.borrow();
                 NodeTypeStructure {
@@ -129,19 +108,8 @@ impl NodeType {
 impl Debug for NodeType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            NodeType::Layout(layout_props) => {
-                let LayoutPropsOld {
-                    direction,
-                    flex,
-                    margin,
-                    block,
-                    spacing,
-                } = layout_props.borrow().clone();
-                write!(
-                    f,
-                    "Layout(direction={direction}, flex={flex}, margin={margin}, \
-                     spacing={spacing}, block={block:?})"
-                )
+            NodeType::Layout => {
+                write!(f, "Layout")
             }
             NodeType::Absolute(pos) => {
                 let (x, y) = *pos.borrow();
@@ -159,7 +127,7 @@ impl Render<RooibosDom> for NodeType {
 
     fn build(self) -> Self::State {
         match self {
-            NodeType::Layout(_) => None,
+            NodeType::Layout => None,
             NodeType::Overlay => None,
             NodeType::Absolute(_) => None,
             NodeType::Widget(node) => Some(node.build()),
@@ -169,7 +137,7 @@ impl Render<RooibosDom> for NodeType {
 
     fn rebuild(self, state: &mut Self::State) {
         match self {
-            NodeType::Layout(_) => {}
+            NodeType::Layout => {}
             NodeType::Overlay => {}
             NodeType::Absolute(_) => {}
             NodeType::Widget(node) => {
@@ -215,7 +183,7 @@ impl Mountable<RooibosDom> for Box<dyn AnyMountable> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
-    Layout(LayoutPropsOld),
+    Layout { block: Option<Block<'static>> },
     Overlay,
     Absolute,
     Widget,
@@ -235,7 +203,9 @@ impl DomNodeRepr {
             key,
             rect: *node.rect.borrow(),
             node_type: match &node.node_type {
-                NodeType::Layout(props) => NodeTypeRepr::Layout(props.borrow().clone()),
+                NodeType::Layout => NodeTypeRepr::Layout {
+                    block: node.block.clone(),
+                },
                 NodeType::Overlay => NodeTypeRepr::Overlay,
                 NodeType::Absolute(_) => NodeTypeRepr::Absolute,
                 NodeType::Widget(_) => NodeTypeRepr::Widget,
@@ -366,17 +336,17 @@ pub struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
     pub(crate) original_display: taffy::Display,
-    pub(crate) constraint: Rc<RefCell<Constraint>>,
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) class: Option<String>,
-    pub(crate) focusable: Rc<RefCell<bool>>,
+    pub(crate) focusable: bool,
     #[derivative(Debug = "ignore")]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
     pub(crate) z_index: Option<i32>,
     pub(crate) block: Option<Block<'static>>,
+    pub(crate) clear: bool,
     pub(crate) unmounted: Arc<AtomicBool>,
 }
 
@@ -394,218 +364,90 @@ impl Render<RooibosDom> for DomNodeInner {
 
 struct RenderProps<'a> {
     buf: &'a mut Buffer,
-    rect: Rect,
     window: Rect,
     key: DomNodeKey,
     dom_nodes: &'a NodeTree,
     dom_state: &'a mut DomState,
-    parent_layout: Layout,
 }
 
 impl DomNodeInner {
     fn render(&self, props: RenderProps) {
         let RenderProps {
             buf,
-            mut rect,
             window,
             key,
             dom_nodes,
             dom_state,
-            parent_layout,
         } = props;
-        let use_taffy = true;
+
         let prev_rect = *self.rect.borrow();
-        if use_taffy {
-            rect = dom_nodes.rect(key);
-        }
+        let rect = dom_nodes.rect(key);
         *self.rect.borrow_mut() = rect;
 
-        if *self.focusable.borrow() {
+        if self.focusable {
             dom_state.add_focusable(key);
         }
 
-        if use_taffy {
-            match &self.node_type {
-                NodeType::Layout(layout_props) => {
-                    let LayoutPropsOld {
-                        direction,
-                        flex,
-                        margin,
-                        spacing,
-                        block,
-                    } = layout_props.borrow().clone();
-                    if let Some(block) = &self.block {
-                        block.render_ref(rect, buf);
-                    };
+        if self.clear {
+            Clear.render(rect, buf);
+        }
 
-                    // let constraints = self
-                    //     .layout_children(dom_nodes)
-                    //     .map(|key| *dom_nodes[*key].constraint.borrow());
-                    // let layout = Layout::default()
-                    //     .direction(direction)
-                    //     .flex(flex)
-                    //     .margin(margin)
-                    //     .spacing(spacing)
-                    //     .constraints(constraints);
+        match &self.node_type {
+            NodeType::Layout => {
+                if let Some(block) = &self.block {
+                    block.render_ref(rect, buf);
+                };
 
-                    // let chunks = layout.split(rect);
-                    self.layout_children(dom_nodes)
-                        // .zip(chunks.iter())
-                        .for_each(|key| {
-                            dom_nodes[*key].render(RenderProps {
-                                buf,
-                                rect: Default::default(),
-                                window,
-                                key: *key,
-                                dom_nodes,
-                                dom_state,
-                                parent_layout: Layout::default(),
-                            });
-                        });
-                    self.absolute_children(dom_nodes).for_each(|key| {
-                        dom_nodes[*key].render(RenderProps {
-                            buf,
-                            rect: window,
-                            window,
-                            key: *key,
-                            dom_nodes,
-                            dom_state,
-                            parent_layout: Layout::default(),
-                        });
+                self.layout_children(dom_nodes).for_each(|key| {
+                    dom_nodes[*key].render(RenderProps {
+                        buf,
+                        window,
+                        key: *key,
+                        dom_nodes,
+                        dom_state,
                     });
-                }
-                NodeType::Overlay => {
-                    // let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                    // let chunks = parent_layout.split(rect);
-                    self.renderable_children(dom_nodes).for_each(|key| {
-                        dom_nodes[*key].render(RenderProps {
-                            buf,
-                            rect: Default::default(),
-                            window,
-                            key: *key,
-                            dom_nodes,
-                            dom_state,
-                            parent_layout: parent_layout.clone(),
-                        });
+                });
+                self.absolute_children(dom_nodes).for_each(|key| {
+                    dom_nodes[*key].render(RenderProps {
+                        buf,
+                        window,
+                        key: *key,
+                        dom_nodes,
+                        dom_state,
                     });
-                }
-                NodeType::Absolute(pos) => {
-                    // let (x, y) = *pos.borrow();
-                    // let rect = Rect::new(x, y, window.width - x, window.height - y);
-                    self.renderable_children(dom_nodes).for_each(|key| {
-                        dom_nodes[*key].render(RenderProps {
-                            buf,
-                            rect,
-                            window,
-                            key: *key,
-                            dom_nodes,
-                            dom_state,
-                            parent_layout: parent_layout.clone(),
-                        });
-                    });
-                }
-                NodeType::Widget(widget) => {
-                    // let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                    // let chunks = parent_layout.split(rect);
-                    // prevent panic if the calculated rect overflows the window area
-                    let rect = rect.clamp(window);
-                    widget.render(rect, buf);
-                    // *self.rect.borrow_mut() = chunks[0];
-                }
-                NodeType::Placeholder => {}
+                });
             }
-        } else {
-            match &self.node_type {
-                NodeType::Layout(layout_props) => {
-                    let LayoutPropsOld {
-                        direction,
-                        flex,
-                        mut margin,
-                        spacing,
-                        block,
-                    } = layout_props.borrow().clone();
-                    if let Some(block) = block {
-                        // Need margin to prevent block from rendering over the content
-                        if margin < 1 {
-                            margin = 1;
-                        }
-                        block.render_ref(rect, buf);
-                    };
-
-                    let constraints = self
-                        .layout_children(dom_nodes)
-                        .map(|key| *dom_nodes[*key].constraint.borrow());
-                    let layout = Layout::default()
-                        .direction(direction)
-                        .flex(flex)
-                        .margin(margin)
-                        .spacing(spacing)
-                        .constraints(constraints);
-
-                    let chunks = layout.split(rect);
-                    self.layout_children(dom_nodes)
-                        .zip(chunks.iter())
-                        .for_each(|(key, chunk)| {
-                            dom_nodes[*key].render(RenderProps {
-                                buf,
-                                rect: *chunk,
-                                window,
-                                key: *key,
-                                dom_nodes,
-                                dom_state,
-                                parent_layout: Layout::default(),
-                            });
-                        });
-                    self.absolute_children(dom_nodes).for_each(|key| {
-                        dom_nodes[*key].render(RenderProps {
-                            buf,
-                            rect: window,
-                            window,
-                            key: *key,
-                            dom_nodes,
-                            dom_state,
-                            parent_layout: Layout::default(),
-                        });
+            NodeType::Overlay => {
+                self.renderable_children(dom_nodes).for_each(|key| {
+                    dom_nodes[*key].render(RenderProps {
+                        buf,
+                        window,
+                        key: *key,
+                        dom_nodes,
+                        dom_state,
                     });
-                }
-                NodeType::Overlay => {
-                    let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                    let chunks = parent_layout.split(rect);
-                    self.renderable_children(dom_nodes).for_each(|key| {
-                        dom_nodes[*key].render(RenderProps {
-                            buf,
-                            rect: chunks[0],
-                            window,
-                            key: *key,
-                            dom_nodes,
-                            dom_state,
-                            parent_layout: parent_layout.clone(),
-                        });
-                    });
-                }
-                NodeType::Absolute(pos) => {
-                    let (x, y) = *pos.borrow();
-                    let rect = Rect::new(x, y, window.width - x, window.height - y);
-                    self.renderable_children(dom_nodes).for_each(|key| {
-                        dom_nodes[*key].render(RenderProps {
-                            buf,
-                            rect,
-                            window,
-                            key: *key,
-                            dom_nodes,
-                            dom_state,
-                            parent_layout: parent_layout.clone(),
-                        });
-                    });
-                }
-                NodeType::Widget(widget) => {
-                    let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                    let chunks = parent_layout.split(rect);
-                    widget.render(chunks[0], buf);
-                    *self.rect.borrow_mut() = chunks[0];
-                }
-                NodeType::Placeholder => {}
+                });
             }
+            NodeType::Absolute(_) => {
+                self.renderable_children(dom_nodes).for_each(|key| {
+                    dom_nodes[*key].render(RenderProps {
+                        buf,
+                        window,
+                        key: *key,
+                        dom_nodes,
+                        dom_state,
+                    });
+                });
+            }
+            NodeType::Widget(widget) => {
+                // let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
+                // let chunks = parent_layout.split(rect);
+                // prevent panic if the calculated rect overflows the window area
+                let rect = rect.clamp(window);
+                widget.render(rect, buf);
+                // *self.rect.borrow_mut() = chunks[0];
+            }
+            NodeType::Placeholder => {}
         }
 
         let rect = *self.rect.borrow();
@@ -733,26 +575,11 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn row() -> Self {
-        let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
-            name: "row".to_string(),
-            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutPropsOld {
-                direction: ratatui::layout::Direction::Horizontal,
-                ..Default::default()
-            }))),
-            unmounted: unmounted.clone(),
-            ..Default::default()
-        };
-        let key = with_nodes_mut(|n| n.insert(inner));
-        Self { key, unmounted }
-    }
-
     pub(crate) fn flex_row() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "flex_row".to_string(),
-            node_type: NodeType::Layout(Default::default()),
+            node_type: NodeType::Layout,
             original_display: taffy::Display::Flex,
             unmounted: unmounted.clone(),
             ..Default::default()
@@ -772,7 +599,7 @@ impl DomNode {
         let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "div".to_string(),
-            node_type: NodeType::Layout(Default::default()),
+            node_type: NodeType::Layout,
             original_display: taffy::Display::Block,
             unmounted: unmounted.clone(),
             ..Default::default()
@@ -791,7 +618,7 @@ impl DomNode {
         let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "flex_col".to_string(),
-            node_type: NodeType::Layout(Default::default()),
+            node_type: NodeType::Layout,
             original_display: taffy::Display::Flex,
             unmounted: unmounted.clone(),
             ..Default::default()
@@ -807,81 +634,9 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn col() -> Self {
-        let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
-            name: "col".to_string(),
-            node_type: NodeType::Layout(Rc::new(RefCell::new(LayoutPropsOld {
-                direction: ratatui::layout::Direction::Vertical,
-                ..Default::default()
-            }))),
-            unmounted: unmounted.clone(),
-            ..Default::default()
-        };
-        let key = with_nodes_mut(|n| n.insert(inner));
-        Self { key, unmounted }
-    }
-
-    pub(crate) fn overlay() -> Self {
-        let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
-            name: "overlay".to_string(),
-            node_type: NodeType::Overlay,
-            unmounted: unmounted.clone(),
-            ..Default::default()
-        };
-        let key = with_nodes_mut(|n| n.insert(inner));
-        Self { key, unmounted }
-    }
-
-    pub(crate) fn absolute(pos: Rc<RefCell<(u16, u16)>>) -> Self {
-        let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
-            name: "absolute".to_string(),
-            node_type: NodeType::Absolute(pos),
-            unmounted: unmounted.clone(),
-            ..Default::default()
-        };
-        let key = with_nodes_mut(|n| n.insert(inner));
-        Self { key, unmounted }
-    }
-
     pub(crate) fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|nodes| {
             nodes.replace_node(self.key, node.key);
-            // // This is annoyingly verbose, but we use destructuring here to ensure we account for
-            // // any new properties that get added to DomNodeInner
-            // let DomNodeInner {
-            //     node_type,
-            //     name,
-            //     constraint,
-            //     children: _children,
-            //     parent: _parent,
-            //     id,
-            //     class,
-            //     focusable,
-            //     event_handlers,
-            //     rect,
-            // } = &nodes[self.key];
-            // let name = name.clone();
-            // let node_type = node_type.clone();
-            // let constraint = constraint.clone();
-            // let focusable = focusable.clone();
-            // let id = id.clone();
-            // let class = class.clone();
-            // let event_handlers = event_handlers.clone();
-            // let rect = rect.clone();
-
-            // let new = &mut nodes[node.key];
-
-            // new.name = name;
-            // new.node_type = node_type;
-            // new.constraint = constraint;
-            // new.focusable = focusable;
-            // new.id = id;
-            // new.class = class;
-            // new.event_handlers = event_handlers;
-            // new.rect = rect;
         });
         unmount_child(self.key, true);
 
@@ -896,10 +651,6 @@ impl DomNode {
             ..Default::default()
         };
         with_nodes_mut(|n| n.replace_inner(self.key, inner));
-    }
-
-    pub(crate) fn set_focusable(&self, focusable: Rc<RefCell<bool>>) {
-        with_nodes_mut(|n| n.set_focusable(self.key, focusable));
     }
 
     pub(crate) fn update_event_handlers<F>(&self, update: F)
@@ -927,16 +678,6 @@ impl DomNode {
         });
     }
 
-    pub(crate) fn layout_props(&self) -> Rc<RefCell<LayoutPropsOld>> {
-        with_nodes(|n| {
-            if let NodeType::Layout(layout_props) = &n[self.key].node_type {
-                layout_props.clone()
-            } else {
-                Rc::new(RefCell::new(LayoutPropsOld::default()))
-            }
-        })
-    }
-
     pub(crate) fn key(&self) -> DomNodeKey {
         self.key
     }
@@ -962,16 +703,13 @@ impl DomNode {
         with_nodes(|nodes| {
             with_state_mut(|state| {
                 state.clear_focusables();
-                let constraint = *nodes[self.key].constraint.borrow();
 
                 nodes[self.key].render(RenderProps {
                     buf,
-                    rect,
                     window: rect,
                     key: self.key,
                     dom_nodes: nodes,
                     dom_state: state,
-                    parent_layout: Layout::default().constraints([constraint]),
                 });
             });
         });
