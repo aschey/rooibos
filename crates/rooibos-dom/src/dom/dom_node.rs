@@ -373,7 +373,7 @@ impl DomNodeInner {
                     block.render_ref(rect, buf);
                 };
 
-                self.renderable_children(dom_nodes).for_each(|key| {
+                self.children.iter().for_each(|key| {
                     dom_nodes[*key].render(RenderProps {
                         buf,
                         window,
@@ -396,15 +396,6 @@ impl DomNodeInner {
                 on_size_change.borrow_mut()(rect);
             }
         }
-    }
-
-    fn renderable_children<'a>(
-        &'a self,
-        dom_nodes: &'a NodeTree,
-    ) -> impl Iterator<Item = &DomNodeKey> {
-        self.children
-            .iter()
-            .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Placeholder))
     }
 }
 
