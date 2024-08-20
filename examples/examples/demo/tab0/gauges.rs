@@ -1,5 +1,5 @@
 use rooibos::dom::layout::{block, chars, height};
-use rooibos::dom::{flex_col, wgt, Render, Sparkline};
+use rooibos::dom::{col, wgt, Render, Sparkline};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
@@ -35,7 +35,7 @@ pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -
         seq
     });
 
-    flex_col![
+    col![
         props(
             block(Block::bordered().title("Graphs")),
             height(gauge_height)

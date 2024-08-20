@@ -2,7 +2,7 @@ use std::error::Error;
 use std::path::PathBuf;
 
 use rooibos::components::Image;
-use rooibos::dom::{flex_col, height, width, KeyCode, Render};
+use rooibos::dom::{col, height, width, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
@@ -43,7 +43,7 @@ fn app() -> impl Render {
         }
     });
 
-    flex_col![
+    col![
         props(width!(image_length), height!(image_length)),
         Image::from_url(image_url).render()
     ]

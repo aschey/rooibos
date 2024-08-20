@@ -2,7 +2,7 @@ use std::error::Error;
 
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
-use rooibos::dom::{derive_signal, flex_col, line, span, Render, UpdateLayoutProps};
+use rooibos::dom::{derive_signal, col, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
@@ -50,7 +50,7 @@ impl SshHandler for SshApp {
 }
 
 fn app() -> impl Render {
-    flex_col![counter_button(), counter_button()]
+    col![counter_button(), counter_button()]
 }
 
 fn counter_button() -> impl Render {

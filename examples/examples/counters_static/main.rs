@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use rooibos::dom::layout::{chars, height};
-use rooibos::dom::{flex_col, height, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, height, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::reactive::wrappers::read::Signal;
@@ -48,7 +48,7 @@ fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
 }
 
 fn app() -> impl Render {
-    flex_col![
+    col![
         props(height!(15.)),
         (0..5).map(|i| counter(i, chars(3.))).collect::<Vec<_>>()
     ]

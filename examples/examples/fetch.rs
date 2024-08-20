@@ -5,7 +5,7 @@ use reqwest::Client;
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    flex_col, line, max_width, span, suspense, text, wgt, Errors, Render, UpdateLayoutProps,
+    col, line, max_width, span, suspense, text, wgt, Errors, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::computed::AsyncDerived;
 use rooibos::reactive::signal::{signal, ArcRwSignal};
@@ -36,7 +36,7 @@ fn app() -> impl Render {
         wgt!(Paragraph::new(line!(error_list())))
     };
 
-    flex_col![
+    col![
         props(max_width!(25.)),
         Button::new()
             .on_click(move || {

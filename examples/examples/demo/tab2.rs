@@ -1,10 +1,10 @@
-use rooibos::dom::{flex_row, wgt, Render};
+use rooibos::dom::{row, wgt, Render};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {
-    flex_row![colors_table()]
+    row![colors_table()]
 }
 
 fn colors_table() -> impl Render {

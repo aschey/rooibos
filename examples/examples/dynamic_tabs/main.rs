@@ -3,7 +3,7 @@ use std::error::Error;
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    flex_row, line, span, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
+    row, line, span, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};
@@ -73,7 +73,7 @@ fn app() -> impl Render {
         }
     };
 
-    flex_row![
+    row![
         TabView::new()
             .header_height(chars(3.))
             .block(tabs_block)

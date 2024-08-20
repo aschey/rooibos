@@ -1,5 +1,5 @@
 use rooibos::dom::layout::{chars, height};
-use rooibos::dom::{flex_col, line, span, wgt, Render};
+use rooibos::dom::{col, line, span, wgt, Render};
 use rooibos::reactive::wrappers::read::Signal;
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
@@ -12,7 +12,7 @@ mod charts;
 mod gauges;
 
 pub(crate) fn tab0() -> impl Render {
-    flex_col![
+    col![
         gauges(true, chars(9.)),
         charts(true, chars(8.)),
         footer(chars(7.))

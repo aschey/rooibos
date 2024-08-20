@@ -3,7 +3,7 @@ use std::error::Error;
 use rooibos::components::{for_each, Button};
 use rooibos::dom::layout::{chars, height};
 use rooibos::dom::{
-    div, flex_col, flex_row, height, max_width, text, wgt, width, KeyCode, Render,
+    div, col, row, height, max_width, text, wgt, width, KeyCode, Render,
     UpdateLayoutProps,
 };
 use rooibos::reactive::effect::Effect;
@@ -39,7 +39,7 @@ fn counter(
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
 
-    flex_row![
+    row![
         props(height(row_height)),
         Button::new()
             .width(chars(6.))
@@ -84,9 +84,9 @@ fn app() -> impl Render {
         }
     });
 
-    flex_col![
+    col![
         props(max_width!(50.)),
-        flex_row![
+        row![
             props(height!(3.)),
             Button::new()
                 .on_click(add_counter)

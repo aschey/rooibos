@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use clap::{Args, Parser, Subcommand};
-use rooibos::dom::{after_render, flex_col, focus_id, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
@@ -75,7 +75,7 @@ async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
 fn app(initial_route: impl ToRoute) -> impl Render {
     let child2_id = RwSignal::new(0);
 
-    flex_col![
+    col![
         Router::new()
             .routes([
                 Route::new::<DefaultRoute>(child0),

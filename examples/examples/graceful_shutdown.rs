@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
-use rooibos::dom::{flex_col, line, span, wgt, Render};
+use rooibos::dom::{col, line, span, wgt, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -39,7 +39,7 @@ fn app() -> impl Render {
         },
     ));
 
-    flex_col![move || {
+    col![move || {
         if cancelled.get() {
             Either::Left(wgt!("App is shutting down..."))
         } else {

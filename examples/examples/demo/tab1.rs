@@ -1,4 +1,4 @@
-use rooibos::dom::{flex_col, flex_row, wgt, width, Render};
+use rooibos::dom::{col, row, wgt, width, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::owner::StoredValue;
 use rooibos::reactive::traits::Get;
@@ -36,9 +36,9 @@ pub(crate) fn tab1() -> impl Render {
         },
     ]);
 
-    flex_row![
-        flex_col![props(width!(30.%)), demo_table(servers)],
-        flex_col![props(width!(70.%)), demo_map(servers, true)]
+    row![
+        col![props(width!(30.%)), demo_table(servers)],
+        col![props(width!(70.%)), demo_map(servers, true)]
     ]
 }
 

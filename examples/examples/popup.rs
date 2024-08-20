@@ -2,7 +2,7 @@ use std::error::Error;
 
 use rooibos::dom::layout::{align_items, clear, justify_content, position, show};
 use rooibos::dom::{
-    flex_col, flex_row, height, line, max_height, max_width, wgt, width, KeyCode, KeyEvent, Render,
+    col, row, height, line, max_height, max_width, wgt, width, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;
@@ -29,7 +29,7 @@ fn app() -> impl Render {
         }
     };
 
-    flex_col![
+    col![
         props(max_width!(50.), max_height!(20.)),
         wgt!(
             Paragraph::new(vec![
@@ -40,7 +40,7 @@ fn app() -> impl Render {
             ])
             .block(Block::bordered())
         ),
-        flex_row![
+        row![
             props(
                 width!(100.%),
                 height!(100.%),

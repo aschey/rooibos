@@ -1,6 +1,6 @@
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
-use rooibos::dom::{derive_signal, flex_col, line, span, Render, UpdateLayoutProps};
+use rooibos::dom::{col, derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 
@@ -19,7 +19,7 @@ async fn start() -> Result<(), wasm_bindgen::JsError> {
 }
 
 pub fn app() -> impl Render {
-    flex_col![counter_button(), counter_button()]
+    col![counter_button(), counter_button()]
 }
 
 fn counter_button() -> impl Render {

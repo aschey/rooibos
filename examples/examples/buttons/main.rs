@@ -3,7 +3,7 @@ use std::error::Error;
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    derive_signal, flex_col, flex_row, height, line, span, Render, UpdateLayoutProps,
+    derive_signal, col, row, height, line, span, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
@@ -20,12 +20,12 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    flex_col![counter_button(), counter_button()]
+    col![counter_button(), counter_button()]
 }
 
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
-    flex_row![
+    row![
         props(height!(3.)),
         Button::new()
             .width(chars(20.))

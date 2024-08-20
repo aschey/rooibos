@@ -10,9 +10,9 @@ use rooibos::components::{
 };
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    after_render, block, clear, derive_signal, fill, flex_col, flex_row, focus_id, length, line,
-    margin, overlay, percentage, span, text, transition, wgt, Errors, IntoAny, NodeId, Render,
-    RenderAny, UpdateLayoutProps, WidgetState,
+    after_render, block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay,
+    percentage, row, span, text, transition, wgt, Errors, IntoAny, NodeId, Render, RenderAny,
+    UpdateLayoutProps, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -143,7 +143,7 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
         wgt!(line!(" Loading...".gray())),
         {
             todos.await.map(|todos| {
-                flex_col![if todos.is_empty() {
+                col![if todos.is_empty() {
                     wgt!("No todos".gray()).into_any()
                 } else {
                     todos
@@ -175,13 +175,13 @@ fn saving_popup() -> impl RenderAny {
         .percent_x(50)
         .percent_y(50)
         .render(pending, move || {
-            flex_col![
-                flex_col![props(fill(1))],
+            col![
+                col![props(fill(1))],
                 clear![
                     props(length(3)),
                     wgt![Paragraph::new("Saving...").block(Block::bordered())]
                 ],
-                flex_col![props(fill(1))],
+                col![props(fill(1))],
             ]
         })
 }
@@ -194,12 +194,12 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
 
     let input_ref = Input::get_ref();
 
-    flex_row![
+    row![
         props(length(3)),
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || flex_col![props(margin(1)), wgt!(Paragraph::new(text.get()))])
+            .fallback(move || col![props(margin(1)), wgt!(Paragraph::new(text.get()))])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })

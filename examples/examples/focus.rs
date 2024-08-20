@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rooibos::dom::{flex_col, flex_row, focus_next, focus_prev, use_focus, wgt, KeyCode, Render};
+use rooibos::dom::{col, row, focus_next, focus_prev, use_focus, wgt, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -29,9 +29,9 @@ fn app() -> impl Render {
         }
     });
 
-    flex_row![
-        flex_col![focus_block("item 1"), focus_block("item 2")],
-        flex_col![focus_block("item 2"), focus_block("item 3")],
+    row![
+        col![focus_block("item 1"), focus_block("item 2")],
+        col![focus_block("item 2"), focus_block("item 3")],
     ]
 }
 

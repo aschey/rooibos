@@ -269,7 +269,7 @@ where
 }
 
 #[macro_export]
-macro_rules! flex_row {
+macro_rules! row {
     () => (
         $crate::flex_node::row((), ())
     );
@@ -288,7 +288,7 @@ macro_rules! flex_row {
 }
 
 #[macro_export]
-macro_rules! flex_col {
+macro_rules! col {
     () => (
         $crate::flex_node::col((), ())
     );

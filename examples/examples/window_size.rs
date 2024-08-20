@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rooibos::dom::{flex_col, flex_row, use_window_size, wgt, Render};
+use rooibos::dom::{col, row, use_window_size, wgt, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
@@ -20,7 +20,7 @@ async fn main() -> Result<()> {
 fn app() -> impl Render {
     let window_size = use_window_size();
 
-    flex_col![
+    col![
         wgt![{
             let window_size = window_size.get();
             format!(
@@ -28,8 +28,8 @@ fn app() -> impl Render {
                 window_size.width, window_size.height
             )
         }],
-        flex_row![show_size(1), show_size(2)],
-        flex_row![show_size(3), show_size(4)]
+        row![show_size(1), show_size(2)],
+        row![show_size(3), show_size(4)]
     ]
 }
 

@@ -7,7 +7,7 @@ use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::div::taffy::Dimension;
 use rooibos_dom::layout::{height, pct};
 use rooibos_dom::{
-    derive_signal, flex_col, height, line, span, wgt, BlurEvent, ChildrenFn, EventData, FocusEvent,
+    derive_signal, col, height, line, span, wgt, BlurEvent, ChildrenFn, EventData, FocusEvent,
     IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
 };
 
@@ -383,7 +383,7 @@ impl TabView {
             }
         };
 
-        flex_col![
+        col![
             props(rooibos_dom::layout::width(width)),
             wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
@@ -402,7 +402,7 @@ impl TabView {
             .on_key_down(on_key_down)
             .on_focus(on_focus)
             .on_blur(on_blur),
-            flex_col![props(height!(100.%)), move || cur_tab
+            col![props(height!(100.%)), move || cur_tab
                 .get()
                 .map(|c| c.0())
                 .unwrap_or_else(|| ().into_any())]
