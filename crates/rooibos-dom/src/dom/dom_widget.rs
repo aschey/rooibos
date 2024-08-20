@@ -17,17 +17,16 @@ use super::layout::{
     align_self, aspect_ratio, basis, border, border_bottom, border_left, border_right, border_top,
     border_x, border_y, grow, height, margin, margin_bottom, margin_left, margin_right, margin_top,
     margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, shrink, width, AlignSelf,
-    AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY,
-    Grow, Height, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY,
-    MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight,
-    PaddingTop, PaddingX, PaddingY, Shrink, UpdateLayout, Width,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
+    BorderX, BorderY, Grow, Height, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
+    MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
+    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink,
+    UpdateLayout, Width,
 };
-use super::{AsDomNode, Constraint, Focusable, Property};
+use super::{AsDomNode, Focusable};
 use crate::widgets::WidgetRole;
-use crate::{
-    next_node_id, refresh_dom, BlurEvent, Constrainable, EventData, FocusEvent, Role, RooibosDom,
-};
+use crate::{next_node_id, refresh_dom, BlurEvent, EventData, FocusEvent, Role, RooibosDom};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 
@@ -40,7 +39,7 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
-impl WidgetProperty for Constraint {}
+// impl WidgetProperty for Constraint {}
 impl WidgetProperty for Focusable {}
 
 #[derive(Clone)]
@@ -268,25 +267,6 @@ where
     }
 }
 
-impl<P> Constrainable for DomWidget<P>
-where
-    P: NextTuple,
-{
-    type Output = DomWidget<P::Output<super::Constraint>>;
-
-    fn constraint<S>(self, constraint: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<ratatui::layout::Constraint>>,
-    {
-        DomWidget {
-            inner: self.inner,
-            properties: self
-                .properties
-                .next_tuple(super::Constraint(constraint.into())),
-        }
-    }
-}
-
 pub struct DomWidgetState<P>
 where
     P: WidgetProperty,
@@ -390,6 +370,7 @@ pub struct LayoutProps {
     pub max_width: MaxWidth,
     pub max_height: MaxHeight,
     pub aspect_ratio: AspectRatio,
+    pub position: Position,
 
     pub margin_left: MarginLeft,
     pub margin_right: MarginRight,
@@ -437,6 +418,7 @@ impl UpdateLayout for LayoutProps {
             shrink,
             basis,
             align_self,
+            position,
 
             margin_left,
             margin_right,
@@ -473,6 +455,7 @@ impl UpdateLayout for LayoutProps {
         shrink.update_layout(original_display, style);
         basis.update_layout(original_display, style);
         align_self.update_layout(original_display, style);
+        position.update_layout(original_display, style);
 
         margin_left.update_layout(original_display, style);
         margin_right.update_layout(original_display, style);
@@ -526,6 +509,7 @@ where
     update_props!(max_width, taffy::Dimension);
     update_props!(max_height, taffy::Dimension);
     update_props!(aspect_ratio, f32);
+    update_props!(position, taffy::Position);
 
     update_props!(margin_left, taffy::LengthPercentageAuto);
     update_props!(margin_right, taffy::LengthPercentageAuto);
@@ -611,6 +595,7 @@ widget_prop!(MinHeight, min_height, taffy::Dimension);
 widget_prop!(MaxWidth, max_width, taffy::Dimension);
 widget_prop!(MaxHeight, max_height, taffy::Dimension);
 widget_prop!(AspectRatio, aspect_ratio, f32);
+widget_prop!(Position, position, taffy::Position);
 
 widget_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
 widget_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);

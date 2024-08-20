@@ -3,8 +3,24 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use taffy::Display;
 
-use super::{with_nodes_mut, DomNode, Property};
+use super::{with_nodes_mut, DomNode};
 use crate::derive_signal;
+
+pub trait Property {
+    type State;
+
+    fn build(self, node: &DomNode) -> Self::State;
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State);
+}
+
+impl Property for () {
+    type State = ();
+
+    fn build(self, _node: &DomNode) -> Self::State {}
+
+    fn rebuild(self, _node: &DomNode, _state: &mut Self::State) {}
+}
 
 pub(crate) trait UpdateLayout {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style);

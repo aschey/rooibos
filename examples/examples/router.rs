@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{after_render, flex_col, focus_id, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
@@ -43,7 +43,7 @@ async fn main() -> Result<()> {
 fn app() -> impl Render {
     let child2_id = RwSignal::new(0);
 
-    col![Router::new().routes([
+    flex_col![Router::new().routes([
         Route::new::<DefaultRoute>(child0),
         Route::new::<Child1>(move || child1(child2_id)),
         Route::new::<Child2>(child2)

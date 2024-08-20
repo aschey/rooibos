@@ -8,10 +8,11 @@ use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{
     Button, Input, InputRef, Notification, Notifications, Notifier, Popup, Show,
 };
+use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    after_render, block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay,
-    percentage, row, span, text, transition, wgt, Constrainable, Errors, IntoAny,
-    NodeId, Render, RenderAny, WidgetState,
+    after_render, block, clear, derive_signal, fill, flex_col, flex_row, focus_id, length, line,
+    margin, overlay, percentage, span, text, transition, wgt, Errors, IntoAny, NodeId, Render,
+    RenderAny, UpdateLayoutProps, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -60,18 +61,18 @@ fn app(notification_timeout: Duration) -> impl Render {
     });
 
     overlay![
-        col![
-            row![
+        flex_col![
+            flex_row![
                 props(length(3)),
-                col![
+                flex_col![
                     props(length(12), block(Block::default())),
                     wgt!("Add a Todo")
                 ],
-                col![props(percentage(80)), create_todos_input()]
+                flex_col![props(percentage(80)), create_todos_input()]
             ],
-            row![
+            flex_row![
                 props(block(Block::bordered().title("Todos"))),
-                col![todos_body(editing_id, notification_timeout)]
+                flex_col![todos_body(editing_id, notification_timeout)]
             ],
             Notifications::new().render()
         ],
@@ -99,7 +100,7 @@ fn create_todos_input() -> impl Render {
             add_todo.dispatch(val);
             input_ref.delete_line_by_head();
         })
-        .length(3)
+        .height(chars(3.))
         .render(input_ref)
 }
 
@@ -142,7 +143,7 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
         wgt!(line!(" Loading...".gray())),
         {
             todos.await.map(|todos| {
-                col![if todos.is_empty() {
+                flex_col![if todos.is_empty() {
                     wgt!("No todos".gray()).into_any()
                 } else {
                     todos
@@ -174,13 +175,13 @@ fn saving_popup() -> impl RenderAny {
         .percent_x(50)
         .percent_y(50)
         .render(pending, move || {
-            col![
-                col![props(fill(1))],
+            flex_col![
+                flex_col![props(fill(1))],
                 clear![
                     props(length(3)),
                     wgt![Paragraph::new("Saving...").block(Block::bordered())]
                 ],
-                col![props(fill(1))],
+                flex_col![props(fill(1))],
             ]
         })
 }
@@ -193,12 +194,12 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
 
     let input_ref = Input::get_ref();
 
-    row![
+    flex_row![
         props(length(3)),
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin(1)), wgt!(Paragraph::new(text.get()))])
+            .fallback(move || flex_col![props(margin(1)), wgt!(Paragraph::new(text.get()))])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })
@@ -219,7 +220,7 @@ fn add_edit_button(
     }));
 
     Button::new()
-        .length(5)
+        .width(chars(5.))
         .id(add_edit_id.get_value())
         .on_click(move || {
             if editing.get() {
@@ -235,7 +236,7 @@ fn delete_button(id: u32) -> impl Render {
     let TodoContext { delete_todo, .. } = use_context::<TodoContext>().unwrap();
 
     Button::new()
-        .length(5)
+        .width(chars(5.))
         .on_click(move || {
             delete_todo.dispatch(id);
         })

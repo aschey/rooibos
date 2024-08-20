@@ -1,6 +1,8 @@
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
-use rooibos::dom::{col, derive_signal, line, row, span, Constrainable, Render, UpdateLayoutProps};
+use rooibos::dom::{
+    derive_signal, flex_col, flex_row, height, line, span, width, Render, UpdateLayoutProps,
+};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 
@@ -19,16 +21,14 @@ async fn start() -> Result<(), wasm_bindgen::JsError> {
 }
 
 pub fn app() -> impl Render {
-    col![counter_button(), counter_button()]
+    flex_col![counter_button(), counter_button()]
 }
 
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
-    row![
-        Button::new()
-            .width(chars(20.))
-            .on_click(move || set_count.update(|c| *c += 1))
-            .render(derive_signal!(line!("count ", span!(count.get())).into()))
-    ]
-    .length(3)
+    Button::new()
+        .height(chars(3.))
+        .width(chars(20.))
+        .on_click(move || set_count.update(|c| *c += 1))
+        .render(derive_signal!(line!("count ", span!(count.get())).into()))
 }

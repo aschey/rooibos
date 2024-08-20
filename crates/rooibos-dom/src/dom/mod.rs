@@ -9,15 +9,13 @@ use ratatui::layout::{Position, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use reactive_graph::signal::ReadSignal;
-use reactive_graph::traits::Get;
-use reactive_graph::wrappers::read::MaybeSignal;
 use tachys::renderer::{CastFrom, Renderer};
 use tachys::view::Render as _;
 use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
 
 use self::dom_state::DomState;
-use crate::{derive_signal, line, text, wgt, EventData, MouseEventFn};
+use crate::{line, text, wgt, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
@@ -81,73 +79,6 @@ static NODE_ID: AtomicU32 = AtomicU32::new(1);
 
 pub(crate) fn next_node_id() -> u32 {
     NODE_ID.fetch_add(1, Ordering::SeqCst)
-}
-
-pub trait Constrainable: Sized {
-    type Output;
-
-    fn constraint<S>(self, constraint: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<ratatui::layout::Constraint>>;
-
-    fn length<S>(self, length: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<u16>>,
-    {
-        let length = length.into();
-        self.constraint(derive_signal!(ratatui::layout::Constraint::Length(
-            length.get()
-        )))
-    }
-
-    fn percentage<S>(self, percentage: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<u16>>,
-    {
-        let percentage = percentage.into();
-        self.constraint(derive_signal!(ratatui::layout::Constraint::Percentage(
-            percentage.get()
-        )))
-    }
-
-    fn max<S>(self, max: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<u16>>,
-    {
-        let max = max.into();
-        self.constraint(derive_signal!(ratatui::layout::Constraint::Max(max.get())))
-    }
-
-    fn min<S>(self, min: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<u16>>,
-    {
-        let min = min.into();
-        self.constraint(derive_signal!(ratatui::layout::Constraint::Min(min.get())))
-    }
-
-    fn fill<S>(self, fill: S) -> Self::Output
-    where
-        S: Into<MaybeSignal<u16>>,
-    {
-        let fill = fill.into();
-        self.constraint(derive_signal!(ratatui::layout::Constraint::Fill(
-            fill.get()
-        )))
-    }
-
-    fn ratio<S1, S2>(self, from: S1, to: S2) -> Self::Output
-    where
-        S1: Into<MaybeSignal<u32>>,
-        S2: Into<MaybeSignal<u32>>,
-    {
-        let from = from.into();
-        let to = to.into();
-        self.constraint(derive_signal!(ratatui::layout::Constraint::Ratio(
-            from.get(),
-            to.get()
-        )))
-    }
 }
 
 #[derive(Debug)]

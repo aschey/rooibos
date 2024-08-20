@@ -898,10 +898,6 @@ impl DomNode {
         with_nodes_mut(|n| n.replace_inner(self.key, inner));
     }
 
-    pub(crate) fn set_constraint(&self, constraint: Rc<RefCell<Constraint>>) {
-        with_nodes_mut(|n| n.set_constraint(self.key, constraint));
-    }
-
     pub(crate) fn set_focusable(&self, focusable: Rc<RefCell<bool>>) {
         with_nodes_mut(|n| n.set_focusable(self.key, focusable));
     }

@@ -15,9 +15,9 @@ use super::layout::{
     BorderRight, BorderTop, BorderX, BorderY, Gap, Grow, Height, JustifyContent, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Position, Show, Shrink, Width, Wrap, ZIndex,
+    PaddingY, Position, Property, Show, Shrink, Width, Wrap, ZIndex,
 };
-use super::{AsDomNode, DomNode, NodeId, Property, RenderAny, RooibosDom};
+use super::{AsDomNode, DomNode, NodeId, RenderAny, RooibosDom};
 use crate::{BlurEvent, EventData, FocusEvent};
 
 #[derive(Debug)]
@@ -119,7 +119,7 @@ pub fn col<C, P>(props: P, children: C) -> FlexNode<C, P> {
     }
 }
 
-trait FlexProperty {}
+pub trait FlexProperty: Property {}
 
 impl FlexProperty for () {}
 
@@ -235,7 +235,7 @@ where
 impl<C, P> Render<RooibosDom> for FlexNode<C, P>
 where
     C: RenderAny + 'static,
-    P: Property + FlexProperty,
+    P: FlexProperty,
 {
     type State = FlexNodeState<C, P>;
 

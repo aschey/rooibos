@@ -9,7 +9,8 @@ use ratatui::layout::{Constraint, Rect};
 use ratatui::widgets::Block;
 use slotmap::{new_key_type, SlotMap};
 use taffy::{
-    AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Size, Style, TaffyTree,
+    AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Position, Size, Style,
+    TaffyTree,
 };
 
 use super::{dom_node, refresh_dom, with_nodes, AsDomNode, DomNode};
@@ -254,11 +255,14 @@ impl NodeTree {
         let children = self.layout_tree.children(parent).unwrap();
         let num_children = children
             .iter()
-            .filter(|c| self.layout_tree.style(**c).unwrap().display != Display::None)
+            .filter(|c| {
+                let style = self.layout_tree.style(**c).unwrap();
+                style.display != Display::None && style.position != Position::Absolute
+            })
             .count() as f32;
         for child in children {
             let mut style = self.layout_tree.style(child).unwrap().clone();
-            if style.display != Display::None {
+            if style.display != Display::None && style.position != Position::Absolute {
                 let context = self.layout_tree.get_node_context(child).unwrap();
 
                 if parent_style.display == Display::Block
@@ -441,10 +445,6 @@ impl NodeTree {
 
     pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: DomNodeInner) {
         self.dom_nodes[node].inner = inner;
-    }
-
-    pub(crate) fn set_constraint(&mut self, node: DomNodeKey, constraint: Rc<RefCell<Constraint>>) {
-        self.dom_nodes[node].inner.constraint = constraint;
     }
 
     pub(crate) fn set_focusable(&mut self, node: DomNodeKey, focusable: Rc<RefCell<bool>>) {

@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use clap::Parser;
-use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{after_render, flex_col, focus_id, wgt, KeyCode, KeyEvent, Render};
 use rooibos::router::{use_router, Route, RouteFrom, Router, ToRoute};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
@@ -30,7 +30,7 @@ async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
 }
 
 fn app(initial_route: impl ToRoute) -> impl Render {
-    col![
+    flex_col![
         Router::new()
             .routes([
                 Route::new(AppRoute::Child1, child1),

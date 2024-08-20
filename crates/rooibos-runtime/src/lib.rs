@@ -213,6 +213,7 @@ pub struct RuntimeSettings {
     enable_signal_handler: bool,
     show_final_output: bool,
     hover_debounce: Duration,
+    resize_debounce: Duration,
 }
 
 impl Default for RuntimeSettings {
@@ -222,6 +223,7 @@ impl Default for RuntimeSettings {
             enable_signal_handler: true,
             show_final_output: true,
             hover_debounce: Duration::from_millis(20),
+            resize_debounce: Duration::from_millis(20),
         }
     }
 }
@@ -244,6 +246,11 @@ impl RuntimeSettings {
 
     pub fn hover_debounce(mut self, hover_debounce: Duration) -> Self {
         self.hover_debounce = hover_debounce;
+        self
+    }
+
+    pub fn resize_debounce(mut self, resize_debounce: Duration) -> Self {
+        self.resize_debounce = resize_debounce;
         self
     }
 }
@@ -438,6 +445,7 @@ impl<B: Backend + 'static> Runtime<B> {
 
         let mut term_parser_rx = self.term_parser_tx.subscribe();
         let hover_debounce = self.settings.hover_debounce.as_millis();
+        let resize_debounce = self.settings.resize_debounce.as_millis();
         if self.parser_running.swap(true, Ordering::SeqCst) {
             return;
         }
@@ -445,10 +453,16 @@ impl<B: Backend + 'static> Runtime<B> {
 
         self.service_context.spawn(("input_handler",move |context: ServiceContext| async move {
             let mut last_move_time = wasm_compat::now();
+            let mut last_resize_time = wasm_compat::now();
             let mut pending_move = None;
+            let mut pending_resize = None;
             loop {
                 let send_next_move = wasm_compat::sleep(Duration::from_millis(
                     hover_debounce.saturating_sub((wasm_compat::now() - last_move_time) as u128)
+                        as u64,
+                ));
+                let send_next_resize = wasm_compat::sleep(Duration::from_millis(
+                    resize_debounce.saturating_sub((wasm_compat::now() - last_resize_time) as u128)
                         as u64,
                 ));
 
@@ -486,6 +500,10 @@ impl<B: Backend + 'static> Runtime<B> {
                                 pending_move = Some(mouse_event);
                                 last_move_time = wasm_compat::now();
                             }
+                            Ok(resize_event @ Event::Resize(_,_)) => {
+                                pending_resize = Some(resize_event);
+                                last_resize_time = wasm_compat::now();
+                            }
                             Ok(event) => {
                                 term_event_tx.send(event).ok();
 
@@ -502,6 +520,9 @@ impl<B: Backend + 'static> Runtime<B> {
                     }
                     _ = send_next_move, if pending_move.is_some() => {
                         term_event_tx.send(pending_move.take().unwrap()).ok();
+                    }
+                    _ = send_next_resize, if pending_resize.is_some() => {
+                        term_event_tx.send(pending_resize.take().unwrap()).ok();
                     }
                 }
             }

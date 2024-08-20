@@ -12,9 +12,9 @@ use super::layout::{
     BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY, Height, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Position, Show, Width,
+    PaddingY, Position, Property, Show, Width,
 };
-use super::{AsDomNode, DomNode, Property, RenderAny, RooibosDom};
+use super::{AsDomNode, DomNode, RenderAny, RooibosDom};
 
 #[derive(Debug)]
 pub struct Div<C, P> {
@@ -51,7 +51,7 @@ pub fn div<C, P>(props: P, children: C) -> Div<C, P> {
     }
 }
 
-trait DivProperty {}
+pub trait DivProperty: Property {}
 
 impl DivProperty for () {}
 
