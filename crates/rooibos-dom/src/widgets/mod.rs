@@ -30,7 +30,7 @@ macro_rules! wgt {
 }
 
 #[macro_export]
-macro_rules! wgt_o {
+macro_rules! wgt_owned {
     (props($($properties:expr),+), $($x:tt)*) => {
         $crate::widget_owned(($($properties),+), move || $($x)*)
     };
@@ -38,16 +38,6 @@ macro_rules! wgt_o {
         $crate::widget_owned((), move || $($x)*)
     };
 }
-
-// #[macro_export]
-// macro_rules! wgt_s {
-//     ($x:expr, $y:expr) => {
-//         $crate::stateful_widget((), move || $x, move || $y)
-//     };
-//     (props($($properties:expr),+), $x:expr, $y:expr) => {
-//         $crate::stateful_widget(($($properties),+), move || $x, move || $y)
-//     };
-// }
 
 pub fn widget<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
 where

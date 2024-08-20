@@ -1,8 +1,6 @@
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
-use rooibos::dom::{
-    derive_signal, flex_col, flex_row, height, line, span, width, Render, UpdateLayoutProps,
-};
+use rooibos::dom::{derive_signal, flex_col, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 
