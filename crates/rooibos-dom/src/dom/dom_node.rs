@@ -382,7 +382,6 @@ impl DomNodeInner {
 
         let prev_rect = *self.rect.borrow();
         let rect = dom_nodes.rect(key);
-        *self.rect.borrow_mut() = rect;
 
         if self.focusable {
             dom_state.add_focusable(key);
@@ -440,17 +439,13 @@ impl DomNodeInner {
                 });
             }
             NodeType::Widget(widget) => {
-                // let parent_layout = parent_layout.constraints([*self.constraint.borrow()]);
-                // let chunks = parent_layout.split(rect);
                 // prevent panic if the calculated rect overflows the window area
                 let rect = rect.clamp(window);
                 widget.render(rect, buf);
-                // *self.rect.borrow_mut() = chunks[0];
             }
             NodeType::Placeholder => {}
         }
-
-        let rect = *self.rect.borrow();
+        *self.rect.borrow_mut() = rect;
         if rect != prev_rect {
             if let Some(on_size_change) = &dom_nodes[key].event_handlers.on_size_change {
                 on_size_change.borrow_mut()(rect);

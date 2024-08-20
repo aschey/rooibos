@@ -9,10 +9,9 @@ use reactive_graph::owner::{provide_context, use_context};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Update};
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{
-    absolute, clear, col, derive_signal, length, use_window_size, wgt, Constrainable,
-    Render,
-};
+use rooibos_dom::div::taffy::AlignItems;
+use rooibos_dom::layout::{align_items, chars, clear, height, width, z_index};
+use rooibos_dom::{col, derive_signal, height, wgt, width, Render};
 use rooibos_runtime::wasm_compat;
 use tokio::sync::mpsc;
 
@@ -101,13 +100,14 @@ impl Notifications {
     }
 
     pub fn render(self) -> impl Render {
-        let Notifications { width } = self;
+        let Notifications {
+            width: content_width,
+        } = self;
+        let content_width = derive_signal!(content_width.get() as f32);
         let (tx, mut rx) = mpsc::channel(32);
         provide_context(NotificationContext { tx });
 
         let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
-        let window_size = use_window_size();
-        let anchor = derive_signal!((window_size.get().width.saturating_sub(width.get()), 0));
 
         wasm_compat::spawn(async move {
             while let Some(notification) = rx.recv().await {
@@ -126,27 +126,35 @@ impl Notifications {
             }
         });
 
-        absolute![
-            anchor,
-            col![for_each(
-                move || notifications.get(),
-                |n| n.id,
-                move |n| {
-                    let height = n.content.height();
-                    clear![
-                        // +2 for borders
-                        props(length(height as u16 + 2)),
+        col![
+            props(
+                z_index(2),
+                width!(100.%),
+                height!(100.%),
+                align_items(AlignItems::End),
+            ),
+            col![
+                props(width(chars(content_width)),),
+                for_each(
+                    move || notifications.get(),
+                    |n| n.id,
+                    move |n| {
+                        let content_height = n.content.height() as f32;
                         wgt!(
+                            props(
+                                // +2 for borders
+                                height(chars(content_height + 2.)),
+                                clear(true)
+                            ),
                             Paragraph::new(n.content.clone()).block(
                                 Block::bordered()
                                     .border_type(BorderType::Rounded)
                                     .border_style(Style::new().blue())
                             )
                         )
-                    ]
-                    .length(height as u16 + 2)
-                }
-            )]
+                    }
+                )
+            ]
         ]
     }
 }

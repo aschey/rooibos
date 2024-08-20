@@ -328,6 +328,66 @@ macro_rules! padding {
 }
 
 #[macro_export]
+macro_rules! margin_left {
+    ($val:tt %) => {
+        $crate::layout::margin_left($crate::layout::length_percentage_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin_left($crate::layout::length_percentage_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! margin_right {
+    ($val:tt %) => {
+        $crate::layout::margin_right($crate::layout::length_percentage_auto_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin_right($crate::layout::length_percentage_auto_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! margin_top {
+    ($val:tt %) => {
+        $crate::layout::margin_top($crate::layout::length_percentage_auto_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin_top($crate::layout::length_percentage_auto_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! margin_bottom {
+    ($val:tt %) => {
+        $crate::layout::margin_bottom($crate::layout::length_percentage_auto_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin_bottom($crate::layout::length_percentage_auto_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! margin_x {
+    ($val:tt %) => {
+        $crate::layout::margin_x($crate::layout::length_percentage_auto_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin_x($crate::layout::length_percentage_auto_chars($val))
+    };
+}
+
+#[macro_export]
+macro_rules! margin_y {
+    ($val:tt %) => {
+        $crate::layout::margin_y($crate::layout::length_percentage_auto_pct($val))
+    };
+    ($val:tt) => {
+        $crate::layout::margin_y($crate::layout::length_percentage_auto_chars($val))
+    };
+}
+
+#[macro_export]
 macro_rules! margin {
     ($val:tt %) => {
         $crate::layout::margin($crate::layout::length_percentage_auto_pct($val))

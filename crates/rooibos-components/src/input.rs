@@ -109,7 +109,6 @@ impl InputRef {
 }
 
 pub struct Input {
-    // constraint: MaybeSignal<Constraint>,
     layout_props: LayoutProps,
     alignment: MaybeSignal<Alignment>,
     block: Box<dyn Fn(WidgetState) -> Option<Block<'static>> + Send + Sync>,
