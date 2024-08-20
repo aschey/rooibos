@@ -9,10 +9,9 @@ use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    derive_signal, wgt, KeyCode, KeyEvent, LayoutProps, NodeId, Render, UpdateLayoutProps,
-    WidgetState,
+    delay, derive_signal, supports_keyboard_enhancement, wgt, KeyCode, KeyEvent, LayoutProps,
+    NodeId, Render, UpdateLayoutProps, WidgetState,
 };
-use rooibos_runtime::{delay, supports_key_up};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
@@ -125,7 +124,7 @@ impl Button {
 
         let on_enter = move || {
             widget_state.set(WidgetState::Active);
-            if !supports_key_up() {
+            if !supports_keyboard_enhancement() {
                 delay(Duration::from_millis(50), async move {
                     // Need to use try_get here in case the button was already disposed
                     if widget_state.try_get() == Some(WidgetState::Active) {
@@ -139,7 +138,7 @@ impl Button {
         let on_enter_ = on_enter.clone();
 
         let key_up = move |key_event: KeyEvent, _| {
-            if !supports_key_up() {
+            if !supports_keyboard_enhancement() {
                 return;
             }
             if key_event.code == KeyCode::Enter {

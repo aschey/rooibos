@@ -360,6 +360,9 @@ pub fn render_dom(buf: &mut Buffer) {
         with_nodes_mut(|nodes| {
             nodes.recompute_layout(buf.area);
         });
+        with_state_mut(|state| {
+            state.clear_focusables();
+        });
         let roots = with_nodes(|nodes| nodes.roots_asc());
         for root in roots {
             root.render(buf, buf.area);

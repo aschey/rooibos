@@ -12,8 +12,8 @@ use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::div::taffy::AlignItems;
 use rooibos_dom::layout::{align_items, chars, clear, height, width, z_index};
 use rooibos_dom::{col, derive_signal, height, wgt, width, Render};
-use rooibos_runtime::wasm_compat;
 use tokio::sync::mpsc;
+use wasm_compat::futures::{sleep, spawn};
 
 use crate::for_each;
 
@@ -109,13 +109,13 @@ impl Notifications {
 
         let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
 
-        wasm_compat::spawn(async move {
+        spawn(async move {
             while let Some(notification) = rx.recv().await {
                 let id = notification.id;
                 let timeout = notification.timeout;
                 notifications.update(|n| n.push(notification));
-                wasm_compat::spawn(async move {
-                    wasm_compat::sleep(timeout).await;
+                spawn(async move {
+                    sleep(timeout).await;
                     notifications.update(|n| {
                         let idx = n.iter().position(|n| n.id == id);
                         if let Some(idx) = idx {

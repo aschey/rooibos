@@ -330,10 +330,10 @@ macro_rules! padding {
 #[macro_export]
 macro_rules! margin_left {
     ($val:tt %) => {
-        $crate::layout::margin_left($crate::layout::length_percentage_pct($val))
+        $crate::layout::margin_left($crate::layout::length_percentage_auto_pct($val))
     };
     ($val:tt) => {
-        $crate::layout::margin_left($crate::layout::length_percentage_chars($val))
+        $crate::layout::margin_left($crate::layout::length_percentage_auto_chars($val))
     };
 }
 

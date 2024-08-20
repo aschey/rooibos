@@ -8,9 +8,9 @@ use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{Button, Input, InputRef, Notification, Notifications, Notifier, Show};
 use rooibos::dom::layout::{align_items, block, chars, clear, justify_content, position, show};
 use rooibos::dom::{
-    after_render, col, derive_signal, focus_id, height, line, margin, margin_top, row, span, text,
-    transition, wgt, width, Errors, IntoAny, NodeId, Render, RenderAny, UpdateLayoutProps,
-    WidgetState,
+    after_render, col, derive_signal, focus_id, height, line, margin, margin_left, margin_top,
+    max_width, row, span, text, transition, wgt, width, Errors, IntoAny, NodeId, Render, RenderAny,
+    UpdateLayoutProps, WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -61,8 +61,11 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     col![
         row![
-            props(width!(80.%), height!(3.)),
-            wgt!(props(width!(12.), margin_top!(1.)), "Add a Todo"),
+            props(max_width!(100.), height!(3.)),
+            wgt!(
+                props(width!(12.), margin_top!(1.), margin_left!(1.)),
+                "Add a Todo"
+            ),
             create_todos_input()
         ],
         row![
@@ -80,6 +83,7 @@ fn create_todos_input() -> impl Render {
 
     Input::default()
         .placeholder_text("Add a todo")
+        .grow(1.)
         .block(|state| {
             Block::bordered()
                 .fg(if state == WidgetState::Focused {

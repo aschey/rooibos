@@ -14,7 +14,9 @@ tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
 next_tuple = { path = "../../../leptos/next_tuple" }
 either_of = { path = "../../../leptos/either_of" }
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-runtime = { path = "../rooibos-runtime" }
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+    "all",
+] }
 derivative = "2"
 ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }

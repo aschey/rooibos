@@ -28,8 +28,8 @@ use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set;
 use rooibos_dom::{
-    dom_update_receiver, focus_next, mount, render_dom, send_event, unmount, DomUpdateReceiver,
-    Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
+    dom_update_receiver, focus_next, mount, render_dom, send_event, set_pixel_size, unmount,
+    DomUpdateReceiver, Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 use tap::TapFallible;
 use tokio::runtime::Handle;
@@ -57,8 +57,6 @@ struct RuntimeState {
     term_tx: broadcast::Sender<rooibos_dom::Event>,
     term_command_tx: broadcast::Sender<TerminalCommand>,
     runtime_command_tx: broadcast::Sender<RuntimeCommand>,
-    supports_keyboard_enhancement: bool,
-    pixel_size: Option<Size>,
     service_manager: Option<Manager>,
     context: ServiceContext,
     restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
@@ -79,8 +77,8 @@ impl RuntimeState {
             term_tx,
             term_command_tx,
             runtime_command_tx,
-            supports_keyboard_enhancement: false,
-            pixel_size: None,
+            // supports_keyboard_enhancement: false,
+            // pixel_size: None,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
             before_exit: wasm_compat::Mutex::new(Box::new(move || {
                 Box::pin(async move { ExitResult::Exit })
@@ -327,9 +325,8 @@ impl<B: Backend + 'static> Runtime<B> {
         let dom_update_rx = dom_update_receiver();
 
         // We need to query this info before reading events
-        with_state_mut(|s| {
-            s.supports_keyboard_enhancement = backend.supports_keyboard_enhancement()
-        });
+        let _ =
+            rooibos_dom::set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement());
 
         #[cfg(not(target_arch = "wasm32"))]
         if settings.enable_signal_handler {
@@ -395,14 +392,12 @@ impl<B: Backend + 'static> Runtime<B> {
     pub fn setup_terminal(&mut self) -> io::Result<Terminal<B::TuiBackend>> {
         let mut terminal = self.backend.setup_terminal()?;
 
-        if let Ok(window_size) = terminal.backend_mut().window_size() {
-            with_state_mut(|s| {
-                s.pixel_size = Some(Size {
-                    width: window_size.pixels.width / window_size.columns_rows.width,
-                    height: window_size.pixels.height / window_size.columns_rows.height,
-                })
-            });
-        }
+        let window_size = terminal.backend_mut().window_size().ok();
+        let _ = set_pixel_size(window_size.map(|s| Size {
+            width: s.pixels.width / s.columns_rows.width,
+            height: s.pixels.height / s.columns_rows.height,
+        }));
+
         let backend = self.backend.clone();
 
         if self.settings.enable_input_reader {
@@ -728,14 +723,6 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     term_signal
 }
 
-pub fn supports_key_up() -> bool {
-    with_state(|s| s.supports_keyboard_enhancement)
-}
-
-pub fn pixel_size() -> Option<Size> {
-    with_state(|s| s.pixel_size)
-}
-
 pub fn restore_terminal() -> io::Result<()> {
     STATE.with(|s| {
         let r = s.get().unwrap().read();
@@ -909,16 +896,6 @@ pub fn set_panic_hook(owner: Owner) {
 
     #[cfg(target_arch = "wasm32")]
     console_error_panic_hook::set_once();
-}
-
-pub fn delay<F>(duration: Duration, f: F)
-where
-    F: Future<Output = ()> + 'static,
-{
-    wasm_compat::spawn_local(async move {
-        wasm_compat::sleep(duration).await;
-        f.await;
-    });
 }
 
 fn current_runtime() -> u32 {

@@ -4,9 +4,14 @@ mod events;
 mod suspense;
 mod widgets;
 
+use std::cell::OnceCell;
+use std::future::Future;
+use std::time::Duration;
+
 pub use dom::*;
 pub use error_boundary::*;
 pub use events::*;
+use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
 #[doc(hidden)]
@@ -93,4 +98,35 @@ pub enum WidgetState {
     Focused,
     Active,
     Default,
+}
+
+pub fn delay<F>(duration: Duration, f: F)
+where
+    F: Future<Output = ()> + 'static,
+{
+    wasm_compat::futures::spawn_local(async move {
+        wasm_compat::futures::sleep(duration).await;
+        f.await;
+    });
+}
+
+thread_local! {
+    static SUPPORTS_KEYBOARD_ENHANCEMENT: OnceCell<bool> = const { OnceCell::new() };
+    static PIXEL_SIZE: OnceCell<Option<Size>> = const { OnceCell::new() };
+}
+
+pub fn set_supports_keyboard_enhancement(supports_keyboard_enhancement: bool) -> Result<(), bool> {
+    SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| s.set(supports_keyboard_enhancement))
+}
+
+pub fn supports_keyboard_enhancement() -> bool {
+    SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| *s.get().unwrap())
+}
+
+pub fn set_pixel_size(pixel_size: Option<Size>) -> Result<(), Option<Size>> {
+    PIXEL_SIZE.with(|p| p.set(pixel_size))
+}
+
+pub fn pixel_size() -> Option<Size> {
+    PIXEL_SIZE.with(|p| *p.get().unwrap())
 }

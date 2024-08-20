@@ -3,7 +3,7 @@ use std::error::Error;
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
-    row, line, span, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
+    line, row, span, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, Update};

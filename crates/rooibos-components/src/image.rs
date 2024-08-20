@@ -14,7 +14,7 @@ use reactive_graph::effect::Effect;
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked};
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{DomWidget, Render};
+use rooibos_dom::{pixel_size, DomWidget, Render};
 
 #[derive(Clone)]
 pub enum ResizeMode {
@@ -83,7 +83,7 @@ impl Image {
                         width: 8,
                         height: 16,
                     };
-                    let mut pixel_size = rooibos_runtime::pixel_size().unwrap_or(fallback_size);
+                    let mut pixel_size = pixel_size().unwrap_or(fallback_size);
                     if pixel_size == Size::default() {
                         pixel_size = fallback_size;
                     }

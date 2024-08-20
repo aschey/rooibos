@@ -620,8 +620,6 @@ impl DomNode {
     pub(crate) fn render(&self, buf: &mut Buffer, rect: Rect) {
         with_nodes(|nodes| {
             with_state_mut(|state| {
-                state.clear_focusables();
-
                 nodes[self.key].render(RenderProps {
                     buf,
                     window: rect,

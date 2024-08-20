@@ -8,13 +8,16 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use rooibos::dom::{
-    dom_update_receiver, focus_next, line, mount, render_dom, send_event, span, unmount, wgt,
-    Event, KeyCode, KeyEvent, KeyModifiers, Render,
+    dom_update_receiver, focus_next, line, mount, render_dom, send_event, set_pixel_size,
+    set_supports_keyboard_enhancement, span, unmount, wgt, Event, KeyCode, KeyEvent, KeyModifiers,
+    Render,
 };
 use rooibos::reactive::owner::Owner;
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::tui::backend::CrosstermBackend;
+use rooibos::tui::layout::Size;
+use rooibos::tui::prelude::Backend;
 use rooibos::tui::style::Stylize;
 use tokio::task;
 use tokio_stream::StreamExt;
@@ -36,6 +39,18 @@ async fn async_main() -> Result<()> {
 
 async fn run() -> Result<()> {
     let mut terminal = setup_terminal()?;
+
+    let window_size = terminal.backend_mut().window_size().ok();
+    set_pixel_size(window_size.map(|s| Size {
+        width: s.pixels.width / s.columns_rows.width,
+        height: s.pixels.height / s.columns_rows.height,
+    }))
+    .unwrap();
+    set_supports_keyboard_enhancement(
+        crossterm::terminal::supports_keyboard_enhancement().unwrap(),
+    )
+    .unwrap();
+
     mount(app);
     terminal.draw(|f| render_dom(f.buffer_mut()))?;
     focus_next();

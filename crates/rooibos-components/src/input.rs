@@ -11,9 +11,9 @@ use rooibos_dom::{
     derive_signal, BlurEvent, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent, LayoutProps,
     NodeId, Render, UpdateLayoutProps, WidgetState,
 };
-use rooibos_runtime::wasm_compat;
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
+use wasm_compat::futures::spawn_local;
 
 #[derive(Clone, Copy)]
 pub struct InputRef {
@@ -231,7 +231,7 @@ impl Input {
             return block(state);
         });
 
-        wasm_compat::spawn_local(async move {
+        spawn_local(async move {
             while let Ok(line) = submit_rx.recv().await {
                 on_submit(line);
             }

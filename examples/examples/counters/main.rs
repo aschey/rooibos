@@ -3,8 +3,7 @@ use std::error::Error;
 use rooibos::components::{for_each, Button};
 use rooibos::dom::layout::{chars, height};
 use rooibos::dom::{
-    div, col, row, height, max_width, text, wgt, width, KeyCode, Render,
-    UpdateLayoutProps,
+    col, height, max_width, row, text, wgt, width, KeyCode, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
@@ -54,7 +53,7 @@ fn counter(
             .on_click(on_remove)
             .render(text!("x".red())),
         wgt!(
-            props(width!(15.)),
+            props(width!(10.)),
             Paragraph::new(format!("count: {}", count.get())).block(block.get())
         )
         .on_click(move |_, _| update_count(1))
@@ -92,11 +91,11 @@ fn app() -> impl Render {
                 .on_click(add_counter)
                 .render(text!("Add Counter")),
         ],
-        div![for_each(
+        for_each(
             move || ids.get(),
             |k| *k,
             move |i| counter(chars(3.), i, move || remove_id(i))
-        )]
+        )
     ]
     .id("root")
 }
