@@ -68,8 +68,6 @@ pub(crate) struct NodeTypeStructure {
 #[derive(Clone, PartialEq, Eq, Default)]
 pub enum NodeType {
     Layout,
-    Overlay,
-    Absolute(Rc<RefCell<(u16, u16)>>),
     Widget(DomWidgetNode),
     #[default]
     Placeholder,
@@ -80,17 +78,6 @@ impl NodeType {
         match self {
             NodeType::Layout => NodeTypeStructure {
                 name: "Layout",
-                attrs: None,
-            },
-            NodeType::Absolute(pos) => {
-                let (x, y) = *pos.borrow();
-                NodeTypeStructure {
-                    name: "Absolute",
-                    attrs: Some(format!("x={x} y={y}")),
-                }
-            }
-            NodeType::Overlay => NodeTypeStructure {
-                name: "Overlay",
                 attrs: None,
             },
             NodeType::Widget(_) => NodeTypeStructure {
@@ -111,11 +98,6 @@ impl Debug for NodeType {
             NodeType::Layout => {
                 write!(f, "Layout")
             }
-            NodeType::Absolute(pos) => {
-                let (x, y) = *pos.borrow();
-                write!(f, "Absolute(x={x} y={y})")
-            }
-            NodeType::Overlay => write!(f, "Overlay"),
             NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
             NodeType::Placeholder => write!(f, "Placeholder"),
         }
@@ -128,8 +110,6 @@ impl Render<RooibosDom> for NodeType {
     fn build(self) -> Self::State {
         match self {
             NodeType::Layout => None,
-            NodeType::Overlay => None,
-            NodeType::Absolute(_) => None,
             NodeType::Widget(node) => Some(node.build()),
             NodeType::Placeholder => None,
         }
@@ -138,8 +118,6 @@ impl Render<RooibosDom> for NodeType {
     fn rebuild(self, state: &mut Self::State) {
         match self {
             NodeType::Layout => {}
-            NodeType::Overlay => {}
-            NodeType::Absolute(_) => {}
             NodeType::Widget(node) => {
                 if let Some(s) = state.as_mut() {
                     node.rebuild(s)
@@ -206,8 +184,6 @@ impl DomNodeRepr {
                 NodeType::Layout => NodeTypeRepr::Layout {
                     block: node.block.clone(),
                 },
-                NodeType::Overlay => NodeTypeRepr::Overlay,
-                NodeType::Absolute(_) => NodeTypeRepr::Absolute,
                 NodeType::Widget(_) => NodeTypeRepr::Widget,
                 NodeType::Placeholder => NodeTypeRepr::Placeholder,
             },
@@ -397,37 +373,6 @@ impl DomNodeInner {
                     block.render_ref(rect, buf);
                 };
 
-                self.layout_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        buf,
-                        window,
-                        key: *key,
-                        dom_nodes,
-                        dom_state,
-                    });
-                });
-                self.absolute_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        buf,
-                        window,
-                        key: *key,
-                        dom_nodes,
-                        dom_state,
-                    });
-                });
-            }
-            NodeType::Overlay => {
-                self.renderable_children(dom_nodes).for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        buf,
-                        window,
-                        key: *key,
-                        dom_nodes,
-                        dom_state,
-                    });
-                });
-            }
-            NodeType::Absolute(_) => {
                 self.renderable_children(dom_nodes).for_each(|key| {
                     dom_nodes[*key].render(RenderProps {
                         buf,
@@ -460,19 +405,6 @@ impl DomNodeInner {
         self.children
             .iter()
             .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Placeholder))
-    }
-
-    fn layout_children<'a>(&'a self, dom_nodes: &'a NodeTree) -> impl Iterator<Item = &DomNodeKey> {
-        self.renderable_children(dom_nodes)
-            .filter(|c| !matches!(dom_nodes[**c].node_type, NodeType::Absolute(_)))
-    }
-
-    fn absolute_children<'a>(
-        &'a self,
-        dom_nodes: &'a NodeTree,
-    ) -> impl Iterator<Item = &DomNodeKey> {
-        self.renderable_children(dom_nodes)
-            .filter(|c| matches!(dom_nodes[**c].node_type, NodeType::Absolute(_)))
     }
 }
 
