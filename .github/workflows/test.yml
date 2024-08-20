@@ -18,7 +18,7 @@ jobs:
       - name: Build all
         run: cargo build
       - name: Test
-        run: cargo test
+        run: cargo test --examples
   all-features-unix:
     strategy:
       matrix:

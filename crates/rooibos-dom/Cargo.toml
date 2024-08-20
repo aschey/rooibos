@@ -6,14 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
     "tracing",
     "effects",
 ] }
-tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
-any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
-throw_error = { path = "../../../leptos/any_error" }
-next_tuple = { path = "../../../leptos/next_tuple" }
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+    "reactive_graph",
+] }
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+    "tokio",
+] }
+throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea" }
 ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }

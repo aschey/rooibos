@@ -4,15 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea" }
 tui-textarea = { version = "0.6", default-features = false, optional = true }
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
     "tracing",
     "effects",
 ] }
 crossterm = { version = "0.28.1", optional = true }
-tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
-next_tuple = { path = "../../../leptos/next_tuple" }
-either_of = { path = "../../../leptos/either_of" }
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+    "reactive_graph",
+] }
 rooibos-dom = { path = "../rooibos-dom" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
     "all",

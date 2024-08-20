@@ -5,9 +5,11 @@ edition = "2021"
 
 [dependencies]
 matchit = "0.8"
-tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+    "reactive_graph",
+] }
 url = "2"
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
     "tracing",
     "effects",
 ] }

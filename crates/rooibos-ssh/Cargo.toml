@@ -15,7 +15,7 @@ tracing = "0.1"
 tap = "1"
 futures = "0.3"
 async-trait = "0.1"
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
     "tracing",
     "effects",
 ] }
