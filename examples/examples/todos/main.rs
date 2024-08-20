@@ -5,14 +5,12 @@ use std::error::Error;
 use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
-use rooibos::components::{
-    Button, Input, InputRef, Notification, Notifications, Notifier, Popup, Show,
-};
-use rooibos::dom::layout::chars;
+use rooibos::components::{Button, Input, InputRef, Notification, Notifications, Notifier, Show};
+use rooibos::dom::layout::{align_items, block, chars, clear, justify_content, position, show};
 use rooibos::dom::{
-    after_render, block, clear, col, derive_signal, fill, focus_id, length, line, margin, overlay,
-    percentage, row, span, text, transition, wgt, Errors, IntoAny, NodeId, Render, RenderAny,
-    UpdateLayoutProps, WidgetState,
+    after_render, col, derive_signal, focus_id, height, line, margin, margin_top, row, span, text,
+    transition, wgt, width, Errors, IntoAny, NodeId, Render, RenderAny, UpdateLayoutProps,
+    WidgetState,
 };
 use rooibos::reactive::actions::Action;
 use rooibos::reactive::computed::AsyncDerived;
@@ -27,6 +25,7 @@ use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
 use server::run_server;
+use taffy::{AlignItems, JustifyContent, Position};
 
 #[rooibos::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -60,23 +59,18 @@ fn app(notification_timeout: Duration) -> impl Render {
         delete_todo,
     });
 
-    overlay![
-        flex_col![
-            flex_row![
-                props(length(3)),
-                flex_col![
-                    props(length(12), block(Block::default())),
-                    wgt!("Add a Todo")
-                ],
-                flex_col![props(percentage(80)), create_todos_input()]
-            ],
-            flex_row![
-                props(block(Block::bordered().title("Todos"))),
-                flex_col![todos_body(editing_id, notification_timeout)]
-            ],
-            Notifications::new().render()
+    col![
+        row![
+            props(width!(80.%), height!(3.)),
+            wgt!(props(width!(12.), margin_top!(1.)), "Add a Todo"),
+            create_todos_input()
         ],
-        saving_popup()
+        row![
+            props(height!(100.%), block(Block::bordered().title("Todos"))),
+            col![todos_body(editing_id, notification_timeout)]
+        ],
+        saving_popup(),
+        Notifications::new().render()
     ]
 }
 
@@ -171,19 +165,20 @@ fn saving_popup() -> impl RenderAny {
 
     let pending = derive_signal!(add_pending.get() || update_pending.get() || delete_pending.get());
 
-    Popup::default()
-        .percent_x(50)
-        .percent_y(50)
-        .render(pending, move || {
-            col![
-                col![props(fill(1))],
-                clear![
-                    props(length(3)),
-                    wgt![Paragraph::new("Saving...").block(Block::bordered())]
-                ],
-                col![props(fill(1))],
-            ]
-        })
+    row![
+        props(
+            width!(100.%),
+            height!(100.%),
+            position(Position::Absolute),
+            align_items(AlignItems::Center),
+            justify_content(JustifyContent::Center),
+            show(pending)
+        ),
+        wgt!(
+            props(clear(true), width!(25.), height!(5.)),
+            Paragraph::new("Saving...").block(Block::bordered())
+        )
+    ]
 }
 
 fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl Render {
@@ -195,11 +190,11 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_ref = Input::get_ref();
 
     row![
-        props(length(3)),
+        props(height!(3.)),
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin(1)), wgt!(Paragraph::new(text.get()))])
+            .fallback(move || col![props(margin!(1.)), wgt!(Paragraph::new(text.get()))])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })

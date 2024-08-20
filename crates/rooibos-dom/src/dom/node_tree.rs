@@ -1,11 +1,9 @@
-use std::cell::RefCell;
 use std::cmp;
 use std::collections::BTreeMap;
 use std::ops::Index;
-use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use ratatui::layout::{Constraint, Rect};
+use ratatui::layout::Rect;
 use ratatui::widgets::Block;
 use slotmap::{new_key_type, SlotMap};
 use taffy::{
@@ -291,15 +289,15 @@ impl NodeTree {
         }
     }
 
-    pub(crate) fn print_layout_tree(&mut self) {
-        let key = self.root(0).as_dom_node().key();
-        let layout_id = self.dom_nodes[key].layout_id;
-        self.layout_tree.print_tree(layout_id);
-    }
+    // pub(crate) fn print_layout_tree(&mut self) {
+    //     let key = self.root(0).as_dom_node().key();
+    //     let layout_id = self.dom_nodes[key].layout_id;
+    //     self.layout_tree.print_tree(layout_id);
+    // }
 
-    pub(crate) fn keys(&self) -> slotmap::basic::Keys<'_, DomNodeKey, TreeValue> {
-        self.dom_nodes.keys()
-    }
+    // pub(crate) fn keys(&self) -> slotmap::basic::Keys<'_, DomNodeKey, TreeValue> {
+    //     self.dom_nodes.keys()
+    // }
 
     pub(crate) fn iter_nodes(&self) -> slotmap::basic::Iter<'_, DomNodeKey, TreeValue> {
         self.dom_nodes.iter()
