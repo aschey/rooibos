@@ -46,3 +46,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Build
         run: cargo +nightly build --features=crossterm,nightly
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+      - name: Install wasm-pack
+        run: cargo binstall wasm-pack --no-confirm
+      - name: Build
+        run: cd ./examples/wasm && wasm-pack build
