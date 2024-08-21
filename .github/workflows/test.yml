@@ -57,4 +57,6 @@ jobs:
       - name: Install wasm-pack
         run: cargo binstall wasm-pack --no-confirm
       - name: Build
-        run: cd ./examples/wasm && wasm-pack build
+        run: |
+          cd ./examples/wasm 
+          wasm-pack build
