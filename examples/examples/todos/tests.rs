@@ -54,27 +54,6 @@ async fn test_todos() {
         .unwrap();
     assert_snapshot!("after_create", harness.terminal());
 
-    // // Update todo
-    // harness.get_by_text(&todos_block, "").click();
-    // harness
-    //     .wait_for(|_, _| todos_block.find_all_by_role(Role::TextInput).len() == 1)
-    //     .await
-    //     .unwrap();
-    // harness.send_text("1");
-    // harness
-    //     .wait_for(|harness, _| harness.find_by_text(&todos_block, "todo 11").is_some())
-    //     .await
-    //     .unwrap();
-    // harness.send_key(KeyCode::Enter);
-
-    // harness
-    //     .wait_for(|harness, _| {
-    //         todos_block.find_all_by_role(Role::TextInput).is_empty()
-    //             && harness.find_by_text(&todos_block, "todo 11").is_some()
-    //     })
-    //     .await
-    //     .unwrap();
-    // assert_snapshot!(harness.terminal());
     update_todo(&mut harness, &todos_block, "1", "todo 11", false).await;
     assert_snapshot!("keyboard_update", harness.terminal());
     wait_for_notification(&mut harness).await;

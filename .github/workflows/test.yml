@@ -59,4 +59,4 @@ jobs:
       - name: Build
         run: |
           cd ./examples/wasm 
-          wasm-pack build
+          ~/.cargo/bin/wasm-pack build
