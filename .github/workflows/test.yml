@@ -55,8 +55,8 @@ jobs:
       - name: Install binstall
         uses: cargo-bins/cargo-binstall@main
       - name: Install wasm-pack
-        run: cargo binstall wasm-pack --no-confirm
+        run: cargo binstall wasm-pack --no-confirm --force
       - name: Build
         run: |
           cd ./examples/wasm 
-          ~/.cargo/bin/wasm-pack build
+          wasm-pack build
