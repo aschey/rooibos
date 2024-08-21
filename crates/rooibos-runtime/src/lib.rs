@@ -1,13 +1,8 @@
-pub mod backend;
-
 use std::any::Any;
-use std::borrow::BorrowMut;
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
-use std::pin::Pin;
 use std::process::ExitStatus;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -31,13 +26,17 @@ use rooibos_dom::{
     dom_update_receiver, focus_next, mount, render_dom, send_event, set_pixel_size, unmount,
     DomUpdateReceiver, Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
+pub use state::*;
 use tap::TapFallible;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
+use tokio::task;
 use tokio::task::LocalSet;
-use tokio::{task, task_local};
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
+
+pub mod backend;
+mod state;
 
 pub mod wasm_compat {
     pub use ::wasm_compat::cell::*;
@@ -47,69 +46,6 @@ pub mod wasm_compat {
     pub use ::wasm_compat::static_init::*;
     pub use ::wasm_compat::sync::*;
     pub use ::wasm_compat::time::*;
-}
-
-type RestoreFn = dyn Fn() -> io::Result<()> + Send;
-
-type ExitResultFuture = dyn Future<Output = ExitResult> + Send;
-
-struct RuntimeState {
-    term_tx: broadcast::Sender<rooibos_dom::Event>,
-    term_command_tx: broadcast::Sender<TerminalCommand>,
-    runtime_command_tx: broadcast::Sender<RuntimeCommand>,
-    service_manager: Option<Manager>,
-    context: ServiceContext,
-    restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
-    before_exit: wasm_compat::Mutex<Box<dyn Fn() -> Pin<Box<ExitResultFuture>> + Send>>,
-}
-
-impl RuntimeState {
-    fn new() -> Self {
-        let (term_tx, _) = broadcast::channel(32);
-        let (term_command_tx, _) = broadcast::channel(32);
-        let (runtime_command_tx, _) = broadcast::channel(32);
-        let cancellation_token = CancellationToken::new();
-        let service_manager = Manager::new(
-            cancellation_token.clone(),
-            background_service::Settings::default(),
-        );
-        Self {
-            term_tx,
-            term_command_tx,
-            runtime_command_tx,
-            // supports_keyboard_enhancement: false,
-            // pixel_size: None,
-            restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
-            before_exit: wasm_compat::Mutex::new(Box::new(move || {
-                Box::pin(async move { ExitResult::Exit })
-            })),
-            context: service_manager.get_context(),
-            service_manager: Some(service_manager),
-        }
-    }
-}
-
-wasm_compat::static_init! {
-    static STATE: wasm_compat::Once<wasm_compat::RwLock<HashMap<u32, RuntimeState>>> = wasm_compat::Once::new();
-}
-
-task_local! {
-    static CURRENT_RUNTIME: u32;
-}
-
-pub async fn with_runtime<Fut, T>(id: u32, f: Fut) -> T
-where
-    Fut: Future<Output = T>,
-{
-    STATE.with(|s| {
-        s.get()
-            .unwrap()
-            .borrow_mut()
-            .write()
-            .insert(id, RuntimeState::new())
-    });
-
-    CURRENT_RUNTIME.scope(id, f).await
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -167,14 +103,6 @@ pub enum TickResult {
 }
 
 pub fn execute<T>(f: impl FnOnce() -> T) -> T {
-    let mut state = HashMap::new();
-    state.insert(0, RuntimeState::new());
-    if STATE
-        .with(|s| s.set(wasm_compat::RwLock::new(state)))
-        .is_err()
-    {
-        panic!();
-    }
     let owner = Owner::new();
     set_panic_hook(owner.clone());
     let res = owner.with(f);
@@ -187,22 +115,32 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub async fn init_executor<T, F>(f: F) -> T
+pub async fn run_with_executor<T, F>(f: F) -> T
 where
     F: Future<Output = T>,
 {
-    any_spawner::Executor::init_tokio().expect("executor already initialized");
+    init_executor();
     let local = task::LocalSet::new();
     local.run_until(f).await
 }
 
 #[cfg(target_arch = "wasm32")]
-pub async fn init_executor<T, F>(f: F) -> T
+pub async fn run_with_executor<T, F>(f: F) -> T
 where
     F: Future<Output = T>,
 {
-    any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
+    init_executor();
     f.await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn init_executor() {
+    any_spawner::Executor::init_tokio().expect("executor already initialized");
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn init_executor() {
+    any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
 }
 
 #[derive(Debug)]
@@ -724,10 +662,8 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
 }
 
 pub fn restore_terminal() -> io::Result<()> {
-    STATE.with(|s| {
-        let r = s.get().unwrap().read();
-
-        for runtime in r.values() {
+    with_all_state(|s| {
+        for runtime in s.values() {
             runtime.restore_terminal.lock()()?;
         }
         Ok(())
@@ -824,37 +760,6 @@ pub fn set_clipboard<T: Display>(title: T, kind: backend::ClipboardKind) {
     .unwrap();
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn exec<F>(command: tokio::process::Command, on_finish: F)
-where
-    F: FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
-        + Send
-        + Sync
-        + 'static,
-{
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .term_command_tx
-                .send(TerminalCommand::Exec {
-                    command: Arc::new(std::sync::Mutex::new(command)),
-                    on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
-                })
-        })
-        .unwrap();
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum ExitResult {
-    Exit,
-    PreventExit,
-}
-
 pub fn before_exit<F, Fut>(f: F)
 where
     F: Fn() -> Fut + Send + Sync + 'static,
@@ -869,18 +774,29 @@ where
 }
 
 pub fn exit() {
-    let current_runtime = CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0);
-    STATE
-        .with(|s| {
-            s.get()
-                .unwrap()
-                .read()
-                .get(&current_runtime)
-                .unwrap()
-                .runtime_command_tx
-                .send(RuntimeCommand::Terminate)
-        })
-        .unwrap();
+    with_state(|s| {
+        s.runtime_command_tx
+            .send(RuntimeCommand::Terminate)
+            .unwrap()
+    });
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn exec<F>(command: tokio::process::Command, on_finish: F)
+where
+    F: FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
+        + Send
+        + Sync
+        + 'static,
+{
+    with_state(|s| {
+        s.term_command_tx
+            .send(TerminalCommand::Exec {
+                command: Arc::new(std::sync::Mutex::new(command)),
+                on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
+            })
+            .unwrap();
+    });
 }
 
 pub fn set_panic_hook(owner: Owner) {
@@ -896,22 +812,4 @@ pub fn set_panic_hook(owner: Owner) {
 
     #[cfg(target_arch = "wasm32")]
     console_error_panic_hook::set_once();
-}
-
-fn current_runtime() -> u32 {
-    CURRENT_RUNTIME.try_with(|c| *c).unwrap_or(0)
-}
-
-fn with_state<F: FnOnce(&RuntimeState) -> T, T>(f: F) -> T {
-    STATE.with(|s| f(s.get().unwrap().read().get(&current_runtime()).unwrap()))
-}
-
-fn with_state_mut<F: FnOnce(&mut RuntimeState) -> T, T>(f: F) -> T {
-    STATE.with(|s| {
-        f(s.get()
-            .unwrap()
-            .write()
-            .get_mut(&current_runtime())
-            .unwrap())
-    })
 }

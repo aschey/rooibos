@@ -28,6 +28,7 @@ pub struct TerminalSettings<W> {
     keyboard_enhancement: bool,
     focus_change: bool,
     bracketed_paste: bool,
+    raw_mode: bool,
     viewport: Viewport,
     title: Option<String>,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
@@ -64,6 +65,7 @@ impl<W> TerminalSettings<W> {
     {
         Self {
             alternate_screen: true,
+            raw_mode: true,
             mouse_capture: true,
             keyboard_enhancement: true,
             focus_change: true,
@@ -91,6 +93,11 @@ impl<W> TerminalSettings<W> {
 
     pub fn bracketed_paste(mut self, bracketed_paste: bool) -> Self {
         self.bracketed_paste = bracketed_paste;
+        self
+    }
+
+    pub fn raw_mode(mut self, raw_mode: bool) -> Self {
+        self.raw_mode = raw_mode;
         self
     }
 
@@ -165,7 +172,10 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
         let mut writer = (self.settings.get_writer)();
-        enable_raw_mode()?;
+        if self.settings.raw_mode {
+            enable_raw_mode()?;
+        }
+
         queue!(writer, Hide)?;
         if self.settings.alternate_screen {
             queue!(writer, EnterAlternateScreen)?;
@@ -203,6 +213,9 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
     fn restore_terminal(&self) -> io::Result<()> {
         let mut writer = (self.settings.get_writer)();
+        if self.settings.raw_mode {
+            disable_raw_mode()?;
+        }
         if self.supports_keyboard_enhancement {
             queue!(writer, PopKeyboardEnhancementFlags)?;
         }
@@ -221,7 +234,6 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 
         queue!(writer, Show)?;
         writer.flush()?;
-        disable_raw_mode()?;
 
         Ok(())
     }

@@ -2,17 +2,16 @@ use std::error::Error;
 
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
-use rooibos::dom::{derive_signal, col, line, span, Render, UpdateLayoutProps};
+use rooibos::dom::{col, derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-#[rooibos::main]
+#[tokio::main]
 async fn main() -> Result<()> {
     let server = AppServer::new(
         SshConfig {
@@ -38,11 +37,8 @@ impl SshHandler for SshApp {
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let runtime = Runtime::initialize_with_settings(
-            RuntimeSettings::default(),
-            SshBackend::new(
-                CrosstermBackend::new(TerminalSettings::from_writer(move || handle.clone())),
-                event_rx,
-            ),
+            RuntimeSettings::default().enable_signal_handler(false),
+            SshBackend::new(handle, event_rx),
             app,
         );
         runtime.run().await.unwrap();

@@ -8,15 +8,17 @@ use async_trait::async_trait;
 use futures::Future;
 use reactive_graph::owner::Owner;
 use rooibos_dom::Event;
-use rooibos_runtime::with_runtime;
+use rooibos_runtime::{init_executor, restore_terminal, with_runtime};
 pub use russh::server::Config as SshConfig;
 use russh::server::{Auth, Handle, Handler, Msg, Server, Session};
 use russh::{Channel, ChannelId};
 pub use russh_keys::key::KeyPair;
 use russh_keys::key::PublicKey;
+use tap::TapFallible;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::{mpsc, RwLock};
 use tokio::task::LocalSet;
+use tracing::warn;
 
 pub struct TerminalHandle {
     handle: Handle,
@@ -83,6 +85,7 @@ where
 
 impl<T: SshHandler> AppServer<T> {
     pub fn new(config: SshConfig, handler: T) -> Self {
+        init_executor();
         Self {
             clients: Arc::new(RwLock::new(HashMap::new())),
             handler: Arc::new(handler),
@@ -142,11 +145,15 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
         let (event_tx, event_rx) = mpsc::channel(32);
-        self.clients.write().await.insert(self.client_id, event_tx);
+        let clients = self.clients.clone();
+        let client_id = self.client_id;
+        clients.write().await.insert(client_id, event_tx);
 
         let handler = self.handler.clone();
         let client_id = self.client_id;
-        let terminal_handle = TerminalHandle::new(session.handle(), channel.id());
+        let channel_id = channel.id();
+        let terminal_handle = TerminalHandle::new(session.handle(), channel_id);
+        let handle = session.handle();
         let socket_addr = self.socket_addr;
         tokio::task::spawn_blocking(move || {
             let owner = Owner::new();
@@ -168,11 +175,14 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                                         socket_addr,
                                     )
                                     .await;
+                                restore_terminal().unwrap();
                             })
                             .await
                         })
                         .await;
-                })
+                    clients.write().await.remove(&client_id);
+                    handle.close(channel_id).await.unwrap();
+                });
             });
         });
 
@@ -202,8 +212,12 @@ impl<T: SshHandler> Handler for AppHandler<T> {
     ) -> Result<(), Self::Error> {
         if let Some(event) = terminput::parser::parse_event(data)? {
             let clients = self.clients.read().await;
-            let client_tx = clients.get(&self.client_id).unwrap();
-            client_tx.send(event).await.unwrap();
+            if let Some(client_tx) = clients.get(&self.client_id) {
+                let _ = client_tx
+                    .send(event)
+                    .await
+                    .tap_err(|e| warn!("error sending data: {e:?}"));
+            }
         }
 
         Ok(())

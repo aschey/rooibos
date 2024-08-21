@@ -64,7 +64,7 @@ fn create_main(
             }
 
             async fn ___async_main(#inputs) #output {
-                #runtime::init_executor(#func_copy_ident(#func_param_idents)).await
+                #runtime::run_with_executor(#func_copy_ident(#func_param_idents)).await
             }
 
             #func_copy
@@ -78,7 +78,7 @@ fn create_main(
 
             #[::tokio::main(#attrs)]
             async fn ___async_main(#inputs) #output {
-                #runtime::init_executor(#func_copy_ident(#func_param_idents)).await
+                #runtime::run_with_executor(#func_copy_ident(#func_param_idents)).await
             }
 
             #func_copy
