@@ -2,7 +2,7 @@ use std::error::Error;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::layout::chars;
+use rooibos::dom::layout::{chars, pct};
 use rooibos::dom::{line, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::owner::provide_context;
 use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
@@ -85,6 +85,7 @@ fn header_tabs() -> impl Render {
 
     TabView::new()
         .header_height(chars(3.))
+        .body_height(pct(100.))
         .block(Block::bordered().title("Demo"))
         .highlight_style(Style::new().yellow())
         .on_key_down(on_key_down)

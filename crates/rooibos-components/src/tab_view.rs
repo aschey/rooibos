@@ -78,6 +78,7 @@ pub struct TabView {
     width: MaybeSignal<Dimension>,
     padding_left: MaybeSignal<Line<'static>>,
     padding_right: MaybeSignal<Line<'static>>,
+    body_height: MaybeSignal<Dimension>,
 }
 
 enum ClickAction<'a> {
@@ -103,6 +104,7 @@ impl Default for TabView {
             width: pct(100.).into(),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
+            body_height: Dimension::Auto.into(),
         }
     }
 }
@@ -119,6 +121,11 @@ impl TabView {
 
     pub fn header_height(mut self, header_height: impl Into<MaybeSignal<Dimension>>) -> Self {
         self.header_height = header_height.into();
+        self
+    }
+
+    pub fn body_height(mut self, body_height: impl Into<MaybeSignal<Dimension>>) -> Self {
+        self.body_height = body_height.into();
         self
     }
 
@@ -214,6 +221,7 @@ impl TabView {
             divider,
             padding_left,
             padding_right,
+            body_height,
         } = self;
 
         let children: MaybeSignal<TabList> = children.into();
@@ -402,10 +410,12 @@ impl TabView {
             .on_key_down(on_key_down)
             .on_focus(on_focus)
             .on_blur(on_blur),
-            col![props(max_height!(100.%)), move || cur_tab
-                .get()
-                .map(|c| c.0())
-                .unwrap_or_else(|| ().into_any())]
+            col![props(max_height!(100.%), height(body_height)), move || {
+                cur_tab
+                    .get()
+                    .map(|c| c.0())
+                    .unwrap_or_else(|| ().into_any())
+            }]
         ]
     }
 }

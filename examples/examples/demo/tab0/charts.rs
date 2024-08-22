@@ -1,4 +1,4 @@
-use rooibos::dom::layout::{min_width, show};
+use rooibos::dom::layout::{height, show};
 use rooibos::dom::{col, line, row, span, wgt, Chart, Dataset, KeyCode, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
@@ -15,7 +15,7 @@ use taffy::Dimension;
 use crate::random::RandomData;
 use crate::Tick;
 
-pub(crate) fn charts(enhanced_graphics: bool, chart_min_width: Signal<Dimension>) -> impl Render {
+pub(crate) fn charts(enhanced_graphics: bool, chart_min_height: Signal<Dimension>) -> impl Render {
     let show_chart = RwSignal::new(true);
 
     let term_signal = use_keypress();
@@ -28,7 +28,7 @@ pub(crate) fn charts(enhanced_graphics: bool, chart_min_width: Signal<Dimension>
     });
 
     row![
-        props(min_width(chart_min_width)),
+        props(height(chart_min_height)),
         col![row![task_list(), logs()], demo_bar_chart(enhanced_graphics)],
         col![props(show(show_chart)), demo_chart(enhanced_graphics)]
     ]

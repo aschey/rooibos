@@ -1,5 +1,4 @@
 use std::any::Any;
-use std::fmt::Display;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
@@ -10,7 +9,8 @@ use std::time::Duration;
 
 use backend::Backend;
 pub use background_service::ServiceContext;
-use background_service::{BackgroundService, LocalBackgroundService, Manager, TaskId};
+use background_service::{Manager, TaskId};
+pub use commands::*;
 use derivative::Derivative;
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt};
@@ -21,21 +21,20 @@ use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::{signal, ReadSignal};
-use reactive_graph::traits::Set;
+use reactive_graph::traits::{IsDisposed, Set};
 use rooibos_dom::{
     dom_update_receiver, focus_next, mount, render_dom, send_event, set_pixel_size, unmount,
     DomUpdateReceiver, Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 pub use state::*;
 use tap::TapFallible;
-use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task;
-use tokio::task::LocalSet;
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 
 pub mod backend;
+mod commands;
 mod state;
 
 pub mod wasm_compat {
@@ -584,35 +583,45 @@ impl<B: Backend + 'static> Runtime<B> {
             }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
-                if let Some(input_task_id) = self.input_task_id.take() {
-                    let input_service = self.service_context.take_service(&input_task_id).unwrap();
-                    input_service.cancel();
-                    input_service.wait_for_shutdown().await.unwrap();
-                }
-
-                restore_terminal()?;
-                terminal.clear()?;
-                let mut child = command.lock().unwrap().spawn()?;
-                let child_stdout = child.stdout.take();
-                let child_stderr = child.stderr.take();
-                tokio::select! {
-                    status = child.wait() => {
-                        let status = status.unwrap();
-                        let on_finish = (*on_finish.lock().unwrap()).take().unwrap();
-                        on_finish(status, child_stdout, child_stderr);
-                        self.runtime_command_tx.send(RuntimeCommand::Restart).unwrap();
-                    },
-                    // Interrupt child if a signal is received
-                    res = self.runtime_command_rx.recv() => {
-                        child.kill().await.unwrap();
-                        if let Ok(signal) = res {
-                            self.runtime_command_tx.send(signal).unwrap();
-                        }
-                    }
-                }
+                self.handle_exec(command, terminal, on_finish).await?;
             }
         };
         terminal.draw(|f| render_dom(f.buffer_mut()))?;
+        Ok(())
+    }
+
+    async fn handle_exec(
+        &mut self,
+        command: Arc<std::sync::Mutex<tokio::process::Command>>,
+        terminal: &mut Terminal<B::TuiBackend>,
+        on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
+    ) -> io::Result<()> {
+        if let Some(input_task_id) = self.input_task_id.take() {
+            let input_service = self.service_context.take_service(&input_task_id).unwrap();
+            input_service.cancel();
+            input_service.wait_for_shutdown().await.unwrap();
+        }
+
+        restore_terminal()?;
+        terminal.clear()?;
+        let mut child = command.lock().unwrap().spawn()?;
+        let child_stdout = child.stdout.take();
+        let child_stderr = child.stderr.take();
+        tokio::select! {
+            status = child.wait() => {
+                let status = status.unwrap();
+                let on_finish = (*on_finish.lock().unwrap()).take().unwrap();
+                on_finish(status, child_stdout, child_stderr);
+                self.runtime_command_tx.send(RuntimeCommand::Restart).unwrap();
+            },
+            // Interrupt child if a signal is received
+            res = self.runtime_command_rx.recv() => {
+                child.kill().await.unwrap();
+                if let Ok(signal) = res {
+                    self.runtime_command_tx.send(signal).unwrap();
+                }
+            }
+        }
         Ok(())
     }
 
@@ -663,11 +672,10 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     let mut term_rx = with_state(|s| s.term_tx.subscribe());
     let (term_signal, set_term_signal) = signal(None);
     wasm_compat::spawn_local(async move {
-        // TODO: this doesn't work?
-        // if term_signal.is_disposed() {
-        //     return;
-        // }
         while let Ok(event) = term_rx.recv().await {
+            if term_signal.is_disposed() {
+                return;
+            }
             if let Event::Key(key_event) = event {
                 if key_event.kind == rooibos_dom::KeyEventKind::Press {
                     set_term_signal.set(Some(key_event));
@@ -677,144 +685,6 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     });
 
     term_signal
-}
-
-pub fn restore_terminal() -> io::Result<()> {
-    with_all_state(|s| {
-        for runtime in s.values() {
-            runtime.restore_terminal.lock()()?;
-        }
-        Ok(())
-    })
-}
-
-pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
-    with_state(|s| {
-        s.term_command_tx.send(TerminalCommand::InsertBefore {
-            height,
-            text: text.into(),
-        })
-    })
-    .unwrap();
-}
-
-pub fn enter_alt_screen() {
-    with_state(|s| s.term_command_tx.send(TerminalCommand::EnterAltScreen)).unwrap();
-}
-
-pub fn leave_alt_screen() {
-    with_state(|s| s.term_command_tx.send(TerminalCommand::LeaveAltScreen)).unwrap();
-}
-
-pub fn set_title<T: Display>(title: T) {
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::SetTitle(title.to_string()))
-    })
-    .unwrap();
-}
-
-pub fn run_with_terminal<F, B>(f: F)
-where
-    F: FnMut(&mut Terminal<B>) + Send + 'static,
-    B: TuiBackend + Send + 'static,
-{
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::Custom(Arc::new(std::sync::Mutex::new(
-                Box::new(TerminalFnBoxed(Box::new(f))),
-            ))))
-    })
-    .unwrap();
-}
-
-pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
-    with_state(|s| s.context.spawn(service))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn spawn_service_on<S: BackgroundService + Send + 'static>(
-    service: S,
-    handle: &Handle,
-) -> TaskId {
-    with_state(|s| s.context.spawn_on(service, handle))
-}
-
-pub fn spawn_local_service<S: LocalBackgroundService + 'static>(service: S) -> TaskId {
-    with_state(|s| s.context.spawn_local(service))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn spawn_local_service_on<S: LocalBackgroundService + 'static>(
-    service: S,
-    local_set: &LocalSet,
-) -> TaskId {
-    with_state(|s| s.context.spawn_local_on(service, local_set))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn spawn_blocking_service<S: background_service::BlockingBackgroundService + Send + 'static>(
-    service: S,
-) -> TaskId {
-    with_state(|s| s.context.spawn_blocking(service))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn spawn_blocking_service_on<
-    S: background_service::BlockingBackgroundService + Send + 'static,
->(
-    service: S,
-    handle: &Handle,
-) -> TaskId {
-    with_state(|s| s.context.spawn_blocking_on(service, handle))
-}
-
-#[cfg(feature = "clipboard")]
-pub fn set_clipboard<T: Display>(title: T, kind: backend::ClipboardKind) {
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::SetClipboard(title.to_string(), kind))
-    })
-    .unwrap();
-}
-
-pub fn before_exit<F, Fut>(f: F)
-where
-    F: Fn() -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = ExitResult> + Send + 'static,
-{
-    with_state(|s| {
-        *s.before_exit.lock_mut() = Box::new(move || {
-            let out = f();
-            Box::pin(out)
-        })
-    });
-}
-
-pub fn exit() {
-    with_state(|s| {
-        s.runtime_command_tx
-            .send(RuntimeCommand::Terminate)
-            .unwrap()
-    });
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn exec<F>(command: tokio::process::Command, on_finish: F)
-where
-    F: FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
-        + Send
-        + Sync
-        + 'static,
-{
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::Exec {
-                command: Arc::new(std::sync::Mutex::new(command)),
-                on_finish: Arc::new(std::sync::Mutex::new(Some(Box::new(on_finish)))),
-            })
-            .unwrap();
-    });
 }
 
 pub fn set_panic_hook(owner: Owner) {
