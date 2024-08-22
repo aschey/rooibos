@@ -1,17 +1,15 @@
-use std::error::Error;
-
 use rooibos::dom::{DomWidget, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::tui::buffer::Buffer;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::{Block, StatefulWidget};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

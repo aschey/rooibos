@@ -2,6 +2,7 @@ use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
 use std::os::fd::AsFd;
 
 use background_service::ServiceContext;
+use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
@@ -151,9 +152,6 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                 }
             }
         });
-        tokio::select! {
-            _ = reader => {}
-            _ = service_context.cancelled() => {}
-        }
+        let _ = reader.cancel_with(service_context.cancelled()).await;
     }
 }

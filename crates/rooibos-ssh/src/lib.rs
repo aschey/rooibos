@@ -117,7 +117,7 @@ impl<T: SshHandler> AppServer<T> {
         let mut signals = Signals::new([Signal::Int]).unwrap();
 
         let (signal_tx, mut signal_rx) = broadcast::channel(32);
-        set_external_signal_source(signal_tx.clone());
+        set_external_signal_source(signal_tx.clone()).expect("signal handler already set");
 
         let service_manager = self.service_manager.take().unwrap();
         let service_context = self.service_context.clone();

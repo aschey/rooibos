@@ -72,8 +72,10 @@ task_local! {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-pub fn set_external_signal_source(signals: broadcast::Sender<async_signal::Signal>) {
-    EXTERNAL_SIGNALS.with(|s| s.set(signals)).unwrap();
+pub fn set_external_signal_source(
+    signals: broadcast::Sender<async_signal::Signal>,
+) -> Result<(), broadcast::Sender<async_signal::Signal>> {
+    EXTERNAL_SIGNALS.with(|s| s.set(signals))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -81,14 +83,11 @@ pub(crate) fn get_external_signal_stream() -> Option<broadcast::Receiver<async_s
     EXTERNAL_SIGNALS.with(|s| s.get().map(|s| s.subscribe()))
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn has_external_signal_stream() -> bool {
-    EXTERNAL_SIGNALS.with(|s| s.get().is_some())
-}
-
-#[cfg(target_arch = "wasm32")]
-pub(crate) fn has_external_signal_stream() -> bool {
-    false
+    #[cfg(not(target_arch = "wasm32"))]
+    return EXTERNAL_SIGNALS.with(|s| s.get().is_some());
+    #[cfg(target_arch = "wasm32")]
+    return false;
 }
 
 fn current_runtime() -> u32 {
@@ -96,7 +95,7 @@ fn current_runtime() -> u32 {
 }
 
 pub(crate) fn with_state<F: FnOnce(&RuntimeState) -> T, T>(f: F) -> T {
-    STATE.with(|s| f(s.read().get(&current_runtime()).unwrap()))
+    STATE.with(|s| f(s.read().get(&current_runtime()).expect("runtime missing")))
 }
 
 pub(crate) fn with_all_state<F: FnOnce(&HashMap<u32, RuntimeState>) -> T, T>(f: F) -> T {

@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use rooibos::dom::layout::{align_items, clear, justify_content, position, show};
 use rooibos::dom::{
     col, height, line, max_height, max_width, row, wgt, width, KeyCode, KeyEvent, Render,
@@ -7,11 +5,11 @@ use rooibos::dom::{
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::{Block, Paragraph};
 use taffy::{AlignItems, JustifyContent, Position};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

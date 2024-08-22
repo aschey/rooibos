@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use rooibos::components::Show;
 use rooibos::dom::layout::{align_items, justify_content, position};
 use rooibos::dom::{
@@ -8,11 +6,11 @@ use rooibos::dom::{
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{before_exit, exit, ExitResult, Runtime};
 use rooibos::tui::widgets::{Block, Paragraph};
 use taffy::{AlignItems, JustifyContent, Position};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

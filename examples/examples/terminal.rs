@@ -1,12 +1,10 @@
-use std::error::Error;
-
 use rooibos::components::{self, CommandBuilder};
 use rooibos::dom::Render;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::Block;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

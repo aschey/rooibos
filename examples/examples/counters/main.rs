@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use rooibos::components::{for_each, Button};
 use rooibos::dom::layout::{chars, height};
 use rooibos::dom::{
@@ -10,11 +8,11 @@ use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

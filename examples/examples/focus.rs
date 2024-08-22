@@ -1,13 +1,11 @@
-use std::error::Error;
-
 use rooibos::dom::{col, focus_next, focus_prev, row, use_focus, wgt, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
 use rooibos::tui::widgets::{Block, Paragraph};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

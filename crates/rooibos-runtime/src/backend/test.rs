@@ -4,6 +4,7 @@ use background_service::ServiceContext;
 use futures_cancel::FutureExt;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
+use tracing::warn;
 
 use super::Backend;
 
@@ -79,8 +80,10 @@ impl Backend for TestBackend {
         service_context: ServiceContext,
     ) {
         let mut rx = self.event_tx.subscribe();
-        while let Ok(event) = rx.recv().cancel_with(service_context.cancelled()).await {
-            tx.send(event.unwrap()).unwrap();
+        while let Ok(Ok(event)) = rx.recv().cancel_with(service_context.cancelled()).await {
+            let _ = tx
+                .send(event)
+                .inspect_err(|e| warn!("failed to send event: {e:?}"));
         }
     }
 }

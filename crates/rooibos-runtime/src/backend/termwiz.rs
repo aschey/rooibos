@@ -9,6 +9,7 @@ use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
 use termwiz::terminal::{SystemTerminal, Terminal};
 use tokio::sync::broadcast;
+use tracing::warn;
 
 use super::Backend;
 
@@ -111,14 +112,17 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
     type TuiBackend = ratatui::backend::TermwizBackend;
 
     fn setup_terminal(&self) -> io::Result<ratatui::Terminal<Self::TuiBackend>> {
-        let caps = Capabilities::new_from_env().unwrap();
-        let terminal =
-            SystemTerminal::new_with(caps, &io::stdin(), &(self.settings.get_writer)()).unwrap();
-        let mut terminal = BufferedTerminal::new(terminal).unwrap();
-        terminal.terminal().set_raw_mode().unwrap();
+        let caps = Capabilities::new_from_env().map_err(into_io_error)?;
+        let terminal = SystemTerminal::new_with(caps, &io::stdin(), &(self.settings.get_writer)())
+            .map_err(into_io_error)?;
+        let mut terminal = BufferedTerminal::new(terminal).map_err(into_io_error)?;
+        terminal.terminal().set_raw_mode().map_err(into_io_error)?;
 
         if self.settings.alternate_screen {
-            terminal.terminal().enter_alternate_screen().unwrap();
+            terminal
+                .terminal()
+                .enter_alternate_screen()
+                .map_err(into_io_error)?;
         }
 
         if let Some(title) = &self.settings.title {
@@ -155,7 +159,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             .buffered_terminal_mut()
             .terminal()
             .enter_alternate_screen()
-            .unwrap();
+            .map_err(into_io_error)?;
         Ok(())
     }
 
@@ -168,7 +172,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             .buffered_terminal_mut()
             .terminal()
             .enter_alternate_screen()
-            .unwrap();
+            .map_err(into_io_error)?;
         Ok(())
     }
 
@@ -225,9 +229,15 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             .poll_input(Some(Duration::ZERO))
         {
             if let Ok(event) = event.try_into() {
-                let _ = term_tx.send(event);
+                let _ = term_tx
+                    .send(event)
+                    .inspect_err(|e| warn!("error sending input: {e:?}"));
             }
         }
         Ok(())
     }
+}
+
+fn into_io_error(error: termwiz::Error) -> io::Error {
+    io::Error::new(io::ErrorKind::Other, error.to_string())
 }

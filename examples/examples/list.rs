@@ -1,15 +1,13 @@
-use std::error::Error;
-
 use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set, With};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

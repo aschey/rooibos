@@ -1,12 +1,10 @@
-use std::error::Error;
-
 use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{execute, run_with_executor, Runtime};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 fn main() -> Result<()> {
     execute(async_main)

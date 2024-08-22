@@ -1,13 +1,12 @@
-use std::error::Error;
 use std::time::Duration;
 
 use rooibos::components::{Notification, Notifications, Notifier};
 use rooibos::dom::{col, line, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{wasm_compat, Runtime};
 use rooibos::tui::widgets::{Block, Paragraph};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

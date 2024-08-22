@@ -1,13 +1,11 @@
-use std::error::Error;
-
 use clap::Parser;
 use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
 use rooibos::router::{use_router, Route, RouteFrom, Router, ToRoute};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::tui::widgets::Paragraph;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[derive(Parser, Route, Debug)]
 #[command(version, about)]

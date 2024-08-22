@@ -1,15 +1,13 @@
-use std::error::Error;
-
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
 use rooibos::dom::{col, derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[tokio::main]
 async fn main() -> Result<()> {

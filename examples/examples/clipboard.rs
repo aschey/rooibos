@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use rooibos::components::{Button, Notification, Notifications, Notifier};
 use rooibos::dom::layout::chars;
 use rooibos::dom::{
@@ -9,9 +7,9 @@ use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::backend::ClipboardKind;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{set_clipboard, Runtime};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

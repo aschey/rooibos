@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::time::Duration;
 
 use futures_cancel::FutureExt;
@@ -7,10 +6,10 @@ use rooibos::dom::{col, line, span, wgt, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{spawn_service, wasm_compat, Runtime, ServiceContext};
 use rooibos::tui::style::Stylize;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

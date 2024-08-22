@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::io::Stdout;
 use std::time::Duration;
 
@@ -6,10 +5,10 @@ use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{insert_before, Runtime};
 use rooibos::tui::Viewport;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

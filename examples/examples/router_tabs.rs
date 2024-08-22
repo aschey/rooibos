@@ -1,5 +1,3 @@
-use std::error::Error;
-
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::chars;
 use rooibos::dom::{col, line, row, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps};
@@ -7,11 +5,11 @@ use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::router::{use_router, Route, RouteFromStatic, Router};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

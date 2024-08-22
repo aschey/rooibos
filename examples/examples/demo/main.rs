@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
@@ -22,7 +21,8 @@ mod tab0;
 mod tab1;
 mod tab2;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+use rooibos::runtime::error::RuntimeError;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {

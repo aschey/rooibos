@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::path::PathBuf;
 
 use rooibos::components::Image;
@@ -7,9 +6,9 @@ use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, GetUntracked, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
-
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
