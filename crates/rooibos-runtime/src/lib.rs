@@ -212,64 +212,10 @@ impl<B: Backend + 'static> Runtime<B> {
         }
 
         let dom_update_rx = dom_update_receiver();
-
         // We need to query this info before reading events
         let _ =
             rooibos_dom::set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement());
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            use async_signal::{Signal, Signals};
-
-            let runtime_command_tx = runtime_command_tx.clone();
-            let handle_signal = {
-                let runtime_command_tx = runtime_command_tx.clone();
-                move |signal: Signal| match signal {
-                    Signal::Tstp => {
-                        let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
-                    }
-                    Signal::Cont => {
-                        let _ = runtime_command_tx.send(RuntimeCommand::Resume);
-                    }
-                    _ => {
-                        let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
-                    }
-                }
-            };
-            if let Some(mut signals) = get_external_signal_stream() {
-                service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-                    while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await
-                    {
-                        handle_signal(signal);
-                    }
-                    Ok(())
-                }));
-            } else if settings.enable_signal_handler {
-                service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-                    #[cfg(unix)]
-                    // SIGSTP cannot be handled
-                    // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
-                    let mut signals = Signals::new([
-                        Signal::Term,
-                        Signal::Quit,
-                        Signal::Int,
-                        Signal::Tstp,
-                        Signal::Cont,
-                    ])
-                    .unwrap();
-
-                    #[cfg(windows)]
-                    let mut signals = Signals::new([Signal::Int]).unwrap();
-
-                    while let Ok(Some(Ok(signal))) =
-                        signals.next().cancel_with(context.cancelled()).await
-                    {
-                        handle_signal(signal);
-                    }
-                    Ok(())
-                }));
-            }
-        }
+        spawn_signal_handler(&runtime_command_tx, &service_context, &settings);
 
         mount(f);
 
@@ -617,6 +563,74 @@ fn handle_key_event(
         let _ = term_event_tx
             .send(event)
             .tap_err(|_| warn!("error sending terminal event"));
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn spawn_signal_handler(
+    runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
+    service_context: &ServiceContext,
+    settings: &RuntimeSettings,
+) {
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn spawn_signal_handler(
+    runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
+    service_context: &ServiceContext,
+    settings: &RuntimeSettings,
+) {
+    use async_signal::{Signal, Signals};
+
+    let runtime_command_tx = runtime_command_tx.clone();
+    if let Some(mut signals) = get_external_signal_stream() {
+        service_context.spawn(("signal_handler", |context: ServiceContext| async move {
+            while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await {
+                handle_signal(&runtime_command_tx, signal);
+            }
+            Ok(())
+        }));
+    } else if settings.enable_signal_handler {
+        service_context.spawn(("signal_handler", |context: ServiceContext| async move {
+            #[cfg(unix)]
+            // SIGSTP cannot be handled
+            // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+            let mut signals = Signals::new([
+                Signal::Term,
+                Signal::Quit,
+                Signal::Int,
+                Signal::Tstp,
+                Signal::Cont,
+            ])
+            .unwrap();
+
+            #[cfg(windows)]
+            let mut signals = Signals::new([Signal::Int]).unwrap();
+
+            while let Ok(Some(Ok(signal))) = signals.next().cancel_with(context.cancelled()).await {
+                handle_signal(&runtime_command_tx, signal);
+            }
+            Ok(())
+        }));
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn handle_signal(
+    runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
+    signal: async_signal::Signal,
+) {
+    use async_signal::Signal;
+    match signal {
+        Signal::Tstp => {
+            let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
+        }
+        Signal::Cont => {
+            let _ = runtime_command_tx.send(RuntimeCommand::Resume);
+        }
+        _ => {
+            let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
+        }
     }
 }
 
