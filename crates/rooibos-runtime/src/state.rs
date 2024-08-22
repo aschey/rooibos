@@ -3,7 +3,6 @@ use std::future::Future;
 use std::io;
 use std::pin::Pin;
 
-use async_signal::Signal;
 use background_service::{Manager, ServiceContext};
 use tokio::sync::broadcast;
 use tokio::task_local;
@@ -63,24 +62,33 @@ wasm_compat::static_init! {
     });
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 wasm_compat::static_init! {
-    static EXTERNAL_SIGNALS: wasm_compat::Once<broadcast::Sender<Signal>> = wasm_compat::Once::new();
+    static EXTERNAL_SIGNALS: wasm_compat::Once<broadcast::Sender<async_signal::Signal>> = wasm_compat::Once::new();
 }
 
 task_local! {
     static CURRENT_RUNTIME: u32;
 }
 
-pub fn set_external_signal_source(signals: broadcast::Sender<Signal>) {
+#[cfg(not(target_arch = "wasm32"))]
+pub fn set_external_signal_source(signals: broadcast::Sender<async_signal::Signal>) {
     EXTERNAL_SIGNALS.with(|s| s.set(signals)).unwrap();
 }
 
-pub(crate) fn get_external_signal_stream() -> Option<broadcast::Receiver<Signal>> {
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn get_external_signal_stream() -> Option<broadcast::Receiver<async_signal::Signal>> {
     EXTERNAL_SIGNALS.with(|s| s.get().map(|s| s.subscribe()))
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn has_external_signal_stream() -> bool {
     EXTERNAL_SIGNALS.with(|s| s.get().is_some())
+}
+
+#[cfg(target_arch = "wasm32")]
+pub(crate) fn has_external_signal_stream() -> bool {
+    false
 }
 
 fn current_runtime() -> u32 {
