@@ -185,7 +185,6 @@ impl<B: Backend + 'static> Runtime<B> {
         <M as Render>::DomState: 'static,
     {
         let backend = Arc::new(backend);
-
         let (term_parser_tx, _) = broadcast::channel(32);
 
         let (term_command_tx, runtime_command_tx) =
@@ -237,20 +236,19 @@ impl<B: Backend + 'static> Runtime<B> {
                     }
                 }
             };
-
             if let Some(mut signals) = get_external_signal_stream() {
                 service_context.spawn(("signal_handler", |context: ServiceContext| async move {
                     while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await
                     {
                         handle_signal(signal);
                     }
-
                     Ok(())
                 }));
             } else if settings.enable_signal_handler {
                 service_context.spawn(("signal_handler", |context: ServiceContext| async move {
                     #[cfg(unix)]
-                    // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+                    // SIGSTP cannot be handled
+                    // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
                     let mut signals = Signals::new([
                         Signal::Term,
                         Signal::Quit,
@@ -268,7 +266,6 @@ impl<B: Backend + 'static> Runtime<B> {
                     {
                         handle_signal(signal);
                     }
-
                     Ok(())
                 }));
             }
@@ -306,10 +303,8 @@ impl<B: Backend + 'static> Runtime<B> {
         }));
 
         let backend = self.backend.clone();
-
         if self.settings.enable_input_reader {
             let backend = backend.clone();
-
             let term_parser_tx = self.term_parser_tx.clone();
 
             if backend.supports_async_input() {
@@ -321,7 +316,6 @@ impl<B: Backend + 'static> Runtime<B> {
                     },
                 )));
             }
-
             self.handle_term_events();
         }
         let show_final_output = self.settings.show_final_output;
@@ -335,7 +329,6 @@ impl<B: Backend + 'static> Runtime<B> {
                 Ok(())
             })
         });
-
         Ok(terminal)
     }
 
@@ -345,77 +338,41 @@ impl<B: Backend + 'static> Runtime<B> {
         }
         let signal_tx = self.runtime_command_tx.clone();
         let term_event_tx = self.term_event_tx.clone();
-
         let mut term_parser_rx = self.term_parser_tx.subscribe();
-
         let mut hover_debouncer = Debouncer::new(self.settings.hover_debounce);
         let mut resize_debouncer = Debouncer::new(self.settings.resize_debounce);
-
         let parser_running = self.parser_running.clone();
 
-        self.service_context.spawn(("input_handler",move |context: ServiceContext| async move {
-            loop {
-                tokio::select! {
-                    next_event = term_parser_rx.recv() => {
-                        match next_event {
-                            Ok(
-                                event @ Event::Key(KeyEvent {
-                                    code, modifiers, ..
-                                }),
-                            ) => {
-                                if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
-                                    let _ = signal_tx
-                                        .send(RuntimeCommand::Terminate)
-
-                                        .tap_err(|_| warn!("error sending terminate signal"));
-                                } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
-                                {
-                                    // Defer to the external stream for suspend commands if it exists
-                                    if !has_external_signal_stream() {
-                                        let _ = signal_tx
-                                        .send(RuntimeCommand::Suspend)
-                                        .tap_err(|_| warn!("error sending suspend signal"));
-                                    }
-                                } else {
-                                    let _ = term_event_tx
-                                    .send(event)
-                                    .tap_err(|_| warn!("error sending terminal event"));
-                                }
-                            }
-                            Ok(
-                                mouse_event @ Event::Mouse(MouseEvent {
-                                    kind: MouseEventKind::Moved,
-                                    ..
-                                }),
-                            ) => {
-                                hover_debouncer.update(mouse_event).await;
-                            }
-                            Ok(resize_event @ Event::Resize(_,_)) => {
-                                resize_debouncer.update(resize_event).await;
-                            }
-                            Ok(event) => {
-                                term_event_tx.send(event).ok();
-
-                            }
-                            Err(_) => {
+        self.service_context.spawn(
+            ("input_handler", move |context: ServiceContext| async move {
+                loop {
+                    tokio::select! {
+                        next_event = term_parser_rx.recv() => {
+                            if !handle_term_event(
+                                next_event,
+                                &signal_tx,
+                                &term_event_tx,
+                                &mut hover_debouncer,
+                                &mut resize_debouncer,
+                            ).await {
                                 parser_running.store(false, Ordering::SeqCst);
                                 return Ok(());
                             }
                         }
-                    }
-                    _ = context.cancelled() => {
-                        parser_running.store(false, Ordering::SeqCst);
-                        return Ok(());
-                    }
-                    pending_move = hover_debouncer.next_value() => {
-                        term_event_tx.send(pending_move).ok();
-                    }
-                    pending_resize = resize_debouncer.next_value() => {
-                        term_event_tx.send(pending_resize).ok();
+                        _ = context.cancelled() => {
+                            parser_running.store(false, Ordering::SeqCst);
+                            return Ok(());
+                        }
+                        pending_move = hover_debouncer.next_value() => {
+                            term_event_tx.send(pending_move).ok();
+                        }
+                        pending_resize = resize_debouncer.next_value() => {
+                            term_event_tx.send(pending_resize).ok();
+                        }
                     }
                 }
-            }
-        }));
+            }),
+        );
     }
 
     pub async fn run(mut self) -> io::Result<()> {
@@ -459,7 +416,6 @@ impl<B: Backend + 'static> Runtime<B> {
         }
 
         let cancel_fut = with_state_mut(|s| s.service_manager.take().unwrap().cancel()).shared();
-
         loop {
             tokio::select! {
                 res = cancel_fut.clone() => {
@@ -469,12 +425,8 @@ impl<B: Backend + 'static> Runtime<B> {
                     return Ok(());
                 }
                 tick_result = self.tick() => {
-                    match tick_result {
-                        TickResult::Redraw => {
-                            terminal.draw(|f| render_dom(f.buffer_mut()))?;
-                        }
-                        TickResult::Continue => {}
-                        _ => {}
+                    if let TickResult::Redraw = tick_result {
+                        terminal.draw(|f| render_dom(f.buffer_mut()))?;
                     }
                 }
             }
@@ -512,7 +464,6 @@ impl<B: Backend + 'static> Runtime<B> {
             }
             TerminalCommand::Custom(f) => {
                 let mut terminal_fn = f.lock().unwrap();
-
                 let terminal_fn = terminal_fn
                     .as_any_mut()
                     .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
@@ -546,6 +497,7 @@ impl<B: Backend + 'static> Runtime<B> {
         let mut child = command.lock().unwrap().spawn()?;
         let child_stdout = child.stdout.take();
         let child_stderr = child.stderr.take();
+
         tokio::select! {
             status = child.wait() => {
                 let status = status.unwrap();
@@ -607,6 +559,67 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 }
 
+async fn handle_term_event(
+    next_event: Result<Event, broadcast::error::RecvError>,
+    signal_tx: &broadcast::Sender<RuntimeCommand>,
+    term_event_tx: &broadcast::Sender<Event>,
+    hover_debouncer: &mut Debouncer<Event>,
+    resize_debouncer: &mut Debouncer<Event>,
+) -> bool {
+    match next_event {
+        Ok(
+            event @ Event::Key(KeyEvent {
+                code, modifiers, ..
+            }),
+        ) => {
+            handle_key_event(event, code, modifiers, signal_tx, term_event_tx);
+        }
+        Ok(
+            mouse_event @ Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Moved,
+                ..
+            }),
+        ) => {
+            hover_debouncer.update(mouse_event).await;
+        }
+        Ok(resize_event @ Event::Resize(_, _)) => {
+            resize_debouncer.update(resize_event).await;
+        }
+        Ok(event) => {
+            term_event_tx.send(event).ok();
+        }
+        Err(_) => {
+            return false;
+        }
+    }
+    true
+}
+
+fn handle_key_event(
+    event: Event,
+    code: KeyCode,
+    modifiers: KeyModifiers,
+    signal_tx: &broadcast::Sender<RuntimeCommand>,
+    term_event_tx: &broadcast::Sender<Event>,
+) {
+    if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
+        let _ = signal_tx
+            .send(RuntimeCommand::Terminate)
+            .tap_err(|_| warn!("error sending terminate signal"));
+    } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z') {
+        // Defer to the external stream for suspend commands if it exists
+        if !has_external_signal_stream() {
+            let _ = signal_tx
+                .send(RuntimeCommand::Suspend)
+                .tap_err(|_| warn!("error sending suspend signal"));
+        }
+    } else {
+        let _ = term_event_tx
+            .send(event)
+            .tap_err(|_| warn!("error sending terminal event"));
+    }
+}
+
 pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
     let mut term_rx = with_state(|s| s.term_tx.subscribe());
     let (term_signal, set_term_signal) = signal(None);
@@ -622,7 +635,6 @@ pub fn use_keypress() -> ReadSignal<Option<rooibos_dom::KeyEvent>> {
             }
         }
     });
-
     term_signal
 }
 
