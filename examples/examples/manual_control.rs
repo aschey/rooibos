@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
     terminal.draw(|f| render_dom(f.buffer_mut()))?;
     focus_next();
     loop {
-        let tick_result = runtime.tick().await;
+        let tick_result = runtime.tick().await?;
         match tick_result {
             TickResult::Redraw => {
                 terminal.draw(|f| render_dom(f.buffer_mut()))?;

@@ -16,7 +16,6 @@ use crossterm::{execute, queue};
 use futures_cancel::FutureExt;
 use futures_util::StreamExt;
 use ratatui::{Terminal, Viewport};
-use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::warn;
 
@@ -290,7 +289,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
                 if let Ok(event) = event.try_into() {
                     let _ = term_tx
                         .send(event)
-                        .tap_err(|e| warn!("failed to send event {e:?}"));
+                        .inspect_err(|e| warn!("failed to send event {e:?}"));
                 }
             } else {
                 return;

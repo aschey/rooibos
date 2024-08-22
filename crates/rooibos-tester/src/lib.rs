@@ -233,6 +233,7 @@ impl TestHarness {
             let mut last_tick_result = None;
             tokio::select! {
                 tick_result = self.runtime.tick() => {
+                    let tick_result = tick_result.unwrap();
                     last_tick_result = Some(tick_result.clone());
                     match tick_result {
                         TickResult::Redraw => {
@@ -276,6 +277,7 @@ impl TestHarness {
         loop {
             tokio::select! {
                 tick_result = self.runtime.tick() => {
+                    let tick_result = tick_result.unwrap();
                     if matches!(tick_result, TickResult::Exit) && self.runtime.should_exit().await {
                         self.runtime.handle_exit(&mut self.terminal).await.unwrap();
                         return;

@@ -15,7 +15,6 @@ reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e6
     "effects",
 ] }
 ratatui = { version = "0.28", default-features = false }
-tap = "1"
 tracing = "0.1"
 derivative = "2"
 termwiz = { version = "0.22.0", optional = true }
@@ -25,6 +24,7 @@ wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef104
 ] }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+thiserror = "1.0.63"
 
 [target.'cfg(unix)'.dependencies]
 termion = { version = "4", optional = true }

@@ -3,7 +3,6 @@ use std::os::fd::AsFd;
 
 use background_service::ServiceContext;
 use ratatui::{Terminal, Viewport};
-use tap::TapFallible;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
@@ -148,7 +147,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                 if let Ok(event) = event.try_into() {
                     let _ = term_tx
                         .send(event)
-                        .tap_err(|e| warn!("failed to send event {e:?}"));
+                        .inspect_err(|e| warn!("failed to send event {e:?}"));
                 }
             }
         });

@@ -10,6 +10,7 @@ pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 pub use commands::*;
 use debounce::Debouncer;
+use error::RuntimeError;
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt};
 use ratatui::backend::Backend as TuiBackend;
@@ -24,7 +25,6 @@ use rooibos_dom::{
     DomUpdateReceiver, Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
 };
 pub use state::*;
-use tap::TapFallible;
 use tokio::sync::broadcast;
 use tokio::task;
 pub use tokio_util::sync::CancellationToken;
@@ -33,6 +33,7 @@ use tracing::{error, warn};
 pub mod backend;
 mod commands;
 mod debounce;
+pub mod error;
 mod state;
 
 pub mod wasm_compat {
@@ -62,7 +63,7 @@ pub fn execute<T>(f: impl FnOnce() -> T) -> T {
     owner.cleanup();
     drop(owner);
 
-    let _ = restore_terminal().tap_err(|e| error!("error restoring terminal: {e:?}"));
+    let _ = restore_terminal().inspect_err(|e| error!("error restoring terminal: {e:?}"));
     res
 }
 
@@ -321,24 +322,24 @@ impl<B: Backend + 'static> Runtime<B> {
         );
     }
 
-    pub async fn run(mut self) -> io::Result<()> {
-        let mut terminal = self.setup_terminal()?;
-        terminal.draw(|f| render_dom(f.buffer_mut()))?;
+    pub async fn run(mut self) -> Result<(), RuntimeError> {
+        let mut terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
+        self.draw(&mut terminal);
         focus_next();
 
         loop {
-            let tick_result = self.tick().await;
+            let tick_result = self.tick().await?;
             match tick_result {
                 TickResult::Redraw => {
-                    terminal.draw(|f| render_dom(f.buffer_mut()))?;
+                    self.draw(&mut terminal);
                 }
                 TickResult::Restart => {
-                    terminal = self.setup_terminal()?;
-                    terminal.draw(|f| render_dom(f.buffer_mut()))?;
+                    terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
+                    self.draw(&mut terminal);
                 }
                 TickResult::Exit => {
                     if self.should_exit().await {
-                        self.handle_exit(&mut terminal).await.unwrap();
+                        self.handle_exit(&mut terminal).await?;
                         return Ok(());
                     }
                 }
@@ -356,23 +357,33 @@ impl<B: Backend + 'static> Runtime<B> {
         exit_result.await == ExitResult::Exit
     }
 
-    pub async fn handle_exit(mut self, terminal: &mut Terminal<B::TuiBackend>) -> io::Result<()> {
+    pub async fn handle_exit(
+        mut self,
+        terminal: &mut Terminal<B::TuiBackend>,
+    ) -> Result<(), RuntimeError> {
         if !self.settings.show_final_output {
-            terminal.clear()?;
+            terminal.clear().map_err(RuntimeError::IoFailure)?;
         }
 
-        let cancel_fut = with_state_mut(|s| s.service_manager.take().unwrap().cancel()).shared();
+        let services_cancel =
+            with_state_mut(|s| s.service_manager.take().expect("manager taken").cancel()).shared();
+
         loop {
             tokio::select! {
-                res = cancel_fut.clone() => {
-                    res.unwrap();
-                    self.service_manager.cancel().await.unwrap();
+                res = services_cancel.clone() => {
+                    res?;
+                    let _ = self
+                        .service_manager
+                        .cancel()
+                        .await
+                        .inspect_err(|e| error!("internal services failed: {e:?}"));
+
                     unmount();
                     return Ok(());
                 }
                 tick_result = self.tick() => {
-                    if let TickResult::Redraw = tick_result {
-                        terminal.draw(|f| render_dom(f.buffer_mut()))?;
+                    if let TickResult::Redraw = tick_result? {
+                        self.draw(terminal);
                     }
                 }
             }
@@ -383,7 +394,7 @@ impl<B: Backend + 'static> Runtime<B> {
         &mut self,
         command: TerminalCommand,
         terminal: &mut Terminal<B::TuiBackend>,
-    ) -> io::Result<()> {
+    ) -> Result<(), RuntimeError> {
         match command {
             TerminalCommand::InsertBefore { height, text } => {
                 terminal.insert_before(height, |buf| {
@@ -409,11 +420,11 @@ impl<B: Backend + 'static> Runtime<B> {
                 self.backend.set_clipboard(terminal, content, kind)?;
             }
             TerminalCommand::Custom(f) => {
-                let mut terminal_fn = f.lock().unwrap();
+                let mut terminal_fn = f.lock().expect("lock poisoned");
                 let terminal_fn = terminal_fn
                     .as_any_mut()
                     .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
-                    .unwrap();
+                    .expect("invalid downcast");
                 terminal_fn(terminal);
             }
             #[cfg(not(target_arch = "wasm32"))]
@@ -421,7 +432,7 @@ impl<B: Backend + 'static> Runtime<B> {
                 self.handle_exec(command, terminal, on_finish).await?;
             }
         };
-        terminal.draw(|f| render_dom(f.buffer_mut()))?;
+        self.draw(terminal);
         Ok(())
     }
 
@@ -431,74 +442,101 @@ impl<B: Backend + 'static> Runtime<B> {
         command: Arc<std::sync::Mutex<tokio::process::Command>>,
         terminal: &mut Terminal<B::TuiBackend>,
         on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
-    ) -> io::Result<()> {
+    ) -> Result<(), error::ExecError> {
+        use error::ExecError;
+
         if let Some(input_task_id) = self.input_task_id.take() {
-            let input_service = self.service_context.take_service(&input_task_id).unwrap();
+            let input_service = self
+                .service_context
+                .take_service(&input_task_id)
+                .expect("input service missing");
             input_service.cancel();
-            input_service.wait_for_shutdown().await.unwrap();
+            let _ = input_service
+                .wait_for_shutdown()
+                .await
+                .inspect_err(|e| error!("input reader failed: {e:?}"));
         }
 
         restore_terminal()?;
         terminal.clear()?;
-        let mut child = command.lock().unwrap().spawn()?;
+        let mut child = command
+            .lock()
+            .expect("lock poisoned")
+            .spawn()
+            .map_err(ExecError::IoFailure)?;
+
         let child_stdout = child.stdout.take();
         let child_stderr = child.stderr.take();
 
         tokio::select! {
             status = child.wait() => {
-                let status = status.unwrap();
-                let on_finish = (*on_finish.lock().unwrap()).take().unwrap();
+                let status = status?;
+                let on_finish = (*on_finish.lock().expect("lock poisoned")).take().expect("on_finish missing");
                 on_finish(status, child_stdout, child_stderr);
-                self.runtime_command_tx.send(RuntimeCommand::Restart).unwrap();
+                let _ = self
+                    .runtime_command_tx
+                    .send(RuntimeCommand::Restart)
+                    .inspect_err(|e| warn!("failed to send restart: {e:?}"));
             },
             // Interrupt child if a signal is received
             res = self.runtime_command_rx.recv() => {
-                child.kill().await.unwrap();
+                child.kill().await.map_err(ExecError::ProcessStopFailure)?;
                 if let Ok(signal) = res {
-                    self.runtime_command_tx.send(signal).unwrap();
+                    let _ = self
+                        .runtime_command_tx
+                        .send(signal)
+                        .inspect_err(|e| error!("failed to send command: {e:?}"));
                 }
             }
         }
         Ok(())
     }
 
-    pub async fn tick(&mut self) -> TickResult {
+    fn draw(&self, terminal: &mut Terminal<B::TuiBackend>) {
+        terminal
+            .draw(|f| render_dom(f.buffer_mut()))
+            .expect("draw can't fail");
+    }
+
+    pub async fn tick(&mut self) -> Result<TickResult, RuntimeError> {
         tokio::select! {
             signal = self.runtime_command_rx.recv() => {
                 match signal {
                     Ok(RuntimeCommand::Suspend) => {
-                        restore_terminal().unwrap();
+                        restore_terminal()?;
                         #[cfg(unix)]
-                        signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();
-                        TickResult::Continue
+                        signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32)
+                            .map_err(RuntimeError::SignalHandlerFailure)?;
+                        Ok(TickResult::Continue)
                     }
                     Ok(RuntimeCommand::Resume) => {
                         #[cfg(unix)]
-                        signal_hook::low_level::emulate_default_handler(async_signal::Signal::Cont as i32).unwrap();
-                        TickResult::Restart
+                        signal_hook::low_level::emulate_default_handler(async_signal::Signal::Cont as i32)
+                            .map_err(RuntimeError::SignalHandlerFailure)?;
+                        Ok(TickResult::Restart)
                     }
                     Ok(RuntimeCommand::Restart) => {
-                        TickResult::Restart
+                        Ok(TickResult::Restart)
                     }
                     Ok(RuntimeCommand::Terminate) | Err(_) => {
-                        TickResult::Exit
+                        Ok(TickResult::Exit)
                     }
                 }
             }
             _ = self.dom_update_rx.changed() => {
-                TickResult::Redraw
+                Ok(TickResult::Redraw)
             }
             term_event = self.term_event_rx.recv() => {
                 if let Ok(term_event) = term_event {
-                    send_event(term_event)
+                    send_event(term_event);
                 }
-                TickResult::Continue
+                Ok(TickResult::Continue)
             }
             term_command = self.term_command_rx.recv() => {
                 if let Ok(term_command) = term_command {
-                    TickResult::Command(term_command)
+                    Ok(TickResult::Command(term_command))
                 } else {
-                    TickResult::Continue
+                    Ok(TickResult::Continue)
                 }
             }
         }
@@ -551,67 +589,65 @@ fn handle_key_event(
     if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
         let _ = signal_tx
             .send(RuntimeCommand::Terminate)
-            .tap_err(|_| warn!("error sending terminate signal"));
+            .inspect_err(|_| warn!("error sending terminate signal"));
     } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z') {
         // Defer to the external stream for suspend commands if it exists
         if !has_external_signal_stream() {
             let _ = signal_tx
                 .send(RuntimeCommand::Suspend)
-                .tap_err(|_| warn!("error sending suspend signal"));
+                .inspect_err(|_| warn!("error sending suspend signal"));
         }
     } else {
         let _ = term_event_tx
             .send(event)
-            .tap_err(|_| warn!("error sending terminal event"));
+            .inspect_err(|_| warn!("error sending terminal event"));
     }
 }
 
-#[cfg(target_arch = "wasm32")]
 fn spawn_signal_handler(
     runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
     service_context: &ServiceContext,
     settings: &RuntimeSettings,
 ) {
-}
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        use async_signal::{Signal, Signals};
 
-#[cfg(not(target_arch = "wasm32"))]
-fn spawn_signal_handler(
-    runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
-    service_context: &ServiceContext,
-    settings: &RuntimeSettings,
-) {
-    use async_signal::{Signal, Signals};
+        let runtime_command_tx = runtime_command_tx.clone();
+        if let Some(mut signals) = get_external_signal_stream() {
+            service_context.spawn(("signal_handler", |context: ServiceContext| async move {
+                while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await {
+                    handle_signal(&runtime_command_tx, signal);
+                }
+                Ok(())
+            }));
+        } else if settings.enable_signal_handler {
+            service_context.spawn(("signal_handler", |context: ServiceContext| async move {
+                #[cfg(unix)]
+                // SIGSTP cannot be handled
+                // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+                let signals = Signals::new([
+                    Signal::Term,
+                    Signal::Quit,
+                    Signal::Int,
+                    Signal::Tstp,
+                    Signal::Cont,
+                ]);
 
-    let runtime_command_tx = runtime_command_tx.clone();
-    if let Some(mut signals) = get_external_signal_stream() {
-        service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-            while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await {
-                handle_signal(&runtime_command_tx, signal);
-            }
-            Ok(())
-        }));
-    } else if settings.enable_signal_handler {
-        service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-            #[cfg(unix)]
-            // SIGSTP cannot be handled
-            // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
-            let mut signals = Signals::new([
-                Signal::Term,
-                Signal::Quit,
-                Signal::Int,
-                Signal::Tstp,
-                Signal::Cont,
-            ])
-            .unwrap();
+                #[cfg(windows)]
+                let signals = Signals::new([Signal::Int]);
 
-            #[cfg(windows)]
-            let mut signals = Signals::new([Signal::Int]).unwrap();
+                let mut signals =
+                    signals.inspect_err(|e| error!("error creating signals: {e:?}"))?;
 
-            while let Ok(Some(Ok(signal))) = signals.next().cancel_with(context.cancelled()).await {
-                handle_signal(&runtime_command_tx, signal);
-            }
-            Ok(())
-        }));
+                while let Ok(Some(Ok(signal))) =
+                    signals.next().cancel_with(context.cancelled()).await
+                {
+                    handle_signal(&runtime_command_tx, signal);
+                }
+                Ok(())
+            }));
+        }
     }
 }
 
