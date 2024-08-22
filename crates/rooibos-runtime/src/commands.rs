@@ -1,20 +1,84 @@
+use std::any::Any;
 use std::fmt::Display;
 use std::future::Future;
 use std::io;
+use std::ops::{Deref, DerefMut};
 use std::process::ExitStatus;
 use std::sync::Arc;
 
 use background_service::{BackgroundService, LocalBackgroundService, TaskId};
+use derivative::Derivative;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
 use ratatui::Terminal;
 use tokio::runtime::Handle;
 use tokio::task::LocalSet;
 
-use crate::{
-    backend, with_all_state, with_state, ExitResult, RuntimeCommand, TerminalCommand,
-    TerminalFnBoxed,
-};
+use crate::{backend, with_all_state, with_state, ExitResult, RuntimeCommand};
+
+#[cfg(not(target_arch = "wasm32"))]
+pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
+    + Send
+    + Sync;
+
+pub trait AsAnyMut: Send {
+    fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+type TerminalFn<B> = dyn FnMut(&mut Terminal<B>) + Send;
+pub(crate) struct TerminalFnBoxed<B: TuiBackend>(Box<TerminalFn<B>>);
+
+impl<B> Deref for TerminalFnBoxed<B>
+where
+    B: TuiBackend,
+{
+    type Target = Box<TerminalFn<B>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<B> DerefMut for TerminalFnBoxed<B>
+where
+    B: TuiBackend,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<B> AsAnyMut for TerminalFnBoxed<B>
+where
+    B: TuiBackend + Send + 'static,
+{
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
+    }
+}
+
+#[derive(Clone, Derivative)]
+#[derivative(Debug)]
+pub enum TerminalCommand {
+    InsertBefore {
+        height: u16,
+        text: Text<'static>,
+    },
+    EnterAltScreen,
+    LeaveAltScreen,
+    SetTitle(String),
+    Custom(#[derivative(Debug = "ignore")] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
+    #[cfg(feature = "clipboard")]
+    SetClipboard(String, backend::ClipboardKind),
+    #[cfg(not(target_arch = "wasm32"))]
+    Exec {
+        #[derivative(Debug = "ignore")]
+        command: Arc<std::sync::Mutex<tokio::process::Command>>,
+        #[derivative(Debug = "ignore")]
+        on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
+    },
+    Poll,
+}
 
 pub fn restore_terminal() -> io::Result<()> {
     with_all_state(|s| {

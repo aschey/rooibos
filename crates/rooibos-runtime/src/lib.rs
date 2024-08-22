@@ -1,8 +1,6 @@
-use std::any::Any;
 use std::future::Future;
 use std::io;
 use std::panic::{set_hook, take_hook};
-use std::process::ExitStatus;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,12 +9,11 @@ use backend::Backend;
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 pub use commands::*;
-use derivative::Derivative;
+use debounce::Debouncer;
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt};
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::layout::Size;
-use ratatui::text::Text;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
 use reactive_graph::owner::Owner;
@@ -35,6 +32,7 @@ use tracing::{error, warn};
 
 pub mod backend;
 mod commands;
+mod debounce;
 mod state;
 
 pub mod wasm_compat {
@@ -45,51 +43,6 @@ pub mod wasm_compat {
     pub use ::wasm_compat::static_init::*;
     pub use ::wasm_compat::sync::*;
     pub use ::wasm_compat::time::*;
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
-    + Send
-    + Sync;
-
-pub trait AsAnyMut: Send {
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-}
-
-type TerminalFn<B> = dyn FnMut(&mut Terminal<B>) + Send;
-
-struct TerminalFnBoxed<B: TuiBackend>(Box<TerminalFn<B>>);
-
-impl<B> AsAnyMut for TerminalFnBoxed<B>
-where
-    B: TuiBackend + Send + 'static,
-{
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
-pub enum TerminalCommand {
-    InsertBefore {
-        height: u16,
-        text: Text<'static>,
-    },
-    EnterAltScreen,
-    LeaveAltScreen,
-    SetTitle(String),
-    Custom(#[derivative(Debug = "ignore")] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
-    #[cfg(feature = "clipboard")]
-    SetClipboard(String, backend::ClipboardKind),
-    #[cfg(not(target_arch = "wasm32"))]
-    Exec {
-        #[derivative(Debug = "ignore")]
-        command: Arc<std::sync::Mutex<tokio::process::Command>>,
-        #[derivative(Debug = "ignore")]
-        on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
-    },
-    Poll,
 }
 
 #[derive(Clone)]
@@ -358,9 +311,7 @@ impl<B: Backend + 'static> Runtime<B> {
             let backend = backend.clone();
 
             let term_parser_tx = self.term_parser_tx.clone();
-            // Reset cancellation token so the next input reader can start
-            // self.cancellation_token = CancellationToken::new();
-            // let cancellation_token = self.cancellation_token.clone();
+
             if backend.supports_async_input() {
                 self.input_task_id = Some(self.service_context.spawn((
                     "input_reader",
@@ -389,32 +340,21 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     fn handle_term_events(&self) {
+        if self.parser_running.swap(true, Ordering::SeqCst) {
+            return;
+        }
         let signal_tx = self.runtime_command_tx.clone();
         let term_event_tx = self.term_event_tx.clone();
 
         let mut term_parser_rx = self.term_parser_tx.subscribe();
-        let hover_debounce = self.settings.hover_debounce.as_millis();
-        let resize_debounce = self.settings.resize_debounce.as_millis();
-        if self.parser_running.swap(true, Ordering::SeqCst) {
-            return;
-        }
+
+        let mut hover_debouncer = Debouncer::new(self.settings.hover_debounce);
+        let mut resize_debouncer = Debouncer::new(self.settings.resize_debounce);
+
         let parser_running = self.parser_running.clone();
 
         self.service_context.spawn(("input_handler",move |context: ServiceContext| async move {
-            let mut last_move_time = wasm_compat::now();
-            let mut last_resize_time = wasm_compat::now();
-            let mut pending_move = None;
-            let mut pending_resize = None;
             loop {
-                let send_next_move = wasm_compat::sleep(Duration::from_millis(
-                    hover_debounce.saturating_sub((wasm_compat::now() - last_move_time) as u128)
-                        as u64,
-                ));
-                let send_next_resize = wasm_compat::sleep(Duration::from_millis(
-                    resize_debounce.saturating_sub((wasm_compat::now() - last_resize_time) as u128)
-                        as u64,
-                ));
-
                 tokio::select! {
                     next_event = term_parser_rx.recv() => {
                         match next_event {
@@ -448,12 +388,10 @@ impl<B: Backend + 'static> Runtime<B> {
                                     ..
                                 }),
                             ) => {
-                                pending_move = Some(mouse_event);
-                                last_move_time = wasm_compat::now();
+                                hover_debouncer.update(mouse_event).await;
                             }
                             Ok(resize_event @ Event::Resize(_,_)) => {
-                                pending_resize = Some(resize_event);
-                                last_resize_time = wasm_compat::now();
+                                resize_debouncer.update(resize_event).await;
                             }
                             Ok(event) => {
                                 term_event_tx.send(event).ok();
@@ -469,11 +407,11 @@ impl<B: Backend + 'static> Runtime<B> {
                         parser_running.store(false, Ordering::SeqCst);
                         return Ok(());
                     }
-                    _ = send_next_move, if pending_move.is_some() => {
-                        term_event_tx.send(pending_move.take().unwrap()).ok();
+                    pending_move = hover_debouncer.next_value() => {
+                        term_event_tx.send(pending_move).ok();
                     }
-                    _ = send_next_resize, if pending_resize.is_some() => {
-                        term_event_tx.send(pending_resize.take().unwrap()).ok();
+                    pending_resize = resize_debouncer.next_value() => {
+                        term_event_tx.send(pending_resize).ok();
                     }
                 }
             }
@@ -579,7 +517,7 @@ impl<B: Backend + 'static> Runtime<B> {
                     .as_any_mut()
                     .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
                     .unwrap();
-                terminal_fn.0(terminal);
+                terminal_fn(terminal);
             }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
@@ -590,6 +528,7 @@ impl<B: Backend + 'static> Runtime<B> {
         Ok(())
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     async fn handle_exec(
         &mut self,
         command: Arc<std::sync::Mutex<tokio::process::Command>>,
