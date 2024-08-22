@@ -2,9 +2,7 @@ use std::error::Error;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::{block, chars};
-use rooibos::dom::{
-    col, row, line, max_height, max_width, EventData, KeyCode, KeyEvent, Render,
-};
+use rooibos::dom::{col, line, max_height, max_width, row, EventData, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Set};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;

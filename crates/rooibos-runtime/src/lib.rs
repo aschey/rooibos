@@ -267,42 +267,59 @@ impl<B: Backend + 'static> Runtime<B> {
             rooibos_dom::set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement());
 
         #[cfg(not(target_arch = "wasm32"))]
-        if settings.enable_signal_handler {
+        {
             use async_signal::{Signal, Signals};
+
             let runtime_command_tx = runtime_command_tx.clone();
-            service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-                #[cfg(unix)]
-                // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
-                let mut signals = Signals::new([
-                    Signal::Term,
-                    Signal::Quit,
-                    Signal::Int,
-                    Signal::Tstp,
-                    Signal::Cont,
-                ])
-                .unwrap();
-
-                #[cfg(windows)]
-                let mut signals = Signals::new([Signal::Int]).unwrap();
-
-                while let Ok(Some(Ok(signal))) =
-                    signals.next().cancel_with(context.cancelled()).await
-                {
-                    match signal {
-                        Signal::Tstp => {
-                            let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
-                        }
-                        Signal::Cont => {
-                            let _ = runtime_command_tx.send(RuntimeCommand::Resume);
-                        }
-                        _ => {
-                            let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
-                        }
+            let handle_signal = {
+                let runtime_command_tx = runtime_command_tx.clone();
+                move |signal: Signal| match signal {
+                    Signal::Tstp => {
+                        let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
+                    }
+                    Signal::Cont => {
+                        let _ = runtime_command_tx.send(RuntimeCommand::Resume);
+                    }
+                    _ => {
+                        let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
                     }
                 }
+            };
 
-                Ok(())
-            }));
+            if let Some(mut signals) = get_external_signal_stream() {
+                service_context.spawn(("signal_handler", |context: ServiceContext| async move {
+                    while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await
+                    {
+                        handle_signal(signal);
+                    }
+
+                    Ok(())
+                }));
+            } else if settings.enable_signal_handler {
+                service_context.spawn(("signal_handler", |context: ServiceContext| async move {
+                    #[cfg(unix)]
+                    // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+                    let mut signals = Signals::new([
+                        Signal::Term,
+                        Signal::Quit,
+                        Signal::Int,
+                        Signal::Tstp,
+                        Signal::Cont,
+                    ])
+                    .unwrap();
+
+                    #[cfg(windows)]
+                    let mut signals = Signals::new([Signal::Int]).unwrap();
+
+                    while let Ok(Some(Ok(signal))) =
+                        signals.next().cancel_with(context.cancelled()).await
+                    {
+                        handle_signal(signal);
+                    }
+
+                    Ok(())
+                }));
+            }
         }
 
         mount(f);
@@ -414,10 +431,12 @@ impl<B: Backend + 'static> Runtime<B> {
                                         .tap_err(|_| warn!("error sending terminate signal"));
                                 } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z')
                                 {
-                                    let _ = signal_tx
+                                    // Defer to the external stream for suspend commands if it exists
+                                    if !has_external_signal_stream() {
+                                        let _ = signal_tx
                                         .send(RuntimeCommand::Suspend)
-
                                         .tap_err(|_| warn!("error sending suspend signal"));
+                                    }
                                 } else {
                                     let _ = term_event_tx
                                     .send(event)
@@ -602,7 +621,6 @@ impl<B: Backend + 'static> Runtime<B> {
             signal = self.runtime_command_rx.recv() => {
                 match signal {
                     Ok(RuntimeCommand::Suspend) => {
-                        // self.cancellation_token.cancel();
                         restore_terminal().unwrap();
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32).unwrap();

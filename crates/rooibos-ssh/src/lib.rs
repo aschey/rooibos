@@ -4,11 +4,17 @@ use std::error::Error;
 use std::io;
 use std::sync::Arc;
 
+use async_signal::{Signal, Signals};
 use async_trait::async_trait;
-use futures::Future;
+use background_service::Manager;
+use futures::{Future, StreamExt};
+use futures_cancel::FutureExt;
 use reactive_graph::owner::Owner;
 use rooibos_dom::Event;
-use rooibos_runtime::{init_executor, restore_terminal, with_runtime};
+use rooibos_runtime::{
+    init_executor, restore_terminal, set_external_signal_source, with_runtime, CancellationToken,
+    ServiceContext,
+};
 pub use russh::server::Config as SshConfig;
 use russh::server::{Auth, Handle, Handler, Msg, Server, Session};
 use russh::{Channel, ChannelId};
@@ -16,7 +22,7 @@ pub use russh_keys::key::KeyPair;
 use russh_keys::key::PublicKey;
 use tap::TapFallible;
 use tokio::net::ToSocketAddrs;
-use tokio::sync::{mpsc, RwLock};
+use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::task::LocalSet;
 use tracing::warn;
 
@@ -80,22 +86,66 @@ where
     clients: Arc<RwLock<HashMap<u32, mpsc::Sender<Event>>>>,
     handler: Arc<T>,
     config: Arc<SshConfig>,
+    service_manager: Option<Manager>,
+    service_context: ServiceContext,
     current_client_id: u32,
 }
 
 impl<T: SshHandler> AppServer<T> {
     pub fn new(config: SshConfig, handler: T) -> Self {
         init_executor();
+        let service_manager = Manager::new(
+            CancellationToken::new(),
+            background_service::Settings::default(),
+        );
+        let service_context = service_manager.get_context();
         Self {
             clients: Arc::new(RwLock::new(HashMap::new())),
             handler: Arc::new(handler),
             config: Arc::new(config),
+            service_manager: Some(service_manager),
+            service_context,
             current_client_id: 0,
         }
     }
 
-    pub async fn run<A: ToSocketAddrs + Send>(mut self, address: A) -> io::Result<()> {
-        self.run_on_address(self.config.clone(), address).await
+    pub async fn run<A: ToSocketAddrs + Send + 'static>(mut self, address: A) -> io::Result<()> {
+        #[cfg(unix)]
+        // SIGSTP cannot be handled https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
+        let mut signals = Signals::new([Signal::Term, Signal::Quit, Signal::Int]).unwrap();
+        #[cfg(windows)]
+        let mut signals = Signals::new([Signal::Int]).unwrap();
+
+        let (signal_tx, mut signal_rx) = broadcast::channel(32);
+        set_external_signal_source(signal_tx.clone());
+
+        let service_manager = self.service_manager.take().unwrap();
+        let service_context = self.service_context.clone();
+        service_context.spawn((
+            "ssh_signal_handler",
+            move |context: ServiceContext| async move {
+                while let Ok(Some(Ok(signal))) =
+                    signals.next().cancel_with(context.cancelled()).await
+                {
+                    signal_tx.send(signal).unwrap();
+                }
+                Ok(())
+            },
+        ));
+
+        service_context.spawn(("ssh_server", move |context: ServiceContext| async move {
+            let _ = self
+                .run_on_address(self.config.clone(), address)
+                .cancel_with(context.cancelled())
+                .await;
+            Ok(())
+        }));
+
+        signal_rx.recv().await.unwrap();
+        service_context.cancel_all();
+        service_manager.join_on_cancel().await.unwrap();
+
+        Ok(())
     }
 }
 
@@ -117,6 +167,7 @@ where
     clients: Arc<RwLock<HashMap<u32, mpsc::Sender<Event>>>>,
     handler: Arc<T>,
     socket_addr: Option<std::net::SocketAddr>,
+    service_context: ServiceContext,
 }
 
 impl<T> Server for AppServer<T>
@@ -131,6 +182,7 @@ where
             handler: self.handler.clone(),
             clients: self.clients.clone(),
             socket_addr,
+            service_context: self.service_context.clone(),
         }
     }
 }
@@ -155,7 +207,7 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         let terminal_handle = TerminalHandle::new(session.handle(), channel_id);
         let handle = session.handle();
         let socket_addr = self.socket_addr;
-        tokio::task::spawn_blocking(move || {
+        self.service_context.spawn_blocking(("tui", move |_| {
             let owner = Owner::new();
             owner.with(move || {
                 let rt = tokio::runtime::Runtime::new().unwrap();
@@ -184,7 +236,8 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                     handle.close(channel_id).await.unwrap();
                 });
             });
-        });
+            Ok(())
+        }));
 
         Ok(true)
     }
@@ -219,31 +272,6 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                     .tap_err(|e| warn!("error sending data: {e:?}"));
             }
         }
-
-        Ok(())
-    }
-
-    /// The client's window size has changed.
-    async fn window_change_request(
-        &mut self,
-        _: ChannelId,
-        _col_width: u32,
-        _row_height: u32,
-        _: u32,
-        _: u32,
-        _: &mut Session,
-    ) -> Result<(), Self::Error> {
-        // {
-        //     let mut clients = self.clients.lock().await;
-        //     let terminal = clients.get_mut(&self.id).unwrap();
-        //     let rect = Rect {
-        //         x: 0,
-        //         y: 0,
-        //         width: col_width as u16,
-        //         height: row_height as u16,
-        //     };
-        //     terminal.resize(rect)?;
-        // }
 
         Ok(())
     }

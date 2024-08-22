@@ -2,7 +2,7 @@ use std::error::Error;
 
 use rooibos::dom::layout::{align_items, clear, justify_content, position, show};
 use rooibos::dom::{
-    col, row, height, line, max_height, max_width, wgt, width, KeyCode, KeyEvent, Render,
+    col, height, line, max_height, max_width, row, wgt, width, KeyCode, KeyEvent, Render,
 };
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::Update;

@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use rooibos::dom::{col, row, focus_next, focus_prev, use_focus, wgt, KeyCode, Render};
+use rooibos::dom::{col, focus_next, focus_prev, row, use_focus, wgt, KeyCode, Render};
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::traits::Get;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;

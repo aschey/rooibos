@@ -1,5 +1,5 @@
 use rooibos::dom::layout::{min_width, show};
-use rooibos::dom::{col, row, line, span, wgt, Chart, Dataset, KeyCode, Render};
+use rooibos::dom::{col, line, row, span, wgt, Chart, Dataset, KeyCode, Render};
 use rooibos::reactive::computed::Memo;
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::owner::use_context;
@@ -29,10 +29,7 @@ pub(crate) fn charts(enhanced_graphics: bool, chart_min_width: Signal<Dimension>
 
     row![
         props(min_width(chart_min_width)),
-        col![
-            row![task_list(), logs()],
-            demo_bar_chart(enhanced_graphics)
-        ],
+        col![row![task_list(), logs()], demo_bar_chart(enhanced_graphics)],
         col![props(show(show_chart)), demo_chart(enhanced_graphics)]
     ]
 }

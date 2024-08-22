@@ -2,9 +2,7 @@ use std::error::Error;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::layout::chars;
-use rooibos::dom::{
-    col, row, line, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
-};
+use rooibos::dom::{col, line, row, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::RwSignal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::router::{use_router, Route, RouteFromStatic, Router};

@@ -2,9 +2,7 @@ use std::error::Error;
 
 use rooibos::components::Button;
 use rooibos::dom::layout::chars;
-use rooibos::dom::{
-    derive_signal, col, row, height, line, span, Render, UpdateLayoutProps,
-};
+use rooibos::dom::{col, derive_signal, height, line, row, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;

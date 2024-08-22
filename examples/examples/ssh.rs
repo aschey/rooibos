@@ -5,7 +5,7 @@ use rooibos::dom::layout::chars;
 use rooibos::dom::{col, derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
 
@@ -36,11 +36,7 @@ impl SshHandler for SshApp {
         event_rx: tokio::sync::mpsc::Receiver<rooibos::dom::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
-        let runtime = Runtime::initialize_with_settings(
-            RuntimeSettings::default().enable_signal_handler(false),
-            SshBackend::new(handle, event_rx),
-            app,
-        );
+        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx), app);
         runtime.run().await.unwrap();
     }
 }

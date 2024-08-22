@@ -5,7 +5,7 @@ use rooibos::dom::layout::chars;
 use rooibos::dom::{derive_signal, line, span, Render, UpdateLayoutProps};
 use rooibos::reactive::signal::ReadSignal;
 use rooibos::reactive::traits::{FromStream, Get};
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::Runtime;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
 use tokio::sync::watch;
@@ -42,11 +42,7 @@ impl SshHandler for SshApp {
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();
-        let runtime = Runtime::initialize_with_settings(
-            RuntimeSettings::default().enable_signal_handler(false),
-            SshBackend::new(handle, event_rx),
-            move || app(count_tx),
-        );
+        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx), move || app(count_tx));
         runtime.run().await.unwrap();
     }
 }
