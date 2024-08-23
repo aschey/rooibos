@@ -7,7 +7,7 @@ use std::process::ExitStatus;
 use std::sync::Arc;
 
 use background_service::{BackgroundService, LocalBackgroundService, TaskId};
-use derivative::Derivative;
+use educe::Educe;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
 use ratatui::Terminal;
@@ -58,8 +58,8 @@ where
     }
 }
 
-#[derive(Clone, Derivative)]
-#[derivative(Debug)]
+#[derive(Clone, Educe)]
+#[educe(Debug)]
 pub enum TerminalCommand {
     InsertBefore {
         height: u16,
@@ -68,14 +68,14 @@ pub enum TerminalCommand {
     EnterAltScreen,
     LeaveAltScreen,
     SetTitle(String),
-    Custom(#[derivative(Debug = "ignore")] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
+    Custom(#[educe(Debug(ignore))] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
     #[cfg(feature = "clipboard")]
     SetClipboard(String, backend::ClipboardKind),
     #[cfg(not(target_arch = "wasm32"))]
     Exec {
-        #[derivative(Debug = "ignore")]
+        #[educe(Debug(ignore))]
         command: Arc<std::sync::Mutex<tokio::process::Command>>,
-        #[derivative(Debug = "ignore")]
+        #[educe(Debug(ignore))]
         on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
     },
     Poll,

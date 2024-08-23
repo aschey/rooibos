@@ -19,7 +19,7 @@ rooibos-dom = { path = "../rooibos-dom" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
     "all",
 ] }
-derivative = "2"
+educe = "0.6"
 ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = "0.1"

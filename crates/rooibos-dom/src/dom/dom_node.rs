@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
-use derivative::Derivative;
+use educe::Educe;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
@@ -306,8 +306,8 @@ impl DomNodeRepr {
     }
 }
 
-#[derive(Derivative, Default)]
-#[derivative(Debug)]
+#[derive(Educe, Default)]
+#[educe(Debug)]
 pub struct DomNodeInner {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
@@ -317,7 +317,7 @@ pub struct DomNodeInner {
     pub(crate) id: Option<NodeId>,
     pub(crate) class: Option<String>,
     pub(crate) focusable: bool,
-    #[derivative(Debug = "ignore")]
+    #[educe(Debug(ignore))]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
     pub(crate) z_index: Option<i32>,

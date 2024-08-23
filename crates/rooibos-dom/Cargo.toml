@@ -22,7 +22,7 @@ ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
 bitflags = "2"
-derivative = "2"
+educe = "0.6"
 futures = "0.3"
 rustc-hash = "2"
 terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
