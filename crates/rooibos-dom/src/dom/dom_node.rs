@@ -613,6 +613,32 @@ impl DomNode {
         })
     }
 
+    pub(crate) fn get_next_sibling(&self) -> Option<DomNode> {
+        let parent_key = with_nodes(|n| n[self.key].parent);
+
+        parent_key.and_then(|k| {
+            let children_len = with_nodes(|n| n[k].children.len());
+            let position =
+                with_nodes(|n| n[k].children.iter().position(|c| *c == self.key)).unwrap();
+            if position < children_len - 1 {
+                let sibling = with_nodes(|n| n[k].children[position + 1]);
+                let unmounted = with_nodes(|n| n[sibling].unmounted.clone());
+                Some(DomNode::from_existing(sibling, unmounted))
+            } else {
+                None
+            }
+        })
+    }
+
+    pub(crate) fn get_first_child(&self) -> Option<DomNode> {
+        let child_key = with_nodes(|n| n[self.key].children.first().cloned());
+
+        child_key.map(|k| {
+            let unmounted = with_nodes(|n| n[k].unmounted.clone());
+            DomNode::from_existing(k, unmounted)
+        })
+    }
+
     pub(crate) fn insert_before(&self, child: &DomNode, reference: Option<&DomNode>) {
         with_nodes_mut(|nodes| nodes.insert_before(self.key, child.key, reference.map(|r| r.key)))
     }

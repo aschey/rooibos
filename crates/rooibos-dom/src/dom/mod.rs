@@ -13,9 +13,10 @@ use tachys::renderer::{CastFrom, Renderer};
 use tachys::view::Render as _;
 use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
+use tracing::info;
 
 use self::dom_state::DomState;
-use crate::{line, text, wgt, EventData, MouseEventFn};
+use crate::{text, wgt, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
@@ -89,7 +90,6 @@ impl DomUpdateReceiver {
 }
 
 thread_local! {
-    // static DOM_ROOT: RefCell<Option<Box<dyn AsDomNode>>> = const { RefCell::new(None) };
     static DOM_NODES: RefCell<NodeTree> = RefCell::new(NodeTree::new());
     static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
     static DOM_UPDATE_TX: RefCell<watch::Sender<()>> = {
@@ -133,13 +133,6 @@ where
     DOM_NODES.with(|n| f(&mut n.borrow_mut()))
 }
 
-// fn with_root<F, R>(f: F) -> R
-// where
-//     F: FnOnce(Option<DomNode>) -> R,
-// {
-//     DOM_ROOT.with(|n| f(n.borrow().as_deref().map(|r| r.as_dom_node().clone())))
-// }
-
 #[derive(Debug)]
 pub struct RooibosDom;
 
@@ -181,11 +174,11 @@ impl Renderer for RooibosDom {
     }
 
     fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
-        unimplemented!()
+        unimplemented!("set attribute not supported")
     }
 
     fn remove_attribute(_node: &Self::Element, _name: &str) {
-        unimplemented!()
+        unimplemented!("remove attribute not supported")
     }
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
@@ -211,16 +204,16 @@ impl Renderer for RooibosDom {
         node.get_parent()
     }
 
-    fn first_child(_node: &Self::Node) -> Option<Self::Node> {
-        todo!()
+    fn first_child(node: &Self::Node) -> Option<Self::Node> {
+        node.get_first_child()
     }
 
-    fn next_sibling(_node: &Self::Node) -> Option<Self::Node> {
-        todo!()
+    fn next_sibling(node: &Self::Node) -> Option<Self::Node> {
+        node.get_next_sibling()
     }
 
-    fn log_node(_node: &Self::Node) {
-        todo!()
+    fn log_node(node: &Self::Node) {
+        info!("{:?}", node);
     }
 }
 
@@ -264,16 +257,6 @@ fn clear_children(parent: DomNodeKey) {
 fn unmount_child(child: DomNodeKey, cleanup: bool) {
     with_nodes_mut(|nodes| {
         nodes.unmount_child(child);
-        // let child_node = &nodes[child];
-        // if let Some(parent) = child_node.parent {
-        //     let child_pos = nodes[parent]
-        //         .children
-        //         .iter()
-        //         .position(|c| c == &child)
-        //         .unwrap();
-        //     nodes[parent].children.remove(child_pos);
-        // }
-        // nodes[child].parent = None;
     });
 
     cleanup_removed_nodes(&child, cleanup);
@@ -313,7 +296,7 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
     line += &format!(" layout={:?}>", dom_ref.rect(key));
     // line += &format!(" constraint={}>", node.constraint.borrow().clone());
 
-    let mut lines = vec![line!(line)];
+    let mut lines = vec![crate::line!(line)];
 
     let child_indent = format!("{indent}  ");
 
@@ -321,7 +304,7 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
         lines.append(&mut print_dom_inner(dom_ref, *key, &child_indent));
     }
 
-    lines.push(line!("{indent}</{node_name}>"));
+    lines.push(crate::line!("{indent}</{node_name}>"));
 
     lines
 }

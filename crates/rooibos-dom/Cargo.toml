@@ -33,6 +33,7 @@ wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef104
 ] }
 taffy = "0.5.2"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
+tracing = "0.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
