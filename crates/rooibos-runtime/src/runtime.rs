@@ -23,8 +23,8 @@ use crate::backend::Backend;
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
 use crate::{
-    get_external_signal_stream, has_external_signal_stream, restore_terminal, wasm_compat,
-    with_state, with_state_mut, ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed,
+    has_external_signal_stream, restore_terminal, wasm_compat, with_state, with_state_mut,
+    ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed,
 };
 
 #[derive(Debug)]
@@ -506,7 +506,7 @@ fn spawn_signal_handler(
         use async_signal::{Signal, Signals};
 
         let runtime_command_tx = runtime_command_tx.clone();
-        if let Some(mut signals) = get_external_signal_stream() {
+        if let Some(mut signals) = crate::get_external_signal_stream() {
             service_context.spawn(("signal_handler", |context: ServiceContext| async move {
                 while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await {
                     handle_signal(&runtime_command_tx, signal);
