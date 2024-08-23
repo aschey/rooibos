@@ -12,6 +12,7 @@ use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
 use ratatui::Terminal;
 use tokio::runtime::Handle;
+use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
 use crate::{backend, with_all_state, with_state, ExitResult, RuntimeCommand};
@@ -89,48 +90,55 @@ pub fn restore_terminal() -> io::Result<()> {
     })
 }
 
-pub fn insert_before(height: u16, text: impl Into<Text<'static>>) {
-    with_state(|s| {
-        s.term_command_tx.send(TerminalCommand::InsertBefore {
-            height,
-            text: text.into(),
-        })
+fn send_command(
+    command: TerminalCommand,
+) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    with_state(|s| s.term_command_tx.send(command))?;
+    Ok(())
+}
+
+pub fn insert_before(
+    height: u16,
+    text: impl Into<Text<'static>>,
+) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::InsertBefore {
+        height,
+        text: text.into(),
     })
-    .unwrap();
 }
 
-pub fn enter_alt_screen() {
-    with_state(|s| s.term_command_tx.send(TerminalCommand::EnterAltScreen)).unwrap();
+pub fn enter_alt_screen() -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::EnterAltScreen)
 }
 
-pub fn leave_alt_screen() {
-    with_state(|s| s.term_command_tx.send(TerminalCommand::LeaveAltScreen)).unwrap();
+pub fn leave_alt_screen() -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::LeaveAltScreen)
 }
 
-pub fn set_title<T: Display>(title: T) {
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::SetTitle(title.to_string()))
-    })
-    .unwrap();
+pub fn set_title<T: Display>(title: T) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::SetTitle(title.to_string()))
 }
 
-pub fn run_with_terminal<F, B>(f: F)
+pub fn run_with_terminal<F, B>(f: F) -> Result<(), broadcast::error::SendError<TerminalCommand>>
 where
     F: FnMut(&mut Terminal<B>) + Send + 'static,
     B: TuiBackend + Send + 'static,
 {
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::Custom(Arc::new(std::sync::Mutex::new(
-                Box::new(TerminalFnBoxed(Box::new(f))),
-            ))))
-    })
-    .unwrap();
+    send_command(TerminalCommand::Custom(Arc::new(std::sync::Mutex::new(
+        Box::new(TerminalFnBoxed(Box::new(f))),
+    ))))
 }
 
 pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
     with_state(|s| s.context.spawn(service))
+}
+
+#[cfg(feature = "clipboard")]
+pub fn set_clipboard<T: Display>(
+    title: T,
+    kind: backend::ClipboardKind,
+) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::SetClipboard(title.to_string(), kind))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -168,15 +176,6 @@ pub fn spawn_blocking_service_on<
     handle: &Handle,
 ) -> TaskId {
     with_state(|s| s.context.spawn_blocking_on(service, handle))
-}
-
-#[cfg(feature = "clipboard")]
-pub fn set_clipboard<T: Display>(title: T, kind: backend::ClipboardKind) {
-    with_state(|s| {
-        s.term_command_tx
-            .send(TerminalCommand::SetClipboard(title.to_string(), kind))
-    })
-    .unwrap();
 }
 
 pub fn before_exit<F, Fut>(f: F)

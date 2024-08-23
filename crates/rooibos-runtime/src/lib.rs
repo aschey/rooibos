@@ -495,7 +495,7 @@ impl<B: Backend + 'static> Runtime<B> {
     fn draw(&self, terminal: &mut Terminal<B::TuiBackend>) {
         terminal
             .draw(|f| render_dom(f.buffer_mut()))
-            .expect("draw can't fail");
+            .expect("draw failed");
     }
 
     pub async fn tick(&mut self) -> Result<TickResult, RuntimeError> {

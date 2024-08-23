@@ -27,7 +27,7 @@ fn app() -> impl Render {
     Effect::new(move |prev: Option<()>| {
         let count = count.get();
         if prev.is_some() {
-            set_title(format!("count {count}"));
+            set_title(format!("count {count}")).unwrap();
         }
     });
 

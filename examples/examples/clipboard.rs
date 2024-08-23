@@ -35,7 +35,7 @@ fn app() -> impl Render {
         Button::new()
             .width(chars(21.))
             .on_click(move || {
-                set_clipboard(count.get(), ClipboardKind::Clipboard);
+                set_clipboard(count.get(), ClipboardKind::Clipboard).unwrap();
                 notifier.notify(Notification::new(" Current count copied to clipboard "));
             })
             .render(text!("Copy to clipboard")),

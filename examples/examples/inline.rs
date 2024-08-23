@@ -34,7 +34,7 @@ fn app() -> impl Render {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            insert_before(1, "test");
+            insert_before(1, "test").unwrap();
         }
     });
 
