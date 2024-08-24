@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use background_service::ServiceContext;
@@ -16,6 +17,7 @@ pub(crate) struct InputHandler {
     pub(crate) resize_debouncer: Debouncer<Event>,
     pub(crate) context: ServiceContext,
     pub(crate) is_quit_event: Arc<IsQuitEvent>,
+    pub(crate) editing: Arc<AtomicBool>,
 }
 
 impl InputHandler {
@@ -77,7 +79,12 @@ impl InputHandler {
     }
 
     fn handle_key_event(&self, event: Event, key_event: KeyEvent) {
-        if (self.is_quit_event)(key_event) {
+        let editing = self.editing.load(Ordering::SeqCst);
+        let has_modifiers = key_event.modifiers != KeyModifiers::empty();
+        // If we're in editing mode, we should always pass through any normal input events (keys
+        // with no modifiers) otherwise, it would be impossible to type certain letters
+        // ('q' by default)
+        if (!editing || has_modifiers) && (self.is_quit_event)(key_event) {
             let _ = self
                 .signal_tx
                 .send(RuntimeCommand::Terminate)

@@ -183,7 +183,8 @@ impl<B: Backend + 'static> Runtime<B> {
         let resize_debouncer = Debouncer::new(self.settings.resize_debounce);
         let parser_running = self.parser_running.clone();
         let is_quit_event = self.settings.is_quit_event.clone();
-
+        // Make sure we load the editing variable before spawning, because it's a thread local
+        let editing = rooibos_dom::editing();
         self.service_context.spawn(
             ("input_handler", move |context: ServiceContext| async move {
                 let mut input_handler = InputHandler {
@@ -194,6 +195,7 @@ impl<B: Backend + 'static> Runtime<B> {
                     resize_debouncer,
                     context,
                     is_quit_event,
+                    editing,
                 };
                 loop {
                     if !input_handler.handle().await {

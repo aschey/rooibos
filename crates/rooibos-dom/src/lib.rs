@@ -5,8 +5,11 @@ mod macros;
 mod suspense;
 mod widgets;
 
-use std::cell::OnceCell;
+use std::cell::{LazyCell, OnceCell};
 use std::future::Future;
+use std::ops::Deref;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
 pub use dom::*;
@@ -45,6 +48,7 @@ where
 thread_local! {
     static SUPPORTS_KEYBOARD_ENHANCEMENT: OnceCell<bool> = const { OnceCell::new() };
     static PIXEL_SIZE: OnceCell<Option<Size>> = const { OnceCell::new() };
+    static EDITING: LazyCell<Arc<AtomicBool>> = const { LazyCell::new(move || Arc::new(AtomicBool::new(false))) };
 }
 
 pub fn set_supports_keyboard_enhancement(supports_keyboard_enhancement: bool) -> Result<(), bool> {
@@ -61,4 +65,16 @@ pub fn set_pixel_size(pixel_size: Option<Size>) -> Result<(), Option<Size>> {
 
 pub fn pixel_size() -> Option<Size> {
     PIXEL_SIZE.with(|p| *p.get().unwrap())
+}
+
+pub fn set_editing(editing: bool) {
+    EDITING.with(|e| e.store(editing, Ordering::Relaxed));
+}
+
+pub fn is_editing() -> bool {
+    EDITING.with(|e| e.load(Ordering::Relaxed))
+}
+
+pub fn editing() -> Arc<AtomicBool> {
+    EDITING.with(|e| e.deref().clone())
 }

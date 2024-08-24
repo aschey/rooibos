@@ -3,13 +3,13 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
 use reactive_graph::effect::Effect;
-use reactive_graph::owner::StoredValue;
+use reactive_graph::owner::{on_cleanup, StoredValue};
 use reactive_graph::signal::RwSignal;
 use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, BlurEvent, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent, LayoutProps,
-    NodeId, Render, UpdateLayoutProps, WidgetState,
+    derive_signal, set_editing, BlurEvent, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
+    LayoutProps, NodeId, Render, UpdateLayoutProps, WidgetState,
 };
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
@@ -220,6 +220,10 @@ impl Input {
         let submit_tx = input_ref.submit_tx.get_value();
         let mut submit_rx = submit_tx.subscribe();
 
+        on_cleanup(|| {
+            set_editing(false);
+        });
+
         text_area.update_untracked(|t| {
             t.delete_line_by_head();
             t.insert_str(initial_value);
@@ -291,10 +295,13 @@ impl Input {
         .on_key_down(key_down)
         .on_paste(paste)
         .on_focus(move |focus_event, event_data| {
+            set_editing(true);
             widget_state.set(WidgetState::Focused);
             on_focus(focus_event, event_data);
         })
         .on_blur(move |blur_event, event_data| {
+            // Notify DOM that we're editing to suppress any quit sequences that could interfere
+            set_editing(false);
             widget_state.set(WidgetState::Default);
             on_blur(blur_event, event_data);
         });

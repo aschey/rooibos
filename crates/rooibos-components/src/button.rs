@@ -135,8 +135,6 @@ impl Button {
             on_click.borrow_mut()()
         };
 
-        let on_enter_ = on_enter.clone();
-
         let key_up = move |key_event: KeyEvent, _| {
             if !supports_keyboard_enhancement() {
                 return;
@@ -158,7 +156,10 @@ impl Button {
         .layout_props(layout_props)
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
-        .on_click(move |_, _| on_enter_())
+        .on_click({
+            let on_enter = on_enter.clone();
+            move |_, _| on_enter()
+        })
         .on_focus(move |_, _| widget_state.set(WidgetState::Focused))
         .on_blur(move |_, _| widget_state.set(WidgetState::Default))
         .on_key_down(move |key_event, _| {
