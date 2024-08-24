@@ -3,20 +3,25 @@ use std::future::Future;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
-use node_tree::{DomNodeKey, NodeTree};
+pub use any_view::*;
+pub use children::*;
+pub use dom_node::*;
+pub use dom_state::*;
+pub use dom_widget::*;
+pub use focus::*;
+pub use into_view::*;
+use node_tree::{with_nodes, with_nodes_mut, DomNodeKey, NodeTree};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use reactive_graph::signal::ReadSignal;
-use tachys::renderer::{CastFrom, Renderer};
-use tachys::view::Render as _;
+pub use renderer::*;
 use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
 use tokio::sync::watch;
-use tracing::info;
+use tracing::error;
 
-use self::dom_state::DomState;
-use crate::{text, wgt, EventData, MouseEventFn};
+use crate::{text, EventData, MouseEventFn};
 
 mod any_view;
 mod children;
@@ -29,48 +34,7 @@ mod focus;
 mod into_view;
 pub mod layout;
 mod node_tree;
-
-pub use any_view::*;
-pub use children::*;
-pub use dom_node::*;
-pub use dom_widget::*;
-pub use focus::*;
-pub use into_view::*;
-
-pub trait AsDomNode {
-    fn as_dom_node(&self) -> &DomNode;
-}
-
-impl<T1, T2> AsDomNode for (T1, T2)
-where
-    T1: AsDomNode,
-{
-    fn as_dom_node(&self) -> &DomNode {
-        self.0.as_dom_node()
-    }
-}
-
-impl AsDomNode for Box<dyn AsDomNode> {
-    fn as_dom_node(&self) -> &DomNode {
-        (**self).as_dom_node()
-    }
-}
-
-pub trait RenderAny: tachys::view::Render<RooibosDom> {}
-
-impl<T> RenderAny for T where T: tachys::view::Render<RooibosDom> {}
-
-pub trait Render: tachys::view::Render<RooibosDom, State = Self::DomState> {
-    type DomState: AsDomNode;
-}
-
-impl<T, S> Render for T
-where
-    T: tachys::view::Render<RooibosDom, State = S>,
-    S: AsDomNode,
-{
-    type DomState = S;
-}
+mod renderer;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
@@ -90,8 +54,6 @@ impl DomUpdateReceiver {
 }
 
 thread_local! {
-    static DOM_NODES: RefCell<NodeTree> = RefCell::new(NodeTree::new());
-    static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
     static DOM_UPDATE_TX: RefCell<watch::Sender<()>> = {
         let (tx, _) = watch::channel(());
         RefCell::new(tx)
@@ -103,130 +65,6 @@ thread_local! {
 pub fn dom_update_receiver() -> DomUpdateReceiver {
     let rx = DOM_UPDATE_TX.with(|d| d.borrow().subscribe());
     DomUpdateReceiver(rx)
-}
-
-fn with_state<F, R>(f: F) -> R
-where
-    F: FnOnce(&DomState) -> R,
-{
-    DOM_STATE.with(|s| s.borrow().as_ref().map(f).unwrap())
-}
-
-fn with_state_mut<F, R>(f: F) -> R
-where
-    F: FnOnce(&mut DomState) -> R,
-{
-    DOM_STATE.with(|s| s.borrow_mut().as_mut().map(f).unwrap())
-}
-
-fn with_nodes<F, R>(f: F) -> R
-where
-    F: FnOnce(&NodeTree) -> R,
-{
-    DOM_NODES.with(|n| f(&n.borrow()))
-}
-
-fn with_nodes_mut<F, R>(f: F) -> R
-where
-    F: FnOnce(&mut NodeTree) -> R,
-{
-    DOM_NODES.with(|n| f(&mut n.borrow_mut()))
-}
-
-#[derive(Debug)]
-pub struct RooibosDom;
-
-impl Renderer for RooibosDom {
-    type Node = DomNode;
-
-    type Element = DomNode;
-
-    type Text = DomNode;
-
-    type Placeholder = DomNode;
-
-    fn intern(text: &str) -> &str {
-        #[cfg(target_arch = "wasm32")]
-        return wasm_bindgen::intern(text);
-        #[cfg(not(target_arch = "wasm32"))]
-        return text;
-    }
-
-    fn create_text_node(text: &str) -> Self::Text {
-        let text = text.to_owned();
-        wgt!(text!(text.clone())).build().as_dom_node().clone()
-    }
-
-    fn create_placeholder() -> Self::Placeholder {
-        let placeholder = DomNode::placeholder();
-        placeholder.build().as_dom_node().clone()
-    }
-
-    fn set_text(node: &Self::Text, text: &str) {
-        let text = text.to_string();
-        node.replace_widget(DomWidgetNode::new::<String, _, _>(move || {
-            let text = text.clone();
-            move |rect, buf| {
-                text.render_ref(rect, buf);
-            }
-        }));
-        node.clone().build();
-    }
-
-    fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
-        unimplemented!("set attribute not supported")
-    }
-
-    fn remove_attribute(_node: &Self::Element, _name: &str) {
-        unimplemented!("remove attribute not supported")
-    }
-
-    fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
-        parent.insert_before(new_child, marker);
-        refresh_dom();
-    }
-
-    fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
-        unmount_child(child.key(), true);
-
-        Some(child.clone())
-    }
-
-    fn clear_children(parent: &Self::Element) {
-        clear_children(parent.key())
-    }
-
-    fn remove(node: &Self::Node) {
-        unmount_child(node.key(), true);
-    }
-
-    fn get_parent(node: &Self::Node) -> Option<Self::Node> {
-        node.get_parent()
-    }
-
-    fn first_child(node: &Self::Node) -> Option<Self::Node> {
-        node.get_first_child()
-    }
-
-    fn next_sibling(node: &Self::Node) -> Option<Self::Node> {
-        node.get_next_sibling()
-    }
-
-    fn log_node(node: &Self::Node) {
-        info!("{:?}", node);
-    }
-}
-
-impl CastFrom<DomNode> for DomNode {
-    fn cast_from(source: DomNode) -> Option<Self> {
-        Some(source)
-    }
-}
-
-impl AsRef<DomNode> for DomNode {
-    fn as_ref(&self) -> &DomNode {
-        self
-    }
 }
 
 fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
@@ -310,7 +148,11 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
 }
 
 pub fn refresh_dom() {
-    DOM_UPDATE_TX.with(|tx| tx.borrow().send(()).ok());
+    let _ = DOM_UPDATE_TX.with(|tx| {
+        tx.borrow()
+            .send(())
+            .inspect_err(|e| error!("error sending DOM update: {e:?}"))
+    });
 }
 
 pub fn mount<F, M>(f: F)
@@ -326,7 +168,7 @@ where
 }
 
 pub fn unmount() {
-    DOM_STATE.with(|d| *d.borrow_mut() = None);
+    reset_state();
     with_nodes_mut(|d| *d = NodeTree::new());
 }
 
@@ -562,37 +404,6 @@ pub fn focus_id(id: impl Into<NodeId>) {
     });
     if let Some(found_node) = found_node {
         dom_state::set_focused(found_node);
-    }
-}
-
-pub fn focus_next() {
-    let focusable_nodes = with_state(|state| state.focusable_nodes().clone());
-    if let Some(focused) = with_state(|state| state.focused_key()) {
-        let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
-
-        if current_focused < focusable_nodes.len() - 1 {
-            let next = focusable_nodes[current_focused + 1];
-            dom_state::set_focused(next);
-            return;
-        }
-    }
-    if let Some(next) = focusable_nodes.first() {
-        dom_state::set_focused(*next);
-    }
-}
-
-pub fn focus_prev() {
-    let focusable_nodes = with_state(|state| state.focusable_nodes().clone());
-    if let Some(focused) = with_state(|state| state.focused_key()) {
-        let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
-        if current_focused > 0 {
-            let prev = focusable_nodes[current_focused - 1];
-            dom_state::set_focused(prev);
-            return;
-        }
-    }
-    if let Some(prev) = focusable_nodes.last() {
-        dom_state::set_focused(*prev);
     }
 }
 

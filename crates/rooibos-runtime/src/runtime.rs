@@ -6,14 +6,14 @@ use std::time::Duration;
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
-use futures_util::{FutureExt as _, StreamExt};
+use futures_util::FutureExt as _;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::layout::Size;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
 use rooibos_dom::{
     dom_update_receiver, focus_next, mount, render_dom, send_event, set_pixel_size, unmount,
-    DomUpdateReceiver, Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind, Render,
+    DomUpdateReceiver, Event, Render,
 };
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
@@ -22,9 +22,10 @@ use tracing::{error, warn};
 use crate::backend::Backend;
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
+use crate::input_handler::InputHandler;
 use crate::{
-    has_external_signal_stream, restore_terminal, wasm_compat, with_state, with_state_mut,
-    ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed,
+    restore_terminal, wasm_compat, with_state, with_state_mut, ExitResult, RuntimeSettings,
+    TerminalCommand, TerminalFnBoxed,
 };
 
 #[derive(Debug)]
@@ -177,37 +178,27 @@ impl<B: Backend + 'static> Runtime<B> {
         }
         let signal_tx = self.runtime_command_tx.clone();
         let term_event_tx = self.term_event_tx.clone();
-        let mut term_parser_rx = self.term_parser_tx.subscribe();
-        let mut hover_debouncer = Debouncer::new(self.settings.hover_debounce);
-        let mut resize_debouncer = Debouncer::new(self.settings.resize_debounce);
+        let term_parser_rx = self.term_parser_tx.subscribe();
+        let hover_debouncer = Debouncer::new(self.settings.hover_debounce);
+        let resize_debouncer = Debouncer::new(self.settings.resize_debounce);
         let parser_running = self.parser_running.clone();
+        let is_quit_event = self.settings.is_quit_event.clone();
 
         self.service_context.spawn(
             ("input_handler", move |context: ServiceContext| async move {
+                let mut input_handler = InputHandler {
+                    term_parser_rx,
+                    signal_tx,
+                    term_event_tx,
+                    hover_debouncer,
+                    resize_debouncer,
+                    context,
+                    is_quit_event,
+                };
                 loop {
-                    tokio::select! {
-                        next_event = term_parser_rx.recv() => {
-                            if !handle_term_event(
-                                next_event,
-                                &signal_tx,
-                                &term_event_tx,
-                                &mut hover_debouncer,
-                                &mut resize_debouncer,
-                            ).await {
-                                parser_running.store(false, Ordering::SeqCst);
-                                return Ok(());
-                            }
-                        }
-                        _ = context.cancelled() => {
-                            parser_running.store(false, Ordering::SeqCst);
-                            return Ok(());
-                        }
-                        pending_move = hover_debouncer.next_value() => {
-                            term_event_tx.send(pending_move).ok();
-                        }
-                        pending_resize = resize_debouncer.next_value() => {
-                            term_event_tx.send(pending_resize).ok();
-                        }
+                    if !input_handler.handle().await {
+                        parser_running.store(false, Ordering::SeqCst);
+                        return Ok(());
                     }
                 }
             }),
@@ -262,8 +253,8 @@ impl<B: Backend + 'static> Runtime<B> {
 
         loop {
             tokio::select! {
-                res = services_cancel.clone() => {
-                    res?;
+                services_result = services_cancel.clone() => {
+                    services_result?;
                     let _ = self
                         .service_manager
                         .cancel()
@@ -435,67 +426,6 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 }
 
-async fn handle_term_event(
-    next_event: Result<Event, broadcast::error::RecvError>,
-    signal_tx: &broadcast::Sender<RuntimeCommand>,
-    term_event_tx: &broadcast::Sender<Event>,
-    hover_debouncer: &mut Debouncer<Event>,
-    resize_debouncer: &mut Debouncer<Event>,
-) -> bool {
-    match next_event {
-        Ok(
-            event @ Event::Key(KeyEvent {
-                code, modifiers, ..
-            }),
-        ) => {
-            handle_key_event(event, code, modifiers, signal_tx, term_event_tx);
-        }
-        Ok(
-            mouse_event @ Event::Mouse(MouseEvent {
-                kind: MouseEventKind::Moved,
-                ..
-            }),
-        ) => {
-            hover_debouncer.update(mouse_event).await;
-        }
-        Ok(resize_event @ Event::Resize(_, _)) => {
-            resize_debouncer.update(resize_event).await;
-        }
-        Ok(event) => {
-            term_event_tx.send(event).ok();
-        }
-        Err(_) => {
-            return false;
-        }
-    }
-    true
-}
-
-fn handle_key_event(
-    event: Event,
-    code: KeyCode,
-    modifiers: KeyModifiers,
-    signal_tx: &broadcast::Sender<RuntimeCommand>,
-    term_event_tx: &broadcast::Sender<Event>,
-) {
-    if modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('c') {
-        let _ = signal_tx
-            .send(RuntimeCommand::Terminate)
-            .inspect_err(|_| warn!("error sending terminate signal"));
-    } else if cfg!(unix) && modifiers == KeyModifiers::CONTROL && code == KeyCode::Char('z') {
-        // Defer to the external stream for suspend commands if it exists
-        if !has_external_signal_stream() {
-            let _ = signal_tx
-                .send(RuntimeCommand::Suspend)
-                .inspect_err(|_| warn!("error sending suspend signal"));
-        }
-    } else {
-        let _ = term_event_tx
-            .send(event)
-            .inspect_err(|_| warn!("error sending terminal event"));
-    }
-}
-
 fn spawn_signal_handler(
     runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
     service_context: &ServiceContext,
@@ -503,61 +433,21 @@ fn spawn_signal_handler(
 ) {
     #[cfg(not(target_arch = "wasm32"))]
     {
-        use async_signal::{Signal, Signals};
+        use crate::signal_handler::SignalHandler;
 
         let runtime_command_tx = runtime_command_tx.clone();
-        if let Some(mut signals) = crate::get_external_signal_stream() {
-            service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-                while let Ok(Ok(signal)) = signals.recv().cancel_with(context.cancelled()).await {
-                    handle_signal(&runtime_command_tx, signal);
-                }
+        let enable_internal_handler = settings.enable_signal_handler;
+        service_context.spawn((
+            "signal_handler",
+            move |context: ServiceContext| async move {
+                let signal_handler = SignalHandler {
+                    runtime_command_tx,
+                    enable_internal_handler,
+                    context,
+                };
+                signal_handler.run().await?;
                 Ok(())
-            }));
-        } else if settings.enable_signal_handler {
-            service_context.spawn(("signal_handler", |context: ServiceContext| async move {
-                #[cfg(unix)]
-                // SIGSTP cannot be handled
-                // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
-                let signals = Signals::new([
-                    Signal::Term,
-                    Signal::Quit,
-                    Signal::Int,
-                    Signal::Tstp,
-                    Signal::Cont,
-                ]);
-
-                #[cfg(windows)]
-                let signals = Signals::new([Signal::Int]);
-
-                let mut signals =
-                    signals.inspect_err(|e| error!("error creating signals: {e:?}"))?;
-
-                while let Ok(Some(Ok(signal))) =
-                    signals.next().cancel_with(context.cancelled()).await
-                {
-                    handle_signal(&runtime_command_tx, signal);
-                }
-                Ok(())
-            }));
-        }
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn handle_signal(
-    runtime_command_tx: &broadcast::Sender<RuntimeCommand>,
-    signal: async_signal::Signal,
-) {
-    use async_signal::Signal;
-    match signal {
-        Signal::Tstp => {
-            let _ = runtime_command_tx.send(RuntimeCommand::Suspend);
-        }
-        Signal::Cont => {
-            let _ = runtime_command_tx.send(RuntimeCommand::Resume);
-        }
-        _ => {
-            let _ = runtime_command_tx.send(RuntimeCommand::Terminate);
-        }
+            },
+        ));
     }
 }

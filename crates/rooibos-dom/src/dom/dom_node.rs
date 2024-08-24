@@ -15,10 +15,29 @@ use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::dom_state::{self, DomState};
-use super::node_tree::{DomNodeKey, NodeTree};
-use super::{unmount_child, with_nodes, with_nodes_mut, with_state_mut, AsDomNode, DOM_NODES};
-use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role, RooibosDom};
+use super::dom_state::{self, with_state_mut, DomState};
+use super::node_tree::{tree_is_accessible, DomNodeKey, NodeTree};
+use super::{unmount_child, with_nodes, with_nodes_mut, RooibosDom};
+use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role};
+
+pub trait AsDomNode {
+    fn as_dom_node(&self) -> &DomNode;
+}
+
+impl<T1, T2> AsDomNode for (T1, T2)
+where
+    T1: AsDomNode,
+{
+    fn as_dom_node(&self) -> &DomNode {
+        self.0.as_dom_node()
+    }
+}
+
+impl AsDomNode for Box<dyn AsDomNode> {
+    fn as_dom_node(&self) -> &DomNode {
+        (**self).as_dom_node()
+    }
+}
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum NodeIdInner {
@@ -446,8 +465,8 @@ impl Mountable<RooibosDom> for DomNode {
 impl Drop for DomNode {
     fn drop(&mut self) {
         // The thread-local may already have been destroyed
-        // We need to check using try_with to prevent a panic here
-        if self.unmounted.load(Ordering::SeqCst) && DOM_NODES.try_with(|_| {}).is_ok() {
+        // We need to check to prevent a panic here
+        if self.unmounted.load(Ordering::SeqCst) && tree_is_accessible() {
             let contains_key = with_nodes(|nodes| nodes.contains_key(self.key));
             if contains_key {
                 unmount_child(self.key, true);

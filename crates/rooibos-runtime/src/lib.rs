@@ -18,8 +18,11 @@ pub mod backend;
 mod commands;
 mod debounce;
 pub mod error;
+mod input_handler;
 mod runtime;
 mod settings;
+#[cfg(not(target_arch = "wasm32"))]
+mod signal_handler;
 mod state;
 
 pub mod wasm_compat {

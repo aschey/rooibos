@@ -1,12 +1,21 @@
+use std::sync::Arc;
 use std::time::Duration;
 
-#[derive(Debug)]
+use educe::Educe;
+use rooibos_dom::{KeyCode, KeyEvent, KeyModifiers};
+
+pub type IsQuitEvent = dyn Fn(KeyEvent) -> bool + Send + Sync;
+
+#[derive(Educe)]
+#[educe(Debug)]
 pub struct RuntimeSettings {
     pub(crate) enable_input_reader: bool,
     pub(crate) enable_signal_handler: bool,
     pub(crate) show_final_output: bool,
     pub(crate) hover_debounce: Duration,
     pub(crate) resize_debounce: Duration,
+    #[educe(Debug(ignore))]
+    pub(crate) is_quit_event: Arc<IsQuitEvent>,
 }
 
 impl Default for RuntimeSettings {
@@ -17,6 +26,12 @@ impl Default for RuntimeSettings {
             show_final_output: true,
             hover_debounce: Duration::from_millis(20),
             resize_debounce: Duration::from_millis(20),
+            is_quit_event: Arc::new(|key| {
+                let ctrl_c =
+                    key.code == KeyCode::Char('c') && key.modifiers == KeyModifiers::CONTROL;
+                let q = key.code == KeyCode::Char('q') && key.modifiers == KeyModifiers::empty();
+                ctrl_c || q
+            }),
         }
     }
 }
@@ -44,6 +59,14 @@ impl RuntimeSettings {
 
     pub fn resize_debounce(mut self, resize_debounce: Duration) -> Self {
         self.resize_debounce = resize_debounce;
+        self
+    }
+
+    pub fn is_quit_event<F>(mut self, f: F) -> Self
+    where
+        F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
+    {
+        self.is_quit_event = Arc::new(f);
         self
     }
 }

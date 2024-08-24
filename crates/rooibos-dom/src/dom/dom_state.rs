@@ -1,11 +1,18 @@
+use std::cell::RefCell;
+
 use ratatui::layout::Rect;
 use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
 use reactive_graph::traits::Set;
 
 use super::dom_node::NodeId;
 use super::node_tree::DomNodeKey;
-use super::{with_nodes, with_state, with_state_mut};
+use super::with_nodes;
 use crate::{BlurEvent, EventData, FocusEvent};
+
+thread_local! {
+    static DOM_STATE: RefCell<Option<DomState>> = RefCell::new(Some(Default::default()));
+
+}
 
 pub(crate) struct DomState {
     window_size: ReadSignal<Rect>,
@@ -78,6 +85,24 @@ impl DomState {
     pub(crate) fn add_focusable(&mut self, key: DomNodeKey) {
         self.focusable_nodes.push(key);
     }
+}
+
+pub(crate) fn with_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&DomState) -> R,
+{
+    DOM_STATE.with(|s| s.borrow().as_ref().map(f).unwrap())
+}
+
+pub(crate) fn with_state_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut DomState) -> R,
+{
+    DOM_STATE.with(|s| s.borrow_mut().as_mut().map(f).unwrap())
+}
+
+pub(crate) fn reset_state() {
+    DOM_STATE.with(|d| *d.borrow_mut() = None);
 }
 
 pub(crate) fn set_focused(node_key: DomNodeKey) {
@@ -177,4 +202,35 @@ pub(crate) fn remove_hovered() {
         }
     }
     with_state_mut(|state| state.hovered_key = None);
+}
+
+pub fn focus_next() {
+    let focusable_nodes = with_state(|state| state.focusable_nodes().clone());
+    if let Some(focused) = with_state(|state| state.focused_key()) {
+        let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
+
+        if current_focused < focusable_nodes.len() - 1 {
+            let next = focusable_nodes[current_focused + 1];
+            set_focused(next);
+            return;
+        }
+    }
+    if let Some(next) = focusable_nodes.first() {
+        set_focused(*next);
+    }
+}
+
+pub fn focus_prev() {
+    let focusable_nodes = with_state(|state| state.focusable_nodes().clone());
+    if let Some(focused) = with_state(|state| state.focused_key()) {
+        let current_focused = focusable_nodes.iter().position(|n| n == &focused).unwrap();
+        if current_focused > 0 {
+            let prev = focusable_nodes[current_focused - 1];
+            set_focused(prev);
+            return;
+        }
+    }
+    if let Some(prev) = focusable_nodes.last() {
+        set_focused(*prev);
+    }
 }

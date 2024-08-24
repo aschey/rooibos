@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::cmp;
 use std::collections::BTreeMap;
 use std::ops::Index;
@@ -11,10 +12,32 @@ use taffy::{
     TaffyTree,
 };
 
-use super::{dom_node, refresh_dom, with_nodes, AsDomNode, DomNode};
+use super::{dom_node, refresh_dom, AsDomNode, DomNode};
 use crate::{DomNodeInner, EventHandlers};
 
 new_key_type! { pub(crate) struct DomNodeKey; }
+
+thread_local! {
+    static DOM_NODES: RefCell<NodeTree> = RefCell::new(NodeTree::new());
+}
+
+pub(crate) fn with_nodes<F, R>(f: F) -> R
+where
+    F: FnOnce(&NodeTree) -> R,
+{
+    DOM_NODES.with(|n| f(&n.borrow()))
+}
+
+pub(crate) fn with_nodes_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut NodeTree) -> R,
+{
+    DOM_NODES.with(|n| f(&mut n.borrow_mut()))
+}
+
+pub(crate) fn tree_is_accessible() -> bool {
+    DOM_NODES.try_with(|_| {}).is_ok()
+}
 
 impl DomNodeKey {
     pub(crate) fn traverse<F, T>(&self, f: F, stop_on_first_match: bool) -> Vec<T>
