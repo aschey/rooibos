@@ -375,7 +375,7 @@ impl DomNodeInner {
         } = props;
 
         let prev_rect = *self.rect.borrow();
-        let rect = dom_nodes.rect(key);
+        let mut rect = dom_nodes.rect(key);
 
         if self.focusable {
             dom_nodes.add_focusable(key);
@@ -401,6 +401,14 @@ impl DomNodeInner {
                 });
             }
             NodeType::Widget(widget) => {
+                // if the widget width == the window width, there's probably no explicit width set
+                // subtract the extra to prevent clamp from removing any margins
+                if rect.width == window.width {
+                    rect.width -= rect.x;
+                }
+                if rect.height == window.height {
+                    rect.height -= rect.y;
+                }
                 // prevent panic if the calculated rect overflows the window area
                 let rect = rect.clamp(window);
                 widget.render(rect, buf);
