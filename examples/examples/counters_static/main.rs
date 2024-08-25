@@ -1,5 +1,5 @@
 use rooibos::dom::layout::{chars, height};
-use rooibos::dom::{col, height, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{col, height, line, max_width, span, wgt, KeyCode, KeyEvent, Render};
 use rooibos::reactive::signal::{signal, RwSignal};
 use rooibos::reactive::traits::{Get, Set, Update};
 use rooibos::reactive::wrappers::read::Signal;
@@ -9,6 +9,7 @@ use rooibos::runtime::Runtime;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -36,7 +37,8 @@ fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
 
     wgt![
         props(height(row_height)),
-        Paragraph::new(format!("count: {}", count.get())).block(block.get())
+        Paragraph::new(line!("count: ".bold().reset(), span!(count.get()).cyan()))
+            .block(block.get())
     ]
     .on_focus(move |_, _| block.set(Block::bordered().blue()))
     .on_blur(move |_, _| block.set(Block::bordered().border_set(border::EMPTY)))
@@ -47,7 +49,7 @@ fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
 
 fn app() -> impl Render {
     col![
-        props(height!(15.)),
+        props(height!(15.), max_width!(20.)),
         (0..5).map(|i| counter(i, chars(3.))).collect::<Vec<_>>()
     ]
 }

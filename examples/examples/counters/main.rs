@@ -1,7 +1,7 @@
 use rooibos::components::{for_each, Button};
 use rooibos::dom::layout::{chars, height};
 use rooibos::dom::{
-    col, height, max_width, row, text, wgt, width, KeyCode, Render, UpdateLayoutProps,
+    col, height, line, max_width, row, span, text, wgt, width, KeyCode, Render, UpdateLayoutProps,
 };
 use rooibos::reactive::effect::Effect;
 use rooibos::reactive::signal::{signal, RwSignal};
@@ -52,7 +52,7 @@ fn counter(
             .render(text!("x".red())),
         wgt!(
             props(width!(10.)),
-            Paragraph::new(format!("count: {}", count.get())).block(block.get())
+            Paragraph::new(line!("count: ".bold(), span!(count.get()).cyan())).block(block.get())
         )
         .on_click(move |_, _| update_count(1))
         .id(id.to_string())

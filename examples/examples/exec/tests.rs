@@ -31,12 +31,6 @@ async fn test_exec() {
     assert_snapshot!(harness.terminal());
 
     harness.send_key(KeyCode::Enter);
-    harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
-        .await
-        .unwrap();
-
-    harness.send_key(KeyCode::Char('e'));
 
     // Wait for process to finish
     harness
@@ -44,13 +38,7 @@ async fn test_exec() {
         .await
         .unwrap();
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
-        .await
-        .unwrap();
-
-    harness.send_key(KeyCode::Enter);
-    harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 2"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("Open Editor"))
         .await
         .unwrap();
 

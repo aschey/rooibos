@@ -5,9 +5,9 @@ expression: harness.terminal().backend().buffer()
 Buffer {
     area: Rect { x: 0, y: 0, width: 40, height: 10 },
     content: [
-        "count: 0. Press 'e' to open your editor.",
-        "                                        ",
-        "                                        ",
+        "╭──────────────────╮                    ",
+        "│    Open Editor   │                    ",
+        "╰──────────────────╯                    ",
         "                                        ",
         "                                        ",
         "                                        ",
@@ -17,6 +17,13 @@ Buffer {
         "                                        ",
     ],
     styles: [
-        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 0, y: 0, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 20, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 0, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 1, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 19, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 20, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 0, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 20, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
     ]
 }

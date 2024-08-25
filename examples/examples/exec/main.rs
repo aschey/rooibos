@@ -1,11 +1,12 @@
 use std::env;
 
-use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::components::Button;
+use rooibos::dom::layout::chars;
+use rooibos::dom::{text, Render, UpdateLayoutProps};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{exec, Runtime};
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -18,27 +19,15 @@ async fn main() -> Result<()> {
 }
 
 fn app(editor: String, args: Vec<String>) -> impl Render {
-    let (count, set_count) = signal(0);
-
-    let update_count = move || set_count.update(|c| *c += 1);
-
-    let key_down = move |key_event: KeyEvent, _| {
-        if key_event.code == KeyCode::Enter {
-            update_count();
-        }
-        if key_event.code == KeyCode::Char('e') {
+    Button::new()
+        .width(chars(20.))
+        .height(chars(3.))
+        .on_click(move || {
             let mut cmd = tokio::process::Command::new(&editor);
             cmd.args(&args);
             exec(cmd, |_, _, _| {});
-        }
-    };
-
-    wgt!(format!(
-        "count: {}. Press 'e' to open your editor.",
-        count.get()
-    ))
-    .on_key_down(key_down)
-    .on_click(move |_, _| update_count())
+        })
+        .render(text!("Open Editor"))
 }
 
 #[cfg(test)]
