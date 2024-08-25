@@ -3,7 +3,7 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use taffy::Display;
 
-use super::{with_nodes_mut, with_state_mut, DomNode};
+use super::{with_nodes_mut, DomNode};
 use crate::derive_signal;
 
 pub trait Property {
@@ -212,9 +212,6 @@ impl Property for Disabled {
             with_nodes_mut(|nodes| {
                 nodes.set_disabled(key, self.0.get());
             });
-            if self.0.get() {
-                with_state_mut(|s| s.unset_state(&key))
-            }
         })
     }
 

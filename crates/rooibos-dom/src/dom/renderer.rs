@@ -78,7 +78,6 @@ impl Renderer for RooibosDom {
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
         unmount_child(child.key(), true);
-
         Some(child.clone())
     }
 

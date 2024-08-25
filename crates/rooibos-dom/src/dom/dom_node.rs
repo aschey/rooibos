@@ -15,7 +15,6 @@ use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::dom_state::{self, with_state_mut, DomState};
 use super::node_tree::{tree_is_accessible, DomNodeKey, NodeTree};
 use super::{unmount_child, with_nodes, with_nodes_mut, RooibosDom};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role};
@@ -315,13 +314,14 @@ impl DomNodeRepr {
     }
 
     pub fn focus(&self) {
-        let found_node = with_nodes(|nodes| {
-            nodes
+        with_nodes_mut(|nodes| {
+            let found_node = nodes
                 .iter_nodes()
-                .find_map(|(key, _)| if key == self.key { Some(key) } else { None })
-        })
-        .unwrap();
-        dom_state::set_focused(found_node);
+                .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
+            if let Some(found_node) = found_node {
+                nodes.set_focused(found_node);
+            }
+        });
     }
 }
 
@@ -363,7 +363,6 @@ struct RenderProps<'a> {
     window: Rect,
     key: DomNodeKey,
     dom_nodes: &'a NodeTree,
-    dom_state: &'a mut DomState,
 }
 
 impl DomNodeInner {
@@ -373,14 +372,13 @@ impl DomNodeInner {
             window,
             key,
             dom_nodes,
-            dom_state,
         } = props;
 
         let prev_rect = *self.rect.borrow();
         let rect = dom_nodes.rect(key);
 
         if self.focusable {
-            dom_state.add_focusable(key);
+            dom_nodes.add_focusable(key);
         }
 
         if self.clear {
@@ -399,7 +397,6 @@ impl DomNodeInner {
                         window,
                         key: *key,
                         dom_nodes,
-                        dom_state,
                     });
                 });
             }
@@ -665,14 +662,11 @@ impl DomNode {
 
     pub(crate) fn render(&self, buf: &mut Buffer, rect: Rect) {
         with_nodes(|nodes| {
-            with_state_mut(|state| {
-                nodes[self.key].render(RenderProps {
-                    buf,
-                    window: rect,
-                    key: self.key,
-                    dom_nodes: nodes,
-                    dom_state: state,
-                });
+            nodes[self.key].render(RenderProps {
+                buf,
+                window: rect,
+                key: self.key,
+                dom_nodes: nodes,
             });
         });
     }

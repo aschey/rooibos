@@ -6,11 +6,10 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 pub use any_view::*;
 pub use children::*;
 pub use dom_node::*;
-pub use dom_state::*;
 pub use dom_widget::*;
 pub use focus::*;
 pub use into_view::*;
-use node_tree::{with_nodes, with_nodes_mut, DomNodeKey, NodeTree};
+pub use node_tree::*;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::text::Line;
@@ -27,7 +26,6 @@ mod any_view;
 mod children;
 pub mod div;
 mod dom_node;
-mod dom_state;
 mod dom_widget;
 pub mod flex_node;
 mod focus;
@@ -68,10 +66,10 @@ pub fn dom_update_receiver() -> DomUpdateReceiver {
 }
 
 fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
-    with_state_mut(|s| {
-        s.unset_state(node);
+    let children = with_nodes_mut(|nodes| {
+        nodes.unset_state(node);
+        nodes[*node].children.clone()
     });
-    let children = with_nodes(|nodes| nodes[*node].children.clone());
 
     for child in children {
         cleanup_removed_nodes(&child, remove);
@@ -167,13 +165,13 @@ where
 }
 
 pub fn unmount() {
-    reset_state();
+    // reset_state();
     with_nodes_mut(|d| *d = NodeTree::new());
 }
 
 pub fn render_dom(buf: &mut Buffer) {
     if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
-        with_state(|s| s.set_window_size(buf.area));
+        with_nodes(|nodes| nodes.set_window_size(buf.area));
     }
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
@@ -181,10 +179,9 @@ pub fn render_dom(buf: &mut Buffer) {
     } else {
         with_nodes_mut(|nodes| {
             nodes.recompute_layout(buf.area);
+            nodes.clear_focusables();
         });
-        with_state_mut(|state| {
-            state.clear_focusables();
-        });
+
         let roots = with_nodes(|nodes| nodes.roots_asc());
         for root in roots {
             root.render(buf, buf.area);
@@ -194,26 +191,26 @@ pub fn render_dom(buf: &mut Buffer) {
 
 pub fn focus(id: impl Into<NodeId>) {
     let id = id.into();
-    let node = with_nodes(|d| {
-        d.iter_nodes().find_map(|(k, v)| {
+    with_nodes_mut(|nodes| {
+        let node = nodes.iter_nodes().find_map(|(k, v)| {
             if v.inner.id.as_ref() == Some(&id) {
                 Some(k)
             } else {
                 None
             }
-        })
+        });
+        if let Some(node) = node {
+            nodes.set_focused(node);
+        }
     });
-    if let Some(node) = node {
-        dom_state::set_focused(node);
-    }
 }
 
 pub fn use_focused_node() -> ReadSignal<Option<NodeId>> {
-    with_state(|s| s.focused())
+    with_nodes(|nodes| nodes.focused())
 }
 
 pub fn use_window_size() -> ReadSignal<Rect> {
-    with_state(|s| s.window_size())
+    with_nodes(|nodes| nodes.window_size())
 }
 
 struct ClickEvent {
@@ -234,7 +231,7 @@ pub fn send_event(event: Event) {
             {
                 PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
                 refresh_dom();
-            } else if let Some(key) = with_state(|s| s.focused_key()) {
+            } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
                 match key_event.kind {
                     KeyEventKind::Press | KeyEventKind::Repeat => {
                         let (rect, mut on_key_down) = with_nodes(|nodes| {
@@ -314,14 +311,13 @@ pub fn send_event(event: Event) {
                     key,
                 }) = current.as_ref()
                 {
-                    let set_focus = with_nodes(|nodes| {
-                        with_state(|state| {
-                            state.focused_key() != Some(*key) && nodes[*key].focusable
-                        })
+                    with_nodes_mut(|nodes| {
+                        let set_focus = nodes.focused_key() != Some(*key) && nodes[*key].focusable;
+                        if set_focus {
+                            nodes.set_focused(*key);
+                        }
                     });
-                    if set_focus {
-                        dom_state::set_focused(*key);
-                    }
+
                     if let Some(on_click) = on_click {
                         #[cfg(debug_assertions)]
                         let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
@@ -360,13 +356,15 @@ pub fn send_event(event: Event) {
                 });
 
                 if let Some(current) = current {
-                    let set_focus = with_state(|state| state.hovered_key() != Some(current));
-                    if set_focus {
-                        dom_state::set_hovered(current);
-                    }
+                    with_nodes_mut(|nodes| {
+                        let set_focus = nodes.hovered_key() != Some(current);
+                        if set_focus {
+                            nodes.set_hovered(current);
+                        }
+                    });
                 } else {
-                    with_state_mut(|s| {
-                        s.remove_hovered();
+                    with_nodes_mut(|nodes| {
+                        nodes.remove_hovered();
                     });
                 }
             }
@@ -376,7 +374,7 @@ pub fn send_event(event: Event) {
             MouseEventKind::ScrollRight => {}
         },
         Event::Paste(val) => {
-            if let Some(key) = with_state(|s| s.focused_key()) {
+            if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
                 let (rect, on_paste) = with_nodes(|nodes| {
                     (
                         *nodes[key].rect.borrow(),
@@ -399,19 +397,19 @@ pub fn send_event(event: Event) {
 
 pub fn focus_id(id: impl Into<NodeId>) {
     let id = id.into();
-    let found_node = with_nodes(|nodes| {
-        nodes.iter_nodes().find_map(|(key, node)| {
+    with_nodes_mut(|nodes| {
+        let found_node = nodes.iter_nodes().find_map(|(key, node)| {
             if let Some(current_id) = &node.inner.id {
                 if &id == current_id {
                     return Some(key);
                 }
             }
             None
-        })
+        });
+        if let Some(found_node) = found_node {
+            nodes.set_focused(found_node);
+        }
     });
-    if let Some(found_node) = found_node {
-        dom_state::set_focused(found_node);
-    }
 }
 
 pub fn after_render_async(fut: impl Future<Output = ()> + 'static) {
