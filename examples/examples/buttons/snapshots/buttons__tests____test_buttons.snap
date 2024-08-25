@@ -1,16 +1,16 @@
 ---
-source: examples/examples/buttons/./tests.rs
+source: examples/examples/buttons/tests.rs
 expression: harness.terminal().backend().buffer()
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 20, height: 10 },
     content: [
-        "╭──────────────────╮",
-        "│     count: 0     │",
-        "╰──────────────────╯",
-        "╭──────────────────╮",
-        "│     count: 0     │",
-        "╰──────────────────╯",
+        "╭──────────╮  10 x 5",
+        "│  bigger  │        ",
+        "╰──────────╯        ",
+        "╭──────────╮        ",
+        "│  smaller │        ",
+        "╰──────────╯        ",
         "                    ",
         "                    ",
         "                    ",
@@ -18,10 +18,29 @@ Buffer {
     ],
     styles: [
         x: 0, y: 0, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 12, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 14, y: 0, fg: Reset, bg: Rgb(64, 80, 48), underline: Reset, modifier: NONE,
+        x: 0, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
         x: 1, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 19, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 3, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
+        x: 9, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 11, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 12, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 14, y: 1, fg: Reset, bg: Rgb(64, 80, 48), underline: Reset, modifier: NONE,
+        x: 0, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 12, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 14, y: 2, fg: Reset, bg: Rgb(64, 80, 48), underline: Reset, modifier: NONE,
+        x: 0, y: 3, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 12, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 14, y: 3, fg: Reset, bg: Rgb(64, 80, 48), underline: Reset, modifier: NONE,
+        x: 0, y: 4, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
         x: 1, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 19, y: 4, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 0, y: 6, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 3, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
+        x: 10, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 11, y: 4, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 12, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 14, y: 4, fg: Reset, bg: Rgb(64, 80, 48), underline: Reset, modifier: NONE,
+        x: 0, y: 5, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 12, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
     ]
 }

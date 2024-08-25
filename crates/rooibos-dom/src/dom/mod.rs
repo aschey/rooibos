@@ -69,9 +69,8 @@ pub fn dom_update_receiver() -> DomUpdateReceiver {
 
 fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
     with_state_mut(|s| {
-        s.cleanup_before_remove(node);
+        s.unset_state(node);
     });
-    dom_state::remove_hovered();
     let children = with_nodes(|nodes| nodes[*node].children.clone());
 
     for child in children {
@@ -178,9 +177,7 @@ pub fn render_dom(buf: &mut Buffer) {
     }
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
-        // crossterm::terminal::disable_raw_mode().unwrap();
         print_dom().render_ref(buf.area, buf);
-        // with_nodes_mut(|n| n.print_layout_tree());
     } else {
         with_nodes_mut(|nodes| {
             nodes.recompute_layout(buf.area);
@@ -279,6 +276,10 @@ pub fn send_event(event: Event) {
                     for root in nodes.roots_desc() {
                         let found = root.key().traverse(
                             |key, inner| {
+                                if inner.disabled {
+                                    return None;
+                                }
+
                                 let rect = inner.rect.borrow();
                                 if rect.contains(Position {
                                     x: mouse_event.column,
@@ -335,6 +336,10 @@ pub fn send_event(event: Event) {
                     for root in nodes.roots_desc() {
                         let found = root.key().traverse(
                             |key, inner| {
+                                if inner.disabled {
+                                    return None;
+                                }
+
                                 if inner.rect.borrow().contains(Position {
                                     x: mouse_event.column,
                                     y: mouse_event.row,
@@ -360,7 +365,9 @@ pub fn send_event(event: Event) {
                         dom_state::set_hovered(current);
                     }
                 } else {
-                    dom_state::remove_hovered();
+                    with_state_mut(|s| {
+                        s.remove_hovered();
+                    });
                 }
             }
             MouseEventKind::ScrollDown => {}

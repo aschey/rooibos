@@ -342,6 +342,7 @@ pub struct DomNodeInner {
     pub(crate) z_index: Option<i32>,
     pub(crate) block: Option<Block<'static>>,
     pub(crate) clear: bool,
+    pub(crate) disabled: bool,
     pub(crate) unmounted: Arc<AtomicBool>,
 }
 

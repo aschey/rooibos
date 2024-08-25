@@ -3,7 +3,7 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use taffy::Display;
 
-use super::{with_nodes_mut, DomNode};
+use super::{with_nodes_mut, with_state_mut, DomNode};
 use crate::derive_signal;
 
 pub trait Property {
@@ -188,6 +188,33 @@ impl Property for Focusable {
             with_nodes_mut(|nodes| {
                 nodes.set_focusable(key, self.0.get());
             });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
+pub struct Disabled(pub(crate) MaybeSignal<bool>);
+
+pub fn disabled(disabled: impl Into<MaybeSignal<bool>>) -> Disabled {
+    Disabled(disabled.into())
+}
+
+impl Property for Disabled {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.key();
+        RenderEffect::new(move |_| {
+            with_nodes_mut(|nodes| {
+                nodes.set_disabled(key, self.0.get());
+            });
+            if self.0.get() {
+                with_state_mut(|s| s.unset_state(&key))
+            }
         })
     }
 

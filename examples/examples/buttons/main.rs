@@ -1,11 +1,15 @@
 use rooibos::components::Button;
-use rooibos::dom::layout::chars;
-use rooibos::dom::{col, derive_signal, height, line, row, span, Render, UpdateLayoutProps};
+use rooibos::dom::{col, derive_signal, height, padding_right, row, text, wgt, width, Render};
 use rooibos::reactive::signal::signal;
 use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::tui::style::{Color, Stylize};
+use rooibos::tui::text::Span;
+use rooibos::tui::widgets::Paragraph;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -15,18 +19,55 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+const MIN_SIZE: f32 = 3.;
+const MAX_SIZE: f32 = 15.;
+
 fn app() -> impl Render {
-    col![counter_button(), counter_button()]
+    let (block_height, set_block_height) = signal(5.);
+    let block_width = derive_signal!(block_height.get() * 2.);
+
+    let adjust_size = move |factor: f32| {
+        set_block_height.update(|b| {
+            *b += 1. * factor;
+        });
+    };
+
+    row![
+        col![
+            props(width!(20.), padding_right!(2.)),
+            button(
+                "bigger".bold(),
+                derive_signal!(block_height.get() >= MAX_SIZE),
+                move || adjust_size(1.)
+            ),
+            button(
+                "smaller".bold(),
+                derive_signal!(block_height.get() <= MIN_SIZE),
+                move || adjust_size(-1.)
+            )
+        ],
+        wgt!(
+            props(width!(block_width), height!(block_height)),
+            Paragraph::new(format!("{} x {}", block_width.get(), block_height.get()))
+                .centered()
+                .bg({
+                    let h = block_height.get() as f64;
+                    Color::from_hsl(18.0 * h, 5.0 * h, 5.0 * h)
+                })
+        )
+    ]
 }
 
-fn counter_button() -> impl Render {
-    let (count, set_count) = signal(0);
+fn button<F>(title: Span<'static>, disabled: Signal<bool>, on_click: F) -> impl Render
+where
+    F: Fn() + Clone + 'static,
+{
     row![
         props(height!(3.)),
         Button::new()
-            .width(chars(20.))
-            .on_click(move || set_count.update(|c| *c += 1))
-            .render(derive_signal!(line!("count: ", span!(count.get())).into()))
+            .disabled(disabled)
+            .on_click(on_click)
+            .render(text!(title))
     ]
 }
 #[cfg(test)]

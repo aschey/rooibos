@@ -2,7 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Style, Stylize};
+use ratatui::symbols;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
 use reactive_graph::signal::RwSignal;
@@ -19,6 +20,7 @@ pub struct Button {
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
+    disabled: MaybeSignal<bool>,
     id: Option<NodeId>,
     class: Option<String>,
 }
@@ -48,6 +50,7 @@ impl Button {
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
+            disabled: false.into(),
             id: None,
             class: None,
         }
@@ -65,6 +68,11 @@ impl Button {
 
     pub fn class(mut self, class: impl Into<String>) -> Self {
         self.class = Some(class.into());
+        self
+    }
+
+    pub fn disabled(mut self, disabled: impl Into<MaybeSignal<bool>>) -> Self {
+        self.disabled = disabled.into();
         self
     }
 
@@ -107,6 +115,7 @@ impl Button {
             border_color,
             focused_border_color,
             active_border_color,
+            disabled,
             id,
             class,
         } = self;
@@ -143,16 +152,34 @@ impl Button {
                 widget_state.set(WidgetState::Focused);
             }
         };
+
         let children = children.into();
         let mut button = wgt![
             rooibos_dom::Button::new(children.get())
-                .block(
+                .block(if disabled.get() {
                     Block::bordered()
+                        .bg(Color::Reset)
+                        .border_set(symbols::border::QUADRANT_INSIDE)
+                        .fg(Color::DarkGray)
+                } else {
+                    Block::bordered()
+                        .bg(Color::Reset)
                         .border_type(border_type.get())
                         .border_style(Style::default().fg(current_border_color.get()))
-                )
+                })
+                .fg(if disabled.get() {
+                    Color::Gray
+                } else {
+                    Color::Reset
+                })
+                .bg(if disabled.get() {
+                    Color::DarkGray
+                } else {
+                    Color::Reset
+                })
                 .centered()
         ]
+        .disabled(disabled)
         .layout_props(layout_props)
         .on_mouse_enter(move |_| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))

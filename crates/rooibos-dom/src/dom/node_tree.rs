@@ -434,6 +434,7 @@ impl NodeTree {
             original_display,
             block,
             clear,
+            disabled,
             z_index: _z_index,
             unmounted: _unmounted,
         } = &self.dom_nodes[old_key].inner;
@@ -448,6 +449,7 @@ impl NodeTree {
         let original_display = *original_display;
         let block = block.clone();
         let clear = *clear;
+        let disabled = *disabled;
 
         let new = &mut self.dom_nodes[new_key].inner;
 
@@ -461,6 +463,7 @@ impl NodeTree {
         new.original_display = original_display;
         new.block = block;
         new.clear = clear;
+        new.disabled = disabled;
         // self.dom_nodes[new_key].layout_id = layout_id;
     }
 
@@ -470,6 +473,12 @@ impl NodeTree {
 
     pub(crate) fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
         self.dom_nodes[node].inner.focusable = focusable;
+        refresh_dom();
+    }
+
+    pub(crate) fn set_disabled(&mut self, node: DomNodeKey, disabled: bool) {
+        self.dom_nodes[node].inner.disabled = disabled;
+        refresh_dom();
     }
 
     pub(crate) fn update_event_handlers<F>(&mut self, node: DomNodeKey, update: F)

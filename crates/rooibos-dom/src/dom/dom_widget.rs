@@ -19,7 +19,7 @@ use super::layout::{
     margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
     padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
     AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Clear, Focusable, Grow, Height, Margin, MarginBottom, MarginLeft,
+    BorderX, BorderY, Clear, Disabled, Focusable, Grow, Height, Margin, MarginBottom, MarginLeft,
     MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
     PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
     Shrink, UpdateLayout, Width,
@@ -41,6 +41,7 @@ pub trait WidgetProperty: Property {}
 impl WidgetProperty for () {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
+impl WidgetProperty for Disabled {}
 
 #[derive(Clone)]
 pub struct DomWidgetNode {
@@ -165,6 +166,16 @@ where
         DomWidget {
             inner: self.inner,
             properties: self.properties.next_tuple(Focusable(focusable.into())),
+        }
+    }
+
+    pub fn disabled<S>(self, disabled: S) -> DomWidget<P::Output<Disabled>>
+    where
+        S: Into<MaybeSignal<bool>>,
+    {
+        DomWidget {
+            inner: self.inner,
+            properties: self.properties.next_tuple(Disabled(disabled.into())),
         }
     }
 

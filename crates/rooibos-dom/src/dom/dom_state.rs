@@ -65,13 +65,12 @@ impl DomState {
         &self.focusable_nodes
     }
 
-    pub(crate) fn cleanup_before_remove(&mut self, key: &DomNodeKey) {
+    pub(crate) fn unset_state(&mut self, key: &DomNodeKey) {
         if self.focused_key == Some(*key) {
-            self.focused_key = None;
-            self.set_focused.set(None);
+            self.remove_focused();
         }
         if self.hovered_key == Some(*key) {
-            self.hovered_key = None;
+            self.remove_hovered();
         }
         if let Some(pos) = self.focusable_nodes.iter().position(|n| n == key) {
             self.focusable_nodes.remove(pos);
@@ -83,7 +82,47 @@ impl DomState {
     }
 
     pub(crate) fn add_focusable(&mut self, key: DomNodeKey) {
+        let disabled = with_nodes(|nodes| nodes[key].disabled);
+        if disabled {
+            return;
+        }
+
         self.focusable_nodes.push(key);
+    }
+
+    pub(crate) fn remove_hovered(&mut self) {
+        if let Some(hovered_key) = self.hovered_key {
+            let (rect, mut on_mouse_leave) = with_nodes(|nodes| {
+                (
+                    *nodes[hovered_key].rect.borrow(),
+                    nodes[hovered_key].event_handlers.on_mouse_leave.clone(),
+                )
+            });
+            if let Some(on_mouse_leave) = &mut on_mouse_leave {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                on_mouse_leave.borrow_mut()(EventData { rect });
+            }
+        }
+        self.hovered_key = None;
+    }
+
+    fn remove_focused(&mut self) {
+        if let Some(focused_key) = self.focused_key {
+            let (rect, mut on_blur) = with_nodes(|nodes| {
+                (
+                    *nodes[focused_key].rect.borrow(),
+                    nodes[focused_key].event_handlers.on_blur.clone(),
+                )
+            });
+            if let Some(on_blur) = &mut on_blur {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                on_blur.borrow_mut()(BlurEvent { new_target: None }, EventData { rect });
+            }
+        }
+        self.set_focused.set(None);
+        self.focused_key = None;
     }
 }
 
@@ -184,24 +223,6 @@ pub(crate) fn set_hovered(node_key: DomNodeKey) {
         let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
         on_mouse_enter.borrow_mut()(EventData { rect });
     }
-}
-
-pub(crate) fn remove_hovered() {
-    let hovered_key = with_state(|state| state.hovered_key);
-    if let Some(hovered_key) = hovered_key {
-        let (rect, mut on_mouse_leave) = with_nodes(|nodes| {
-            (
-                *nodes[hovered_key].rect.borrow(),
-                nodes[hovered_key].event_handlers.on_mouse_leave.clone(),
-            )
-        });
-        if let Some(on_mouse_leave) = &mut on_mouse_leave {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            on_mouse_leave.borrow_mut()(EventData { rect });
-        }
-    }
-    with_state_mut(|state| state.hovered_key = None);
 }
 
 pub fn focus_next() {
