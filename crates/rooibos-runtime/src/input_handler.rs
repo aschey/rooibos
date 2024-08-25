@@ -4,7 +4,7 @@ use std::sync::Arc;
 use background_service::ServiceContext;
 use rooibos_dom::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 use tokio::sync::broadcast;
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::debounce::Debouncer;
 use crate::{has_external_signal_stream, IsQuitEvent, RuntimeCommand};
@@ -34,12 +34,12 @@ impl InputHandler {
             _ = self.context.cancelled() => {
                 return false;
             }
-            pending_move = self.hover_debouncer.next_value() => {
+            Some(pending_move) = self.hover_debouncer.next_value() => {
                 let _ = self.term_event_tx
                     .send(pending_move)
                     .inspect_err(|e| warn!("error sending mouse move {e:?}"));
             }
-            pending_resize = self.resize_debouncer.next_value() => {
+            Some(pending_resize) = self.resize_debouncer.next_value() => {
                 let _ = self.term_event_tx
                     .send(pending_resize)
                     .inspect_err(|e| warn!("error sending resize event {e:?}"));
@@ -63,10 +63,18 @@ impl InputHandler {
                     ..
                 }),
             ) => {
-                self.hover_debouncer.update(mouse_event).await;
+                let _ = self
+                    .hover_debouncer
+                    .update(mouse_event)
+                    .await
+                    .inspect_err(|e| error!("error debouncing hover event: {e:?}"));
             }
             Ok(resize_event @ Event::Resize(_, _)) => {
-                self.resize_debouncer.update(resize_event).await;
+                let _ = self
+                    .resize_debouncer
+                    .update(resize_event)
+                    .await
+                    .inspect_err(|e| error!("error debouncing resize event: {e:?}"));
             }
             Ok(event) => {
                 self.term_event_tx.send(event).ok();

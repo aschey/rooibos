@@ -37,7 +37,7 @@ impl<T> Debouncer<T> {
                 loop {
                     let timeout = wasm_compat::sleep(debounce_time);
                     tokio::select! {
-                        _ = update_rx.recv() => {},
+                        Some(_) = update_rx.recv() => {},
                         _ = timeout => {
                             if has_value.load(Ordering::Relaxed) {
                                 let _ = ready_tx
@@ -63,21 +63,16 @@ impl<T> Debouncer<T> {
         }
     }
 
-    pub(crate) async fn update(&mut self, value: T) {
+    pub(crate) async fn update(&mut self, value: T) -> Result<(), mpsc::error::SendError<()>> {
         self.pending = Some(value);
         self.has_value.store(true, Ordering::Relaxed);
-        self.update_tx
-            .send(())
-            .await
-            .expect("debouncer task cancelled");
+        self.update_tx.send(()).await?;
+        Ok(())
     }
 
-    pub(crate) async fn next_value(&mut self) -> T {
-        self.ready_rx
-            .recv()
-            .await
-            .expect("debouncer task cancelled");
+    pub(crate) async fn next_value(&mut self) -> Option<T> {
+        self.ready_rx.recv().await?;
         self.has_value.store(false, Ordering::Relaxed);
-        self.pending.take().unwrap()
+        Some(self.pending.take().expect("value missing"))
     }
 }
