@@ -309,7 +309,7 @@ pub struct SetClipboard {
 #[cfg(feature = "clipboard")]
 impl SetClipboard {
     #[cfg(windows)]
-    pub fn new(content: &str, kind: ClipboardKind) -> Self {
+    pub fn new(content: &str, kind: super::ClipboardKind) -> Self {
         Self {
             payload: content.to_string(),
             kind,
