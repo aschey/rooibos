@@ -16,8 +16,10 @@ use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::node_tree::{tree_is_accessible, DomNodeKey, NodeTree};
-use super::{reset_mouse_position, unmount_child, with_nodes, with_nodes_mut, RooibosDom};
-use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role};
+use super::{unmount_child, with_nodes, with_nodes_mut, RooibosDom};
+use crate::{
+    dispatch_event, next_node_id, reset_mouse_position, DomWidgetNode, EventHandlers, Role,
+};
 
 pub trait AsDomNode {
     fn as_dom_node(&self) -> &DomNode;
@@ -310,7 +312,7 @@ impl DomNodeRepr {
             row: self.rect.y,
             modifiers: KeyModifiers::empty(),
         });
-        send_event(event);
+        dispatch_event(event);
     }
 
     pub fn focus(&self) {

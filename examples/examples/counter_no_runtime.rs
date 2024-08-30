@@ -8,7 +8,7 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use rooibos::dom::{
-    dom_update_receiver, focus_next, line, mount, render_dom, send_event, set_pixel_size,
+    dom_update_receiver, focus_next, line, mount, render_dom, dispatch_event, set_pixel_size,
     set_supports_keyboard_enhancement, span, unmount, wgt, Event, KeyCode, KeyEvent, KeyModifiers,
     Render,
 };
@@ -69,7 +69,7 @@ async fn run() -> Result<()> {
                         break;
                     }
 
-                    send_event(event)
+                    dispatch_event(event)
                 }
             }
             else => {

@@ -12,7 +12,7 @@ use ratatui::layout::Size;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
 use rooibos_dom::{
-    dom_update_receiver, focus_next, mount, render_dom, send_event, set_pixel_size, unmount,
+    dispatch_event, dom_update_receiver, focus_next, mount, render_dom, set_pixel_size, unmount,
     DomUpdateReceiver, Event, Render,
 };
 use tokio::sync::broadcast;
@@ -413,7 +413,7 @@ impl<B: Backend + 'static> Runtime<B> {
             }
             term_event = self.term_event_rx.recv() => {
                 if let Ok(term_event) = term_event {
-                    send_event(term_event);
+                    dispatch_event(term_event);
                 }
                 Ok(TickResult::Continue)
             }
