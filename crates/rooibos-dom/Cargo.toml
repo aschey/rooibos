@@ -12,9 +12,11 @@ reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7
 ] }
 tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b", features = [
     "reactive_graph",
+    "tracing",
 ] }
 any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b", features = [
     "tokio",
+    "tracing",
 ] }
 throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b" }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b" }

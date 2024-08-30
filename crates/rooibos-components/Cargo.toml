@@ -14,6 +14,7 @@ reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7
 crossterm = { version = "0.28.1", optional = true }
 tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b", features = [
     "reactive_graph",
+    "tracing",
 ] }
 rooibos-dom = { path = "../rooibos-dom" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
