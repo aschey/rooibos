@@ -1,0 +1,19 @@
+[package]
+name = "egui-desktop-test"
+version = "0.1.0"
+edition = "2021"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+crossterm = "0.28.1"
+futures = "0.3.30"
+rooibos = { path = "../../crates/rooibos", features = ["egui"] }
+tokio = { version = "1.38.1", features = ["rt-multi-thread", "macros"] }
+wasm-bindgen = "0.2.87"
+wasm-bindgen-futures = "0.4.37"
+
+
+[features]
+nightly = ["rooibos/nightly"]

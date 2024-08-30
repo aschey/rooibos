@@ -38,5 +38,11 @@ pub mod xterm_js {
     #[cfg(target_arch = "wasm32")]
     pub use rooibos_xterm_js::*;
 }
+
+#[cfg(feature = "egui")]
+pub mod egui {
+    pub use rooibos_egui::*;
+}
+
 pub use ratatui as tui;
 pub use rooibos_runtime_macros::*;

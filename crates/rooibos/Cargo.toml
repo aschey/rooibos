@@ -17,6 +17,7 @@ rooibos-tester = { path = "../rooibos-tester" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
+rooibos-egui = { path = "../rooibos-egui", optional = true }
 ratatui = { version = "0.28", features = ["unstable"] }
 
 [features]
@@ -49,4 +50,9 @@ input-search = ["rooibos-components/input-search"]
 terminal-widget = ["rooibos-components/terminal-widget"]
 input = ["rooibos-components/input", "rooibos-dom/input"]
 image = ["rooibos-components/image"]
-clipboard = ["rooibos-runtime/clipboard", "rooibos-ssh?/clipboard"]
+clipboard = [
+    "rooibos-runtime/clipboard",
+    "rooibos-ssh?/clipboard",
+    "rooibos-egui?/clipboard",
+]
+egui = ["rooibos-egui"]
