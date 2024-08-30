@@ -16,7 +16,7 @@ use tachys::view::{Mountable, Render};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::node_tree::{tree_is_accessible, DomNodeKey, NodeTree};
-use super::{unmount_child, with_nodes, with_nodes_mut, RooibosDom};
+use super::{reset_mouse_position, unmount_child, with_nodes, with_nodes_mut, RooibosDom};
 use crate::{next_node_id, send_event, DomWidgetNode, EventHandlers, Role};
 
 pub trait AsDomNode {
@@ -677,6 +677,7 @@ impl DomNode {
                 dom_nodes: nodes,
             });
         });
+        reset_mouse_position();
     }
 }
 

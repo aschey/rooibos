@@ -16,7 +16,7 @@ use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use reactive_graph::signal::ReadSignal;
 pub use renderer::*;
-use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEventKind};
+use terminput::{Event, KeyCode, KeyEventKind, KeyModifiers, MouseEvent, MouseEventKind};
 use tokio::sync::watch;
 use tracing::error;
 
@@ -37,6 +37,10 @@ mod renderer;
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
 static NODE_ID: AtomicU32 = AtomicU32::new(1);
+
+thread_local! {
+    static EVENT_EMITTER: RefCell<EventEmitter> = RefCell::new(EventEmitter::new())
+}
 
 pub(crate) fn next_node_id() -> u32 {
     NODE_ID.fetch_add(1, Ordering::SeqCst)
@@ -220,179 +224,215 @@ struct ClickEvent {
 }
 
 pub fn send_event(event: Event) {
-    match event {
-        Event::Key(key_event) => {
-            if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
-                focus_next();
-            } else if key_event.code == KeyCode::BackTab && key_event.kind == KeyEventKind::Press {
-                focus_prev();
-            } else if key_event.code == KeyCode::Char('x')
-                && key_event.modifiers.contains(KeyModifiers::CONTROL)
-            {
-                PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
-                refresh_dom();
-            } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
-                match key_event.kind {
-                    KeyEventKind::Press | KeyEventKind::Repeat => {
-                        let (rect, mut on_key_down) = with_nodes(|nodes| {
-                            (
-                                *nodes[key].rect.borrow(),
-                                nodes[key].event_handlers.on_key_down.clone(),
-                            )
-                        });
-                        if let Some(on_key_down) = &mut on_key_down {
-                            #[cfg(debug_assertions)]
-                            let _guard =
-                                reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                            on_key_down.borrow_mut()(key_event, EventData { rect });
+    EVENT_EMITTER.with(|e| e.borrow_mut().send_event(event))
+}
+
+pub(crate) fn reset_mouse_position() {
+    EVENT_EMITTER.with(|e| e.borrow_mut().reset_mouse_position())
+}
+
+struct EventEmitter {
+    last_mouse_position: MouseEvent,
+}
+
+impl EventEmitter {
+    fn new() -> Self {
+        Self {
+            last_mouse_position: MouseEvent {
+                kind: MouseEventKind::Moved,
+                column: u16::MAX,
+                row: u16::MAX,
+                modifiers: KeyModifiers::empty(),
+            },
+        }
+    }
+
+    fn reset_mouse_position(&mut self) {
+        self.send_event(Event::Mouse(self.last_mouse_position))
+    }
+
+    fn send_event(&mut self, event: Event) {
+        match event {
+            Event::Key(key_event) => {
+                if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
+                    focus_next();
+                } else if key_event.code == KeyCode::BackTab
+                    && key_event.kind == KeyEventKind::Press
+                {
+                    focus_prev();
+                } else if key_event.code == KeyCode::Char('x')
+                    && key_event.modifiers.contains(KeyModifiers::CONTROL)
+                {
+                    PRINT_DOM.with(|p| p.swap(!p.load(Ordering::Relaxed), Ordering::Relaxed));
+                    refresh_dom();
+                } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
+                    match key_event.kind {
+                        KeyEventKind::Press | KeyEventKind::Repeat => {
+                            let (rect, mut on_key_down) = with_nodes(|nodes| {
+                                (
+                                    *nodes[key].rect.borrow(),
+                                    nodes[key].event_handlers.on_key_down.clone(),
+                                )
+                            });
+                            if let Some(on_key_down) = &mut on_key_down {
+                                #[cfg(debug_assertions)]
+                                let _guard =
+                                    reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                                on_key_down.borrow_mut()(key_event, EventData { rect });
+                            }
                         }
-                    }
-                    KeyEventKind::Release => {
-                        let (rect, mut on_key_up) = with_nodes(|nodes| {
-                            (
-                                *nodes[key].rect.borrow(),
-                                nodes[key].event_handlers.on_key_up.clone(),
-                            )
-                        });
-                        if let Some(on_key_up) = &mut on_key_up {
-                            #[cfg(debug_assertions)]
-                            let _guard =
-                                reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                            on_key_up.borrow_mut()(key_event, EventData { rect });
+                        KeyEventKind::Release => {
+                            let (rect, mut on_key_up) = with_nodes(|nodes| {
+                                (
+                                    *nodes[key].rect.borrow(),
+                                    nodes[key].event_handlers.on_key_up.clone(),
+                                )
+                            });
+                            if let Some(on_key_up) = &mut on_key_up {
+                                #[cfg(debug_assertions)]
+                                let _guard =
+                                    reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                                on_key_up.borrow_mut()(key_event, EventData { rect });
+                            }
                         }
                     }
                 }
             }
-        }
-        Event::FocusGained => {}
-        Event::FocusLost => {}
-        Event::Mouse(mouse_event) => match mouse_event.kind {
-            MouseEventKind::Down(_) => {
-                let current = with_nodes(|nodes| {
-                    let current: Rc<RefCell<Option<ClickEvent>>> = Rc::new(RefCell::new(None));
-                    for root in nodes.roots_desc() {
-                        let found = root.key().traverse(
-                            |key, inner| {
-                                if inner.disabled {
-                                    return None;
-                                }
+            Event::FocusGained => {}
+            Event::FocusLost => {}
+            Event::Mouse(mouse_event) => match mouse_event.kind {
+                MouseEventKind::Down(_) => {
+                    let current = with_nodes(|nodes| {
+                        let current: Rc<RefCell<Option<ClickEvent>>> = Rc::new(RefCell::new(None));
+                        for root in nodes.roots_desc() {
+                            let found = root.key().traverse(
+                                |key, inner| {
+                                    if inner.disabled {
+                                        return None;
+                                    }
 
-                                let rect = inner.rect.borrow();
-                                if rect.contains(Position {
-                                    x: mouse_event.column,
-                                    y: mouse_event.row,
-                                }) {
-                                    if inner.focusable || inner.event_handlers.on_click.is_some() {
-                                        *current.borrow_mut() = Some(ClickEvent {
-                                            on_click: inner.event_handlers.on_click.clone(),
-                                            rect: *rect,
-                                            key,
-                                        });
+                                    let rect = inner.rect.borrow();
+                                    if rect.contains(Position {
+                                        x: mouse_event.column,
+                                        y: mouse_event.row,
+                                    }) {
+                                        if inner.focusable
+                                            || inner.event_handlers.on_click.is_some()
+                                        {
+                                            *current.borrow_mut() = Some(ClickEvent {
+                                                on_click: inner.event_handlers.on_click.clone(),
+                                                rect: *rect,
+                                                key,
+                                            });
+                                        }
+                                        if inner.event_handlers.on_click.is_some() {
+                                            return Some(());
+                                        }
                                     }
-                                    if inner.event_handlers.on_click.is_some() {
-                                        return Some(());
-                                    }
-                                }
-                                None
-                            },
-                            true,
-                        );
-                        if !found.is_empty() {
-                            break;
+                                    None
+                                },
+                                true,
+                            );
+                            if !found.is_empty() {
+                                break;
+                            }
+                        }
+
+                        current
+                    });
+                    let current = current.borrow();
+                    if let Some(ClickEvent {
+                        on_click,
+                        rect,
+                        key,
+                    }) = current.as_ref()
+                    {
+                        with_nodes_mut(|nodes| {
+                            let set_focus =
+                                nodes.focused_key() != Some(*key) && nodes[*key].focusable;
+                            if set_focus {
+                                nodes.set_focused(*key);
+                            }
+                        });
+
+                        if let Some(on_click) = on_click {
+                            #[cfg(debug_assertions)]
+                            let _guard =
+                                reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                            on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
                         }
                     }
+                }
+                MouseEventKind::Up(_) => {}
+                MouseEventKind::Drag(_) => {}
+                MouseEventKind::Moved => {
+                    self.last_mouse_position = mouse_event;
+                    let current = with_nodes(|nodes| {
+                        for root in nodes.roots_desc() {
+                            let found = root.key().traverse(
+                                |key, inner| {
+                                    if inner.disabled {
+                                        return None;
+                                    }
 
-                    current
-                });
-                let current = current.borrow();
-                if let Some(ClickEvent {
-                    on_click,
-                    rect,
-                    key,
-                }) = current.as_ref()
-                {
-                    with_nodes_mut(|nodes| {
-                        let set_focus = nodes.focused_key() != Some(*key) && nodes[*key].focusable;
-                        if set_focus {
-                            nodes.set_focused(*key);
+                                    if inner.rect.borrow().contains(Position {
+                                        x: mouse_event.column,
+                                        y: mouse_event.row,
+                                    }) && inner.focusable
+                                    {
+                                        Some(key)
+                                    } else {
+                                        None
+                                    }
+                                },
+                                true,
+                            );
+                            if let Some(found) = found.first() {
+                                return Some(*found);
+                            }
                         }
+                        None
                     });
 
-                    if let Some(on_click) = on_click {
+                    if let Some(current) = current {
+                        with_nodes_mut(|nodes| {
+                            let set_focus = nodes.hovered_key() != Some(current);
+                            if set_focus {
+                                nodes.set_hovered(current);
+                            }
+                        });
+                    } else {
+                        with_nodes_mut(|nodes| {
+                            nodes.remove_hovered();
+                        });
+                    }
+                }
+                MouseEventKind::ScrollDown => {}
+                MouseEventKind::ScrollUp => {}
+                MouseEventKind::ScrollLeft => {}
+                MouseEventKind::ScrollRight => {}
+            },
+            Event::Paste(val) => {
+                if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
+                    let (rect, on_paste) = with_nodes(|nodes| {
+                        (
+                            *nodes[key].rect.borrow(),
+                            nodes[key].event_handlers.on_paste.clone(),
+                        )
+                    });
+                    if let Some(on_paste) = on_paste {
                         #[cfg(debug_assertions)]
                         let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                        on_click.borrow_mut()(mouse_event, EventData { rect: *rect });
+                        on_paste.borrow_mut()(val, EventData { rect });
                     }
                 }
             }
-            MouseEventKind::Up(_) => {}
-            MouseEventKind::Drag(_) => {}
-            MouseEventKind::Moved => {
-                let current = with_nodes(|nodes| {
-                    for root in nodes.roots_desc() {
-                        let found = root.key().traverse(
-                            |key, inner| {
-                                if inner.disabled {
-                                    return None;
-                                }
-
-                                if inner.rect.borrow().contains(Position {
-                                    x: mouse_event.column,
-                                    y: mouse_event.row,
-                                }) && inner.focusable
-                                {
-                                    Some(key)
-                                } else {
-                                    None
-                                }
-                            },
-                            true,
-                        );
-                        if let Some(found) = found.first() {
-                            return Some(*found);
-                        }
-                    }
-                    None
-                });
-
-                if let Some(current) = current {
-                    with_nodes_mut(|nodes| {
-                        let set_focus = nodes.hovered_key() != Some(current);
-                        if set_focus {
-                            nodes.set_hovered(current);
-                        }
-                    });
-                } else {
-                    with_nodes_mut(|nodes| {
-                        nodes.remove_hovered();
-                    });
-                }
+            Event::Resize(_, _) => {
+                PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
+                refresh_dom();
             }
-            MouseEventKind::ScrollDown => {}
-            MouseEventKind::ScrollUp => {}
-            MouseEventKind::ScrollLeft => {}
-            MouseEventKind::ScrollRight => {}
-        },
-        Event::Paste(val) => {
-            if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
-                let (rect, on_paste) = with_nodes(|nodes| {
-                    (
-                        *nodes[key].rect.borrow(),
-                        nodes[key].event_handlers.on_paste.clone(),
-                    )
-                });
-                if let Some(on_paste) = on_paste {
-                    #[cfg(debug_assertions)]
-                    let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                    on_paste.borrow_mut()(val, EventData { rect });
-                }
-            }
-        }
-        Event::Resize(_, _) => {
-            PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
-            refresh_dom();
-        }
-    };
+        };
+    }
 }
 
 pub fn focus_id(id: impl Into<NodeId>) {

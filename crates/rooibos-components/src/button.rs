@@ -121,7 +121,16 @@ impl Button {
         } = self;
 
         let border_type = RwSignal::new(BorderType::Rounded);
-        let widget_state = RwSignal::new(WidgetState::Default);
+        let focused = RwSignal::new(false);
+        let active = RwSignal::new(false);
+
+        let widget_state = derive_signal!(if active.get() {
+            WidgetState::Active
+        } else if focused.get() {
+            WidgetState::Focused
+        } else {
+            WidgetState::Default
+        });
 
         let current_border_color = derive_signal!({
             match widget_state.get() {
@@ -132,13 +141,11 @@ impl Button {
         });
 
         let on_enter = move || {
-            widget_state.set(WidgetState::Active);
+            active.set(true);
             if !supports_keyboard_enhancement() {
                 delay(Duration::from_millis(50), async move {
-                    // Need to use try_get here in case the button was already disposed
-                    if widget_state.try_get() == Some(WidgetState::Active) {
-                        widget_state.set(WidgetState::Focused);
-                    }
+                    // Need to use try_set here in case the button was already disposed
+                    active.try_set(false);
                 });
             }
             on_click.borrow_mut()()
@@ -149,7 +156,7 @@ impl Button {
                 return;
             }
             if key_event.code == KeyCode::Enter {
-                widget_state.set(WidgetState::Focused);
+                focused.set(true);
             }
         };
 
@@ -187,8 +194,8 @@ impl Button {
             let on_enter = on_enter.clone();
             move |_, _| on_enter()
         })
-        .on_focus(move |_, _| widget_state.set(WidgetState::Focused))
-        .on_blur(move |_, _| widget_state.set(WidgetState::Default))
+        .on_focus(move |_, _| focused.set(true))
+        .on_blur(move |_, _| focused.set(false))
         .on_key_down(move |key_event, _| {
             if key_event.code == KeyCode::Enter {
                 on_enter()

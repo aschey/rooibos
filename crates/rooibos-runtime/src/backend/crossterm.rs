@@ -19,7 +19,7 @@ use ratatui::{Terminal, Viewport};
 use tokio::sync::broadcast;
 use tracing::warn;
 
-use super::{Backend, ClipboardKind};
+use super::Backend;
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -258,7 +258,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         &self,
         terminal: &mut Terminal<Self::TuiBackend>,
         content: T,
-        clipboard_kind: ClipboardKind,
+        clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {
         execute!(
             terminal.backend_mut(),
@@ -303,7 +303,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
 pub struct SetClipboard {
     // The base64 encoded content for Unix and the raw content for Windows
     payload: String,
-    kind: ClipboardKind,
+    kind: super::ClipboardKind,
 }
 
 #[cfg(feature = "clipboard")]
@@ -317,7 +317,7 @@ impl SetClipboard {
     }
 
     #[cfg(not(windows))]
-    pub fn new(content: &str, kind: ClipboardKind) -> Self {
+    pub fn new(content: &str, kind: super::ClipboardKind) -> Self {
         use base64::prelude::*;
         Self {
             payload: BASE64_STANDARD.encode(content),
@@ -331,8 +331,8 @@ impl crossterm::Command for SetClipboard {
     fn write_ansi(&self, f: &mut impl std::fmt::Write) -> std::fmt::Result {
         // Send an OSC 52 set command: https://terminalguide.namepad.de/seq/osc-52/
         let kind = match &self.kind {
-            ClipboardKind::Clipboard => "c",
-            ClipboardKind::Primary => "p",
+            super::ClipboardKind::Clipboard => "c",
+            super::ClipboardKind::Primary => "p",
         };
         write!(f, "\x1b]52;{};{}\x1b\\", kind, &self.payload)
     }

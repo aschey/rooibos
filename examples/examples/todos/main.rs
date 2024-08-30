@@ -186,7 +186,7 @@ fn saving_popup() -> impl RenderAny {
 }
 
 fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl Render {
-    let editing = Signal::derive(move || editing_id.get() == Some(id));
+    let editing = derive_signal!(editing_id.get() == Some(id));
     let text = RwSignal::new(text);
 
     let add_edit_id = StoredValue::new(NodeId::new_auto());
