@@ -10,7 +10,7 @@ crossterm = { version = "0.28.1", features = [
 ], optional = true }
 futures-util = "0.3"
 rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b", features = [
     "tracing",
     "effects",
 ] }
@@ -31,7 +31,7 @@ termion = { version = "4", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.64"
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b", features = [
     "wasm-bindgen",
 ] }
 tokio = { version = "1.38.1", default-features = false, features = [
@@ -44,7 +44,7 @@ wasm-bindgen-futures = "0.4.37"
 console_error_panic_hook = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ceff827a7791cc49c859ed56ecf806e6ec27635b", features = [
     "tokio",
 ] }
 signal-hook = "0.3"
