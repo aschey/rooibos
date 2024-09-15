@@ -1,10 +1,6 @@
-use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::error::Error;
 use std::io::{stdout, Stdout};
-use std::rc::Rc;
-use std::sync::{LazyLock, OnceLock};
-use std::time::Duration;
 
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, EventStream};
 use crossterm::execute;
@@ -13,14 +9,16 @@ use crossterm::terminal::{
 };
 use futures::StreamExt;
 use ratatui::backend::CrosstermBackend;
-use ratatui::widgets::{Paragraph, Widget as _, WidgetRef};
+use ratatui::symbols::border;
+use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use ratatui::Terminal;
 use rooibos_dom2::{
-    dispatch_event, dom_update_receiver, focus_next, render_dom, with_nodes, with_nodes_mut,
-    AsDomNode, DomNode, DomWidgetNode,
+    dispatch_event, focus_next, render_dom, with_nodes, with_nodes_mut, AsDomNode, DomNode,
+    DomWidgetNode, NodeId,
 };
+use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
-use terminput::{Event, KeyCode, KeyEvent, KeyModifiers};
+use terminput::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton};
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -31,15 +29,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut app = Counters {
         counters: BTreeMap::new(),
         next_id: 0,
+        focused: false,
     };
-    let tx_ = tx.clone();
-    let view = app.view(move |msg| tx_.clone().try_send(msg).unwrap());
-    with_nodes_mut(|nodes| nodes.set_root(0, view));
+    let view = {
+        let tx = tx.clone();
+        app.view(move |msg| tx.clone().try_send(msg).unwrap())
+    };
+    with_nodes_mut(|nodes| {
+        nodes.set_root(0, view);
+    });
 
     terminal.draw(|frame| render_dom(frame.buffer_mut()))?;
-
     let mut event_reader = EventStream::new().fuse();
     focus_next();
+
     loop {
         tokio::select! {
             Some(msg) = rx.recv() => {
@@ -51,7 +54,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 with_nodes_mut(|nodes| {
                     nodes.set_root(0, view);
                     let prev_focused_key = prev_focused_id.and_then(|p| nodes.get_key(p));
-                    nodes.set_focused(prev_focused_key);
+
+                    nodes.set_focused_untracked(prev_focused_key);
                 });
 
                 terminal.draw(|frame| render_dom(frame.buffer_mut()))?;
@@ -113,16 +117,25 @@ enum Message {
         id: usize,
     },
     Add,
+    Focus,
+    Blur,
 }
 
 struct Counters {
     counters: BTreeMap<usize, Counter>,
     next_id: usize,
+    focused: bool,
 }
 
 impl Counters {
     fn update(&mut self, message: Message) {
         match message {
+            Message::Task {
+                task_message: TaskMessage::Delete,
+                id,
+            } => {
+                self.counters.retain(|_, c| c.id != id);
+            }
             Message::Task { task_message, id } => {
                 self.counters.get_mut(&id).unwrap().update(task_message);
             }
@@ -132,9 +145,16 @@ impl Counters {
                     Counter {
                         id: self.next_id,
                         count: 0,
+                        focused: false,
                     },
                 );
                 self.next_id += 1;
+            }
+            Message::Focus => {
+                self.focused = true;
+            }
+            Message::Blur => {
+                self.focused = false;
             }
         }
     }
@@ -143,18 +163,35 @@ impl Counters {
     where
         F: Fn(Message) + Clone + 'static,
     {
-        let col = {
+        let id: NodeId = "counter_holder".into();
+        let mut col = {
             let send = send.clone();
-            DomNode::flex_col().on_key_down(move |event, _, _| {
-                if let KeyEvent {
-                    code: KeyCode::Char('a'),
-                    ..
-                } = event
-                {
-                    send(Message::Add);
-                }
-            })
+            DomNode::flex_col()
+                .on_key_down({
+                    let send = send.clone();
+                    move |event, _, _| {
+                        if event.code == KeyCode::Char('a') {
+                            send(Message::Add);
+                        }
+                    }
+                })
+                .id(id.clone())
+                .on_focus({
+                    let send = send.clone();
+                    move |_, _| send(Message::Focus)
+                })
+                .on_blur(move |_, _| send(Message::Blur))
         };
+        if self.focused {
+            col = col.block(Block::bordered());
+        }
+
+        with_nodes_mut(|nodes| {
+            nodes.update_layout(col.key(), |layout| {
+                layout.padding = length(1.0);
+            })
+        });
+
         for (id, counter) in self.counters.iter() {
             let send = send.clone();
             let id = *id;
@@ -167,12 +204,16 @@ impl Counters {
 enum TaskMessage {
     Increment,
     Decrement,
+    Focus,
+    Blur,
+    Delete,
 }
 
 #[derive(Clone)]
 struct Counter {
     count: i32,
     id: usize,
+    focused: bool,
 }
 
 impl Counter {
@@ -184,29 +225,74 @@ impl Counter {
             TaskMessage::Decrement => {
                 self.count -= 1;
             }
+            TaskMessage::Focus => {
+                self.focused = true;
+            }
+            TaskMessage::Blur => {
+                self.focused = false;
+            }
+            TaskMessage::Delete => {
+                // handled by parent
+            }
         }
     }
 
     fn view<F>(&self, send: F) -> impl AsDomNode
     where
-        F: Fn(TaskMessage) + 'static,
+        F: Fn(TaskMessage) + Clone + 'static,
     {
         let model = self.clone();
+        let id: NodeId = format!("counter{}", self.id).into();
 
         let widget = DomWidgetNode::new::<Paragraph, _, _>(move || {
-            let paragraph = Paragraph::new(format!("count: {}", model.count));
+            let mut paragraph = Paragraph::new(format!("count: {}", model.count));
+            if model.focused {
+                paragraph = paragraph.block(Block::bordered());
+            } else {
+                paragraph = paragraph.block(Block::bordered().border_set(border::EMPTY))
+            }
+
             move |rect, buf| paragraph.render_ref(rect, buf)
         });
 
         let node = DomNode::widget(widget.clone())
-            .on_key_down(move |event, _, _| send(TaskMessage::Increment))
-            .id(format!("counter{}", self.id));
+            .on_key_down({
+                let send = send.clone();
+                move |event, _, _| match event.code {
+                    KeyCode::Char('+') => {
+                        send(TaskMessage::Increment);
+                    }
+                    KeyCode::Char('-') => {
+                        send(TaskMessage::Decrement);
+                    }
+                    KeyCode::Char('d') => {
+                        send(TaskMessage::Delete);
+                    }
+                    _ => {}
+                }
+            })
+            .on_click({
+                let send = send.clone();
+                move |event, _, _| {
+                    if event.mouse_button == MouseButton::Left {
+                        send(TaskMessage::Increment)
+                    } else {
+                        send(TaskMessage::Decrement)
+                    }
+                }
+            })
+            .id(id.clone())
+            .on_focus({
+                let send = send.clone();
+                move |_, _| send(TaskMessage::Focus)
+            })
+            .on_blur(move |_, _| send(TaskMessage::Blur));
 
         with_nodes_mut(|nodes| {
             nodes.update_layout(node.key(), |layout| {
                 layout.size = Size {
-                    width: Dimension::Length(10.),
-                    height: Dimension::Length(1.),
+                    width: Dimension::Length(15.),
+                    height: Dimension::Length(3.),
                 };
             });
         });

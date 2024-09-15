@@ -9,8 +9,8 @@ use ratatui::layout::Rect;
 use ratatui::widgets::Block;
 use slotmap::{new_key_type, SlotMap};
 use taffy::{
-    AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Position, Size, Style,
-    TaffyTree,
+    AvailableSpace, Dimension, Display, FlexDirection, LengthPercentageAuto, NodeId, Point,
+    Position, Size, Style, TaffyTree,
 };
 
 use super::{dom_node, refresh_dom};
@@ -619,6 +619,21 @@ impl NodeTree {
             .map(|(k, _)| k)
     }
 
+    pub fn set_focused_untracked(&mut self, node_key: Option<DomNodeKey>) {
+        let Some(node_key) = node_key else {
+            self.focused = None;
+            self.focused_key = None;
+            return;
+        };
+        if !self.dom_nodes.contains_key(node_key) {
+            self.focused = None;
+            self.focused_key = None;
+            return;
+        }
+        self.focused_key = Some(node_key);
+        self.focused = self.dom_nodes[node_key].inner.id.clone();
+    }
+
     pub fn set_focused(&mut self, node_key: Option<DomNodeKey>) {
         let prev_focused_id = if let Some(focused_key) = self.focused_key {
             let node_id = self.dom_nodes[focused_key].inner.id.clone();
@@ -642,18 +657,10 @@ impl NodeTree {
             None
         };
 
-        self.focused_key = node_key;
-        let Some(node_key) = node_key else {
-            self.focused = None;
+        self.set_focused_untracked(node_key);
+        let Some(node_key) = self.focused_key else {
             return;
         };
-        if !self.dom_nodes.contains_key(node_key) {
-            self.focused = None;
-            self.focused_key = None;
-            return;
-        }
-        self.focused = self.dom_nodes[node_key].inner.id.clone();
-        // self.set_focused(self.dom_nodes[node_key].inner.id.to_owned());
 
         let mut on_focus = self.dom_nodes[node_key]
             .inner

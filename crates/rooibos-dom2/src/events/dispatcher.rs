@@ -4,7 +4,7 @@ use std::rc::Rc;
 use ratatui::layout::{Position, Rect};
 use terminput::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEvent, MouseEventKind};
 
-use super::{EventData, MouseEventFn};
+use super::{ClickEventFn, EventData};
 use crate::{
     focus_next, focus_prev, set_pending_resize, toggle_print_dom, with_nodes, with_nodes_mut,
     DomNodeKey, EventHandle, EventHandlers,
@@ -27,7 +27,7 @@ pub(crate) fn reset_mouse_position() {
 }
 
 struct ClickEvent {
-    on_click: Option<MouseEventFn>,
+    on_click: Option<ClickEventFn>,
     rect: Rect,
     key: DomNodeKey,
 }
@@ -122,7 +122,7 @@ impl EventDispatcher {
 
     fn dispatch_mouse_event(&mut self, mouse_event: MouseEvent) {
         match mouse_event.kind {
-            MouseEventKind::Down(_) => {
+            MouseEventKind::Down(mouse_button) => {
                 let current = with_nodes(|nodes| {
                     let current: Rc<RefCell<Option<ClickEvent>>> = Rc::new(RefCell::new(None));
                     for root in nodes.roots_desc() {
@@ -175,7 +175,12 @@ impl EventDispatcher {
 
                     if let Some(on_click) = on_click {
                         on_click.borrow_mut()(
-                            mouse_event,
+                            crate::ClickEvent {
+                                column: mouse_event.column,
+                                row: mouse_event.row,
+                                mouse_button,
+                                modifiers: mouse_event.modifiers,
+                            },
                             EventData { rect: *rect },
                             &mut EventHandle::default(),
                         );

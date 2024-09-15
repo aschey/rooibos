@@ -16,7 +16,8 @@ use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
 use crate::{
     dispatch_event, next_node_id, reset_mouse_position, tree_is_accessible, with_nodes,
-    with_nodes_mut, DomWidgetNode, EventData, EventHandle, EventHandlers, Role,
+    with_nodes_mut, BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers,
+    FocusEvent, Role,
 };
 
 pub trait AsDomNode {
@@ -521,9 +522,41 @@ impl DomNode {
         self
     }
 
+    pub fn on_click<F>(self, handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, &mut EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_click(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+        self
+    }
+
+    pub fn on_focus<F>(self, handler: F) -> Self
+    where
+        F: FnMut(FocusEvent, EventData) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_focus(handler));
+        self
+    }
+
+    pub fn on_blur<F>(self, handler: F) -> Self
+    where
+        F: FnMut(BlurEvent, EventData) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_blur(handler));
+        self
+    }
+
     pub fn id(self, id: impl Into<NodeId>) -> Self {
         with_nodes_mut(|n| {
             n.set_id(self.key, id);
+        });
+        self
+    }
+
+    pub fn block(self, block: Block<'static>) -> Self {
+        with_nodes_mut(|n| {
+            n.set_block(self.key, block);
         });
         self
     }

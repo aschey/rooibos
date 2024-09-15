@@ -5,10 +5,10 @@ use ratatui::layout::Rect;
 use terminput::{KeyEvent, MouseEvent};
 
 use super::{BlurEvent, FocusEvent};
-use crate::{EventData, EventHandle};
+use crate::{ClickEvent, EventData, EventHandle};
 
 pub(crate) type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent, EventData, &mut EventHandle)>>;
-pub(crate) type MouseEventFn = Rc<RefCell<dyn FnMut(MouseEvent, EventData, &mut EventHandle)>>;
+pub(crate) type ClickEventFn = Rc<RefCell<dyn FnMut(ClickEvent, EventData, &mut EventHandle)>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData, &mut EventHandle)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData, &mut EventHandle)>>;
@@ -22,7 +22,7 @@ pub(crate) struct EventHandlers {
     pub(crate) on_paste: Option<PasteFn>,
     pub(crate) on_focus: Option<FocusFn>,
     pub(crate) on_blur: Option<BlurFn>,
-    pub(crate) on_click: Option<MouseEventFn>,
+    pub(crate) on_click: Option<ClickEventFn>,
     pub(crate) on_mouse_enter: Option<EventFn>,
     pub(crate) on_mouse_leave: Option<EventFn>,
     pub(crate) on_size_change: Option<SizeChangeFn>,
@@ -71,7 +71,7 @@ impl EventHandlers {
 
     pub(crate) fn on_click<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(MouseEvent, EventData, &mut EventHandle) + 'static,
+        F: FnMut(ClickEvent, EventData, &mut EventHandle) + 'static,
     {
         self.on_click = Some(Rc::new(RefCell::new(handler)));
         self
