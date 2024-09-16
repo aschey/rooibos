@@ -15,8 +15,8 @@ use taffy::{
 
 use super::{dom_node, refresh_dom};
 use crate::{
-    AsDomNode, BlurEvent, DomNode, DomNodeInner, EventData, EventHandle, EventHandlers, FocusEvent,
-    NodeType,
+    AsDomNode, BlurEvent, DomNode, EventData, EventHandle, EventHandlers, FocusEvent,
+    NodeProperties, NodeType,
 };
 
 new_key_type! { pub struct DomNodeKey; }
@@ -53,7 +53,7 @@ pub enum MatchBehavior {
 impl DomNodeKey {
     pub(crate) fn traverse<F, T>(&self, f: F, match_behavior: MatchBehavior) -> Vec<T>
     where
-        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
+        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T> + Clone,
     {
         let mut out_list = vec![];
         self.traverse_inner(f, &mut out_list, match_behavior);
@@ -62,7 +62,7 @@ impl DomNodeKey {
 
     fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, match_behavior: MatchBehavior)
     where
-        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
+        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T> + Clone,
     {
         if let Some(out) = with_nodes(|nodes| f(*self, &nodes[*self])) {
             out_list.push(out);
@@ -84,7 +84,7 @@ impl DomNodeKey {
 }
 
 pub(crate) struct TreeValue {
-    pub(crate) inner: DomNodeInner,
+    pub(crate) inner: NodeProperties,
     layout_id: NodeId,
 }
 
@@ -152,7 +152,7 @@ pub struct NodeTree {
 }
 
 impl Index<DomNodeKey> for NodeTree {
-    type Output = DomNodeInner;
+    type Output = NodeProperties;
     fn index(&self, index: DomNodeKey) -> &Self::Output {
         &self.dom_nodes[index].inner
     }
@@ -423,7 +423,7 @@ impl NodeTree {
         self.dom_nodes.contains_key(key)
     }
 
-    pub(crate) fn insert(&mut self, val: DomNodeInner) -> DomNodeKey {
+    pub(crate) fn insert(&mut self, val: NodeProperties) -> DomNodeKey {
         let layout_node = self
             .layout_tree
             .new_leaf_with_context(Style::default(), Context::default())
@@ -515,7 +515,7 @@ impl NodeTree {
     pub(crate) fn replace_node(&mut self, old_key: DomNodeKey, new_key: DomNodeKey) {
         // This is annoyingly verbose, but we use destructuring here to ensure we account for
         // any new properties that get added to DomNodeInner
-        let DomNodeInner {
+        let NodeProperties {
             node_type,
             name,
             children: _children,
@@ -561,7 +561,7 @@ impl NodeTree {
         // self.dom_nodes[new_key].layout_id = layout_id;
     }
 
-    pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: DomNodeInner) {
+    pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: NodeProperties) {
         self.dom_nodes[node].inner = inner;
     }
 

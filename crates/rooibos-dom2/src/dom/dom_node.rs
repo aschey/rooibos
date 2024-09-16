@@ -139,7 +139,7 @@ pub struct DomNodeRepr {
 }
 
 impl DomNodeRepr {
-    pub(crate) fn from_node(key: DomNodeKey, node: &DomNodeInner) -> Self {
+    pub(crate) fn from_node(key: DomNodeKey, node: &NodeProperties) -> Self {
         Self {
             key,
             rect: *node.rect.borrow(),
@@ -169,11 +169,7 @@ impl DomNodeRepr {
             .traverse(
                 |key, node| {
                     let repr = DomNodeRepr::from_node(key, node);
-                    if f(&repr) {
-                        Some(repr)
-                    } else {
-                        None
-                    }
+                    if f(&repr) { Some(repr) } else { None }
                 },
                 MatchBehavior::StopOnFistMatch,
             )
@@ -195,11 +191,7 @@ impl DomNodeRepr {
         self.key.traverse(
             |key, node| {
                 let repr = DomNodeRepr::from_node(key, node);
-                if f(&repr) {
-                    Some(repr)
-                } else {
-                    None
-                }
+                if f(&repr) { Some(repr) } else { None }
             },
             MatchBehavior::ContinueOnMatch,
         )
@@ -268,10 +260,9 @@ impl DomNodeRepr {
 
     pub fn focus(&self) {
         with_nodes_mut(|nodes| {
-            let found_node =
-                nodes
-                    .iter_nodes()
-                    .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
+            let found_node = nodes
+                .iter_nodes()
+                .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
             if let Some(found_node) = found_node {
                 nodes.set_focused(Some(found_node));
             }
@@ -281,7 +272,7 @@ impl DomNodeRepr {
 
 #[derive(Educe, Default)]
 #[educe(Debug)]
-pub struct DomNodeInner {
+pub struct NodeProperties {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
     pub(crate) original_display: taffy::Display,
@@ -307,7 +298,7 @@ struct RenderProps<'a> {
     dom_nodes: &'a NodeTree,
 }
 
-impl DomNodeInner {
+impl NodeProperties {
     fn render(&self, props: RenderProps) {
         let RenderProps {
             buf,
@@ -406,7 +397,7 @@ impl DomNode {
 
     pub fn placeholder() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "placeholder".to_string(),
             node_type: NodeType::Placeholder,
             original_display: taffy::Display::None,
@@ -425,7 +416,7 @@ impl DomNode {
 
     pub fn widget(widget: DomWidgetNode) -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
             original_display: taffy::Display::Block,
@@ -438,7 +429,7 @@ impl DomNode {
 
     pub fn flex_row() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "flex_row".to_string(),
             node_type: NodeType::Layout,
             original_display: taffy::Display::Flex,
@@ -458,7 +449,7 @@ impl DomNode {
 
     pub fn div() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "div".to_string(),
             node_type: NodeType::Layout,
             original_display: taffy::Display::Block,
@@ -477,7 +468,7 @@ impl DomNode {
 
     pub fn flex_col() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "flex_col".to_string(),
             node_type: NodeType::Layout,
             original_display: taffy::Display::Flex,
@@ -505,7 +496,7 @@ impl DomNode {
     }
 
     pub fn replace_widget(&self, widget: DomWidgetNode) {
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
             parent: self.get_parent_key(),
