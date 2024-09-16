@@ -4,12 +4,9 @@ use std::fmt;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use next_tuple::NextTuple;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use terminput::{KeyEvent, MouseEvent};
 
-use super::dom_node::{DomNode, NodeId};
 // use super::layout::{
 //     align_self, aspect_ratio, basis, border, border_bottom, border_left, border_right,
 // border_top,     border_x, border_y, grow, height, margin, margin_bottom, margin_left,
@@ -21,9 +18,8 @@ use super::dom_node::{DomNode, NodeId};
 // MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,     PaddingBottom, PaddingLeft,
 // PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,     Shrink, UpdateLayout,
 // Width, };
-use super::AsDomNode;
 use crate::widgets::WidgetRole;
-use crate::{next_node_id, refresh_dom, BlurEvent, EventData, FocusEvent, Role};
+use crate::{next_node_id, refresh_dom, Role};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 

@@ -6,9 +6,6 @@ use std::any::{Any, TypeId};
 
 pub use button::*;
 pub use chart::*;
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
-use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
 pub use sparkline::*;
 
 // use crate::DomWidget;

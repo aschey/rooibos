@@ -9,13 +9,14 @@ use ratatui::layout::Rect;
 use ratatui::widgets::Block;
 use slotmap::{new_key_type, SlotMap};
 use taffy::{
-    AvailableSpace, Dimension, Display, FlexDirection, LengthPercentageAuto, NodeId, Point,
-    Position, Size, Style, TaffyTree,
+    AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Position, Size, Style,
+    TaffyTree,
 };
 
 use super::{dom_node, refresh_dom};
 use crate::{
     AsDomNode, BlurEvent, DomNode, DomNodeInner, EventData, EventHandle, EventHandlers, FocusEvent,
+    NodeType,
 };
 
 new_key_type! { pub struct DomNodeKey; }
@@ -42,29 +43,42 @@ pub(crate) fn tree_is_accessible() -> bool {
     DOM_NODES.try_with(|_| {}).is_ok()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum MatchBehavior {
+    StopOnFistMatch,
+    ContinueOnMatch,
+    SearchChildrenOnMatch,
+}
+
 impl DomNodeKey {
-    pub(crate) fn traverse<F, T>(&self, f: F, stop_on_first_match: bool) -> Vec<T>
+    pub(crate) fn traverse<F, T>(&self, f: F, match_behavior: MatchBehavior) -> Vec<T>
     where
         F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
     {
         let mut out_list = vec![];
-        self.traverse_inner(f, &mut out_list, stop_on_first_match);
+        self.traverse_inner(f, &mut out_list, match_behavior);
         out_list
     }
 
-    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, stop_on_first_match: bool)
+    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, match_behavior: MatchBehavior)
     where
         F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
     {
         if let Some(out) = with_nodes(|nodes| f(*self, &nodes[*self])) {
             out_list.push(out);
-            if stop_on_first_match {
+            if match_behavior == MatchBehavior::StopOnFistMatch {
                 return;
             }
         }
         let children = with_nodes(|nodes| nodes[*self].children.clone());
         for child in children {
-            child.traverse_inner(f.clone(), out_list, stop_on_first_match);
+            let current_length = out_list.len();
+            child.traverse_inner(f.clone(), out_list, match_behavior);
+            if out_list.len() > current_length
+                && match_behavior == MatchBehavior::SearchChildrenOnMatch
+            {
+                return;
+            }
         }
     }
 }
@@ -133,6 +147,8 @@ pub struct NodeTree {
     focused_key: Option<DomNodeKey>,
     hovered_key: Option<DomNodeKey>,
     focusable_nodes: Rc<RefCell<Vec<DomNodeKey>>>,
+    on_window_size_change: Box<dyn Fn(Rect)>,
+    on_focus_change: Box<dyn Fn(Option<crate::NodeId>)>,
 }
 
 impl Index<DomNodeKey> for NodeTree {
@@ -159,6 +175,8 @@ impl NodeTree {
             hovered_key: None,
             focusable_nodes: Default::default(),
             window_size: Rect::default(),
+            on_window_size_change: Box::new(move |_| {}),
+            on_focus_change: Box::new(move |_| {}),
         }
     }
 
@@ -193,6 +211,20 @@ impl NodeTree {
         self.layout_tree.set_style(node.layout_id, style).unwrap();
     }
 
+    pub fn on_window_size_change<F>(&mut self, f: F)
+    where
+        F: Fn(Rect) + 'static,
+    {
+        self.on_window_size_change = Box::new(f);
+    }
+
+    pub fn on_focus_change<F>(&mut self, f: F)
+    where
+        F: Fn(Option<crate::NodeId>) + 'static,
+    {
+        self.on_focus_change = Box::new(f);
+    }
+
     pub(crate) fn root(&self, z_index: i32) -> &dyn AsDomNode {
         let key = &self.roots.keys().find(|k| k.z_index == z_index).unwrap();
         &self.roots[key]
@@ -221,6 +253,13 @@ impl NodeTree {
         roots
     }
 
+    pub(crate) fn set_unmounted(&self, key: DomNodeKey, unmounted: bool) {
+        self.dom_nodes[key]
+            .inner
+            .unmounted
+            .store(unmounted, Ordering::Relaxed);
+    }
+
     pub(crate) fn focused_key(&self) -> Option<DomNodeKey> {
         self.focused_key
     }
@@ -234,10 +273,21 @@ impl NodeTree {
     }
 
     pub(crate) fn set_window_size(&mut self, size: Rect) {
-        self.window_size = size;
+        if size != self.window_size {
+            self.window_size = size;
+            (self.on_window_size_change)(size);
+        }
     }
 
-    pub(crate) fn window_size(&self) -> Rect {
+    pub fn node_type(&self, key: DomNodeKey) -> &NodeType {
+        &self.dom_nodes[key].inner.node_type
+    }
+
+    pub fn original_display(&self, key: DomNodeKey) -> &taffy::Display {
+        &self.dom_nodes[key].inner.original_display
+    }
+
+    pub fn window_size(&self) -> Rect {
         self.window_size
     }
 
@@ -424,6 +474,7 @@ impl NodeTree {
                 .unwrap();
             self.update_sizes(parent_node.layout_id);
         }
+        self.set_unmounted(child_key, false);
     }
 
     pub(crate) fn remove(&mut self, node: DomNodeKey) -> Option<TreeValue> {
@@ -510,12 +561,12 @@ impl NodeTree {
         self.dom_nodes[node].inner = inner;
     }
 
-    pub(crate) fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
+    pub fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
         self.dom_nodes[node].inner.focusable = focusable;
         refresh_dom();
     }
 
-    pub(crate) fn set_disabled(&mut self, key: DomNodeKey, disabled: bool) {
+    pub fn set_disabled(&mut self, key: DomNodeKey, disabled: bool) {
         self.dom_nodes[key].inner.disabled = disabled;
         if disabled {
             self.unset_state(&key);
@@ -557,18 +608,18 @@ impl NodeTree {
         self.dom_nodes[node].inner.class = Some(class.into());
     }
 
-    pub(crate) fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
+    pub fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
         self.dom_nodes[node].inner.block = Some(block);
     }
 
-    pub(crate) fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
+    pub fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
         self.dom_nodes[key].inner.z_index = Some(z_index);
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();
         let node = DomNode::from_existing(key, unmounted);
         self.roots.insert(RootId::new(z_index), Box::new(node));
     }
 
-    pub(crate) fn set_clear(&mut self, key: DomNodeKey, clear: bool) {
+    pub fn set_clear(&mut self, key: DomNodeKey, clear: bool) {
         self.dom_nodes[key].inner.clear = clear;
     }
 
@@ -658,6 +709,9 @@ impl NodeTree {
         };
 
         self.set_focused_untracked(node_key);
+        if prev_focused_id != self.focused {
+            (self.on_focus_change)(self.focused.clone());
+        }
         let Some(node_key) = self.focused_key else {
             return;
         };

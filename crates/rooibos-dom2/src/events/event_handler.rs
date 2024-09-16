@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use ratatui::layout::Rect;
-use terminput::{KeyEvent, MouseEvent};
+use terminput::KeyEvent;
 
 use super::{BlurEvent, FocusEvent};
 use crate::{ClickEvent, EventData, EventHandle};
@@ -16,7 +16,7 @@ pub(crate) type FocusFn = Rc<RefCell<dyn FnMut(FocusEvent, EventData)>>;
 pub(crate) type BlurFn = Rc<RefCell<dyn FnMut(BlurEvent, EventData)>>;
 
 #[derive(Clone, Default)]
-pub(crate) struct EventHandlers {
+pub struct EventHandlers {
     pub(crate) on_key_down: Option<KeyEventFn>,
     pub(crate) on_key_up: Option<KeyEventFn>,
     pub(crate) on_paste: Option<PasteFn>,
@@ -29,7 +29,7 @@ pub(crate) struct EventHandlers {
 }
 
 impl EventHandlers {
-    pub(crate) fn on_key_down<F>(mut self, handler: F) -> Self
+    pub fn on_key_down<F>(mut self, handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData, &mut EventHandle) + 'static,
     {
@@ -37,7 +37,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_key_up<F>(mut self, handler: F) -> Self
+    pub fn on_key_up<F>(mut self, handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData, &mut EventHandle) + 'static,
     {
@@ -45,7 +45,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_paste<F>(mut self, handler: F) -> Self
+    pub fn on_paste<F>(mut self, handler: F) -> Self
     where
         F: FnMut(String, EventData, &mut EventHandle) + 'static,
     {
@@ -53,7 +53,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_focus<F>(mut self, handler: F) -> Self
+    pub fn on_focus<F>(mut self, handler: F) -> Self
     where
         F: FnMut(FocusEvent, EventData) + 'static,
     {
@@ -61,7 +61,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_blur<F>(mut self, handler: F) -> Self
+    pub fn on_blur<F>(mut self, handler: F) -> Self
     where
         F: FnMut(BlurEvent, EventData) + 'static,
     {
@@ -69,7 +69,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_click<F>(mut self, handler: F) -> Self
+    pub fn on_click<F>(mut self, handler: F) -> Self
     where
         F: FnMut(ClickEvent, EventData, &mut EventHandle) + 'static,
     {
@@ -77,7 +77,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_mouse_enter<F>(mut self, handler: F) -> Self
+    pub fn on_mouse_enter<F>(mut self, handler: F) -> Self
     where
         F: FnMut(EventData, &mut EventHandle) + 'static,
     {
@@ -85,7 +85,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_mouse_leave<F>(mut self, handler: F) -> Self
+    pub fn on_mouse_leave<F>(mut self, handler: F) -> Self
     where
         F: FnMut(EventData, &mut EventHandle) + 'static,
     {
@@ -93,7 +93,7 @@ impl EventHandlers {
         self
     }
 
-    pub(crate) fn on_size_change<F>(mut self, handler: F) -> Self
+    pub fn on_size_change<F>(mut self, handler: F) -> Self
     where
         F: FnMut(Rect) + 'static,
     {

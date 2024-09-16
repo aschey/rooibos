@@ -1,25 +1,18 @@
 use std::cell::RefCell;
-use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use node_tree::*;
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use tokio::sync::watch;
 use tracing::error;
 
-use crate::text;
-
-pub mod div;
 mod dom_node;
 mod dom_widget;
-pub mod flex_node;
 
-pub mod layout;
 mod node_tree;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
@@ -63,7 +56,7 @@ pub fn dom_update_receiver() -> DomUpdateReceiver {
     DomUpdateReceiver(rx)
 }
 
-fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
+pub fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
     let children = with_nodes_mut(|nodes| {
         nodes.unset_state(node);
         nodes[*node].children.clone()
@@ -80,19 +73,20 @@ fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
     }
 }
 
-fn clear_children(parent: DomNodeKey) {
+pub fn clear_children(parent: DomNodeKey) {
     let children = with_nodes(|nodes| nodes[parent].children.clone());
     for child in children {
         unmount_child(child, true);
     }
 }
 
-fn unmount_child(child: DomNodeKey, cleanup: bool) {
+pub fn unmount_child(child: DomNodeKey, cleanup: bool) {
     with_nodes_mut(|nodes| {
         nodes.unmount_child(child);
     });
 
     cleanup_removed_nodes(&child, cleanup);
+    with_nodes_mut(|nodes| nodes.set_unmounted(child, true));
     refresh_dom();
 }
 

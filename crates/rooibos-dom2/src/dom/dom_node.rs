@@ -1,5 +1,4 @@
 use core::fmt::Debug;
-use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{self};
 use std::rc::Rc;
@@ -17,7 +16,7 @@ use super::unmount_child;
 use crate::{
     dispatch_event, next_node_id, reset_mouse_position, tree_is_accessible, with_nodes,
     with_nodes_mut, BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers,
-    FocusEvent, Role,
+    FocusEvent, MatchBehavior, Role,
 };
 
 pub trait AsDomNode {
@@ -172,7 +171,7 @@ impl DomNodeRepr {
                     let repr = DomNodeRepr::from_node(key, node);
                     if f(&repr) { Some(repr) } else { None }
                 },
-                true,
+                MatchBehavior::StopOnFistMatch,
             )
             .first()
             .cloned()
@@ -194,7 +193,7 @@ impl DomNodeRepr {
                 let repr = DomNodeRepr::from_node(key, node);
                 if f(&repr) { Some(repr) } else { None }
             },
-            false,
+            MatchBehavior::ContinueOnMatch,
         )
     }
 
@@ -208,7 +207,7 @@ impl DomNodeRepr {
                     None
                 }
             },
-            true,
+            MatchBehavior::StopOnFistMatch,
         );
         nodes.first().cloned()
     }
@@ -227,7 +226,7 @@ impl DomNodeRepr {
                 }
                 None
             },
-            false,
+            MatchBehavior::ContinueOnMatch,
         )
     }
 
@@ -241,7 +240,7 @@ impl DomNodeRepr {
 
                 None
             },
-            false,
+            MatchBehavior::ContinueOnMatch,
         )
     }
 
@@ -396,7 +395,7 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn placeholder() -> Self {
+    pub fn placeholder() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "placeholder".to_string(),
@@ -448,7 +447,7 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn div() -> Self {
+    pub fn div() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
         let inner = DomNodeInner {
             name: "div".to_string(),
@@ -487,7 +486,7 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn replace_node(&mut self, node: &DomNode) {
+    pub fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|nodes| {
             nodes.replace_node(self.key, node.key);
         });
@@ -496,7 +495,7 @@ impl DomNode {
         self.key = node.key;
     }
 
-    pub(crate) fn replace_widget(&self, widget: DomWidgetNode) {
+    pub fn replace_widget(&self, widget: DomWidgetNode) {
         let inner = DomNodeInner {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
@@ -506,7 +505,7 @@ impl DomNode {
         with_nodes_mut(|n| n.replace_inner(self.key, inner));
     }
 
-    pub(crate) fn update_event_handlers<F>(&self, update: F)
+    pub fn update_event_handlers<F>(&self, update: F)
     where
         F: FnOnce(EventHandlers) -> EventHandlers,
     {
@@ -561,13 +560,13 @@ impl DomNode {
         self
     }
 
-    pub(crate) fn set_z_index(&self, z_index: i32) {
+    pub fn set_z_index(&self, z_index: i32) {
         with_nodes_mut(|n| {
             n.set_z_index(self.key, z_index);
         });
     }
 
-    pub(crate) fn set_class(&self, class: impl Into<String>) {
+    pub fn set_class(&self, class: impl Into<String>) {
         with_nodes_mut(|n| {
             n.set_class(self.key, class);
         });
@@ -581,7 +580,7 @@ impl DomNode {
         with_nodes(|n| n[self.key].parent)
     }
 
-    pub(crate) fn get_parent(&self) -> Option<DomNode> {
+    pub fn get_parent(&self) -> Option<DomNode> {
         let parent_key = with_nodes(|n| n[self.key].parent);
 
         parent_key.map(|k| {
@@ -590,7 +589,7 @@ impl DomNode {
         })
     }
 
-    pub(crate) fn get_next_sibling(&self) -> Option<DomNode> {
+    pub fn get_next_sibling(&self) -> Option<DomNode> {
         let parent_key = with_nodes(|n| n[self.key].parent);
 
         parent_key.and_then(|k| {
@@ -607,7 +606,7 @@ impl DomNode {
         })
     }
 
-    pub(crate) fn get_first_child(&self) -> Option<DomNode> {
+    pub fn get_first_child(&self) -> Option<DomNode> {
         let child_key = with_nodes(|n| n[self.key].children.first().cloned());
 
         child_key.map(|k| {
