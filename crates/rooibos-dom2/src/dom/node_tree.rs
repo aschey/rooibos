@@ -181,7 +181,11 @@ impl NodeTree {
     }
 
     pub fn recompute_layout(&mut self, rect: Rect) {
-        let root_keys: Vec<_> = self.roots.values().map(|r| r.as_dom_node().key()).collect();
+        let root_keys: Vec<_> = self
+            .roots
+            .values()
+            .map(|r| r.as_dom_node().get_key())
+            .collect();
         for root_key in root_keys {
             let node = &self.dom_nodes[root_key];
             self.layout_tree
@@ -198,7 +202,7 @@ impl NodeTree {
     }
 
     pub fn set_root(&mut self, z_index: i32, root: impl AsDomNode + 'static) {
-        let key = root.as_dom_node().key();
+        let key = root.as_dom_node().get_key();
         self.roots.insert(RootId::new(z_index), Box::new(root));
         let node = &self.dom_nodes[key];
         let mut style = self.layout_tree.style(node.layout_id).unwrap().clone();

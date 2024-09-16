@@ -46,8 +46,8 @@ impl<C, P> FlexNode<C, P> {
         self
     }
 
-    pub fn class(self, class: impl Into<String>) -> Self {
-        self.inner.set_class(class);
+    pub fn class(mut self, class: impl Into<String>) -> Self {
+        self.inner.0 = self.inner.0.class(class);
         self
     }
 
@@ -78,8 +78,8 @@ impl<C, P> FlexNode<C, P> {
         self
     }
 
-    pub fn z_index(self, z_index: i32) -> Self {
-        self.inner.set_z_index(z_index);
+    pub fn z_index(mut self, z_index: i32) -> Self {
+        self.inner.0 = self.inner.0.z_index(z_index);
         self
     }
 }

@@ -169,7 +169,11 @@ impl DomNodeRepr {
             .traverse(
                 |key, node| {
                     let repr = DomNodeRepr::from_node(key, node);
-                    if f(&repr) { Some(repr) } else { None }
+                    if f(&repr) {
+                        Some(repr)
+                    } else {
+                        None
+                    }
                 },
                 MatchBehavior::StopOnFistMatch,
             )
@@ -191,7 +195,11 @@ impl DomNodeRepr {
         self.key.traverse(
             |key, node| {
                 let repr = DomNodeRepr::from_node(key, node);
-                if f(&repr) { Some(repr) } else { None }
+                if f(&repr) {
+                    Some(repr)
+                } else {
+                    None
+                }
             },
             MatchBehavior::ContinueOnMatch,
         )
@@ -260,9 +268,10 @@ impl DomNodeRepr {
 
     pub fn focus(&self) {
         with_nodes_mut(|nodes| {
-            let found_node = nodes
-                .iter_nodes()
-                .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
+            let found_node =
+                nodes
+                    .iter_nodes()
+                    .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
             if let Some(found_node) = found_node {
                 nodes.set_focused(Some(found_node));
             }
@@ -560,19 +569,21 @@ impl DomNode {
         self
     }
 
-    pub fn set_z_index(&self, z_index: i32) {
+    pub fn z_index(self, z_index: i32) -> Self {
         with_nodes_mut(|n| {
             n.set_z_index(self.key, z_index);
         });
+        self
     }
 
-    pub fn set_class(&self, class: impl Into<String>) {
+    pub fn class(self, class: impl Into<String>) -> Self {
         with_nodes_mut(|n| {
             n.set_class(self.key, class);
         });
+        self
     }
 
-    pub fn key(&self) -> DomNodeKey {
+    pub fn get_key(&self) -> DomNodeKey {
         self.key
     }
 

@@ -187,7 +187,7 @@ impl Counters {
         }
 
         with_nodes_mut(|nodes| {
-            nodes.update_layout(col.key(), |layout| {
+            nodes.update_layout(col.get_key(), |layout| {
                 layout.padding = length(1.0);
             })
         });
@@ -289,7 +289,7 @@ impl Counter {
             .on_blur(move |_, _| send(TaskMessage::Blur));
 
         with_nodes_mut(|nodes| {
-            nodes.update_layout(node.key(), |layout| {
+            nodes.update_layout(node.get_key(), |layout| {
                 layout.size = Size {
                     width: Dimension::Length(15.),
                     height: Dimension::Length(3.),

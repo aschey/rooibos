@@ -88,7 +88,7 @@ impl Property for Block {
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
+        let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 nodes.set_block(key, self.0.get());
@@ -113,7 +113,7 @@ impl Property for ZIndex {
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
+        let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 nodes.set_z_index(key, self.0.get());
@@ -137,7 +137,7 @@ impl Property for Clear {
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
+        let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 nodes.set_clear(key, self.0.get());
@@ -158,7 +158,7 @@ where
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
+        let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 let original_display = *nodes.original_display(key);
@@ -183,7 +183,7 @@ impl Property for Focusable {
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
+        let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 nodes.set_focusable(key, self.0.get());
@@ -207,7 +207,7 @@ impl Property for Disabled {
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let key = node.key();
+        let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 nodes.set_disabled(key, self.0.get());

@@ -91,13 +91,14 @@ pub fn unmount_child(child: DomNodeKey, cleanup: bool) {
 }
 
 pub fn print_dom() -> Paragraph<'static> {
-    let lines = with_nodes(|nodes| print_dom_inner(nodes, nodes.root(0).as_dom_node().key(), ""));
+    let lines =
+        with_nodes(|nodes| print_dom_inner(nodes, nodes.root(0).as_dom_node().get_key(), ""));
     Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
 }
 
 pub fn root() -> DomNodeRepr {
     with_nodes(|nodes| {
-        let root = nodes.root(0).as_dom_node().key();
+        let root = nodes.root(0).as_dom_node().get_key();
         let node = &nodes[root];
         DomNodeRepr::from_node(root, node)
     })

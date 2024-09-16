@@ -67,7 +67,7 @@ impl EventDispatcher {
                 self.last_mouse_position = mouse_event;
                 let current = with_nodes(|nodes| {
                     for root in nodes.roots_desc() {
-                        let found = root.key().traverse(
+                        let found = root.get_key().traverse(
                             |key, inner| {
                                 if inner.disabled {
                                     return None;
@@ -172,7 +172,7 @@ where
 fn hit_test(position: Position) -> Vec<DomNodeKey> {
     let roots = with_nodes(|nodes| nodes.roots_desc());
     for root in roots {
-        let found = root.key().traverse(
+        let found = root.get_key().traverse(
             |key, inner| {
                 if inner.disabled {
                     return None;

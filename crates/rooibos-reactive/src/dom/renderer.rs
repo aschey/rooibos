@@ -80,16 +80,16 @@ impl Renderer for RooibosDom {
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {
-        unmount_child(child.key(), true);
+        unmount_child(child.get_key(), true);
         Some(child.clone())
     }
 
     fn clear_children(parent: &Self::Element) {
-        clear_children(parent.key())
+        clear_children(parent.get_key())
     }
 
     fn remove(node: &Self::Node) {
-        unmount_child(node.key(), true);
+        unmount_child(node.get_key(), true);
     }
 
     fn get_parent(node: &Self::Node) -> Option<Self::Node> {

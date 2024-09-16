@@ -93,7 +93,7 @@ impl DerefMut for DomNode {
 
 impl Mountable<RooibosDom> for DomNode {
     fn unmount(&mut self) {
-        unmount_child(self.0.key(), false);
+        unmount_child(self.0.get_key(), false);
     }
 
     fn mount(
@@ -117,11 +117,11 @@ impl Render<RooibosDom> for DomNode {
     type State = (DomNode, <NodeType as Render<RooibosDom>>::State);
 
     fn build(self) -> Self::State {
-        let state = with_nodes(|n| NodeType(n.node_type(self.0.key()).clone()).build());
+        let state = with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()).build());
         (self, state)
     }
 
     fn rebuild(self, (_node, ref mut node_type_state): &mut Self::State) {
-        with_nodes(|n| NodeType(n.node_type(self.0.key()).clone()).rebuild(node_type_state));
+        with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()).rebuild(node_type_state));
     }
 }

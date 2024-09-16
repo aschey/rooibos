@@ -38,8 +38,8 @@ where
 }
 
 impl<C, P> Div<C, P> {
-    pub fn z_index(self, z_index: i32) -> Self {
-        self.inner.set_z_index(z_index);
+    pub fn z_index(mut self, z_index: i32) -> Self {
+        self.inner.0 = self.inner.0.z_index(z_index);
         self
     }
 }
