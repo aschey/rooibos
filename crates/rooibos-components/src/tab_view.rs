@@ -2,13 +2,15 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use reactive_graph::traits::{Get, With};
-use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
-use rooibos_dom::div::taffy::Dimension;
-use rooibos_dom::layout::{height, pct};
 use rooibos_dom::{
-    col, derive_signal, line, max_height, span, wgt, BlurEvent, ChildrenFn, EventData, FocusEvent,
-    IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    line, span, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyEvent,
+};
+use rooibos_reactive::div::taffy::Dimension;
+use rooibos_reactive::graph::traits::{Get, With};
+use rooibos_reactive::graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
+use rooibos_reactive::layout::{height, pct};
+use rooibos_reactive::{
+    col, derive_signal, max_height, wgt, ChildrenFn, IntoAny, IntoChildrenFn, Render,
 };
 
 use crate::wrapping_list::KeyedWrappingList;
@@ -71,7 +73,7 @@ pub struct TabView {
     on_decorator_click: Option<Box<OnChangeFn>>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
-    on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
+    on_key_down: Box<dyn FnMut(KeyEvent, EventData, EventHandle)>,
     fit: MaybeSignal<bool>,
     divider: MaybeSignal<Span<'static>>,
     header_height: MaybeSignal<Dimension>,
@@ -91,7 +93,7 @@ impl Default for TabView {
         Self {
             on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: None,
-            on_key_down: Box::new(move |_, _| {}),
+            on_key_down: Box::new(move |_, _, _| {}),
             on_focus: Box::new(move |_, _| {}),
             on_blur: Box::new(move |_, _| {}),
             block: Default::default(),
@@ -167,7 +169,10 @@ impl TabView {
         self
     }
 
-    pub fn on_key_down(mut self, on_key_down: impl FnMut(KeyEvent, EventData) + 'static) -> Self {
+    pub fn on_key_down(
+        mut self,
+        on_key_down: impl FnMut(KeyEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
         self.on_key_down = Box::new(on_key_down);
         self
     }
@@ -337,7 +342,7 @@ impl TabView {
             }
         });
 
-        let on_click = move |mouse_event: MouseEvent, event_data: EventData| {
+        let on_click = move |mouse_event: ClickEvent, event_data: EventData, _| {
             let start_col = event_data.rect.x;
             let col_offset = mouse_event.column - start_col;
 
@@ -392,7 +397,7 @@ impl TabView {
         };
 
         col![
-            props(rooibos_dom::layout::width(width)),
+            props(rooibos_reactive::layout::width(width)),
             wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())

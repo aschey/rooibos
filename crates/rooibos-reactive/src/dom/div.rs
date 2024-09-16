@@ -1,6 +1,6 @@
 use next_tuple::NextTuple;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom2::AsDomNode;
+use rooibos_dom::AsDomNode;
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
@@ -46,7 +46,7 @@ impl<C, P> Div<C, P> {
 
 pub fn div<C, P>(props: P, children: C) -> Div<C, P> {
     Div {
-        inner: DomNode(rooibos_dom2::DomNode::div()),
+        inner: DomNode(rooibos_dom::DomNode::div()),
         children,
         properties: props,
     }
@@ -131,7 +131,7 @@ where
     C: Render<RooibosDom>,
     P: Property,
 {
-    fn as_dom_node(&self) -> &rooibos_dom2::DomNode {
+    fn as_dom_node(&self) -> &rooibos_dom::DomNode {
         self.node.as_dom_node()
     }
 }

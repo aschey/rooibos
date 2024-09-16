@@ -3,7 +3,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom2::{
+use rooibos_dom::{
     refresh_dom, AsDomNode, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, NodeId,
 };
 use tachys::prelude::*;
@@ -36,7 +36,7 @@ impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Disabled {}
 
-pub struct DomWidgetNode(pub(crate) rooibos_dom2::DomWidgetNode);
+pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
 
 impl Render<RooibosDom> for DomWidgetNode {
     type State = RenderEffect<()>;
@@ -61,8 +61,8 @@ impl DomWidget<()> {
     pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
         f: F1,
     ) -> Self {
-        let dom_widget_node = rooibos_dom2::DomWidgetNode::new::<T, _, _>(f);
-        let inner = DomNode(rooibos_dom2::DomNode::widget(dom_widget_node));
+        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _, _>(f);
+        let inner = DomNode(rooibos_dom::DomNode::widget(dom_widget_node));
         Self {
             inner,
             properties: (),
@@ -79,8 +79,8 @@ impl<P> DomWidget<P> {
         props: P,
         f: F1,
     ) -> Self {
-        let dom_widget_node = rooibos_dom2::DomWidgetNode::new::<T, _, _>(f);
-        let inner = DomNode(rooibos_dom2::DomNode::widget(dom_widget_node));
+        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _, _>(f);
+        let inner = DomNode(rooibos_dom::DomNode::widget(dom_widget_node));
         Self {
             inner,
             properties: props,
@@ -129,7 +129,7 @@ where
 
     pub fn on_key_down<F>(self, handler: F) -> DomWidget<P::Output<Focusable>>
     where
-        F: FnMut(KeyEvent, EventData, &mut EventHandle) + 'static,
+        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
     {
         let this = self.focusable(true);
         this.inner
@@ -140,7 +140,7 @@ where
 
     pub fn on_paste<F>(self, handler: F) -> DomWidget<P::Output<Focusable>>
     where
-        F: FnMut(String, EventData, &mut EventHandle) + 'static,
+        F: FnMut(String, EventData, EventHandle) + 'static,
     {
         let this = self.focusable(true);
         this.inner
@@ -151,7 +151,7 @@ where
 
     pub fn on_key_up<F>(self, handler: F) -> DomWidget<P::Output<Focusable>>
     where
-        F: FnMut(KeyEvent, EventData, &mut EventHandle) + 'static,
+        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
     {
         let this = self.focusable(true);
         this.inner
@@ -181,7 +181,7 @@ where
 
     pub fn on_click<F>(self, handler: F) -> Self
     where
-        F: FnMut(ClickEvent, EventData, &mut EventHandle) + 'static,
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_click(handler));
@@ -190,7 +190,7 @@ where
 
     pub fn on_mouse_enter<F>(self, handler: F) -> Self
     where
-        F: FnMut(EventData, &mut EventHandle) + 'static,
+        F: FnMut(EventData, EventHandle) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_mouse_enter(handler));
@@ -199,7 +199,7 @@ where
 
     pub fn on_mouse_leave<F>(self, handler: F) -> Self
     where
-        F: FnMut(EventData, &mut EventHandle) + 'static,
+        F: FnMut(EventData, EventHandle) + 'static,
     {
         self.inner
             .update_event_handlers(|event_handlers| event_handlers.on_mouse_leave(handler));
@@ -238,7 +238,7 @@ impl<P> AsDomNode for DomWidgetState<P>
 where
     P: WidgetProperty,
 {
-    fn as_dom_node(&self) -> &rooibos_dom2::DomNode {
+    fn as_dom_node(&self) -> &rooibos_dom::DomNode {
         self.node.as_dom_node()
     }
 }

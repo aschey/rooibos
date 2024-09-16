@@ -1,3 +1,6 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 pub use dispatcher::*;
 pub(crate) use event_handler::*;
 use ratatui::layout::Rect;
@@ -8,14 +11,18 @@ use crate::NodeId;
 mod dispatcher;
 mod event_handler;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct EventHandle {
-    stop_propagation: bool,
+    stop_propagation: Arc<AtomicBool>,
 }
 
 impl EventHandle {
     pub fn stop_propagation(&mut self) {
-        self.stop_propagation = true;
+        self.stop_propagation.store(true, Ordering::Relaxed)
+    }
+
+    pub(crate) fn get_stop_propagation(&self) -> bool {
+        self.stop_propagation.load(Ordering::Relaxed)
     }
 }
 

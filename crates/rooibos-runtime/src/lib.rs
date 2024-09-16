@@ -3,10 +3,10 @@ use std::panic::{set_hook, take_hook};
 
 pub use background_service::ServiceContext;
 pub use commands::*;
-use reactive_graph::owner::Owner;
-use reactive_graph::signal::{signal, ReadSignal};
-use reactive_graph::traits::{IsDisposed, Set};
 use rooibos_dom::Event;
+use rooibos_reactive::graph::owner::Owner;
+use rooibos_reactive::graph::signal::{signal, ReadSignal};
+use rooibos_reactive::graph::traits::{IsDisposed, Set};
 pub use runtime::*;
 pub use settings::*;
 pub use state::*;

@@ -9,11 +9,8 @@ crossterm = { version = "0.28.1", features = [
     "use-dev-tty",
 ], optional = true }
 futures-util = "0.3"
-rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "a083b57260db4fa6588ff392bf24b4422047c0f6", features = [
-    "tracing",
-    "effects",
-] }
+rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-reactive = { path="../rooibos-reactive" }
 ratatui = { version = "0.28", default-features = false }
 tracing = "0.1"
 educe = "0.6"
@@ -68,6 +65,5 @@ clipboard-win = { version = "5.4", features = ["std"], optional = true }
 default = ["crossterm"]
 crossterm = ["dep:crossterm", "ratatui/crossterm"]
 termion = ["dep:termion", "ratatui/termion"]
-nightly = ["reactive_graph/nightly"]
 termwiz = ["dep:termwiz", "ratatui/termwiz"]
 clipboard = ["dep:base64", "clipboard-win"]

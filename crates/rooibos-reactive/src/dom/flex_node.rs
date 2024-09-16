@@ -1,7 +1,7 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom2::{AsDomNode, BlurEvent, EventData, FocusEvent, NodeId};
+use rooibos_dom::{AsDomNode, BlurEvent, EventData, FocusEvent, NodeId};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
@@ -106,7 +106,7 @@ where
 
 pub fn row<C, P>(props: P, children: C) -> FlexNode<C, P> {
     FlexNode {
-        inner: DomNode(rooibos_dom2::DomNode::flex_row()),
+        inner: DomNode(rooibos_dom::DomNode::flex_row()),
         children,
         properties: props,
     }
@@ -114,7 +114,7 @@ pub fn row<C, P>(props: P, children: C) -> FlexNode<C, P> {
 
 pub fn col<C, P>(props: P, children: C) -> FlexNode<C, P> {
     FlexNode {
-        inner: DomNode(rooibos_dom2::DomNode::flex_col()),
+        inner: DomNode(rooibos_dom::DomNode::flex_col()),
         children,
         properties: props,
     }
@@ -206,7 +206,7 @@ where
     C: Render<RooibosDom>,
     P: Property,
 {
-    fn as_dom_node(&self) -> &rooibos_dom2::DomNode {
+    fn as_dom_node(&self) -> &rooibos_dom::DomNode {
         self.node.as_dom_node()
     }
 }

@@ -5,7 +5,7 @@ use reactive_graph::owner::{provide_context, use_context, Owner, StoredValue};
 use reactive_graph::signal::{signal, WriteSignal};
 use reactive_graph::traits::{Get, Update, With};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::{
+use rooibos_reactive::{
     derive_signal, AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom,
 };
 pub use rooibos_router_macros::*;

@@ -1,8 +1,9 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
-use reactive_graph::traits::{Get, With};
-use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{wgt, BlurEvent, EventData, FocusEvent, KeyEvent, Render};
+use rooibos_dom::{BlurEvent, EventData, EventHandle, FocusEvent, KeyEvent};
+use rooibos_reactive::graph::traits::{Get, With};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::{wgt, Render};
 
 use crate::WrappingList;
 
@@ -11,7 +12,7 @@ type ItemSelectFn<T> = dyn FnMut(usize, &T);
 pub struct ListView<T> {
     style: MaybeSignal<Style>,
     on_item_click: Box<ItemSelectFn<T>>,
-    on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
+    on_key_down: Box<dyn FnMut(KeyEvent, EventData, EventHandle)>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     highlight_style: MaybeSignal<Style>,
@@ -28,7 +29,7 @@ impl<T> Default for ListView<T> {
         Self {
             style: Default::default(),
             on_item_click: Box::new(move |_, _| {}),
-            on_key_down: Box::new(move |_, _| {}),
+            on_key_down: Box::new(move |_, _, _| {}),
             on_focus: Box::new(move |_, _| {}),
             on_blur: Box::new(move |_, _| {}),
             highlight_style: Style::default().into(),
@@ -57,7 +58,10 @@ impl<T> ListView<T> {
         self
     }
 
-    pub fn on_key_down(mut self, on_key_down: impl FnMut(KeyEvent, EventData) + 'static) -> Self {
+    pub fn on_key_down(
+        mut self,
+        on_key_down: impl FnMut(KeyEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
         self.on_key_down = Box::new(on_key_down);
         self
     }
@@ -154,7 +158,7 @@ impl<T> ListView<T> {
                 ListState::default().with_selected(selected.get())
             )
         }
-        .on_click(move |mouse_event, event_data| {
+        .on_click(move |mouse_event, event_data, _| {
             let clicked_item = items.with(|items| {
                 let start_row = event_data.rect.y;
                 let row_offset = mouse_event.row - start_row;

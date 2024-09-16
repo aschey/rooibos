@@ -3,7 +3,7 @@ use std::any::Any;
 use std::ops::{Deref, DerefMut};
 
 use reactive_graph::effect::RenderEffect;
-use rooibos_dom2::{unmount_child, AsDomNode};
+use rooibos_dom::{unmount_child, AsDomNode};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 
@@ -11,28 +11,28 @@ use super::{with_nodes, RooibosDom};
 use crate::DomWidgetNode;
 
 #[derive(Debug)]
-pub struct NodeType(rooibos_dom2::NodeType);
+pub struct NodeType(rooibos_dom::NodeType);
 
 impl Render<RooibosDom> for NodeType {
     type State = Option<RenderEffect<()>>;
 
     fn build(self) -> Self::State {
         match self.0 {
-            rooibos_dom2::NodeType::Layout => None,
-            rooibos_dom2::NodeType::Widget(node) => Some(DomWidgetNode(node).build()),
-            rooibos_dom2::NodeType::Placeholder => None,
+            rooibos_dom::NodeType::Layout => None,
+            rooibos_dom::NodeType::Widget(node) => Some(DomWidgetNode(node).build()),
+            rooibos_dom::NodeType::Placeholder => None,
         }
     }
 
     fn rebuild(self, state: &mut Self::State) {
         match self.0 {
-            rooibos_dom2::NodeType::Layout => {}
-            rooibos_dom2::NodeType::Widget(node) => {
+            rooibos_dom::NodeType::Layout => {}
+            rooibos_dom::NodeType::Widget(node) => {
                 if let Some(s) = state.as_mut() {
                     DomWidgetNode(node).rebuild(s)
                 }
             }
-            rooibos_dom2::NodeType::Placeholder => {}
+            rooibos_dom::NodeType::Placeholder => {}
         }
     }
 }
@@ -69,16 +69,16 @@ impl Mountable<RooibosDom> for Box<dyn AnyMountable> {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct DomNode(pub(crate) rooibos_dom2::DomNode);
+pub struct DomNode(pub(crate) rooibos_dom::DomNode);
 
 impl AsDomNode for DomNode {
-    fn as_dom_node(&self) -> &rooibos_dom2::DomNode {
+    fn as_dom_node(&self) -> &rooibos_dom::DomNode {
         self.0.as_dom_node()
     }
 }
 
 impl Deref for DomNode {
-    type Target = rooibos_dom2::DomNode;
+    type Target = rooibos_dom::DomNode;
 
     fn deref(&self) -> &Self::Target {
         &self.0

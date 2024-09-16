@@ -1,5 +1,5 @@
 use ratatui::widgets::WidgetRef;
-use rooibos_dom2::{clear_children, refresh_dom, unmount_child, AsDomNode};
+use rooibos_dom::{clear_children, refresh_dom, unmount_child, AsDomNode};
 use tachys::prelude::Renderer;
 use tachys::renderer::CastFrom;
 use tachys::view::Render as _;
@@ -49,20 +49,18 @@ impl Renderer for RooibosDom {
     }
 
     fn create_placeholder() -> Self::Placeholder {
-        let placeholder = DomNode(rooibos_dom2::DomNode::placeholder());
+        let placeholder = DomNode(rooibos_dom::DomNode::placeholder());
         DomNode(placeholder.build().as_dom_node().clone())
     }
 
     fn set_text(node: &Self::Text, text: &str) {
         let text = text.to_string();
-        node.replace_widget(rooibos_dom2::DomWidgetNode::new::<String, _, _>(
-            move || {
-                let text = text.clone();
-                move |rect, buf| {
-                    text.render_ref(rect, buf);
-                }
-            },
-        ));
+        node.replace_widget(rooibos_dom::DomWidgetNode::new::<String, _, _>(move || {
+            let text = text.clone();
+            move |rect, buf| {
+                text.render_ref(rect, buf);
+            }
+        }));
         node.clone().build();
     }
 

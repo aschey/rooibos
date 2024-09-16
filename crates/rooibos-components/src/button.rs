@@ -6,13 +6,11 @@ use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Set};
-use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{
-    delay, derive_signal, supports_keyboard_enhancement, wgt, KeyCode, KeyEvent, LayoutProps,
-    NodeId, Render, UpdateLayoutProps, WidgetState,
-};
+use rooibos_dom::{delay, supports_keyboard_enhancement, KeyCode, KeyEvent, NodeId, WidgetState};
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Set};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::{derive_signal, wgt, LayoutProps, Render, UpdateLayoutProps};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
@@ -151,7 +149,7 @@ impl Button {
             on_click.borrow_mut()()
         };
 
-        let key_up = move |key_event: KeyEvent, _| {
+        let key_up = move |key_event: KeyEvent, _, _| {
             if !supports_keyboard_enhancement() {
                 return;
             }
@@ -188,15 +186,15 @@ impl Button {
         ]
         .disabled(disabled)
         .layout_props(layout_props)
-        .on_mouse_enter(move |_| border_type.set(BorderType::Double))
-        .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
+        .on_mouse_enter(move |_, _| border_type.set(BorderType::Double))
+        .on_mouse_leave(move |_, _| border_type.set(BorderType::Rounded))
         .on_click({
             let on_enter = on_enter.clone();
-            move |_, _| on_enter()
+            move |_, _, _| on_enter()
         })
         .on_focus(move |_, _| focused.set(true))
         .on_blur(move |_, _| focused.set(false))
-        .on_key_down(move |key_event, _| {
+        .on_key_down(move |key_event, _, _| {
             if key_event.code == KeyCode::Enter {
                 on_enter()
             }

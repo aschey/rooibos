@@ -3,6 +3,9 @@ mod error_boundary;
 mod macros;
 mod suspense;
 mod widgets;
+pub mod graph {
+    pub use reactive_graph::*;
+}
 
 use std::cell::{LazyCell, OnceCell};
 use std::future::Future;

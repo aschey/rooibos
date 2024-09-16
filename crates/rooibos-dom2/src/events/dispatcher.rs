@@ -64,51 +64,82 @@ impl EventDispatcher {
             MouseEventKind::Up(_) => {}
             MouseEventKind::Drag(_) => {}
             MouseEventKind::Moved => {
-                self.last_mouse_position = mouse_event;
-                let current = with_nodes(|nodes| {
-                    for root in nodes.roots_desc() {
-                        let found = root.get_key().traverse(
-                            |key, inner| {
-                                if inner.disabled {
-                                    return None;
-                                }
-
-                                if inner.rect.borrow().contains(Position {
-                                    x: mouse_event.column,
-                                    y: mouse_event.row,
-                                }) && inner.focusable
-                                {
-                                    Some(key)
-                                } else {
-                                    None
-                                }
-                            },
-                            MatchBehavior::SearchChildrenOnMatch,
-                        );
-                        if let Some(found) = found.first() {
-                            return Some(*found);
-                        }
-                    }
-                    None
-                });
-
-                if let Some(current) = current {
-                    with_nodes_mut(|nodes| {
-                        let set_focus = nodes.hovered_key() != Some(current);
-                        if set_focus {
-                            nodes.set_hovered(current);
-                        }
-                    });
-                } else {
-                    with_nodes_mut(|nodes| {
-                        nodes.remove_hovered();
-                    });
-                }
+                self.dispatch_mouse_moved(mouse_event);
             }
             MouseEventKind::ScrollDown => {}
             MouseEventKind::ScrollUp => {}
             MouseEventKind::ScrollLeft => {}
             MouseEventKind::ScrollRight => {}
+        }
+    }
+
+    fn dispatch_mouse_moved(&mut self, mouse_event: MouseEvent) {
+        self.last_mouse_position = mouse_event;
+        let roots = with_nodes(|nodes| nodes.roots_desc());
+        let mut current = None;
+
+        for root in roots {
+            let found = root.get_key().traverse(
+                |key, inner| {
+                    if inner.disabled {
+                        return None;
+                    }
+
+                    if inner.rect.borrow().contains(Position {
+                        x: mouse_event.column,
+                        y: mouse_event.row,
+                    }) && inner.focusable
+                    {
+                        Some(key)
+                    } else {
+                        None
+                    }
+                },
+                MatchBehavior::SearchChildrenOnMatch,
+            );
+            if let Some(found) = found.first() {
+                current = Some(*found);
+                break;
+            }
+        }
+
+        let hovered_key = with_nodes(|nodes| nodes.hovered_key());
+        if let Some(current) = current {
+            if let Some(hovered_key) = hovered_key {
+                if hovered_key != current {
+                    bubble_event(
+                        hovered_key,
+                        |handlers| handlers.on_mouse_leave.clone(),
+                        |event, rect, handle| {
+                            event.borrow_mut()(EventData { rect }, handle);
+                        },
+                    );
+                }
+            }
+            if hovered_key != Some(current) {
+                with_nodes_mut(|nodes| nodes.set_hovered(current));
+                bubble_event(
+                    current,
+                    |handlers| handlers.on_mouse_enter.clone(),
+                    |event, rect, handle| {
+                        event.borrow_mut()(EventData { rect }, handle);
+                    },
+                );
+            }
+        } else {
+            let hovered_key = with_nodes(|nodes| nodes.hovered_key());
+            if let Some(hovered_key) = hovered_key {
+                bubble_event(
+                    hovered_key,
+                    |handlers| handlers.on_mouse_leave.clone(),
+                    |event, rect, handle| {
+                        event.borrow_mut()(EventData { rect }, handle);
+                    },
+                );
+                with_nodes_mut(|nodes| {
+                    nodes.remove_hovered();
+                });
+            }
         }
     }
 }
@@ -125,7 +156,7 @@ fn dispatch_key_event(key_event: KeyEvent) {
     } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
         match key_event.kind {
             KeyEventKind::Press | KeyEventKind::Repeat => {
-                bubble_key_event(
+                bubble_event(
                     key,
                     |handlers| handlers.on_key_down.clone(),
                     |event, rect, handle| {
@@ -134,7 +165,7 @@ fn dispatch_key_event(key_event: KeyEvent) {
                 );
             }
             KeyEventKind::Release => {
-                bubble_key_event(
+                bubble_event(
                     key,
                     |handlers| handlers.on_key_up.clone(),
                     |event, rect, handle| {
@@ -146,10 +177,10 @@ fn dispatch_key_event(key_event: KeyEvent) {
     }
 }
 
-fn bubble_key_event<GE, EF, E>(key: DomNodeKey, get_event: GE, event_fn: EF)
+fn bubble_event<GE, EF, E>(key: DomNodeKey, get_event: GE, event_fn: EF)
 where
     GE: Fn(&EventHandlers) -> Option<E>,
-    EF: Fn(&mut E, Rect, &mut EventHandle),
+    EF: Fn(&mut E, Rect, EventHandle),
 {
     let (rect, event) = with_nodes(|nodes| {
         (
@@ -158,14 +189,14 @@ where
         )
     });
     if let Some(mut event) = event {
-        let mut handle = EventHandle::default();
-        event_fn(&mut event, rect, &mut handle);
-        if handle.stop_propagation {
+        let handle = EventHandle::default();
+        event_fn(&mut event, rect, handle.clone());
+        if handle.get_stop_propagation() {
             return;
         }
     }
     if let Some(parent) = with_nodes(|nodes| nodes[key].parent) {
-        bubble_key_event(parent, get_event, event_fn)
+        bubble_event(parent, get_event, event_fn)
     }
 }
 
@@ -214,7 +245,7 @@ fn dispatch_mouse_down(mouse_event: MouseEvent, mouse_button: MouseButton) {
                 }
                 if !stop_propagation {
                     if let Some(on_click) = &nodes[key].event_handlers.on_click {
-                        let mut handle = EventHandle::default();
+                        let handle = EventHandle::default();
                         let rect = nodes[key].rect.borrow();
                         on_click.borrow_mut()(
                             crate::ClickEvent {
@@ -224,9 +255,11 @@ fn dispatch_mouse_down(mouse_event: MouseEvent, mouse_button: MouseButton) {
                                 modifiers: mouse_event.modifiers,
                             },
                             EventData { rect: *rect },
-                            &mut handle,
+                            handle.clone(),
                         );
-                        stop_propagation = handle.stop_propagation;
+                        if !stop_propagation {
+                            stop_propagation = handle.get_stop_propagation();
+                        }
                         if focus_set && stop_propagation {
                             return false;
                         }
@@ -243,14 +276,12 @@ fn dispatch_mouse_down(mouse_event: MouseEvent, mouse_button: MouseButton) {
 
 fn dispatch_paste(val: String) {
     if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
-        let (rect, on_paste) = with_nodes(|nodes| {
-            (
-                *nodes[key].rect.borrow(),
-                nodes[key].event_handlers.on_paste.clone(),
-            )
-        });
-        if let Some(on_paste) = on_paste {
-            on_paste.borrow_mut()(val, EventData { rect }, &mut EventHandle::default());
-        }
+        bubble_event(
+            key,
+            |handlers| handlers.on_paste.clone(),
+            |event, rect, handle| {
+                event.borrow_mut()(val.clone(), EventData { rect }, handle);
+            },
+        );
     }
 }

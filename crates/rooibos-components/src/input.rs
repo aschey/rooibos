@@ -2,15 +2,15 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
-use reactive_graph::effect::Effect;
-use reactive_graph::owner::{on_cleanup, StoredValue};
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
-use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, set_editing, BlurEvent, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
-    LayoutProps, NodeId, Render, UpdateLayoutProps, WidgetState,
+    set_editing, BlurEvent, EventData, FocusEvent, KeyCode, KeyEvent, NodeId, WidgetState,
 };
+use rooibos_reactive::graph::effect::Effect;
+use rooibos_reactive::graph::owner::{on_cleanup, StoredValue};
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
+use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
+use rooibos_reactive::{derive_signal, DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
 use wasm_compat::futures::spawn_local;
@@ -262,7 +262,7 @@ impl Input {
             });
         });
 
-        let key_down = move |key_event: KeyEvent, _| {
+        let key_down = move |key_event: KeyEvent, _, _| {
             if key_event.code == KeyCode::Enter && key_event.modifiers.is_empty() {
                 let line = text_area.with(|t| t.lines()[0].clone());
                 submit_tx.send(line).unwrap();
@@ -279,7 +279,7 @@ impl Input {
             });
         };
 
-        let paste = move |text: String, _| {
+        let paste = move |text: String, _, _| {
             text_area.update(|t| {
                 t.insert_str(text);
             });

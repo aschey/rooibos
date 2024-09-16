@@ -6,8 +6,9 @@ use ratatui::layout::Rect;
 use ratatui::Terminal;
 use rooibos_dom::{
     focus_next, render_dom, DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton,
-    MouseEvent, MouseEventKind, NodeTypeRepr, Render,
+    MouseEvent, MouseEventKind, NodeTypeRepr,
 };
+use rooibos_reactive::Render;
 use rooibos_runtime::backend::test::TestBackend;
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
 use rooibos_runtime::{Runtime, RuntimeSettings, TickResult};

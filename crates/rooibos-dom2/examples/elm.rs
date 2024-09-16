@@ -12,7 +12,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use ratatui::Terminal;
-use rooibos_dom2::{
+use rooibos_dom::{
     dispatch_event, focus_next, render_dom, with_nodes, with_nodes_mut, AsDomNode, DomNode,
     DomWidgetNode, NodeId,
 };

@@ -514,7 +514,7 @@ impl DomNode {
 
     pub fn on_key_down<F>(self, handler: F) -> Self
     where
-        F: FnMut(KeyEvent, EventData, &mut EventHandle) + 'static,
+        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_key_down(handler));
         with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
@@ -523,7 +523,7 @@ impl DomNode {
 
     pub fn on_click<F>(self, handler: F) -> Self
     where
-        F: FnMut(ClickEvent, EventData, &mut EventHandle) + 'static,
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_click(handler));
         with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));

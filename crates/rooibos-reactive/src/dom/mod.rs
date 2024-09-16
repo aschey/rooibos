@@ -11,7 +11,7 @@ use ratatui::layout::Rect;
 use reactive_graph::signal::{signal, ReadSignal};
 use reactive_graph::traits::Set as _;
 pub use renderer::*;
-use rooibos_dom2::{with_nodes, with_nodes_mut};
+use rooibos_dom::{with_nodes, with_nodes_mut};
 
 use crate::text;
 

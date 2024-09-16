@@ -14,5 +14,6 @@ reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "a083b5726
     "tracing",
     "effects",
 ] }
-rooibos-dom = { path = "../rooibos-dom" }
+rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-router-macros = { path = "../rooibos-router-macros" }

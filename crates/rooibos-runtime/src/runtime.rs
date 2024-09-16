@@ -12,9 +12,10 @@ use ratatui::layout::Size;
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::Terminal;
 use rooibos_dom::{
-    dispatch_event, dom_update_receiver, focus_next, mount, render_dom, set_pixel_size, unmount,
-    DomUpdateReceiver, Event, Render,
+    dispatch_event, dom_update_receiver, focus_next, render_dom, set_pixel_size, unmount,
+    DomUpdateReceiver, Event,
 };
+use rooibos_reactive::{mount, Render};
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
@@ -237,7 +238,8 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     pub async fn should_exit(&self) -> bool {
-        let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+        #[cfg(debug_assertions)]
+        let _guard = rooibos_reactive::graph::diagnostics::SpecialNonReactiveZone::enter();
         let exit_result = with_state_mut(|s| (s.before_exit.lock())());
         exit_result.await == ExitResult::Exit
     }

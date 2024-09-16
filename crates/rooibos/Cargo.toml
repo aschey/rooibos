@@ -4,11 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "a083b57260db4fa6588ff392bf24b4422047c0f6", features = [
-    "tracing",
-    "effects",
-] }
+rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
 rooibos-components = { path = "../rooibos-components" }
@@ -21,9 +18,7 @@ ratatui = { version = "0.28", features = ["unstable"] }
 
 [features]
 nightly = [
-    "reactive_graph/nightly",
-    "rooibos-dom/nightly",
-    "rooibos-runtime/nightly",
+    "rooibos-reactive/nightly"
 ]
 crossterm = [
     "rooibos-dom/crossterm",

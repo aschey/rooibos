@@ -15,8 +15,7 @@ use taffy::{
 
 use super::{dom_node, refresh_dom};
 use crate::{
-    AsDomNode, BlurEvent, DomNode, EventData, EventHandle, EventHandlers, FocusEvent,
-    NodeProperties, NodeType,
+    AsDomNode, BlurEvent, DomNode, EventData, EventHandlers, FocusEvent, NodeProperties, NodeType,
 };
 
 new_key_type! { pub struct DomNodeKey; }
@@ -636,17 +635,6 @@ impl NodeTree {
     }
 
     pub(crate) fn remove_hovered(&mut self) {
-        if let Some(hovered_key) = self.hovered_key {
-            let mut on_mouse_leave = self.dom_nodes[hovered_key]
-                .inner
-                .event_handlers
-                .on_mouse_leave
-                .clone();
-            if let Some(on_mouse_leave) = &mut on_mouse_leave {
-                let rect = *self.dom_nodes[hovered_key].inner.rect.borrow();
-                on_mouse_leave.borrow_mut()(EventData { rect }, &mut EventHandle::default());
-            }
-        }
         self.hovered_key = None;
     }
 
@@ -738,29 +726,7 @@ impl NodeTree {
     }
 
     pub(crate) fn set_hovered(&mut self, node_key: DomNodeKey) {
-        if let Some(hovered_key) = self.hovered_key {
-            let mut on_mouse_leave = self.dom_nodes[hovered_key]
-                .inner
-                .event_handlers
-                .on_mouse_leave
-                .clone();
-            if let Some(on_mouse_leave) = &mut on_mouse_leave {
-                let rect = *self.dom_nodes[hovered_key].inner.rect.borrow();
-                on_mouse_leave.borrow_mut()(EventData { rect }, &mut EventHandle::default());
-            }
-        }
-
         self.hovered_key = Some(node_key);
-
-        let mut on_mouse_enter = self.dom_nodes[node_key]
-            .inner
-            .event_handlers
-            .on_mouse_enter
-            .clone();
-        if let Some(on_mouse_enter) = &mut on_mouse_enter {
-            let rect = *self.dom_nodes[node_key].inner.rect.borrow();
-            on_mouse_enter.borrow_mut()(EventData { rect }, &mut EventHandle::default());
-        }
     }
 
     pub(crate) fn focus_next(&mut self) {

@@ -1,8 +1,8 @@
 use rooibos::components::Button;
-use rooibos::dom::{col, derive_signal, height, padding_right, row, text, wgt, width, Render};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
-use rooibos::reactive::wrappers::read::Signal;
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::{col, derive_signal, height, padding_right, row, text, wgt, width, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
