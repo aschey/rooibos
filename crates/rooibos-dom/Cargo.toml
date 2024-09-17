@@ -1,23 +1,11 @@
 [package]
-name = "rooibos-dom-old"
+name = "rooibos-dom"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "tracing",
-    "effects",
-] }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "reactive_graph",
-    "tracing",
-] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "tokio",
-    "tracing",
-] }
 throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
 ratatui = { version = "0.28", features = ["unstable"] }
@@ -37,11 +25,13 @@ taffy = "0.5.2"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 
+[dev-dependencies]
+tokio = {version="1.40", features=["rt-multi-thread", "macros", "sync"]}
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
 
 [features]
-nightly = ["reactive_graph/nightly", "tachys/nightly"]
 crossterm = ["terminput/crossterm", "tui-textarea?/crossterm"]
 termion = ["terminput/termion", "tui-textarea?/termion"]
 termwiz = ["terminput/termwiz", "tui-textarea?/termwiz"]

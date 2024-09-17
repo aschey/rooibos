@@ -12,7 +12,7 @@ tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c
     "reactive_graph",
     "tracing",
 ] }
-rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path="../rooibos-reactive" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
     "all",

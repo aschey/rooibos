@@ -7,6 +7,6 @@ edition = "2021"
 ratatui = "0.28"
 rooibos-runtime = { path = "../rooibos-runtime" }
 tokio = { version = "1.38.1", default-features = false, features = ["time"] }
-rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 unicode-width = "0.1.13"

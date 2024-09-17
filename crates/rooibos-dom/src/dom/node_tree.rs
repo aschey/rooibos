@@ -7,31 +7,31 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::layout::Rect;
 use ratatui::widgets::Block;
-use reactive_graph::signal::{signal, ReadSignal, WriteSignal};
-use reactive_graph::traits::Set;
 use slotmap::{new_key_type, SlotMap};
 use taffy::{
     AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Position, Size, Style,
     TaffyTree,
 };
 
-use super::{dom_node, refresh_dom, AsDomNode, DomNode};
-use crate::{BlurEvent, DomNodeInner, EventData, EventHandlers, FocusEvent};
+use super::{dom_node, refresh_dom};
+use crate::{
+    AsDomNode, BlurEvent, DomNode, EventData, EventHandlers, FocusEvent, NodeProperties, NodeType,
+};
 
-new_key_type! { pub(crate) struct DomNodeKey; }
+new_key_type! { pub struct DomNodeKey; }
 
 thread_local! {
     static DOM_NODES: RefCell<NodeTree> = RefCell::new(NodeTree::new());
 }
 
-pub(crate) fn with_nodes<F, R>(f: F) -> R
+pub fn with_nodes<F, R>(f: F) -> R
 where
     F: FnOnce(&NodeTree) -> R,
 {
     DOM_NODES.with(|n| f(&n.borrow()))
 }
 
-pub(crate) fn with_nodes_mut<F, R>(f: F) -> R
+pub fn with_nodes_mut<F, R>(f: F) -> R
 where
     F: FnOnce(&mut NodeTree) -> R,
 {
@@ -42,35 +42,48 @@ pub(crate) fn tree_is_accessible() -> bool {
     DOM_NODES.try_with(|_| {}).is_ok()
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum MatchBehavior {
+    StopOnFistMatch,
+    ContinueOnMatch,
+    SearchChildrenOnMatch,
+}
+
 impl DomNodeKey {
-    pub(crate) fn traverse<F, T>(&self, f: F, stop_on_first_match: bool) -> Vec<T>
+    pub(crate) fn traverse<F, T>(&self, f: F, match_behavior: MatchBehavior) -> Vec<T>
     where
-        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
+        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T> + Clone,
     {
         let mut out_list = vec![];
-        self.traverse_inner(f, &mut out_list, stop_on_first_match);
+        self.traverse_inner(f, &mut out_list, match_behavior);
         out_list
     }
 
-    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, stop_on_first_match: bool)
+    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, match_behavior: MatchBehavior)
     where
-        F: FnMut(DomNodeKey, &DomNodeInner) -> Option<T> + Clone,
+        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T> + Clone,
     {
         if let Some(out) = with_nodes(|nodes| f(*self, &nodes[*self])) {
             out_list.push(out);
-            if stop_on_first_match {
+            if match_behavior == MatchBehavior::StopOnFistMatch {
                 return;
             }
         }
         let children = with_nodes(|nodes| nodes[*self].children.clone());
         for child in children {
-            child.traverse_inner(f.clone(), out_list, stop_on_first_match);
+            let current_length = out_list.len();
+            child.traverse_inner(f.clone(), out_list, match_behavior);
+            if out_list.len() > current_length
+                && match_behavior == MatchBehavior::SearchChildrenOnMatch
+            {
+                return;
+            }
         }
     }
 }
 
 pub(crate) struct TreeValue {
-    pub(crate) inner: DomNodeInner,
+    pub(crate) inner: NodeProperties,
     layout_id: NodeId,
 }
 
@@ -124,46 +137,54 @@ impl PartialOrd for RootId {
     }
 }
 
-pub(crate) struct NodeTree {
+pub struct NodeTree {
     dom_nodes: SlotMap<DomNodeKey, TreeValue>,
     layout_tree: TaffyTree<Context>,
     roots: BTreeMap<RootId, Box<dyn AsDomNode>>,
-    window_size: ReadSignal<Rect>,
-    set_window_size: WriteSignal<Rect>,
-    focused: ReadSignal<Option<crate::NodeId>>,
-    set_focused: WriteSignal<Option<crate::NodeId>>,
+    window_size: Rect,
+    focused: Option<crate::NodeId>,
     focused_key: Option<DomNodeKey>,
     hovered_key: Option<DomNodeKey>,
     focusable_nodes: Rc<RefCell<Vec<DomNodeKey>>>,
+    on_window_size_change: Box<dyn Fn(Rect)>,
+    on_focus_change: Box<dyn Fn(Option<crate::NodeId>)>,
 }
 
 impl Index<DomNodeKey> for NodeTree {
-    type Output = DomNodeInner;
+    type Output = NodeProperties;
     fn index(&self, index: DomNodeKey) -> &Self::Output {
         &self.dom_nodes[index].inner
     }
 }
 
+impl Default for NodeTree {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NodeTree {
     pub(crate) fn new() -> Self {
-        let (focused, set_focused) = signal(None);
-        let (window_size, set_window_size) = signal(Rect::default());
         Self {
             layout_tree: TaffyTree::<Context>::new(),
             roots: BTreeMap::default(),
             dom_nodes: Default::default(),
-            focused,
-            set_focused,
+            focused: None,
             focused_key: None,
             hovered_key: None,
             focusable_nodes: Default::default(),
-            window_size,
-            set_window_size,
+            window_size: Rect::default(),
+            on_window_size_change: Box::new(move |_| {}),
+            on_focus_change: Box::new(move |_| {}),
         }
     }
 
-    pub(crate) fn recompute_layout(&mut self, rect: Rect) {
-        let root_keys: Vec<_> = self.roots.values().map(|r| r.as_dom_node().key()).collect();
+    pub fn recompute_layout(&mut self, rect: Rect) {
+        let root_keys: Vec<_> = self
+            .roots
+            .values()
+            .map(|r| r.as_dom_node().get_key())
+            .collect();
         for root_key in root_keys {
             let node = &self.dom_nodes[root_key];
             self.layout_tree
@@ -179,9 +200,9 @@ impl NodeTree {
         }
     }
 
-    pub(crate) fn set_root(&mut self, z_index: i32, root: Box<dyn AsDomNode>) {
-        let key = root.as_dom_node().key();
-        self.roots.insert(RootId::new(z_index), root);
+    pub fn set_root(&mut self, z_index: i32, root: impl AsDomNode + 'static) {
+        let key = root.as_dom_node().get_key();
+        self.roots.insert(RootId::new(z_index), Box::new(root));
         let node = &self.dom_nodes[key];
         let mut style = self.layout_tree.style(node.layout_id).unwrap().clone();
         if style.size.width == Dimension::Auto {
@@ -193,19 +214,39 @@ impl NodeTree {
         self.layout_tree.set_style(node.layout_id, style).unwrap();
     }
 
+    pub fn on_window_size_change<F>(&mut self, f: F)
+    where
+        F: Fn(Rect) + 'static,
+    {
+        self.on_window_size_change = Box::new(f);
+    }
+
+    pub fn on_focus_change<F>(&mut self, f: F)
+    where
+        F: Fn(Option<crate::NodeId>) + 'static,
+    {
+        self.on_focus_change = Box::new(f);
+    }
+
     pub(crate) fn root(&self, z_index: i32) -> &dyn AsDomNode {
         let key = &self.roots.keys().find(|k| k.z_index == z_index).unwrap();
         &self.roots[key]
     }
 
-    pub(crate) fn roots_asc(&self) -> Vec<DomNode> {
+    pub fn clear(&mut self) {
+        let window_size = self.window_size;
+        *self = Self::new();
+        self.window_size = window_size;
+    }
+
+    pub fn roots_asc(&self) -> Vec<DomNode> {
         self.roots
             .values()
             .map(|r| r.as_dom_node().clone())
             .collect()
     }
 
-    pub(crate) fn roots_desc(&self) -> Vec<DomNode> {
+    pub fn roots_desc(&self) -> Vec<DomNode> {
         let mut roots: Vec<_> = self
             .roots
             .values()
@@ -215,27 +256,45 @@ impl NodeTree {
         roots
     }
 
+    pub(crate) fn set_unmounted(&self, key: DomNodeKey, unmounted: bool) {
+        self.dom_nodes[key]
+            .inner
+            .unmounted
+            .store(unmounted, Ordering::Relaxed);
+    }
+
     pub(crate) fn focused_key(&self) -> Option<DomNodeKey> {
         self.focused_key
     }
 
-    pub(crate) fn focused(&self) -> ReadSignal<Option<crate::NodeId>> {
-        self.focused
+    pub fn focused(&self) -> &Option<crate::NodeId> {
+        &self.focused
     }
 
     pub(crate) fn hovered_key(&self) -> Option<DomNodeKey> {
         self.hovered_key
     }
 
-    pub(crate) fn set_window_size(&self, size: Rect) {
-        self.set_window_size.set(size);
+    pub(crate) fn set_window_size(&mut self, size: Rect) {
+        if size != self.window_size {
+            self.window_size = size;
+            (self.on_window_size_change)(size);
+        }
     }
 
-    pub(crate) fn window_size(&self) -> ReadSignal<Rect> {
+    pub fn node_type(&self, key: DomNodeKey) -> &NodeType {
+        &self.dom_nodes[key].inner.node_type
+    }
+
+    pub fn original_display(&self, key: DomNodeKey) -> &taffy::Display {
+        &self.dom_nodes[key].inner.original_display
+    }
+
+    pub fn window_size(&self) -> Rect {
         self.window_size
     }
 
-    pub(crate) fn clear_focusables(&mut self) {
+    pub fn clear_focusables(&mut self) {
         self.focusable_nodes.borrow_mut().clear();
     }
 
@@ -262,7 +321,7 @@ impl NodeTree {
         }
     }
 
-    pub(crate) fn update_layout<F>(&mut self, node: DomNodeKey, mut f: F)
+    pub fn update_layout<F>(&mut self, node: DomNodeKey, mut f: F)
     where
         F: FnMut(&mut Style),
     {
@@ -363,7 +422,7 @@ impl NodeTree {
         self.dom_nodes.contains_key(key)
     }
 
-    pub(crate) fn insert(&mut self, val: DomNodeInner) -> DomNodeKey {
+    pub(crate) fn insert(&mut self, val: NodeProperties) -> DomNodeKey {
         let layout_node = self
             .layout_tree
             .new_leaf_with_context(Style::default(), Context::default())
@@ -418,6 +477,8 @@ impl NodeTree {
                 .unwrap();
             self.update_sizes(parent_node.layout_id);
         }
+        self.set_unmounted(child_key, false);
+        refresh_dom();
     }
 
     pub(crate) fn remove(&mut self, node: DomNodeKey) -> Option<TreeValue> {
@@ -427,7 +488,7 @@ impl NodeTree {
         if let Some(parent) = parent {
             self.update_sizes(parent);
         }
-
+        refresh_dom();
         self.dom_nodes.remove(node)
     }
 
@@ -448,13 +509,14 @@ impl NodeTree {
                 .remove_child(parent_node.layout_id, child_node.layout_id)
                 .unwrap();
             self.update_sizes(parent_node.layout_id);
+            refresh_dom();
         }
     }
 
     pub(crate) fn replace_node(&mut self, old_key: DomNodeKey, new_key: DomNodeKey) {
         // This is annoyingly verbose, but we use destructuring here to ensure we account for
         // any new properties that get added to DomNodeInner
-        let DomNodeInner {
+        let NodeProperties {
             node_type,
             name,
             children: _children,
@@ -498,18 +560,20 @@ impl NodeTree {
         new.clear = clear;
         new.disabled = disabled;
         // self.dom_nodes[new_key].layout_id = layout_id;
+        refresh_dom();
     }
 
-    pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: DomNodeInner) {
+    pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: NodeProperties) {
         self.dom_nodes[node].inner = inner;
+        refresh_dom();
     }
 
-    pub(crate) fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
+    pub fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
         self.dom_nodes[node].inner.focusable = focusable;
         refresh_dom();
     }
 
-    pub(crate) fn set_disabled(&mut self, key: DomNodeKey, disabled: bool) {
+    pub fn set_disabled(&mut self, key: DomNodeKey, disabled: bool) {
         self.dom_nodes[key].inner.disabled = disabled;
         if disabled {
             self.unset_state(&key);
@@ -551,18 +615,18 @@ impl NodeTree {
         self.dom_nodes[node].inner.class = Some(class.into());
     }
 
-    pub(crate) fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
+    pub fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
         self.dom_nodes[node].inner.block = Some(block);
     }
 
-    pub(crate) fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
+    pub fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
         self.dom_nodes[key].inner.z_index = Some(z_index);
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();
         let node = DomNode::from_existing(key, unmounted);
         self.roots.insert(RootId::new(z_index), Box::new(node));
     }
 
-    pub(crate) fn set_clear(&mut self, key: DomNodeKey, clear: bool) {
+    pub fn set_clear(&mut self, key: DomNodeKey, clear: bool) {
         self.dom_nodes[key].inner.clear = clear;
     }
 
@@ -575,19 +639,6 @@ impl NodeTree {
     }
 
     pub(crate) fn remove_hovered(&mut self) {
-        if let Some(hovered_key) = self.hovered_key {
-            let mut on_mouse_leave = self.dom_nodes[hovered_key]
-                .inner
-                .event_handlers
-                .on_mouse_leave
-                .clone();
-            if let Some(on_mouse_leave) = &mut on_mouse_leave {
-                let rect = *self.dom_nodes[hovered_key].inner.rect.borrow();
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                on_mouse_leave.borrow_mut()(EventData { rect });
-            }
-        }
         self.hovered_key = None;
     }
 
@@ -600,16 +651,37 @@ impl NodeTree {
                 .clone();
             if let Some(on_blur) = &mut on_blur {
                 let rect = *self.dom_nodes[focused_key].inner.rect.borrow();
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
                 on_blur.borrow_mut()(BlurEvent { new_target: None }, EventData { rect });
             }
         }
-        self.set_focused.set(None);
+        self.set_focused(None);
         self.focused_key = None;
     }
 
-    pub(crate) fn set_focused(&mut self, node_key: DomNodeKey) {
+    pub fn get_key(&self, id: impl Into<crate::NodeId>) -> Option<DomNodeKey> {
+        let id = id.into();
+        self.dom_nodes
+            .iter()
+            .find(|(_, v)| v.inner.id.as_ref() == Some(&id))
+            .map(|(k, _)| k)
+    }
+
+    pub fn set_focused_untracked(&mut self, node_key: Option<DomNodeKey>) {
+        let Some(node_key) = node_key else {
+            self.focused = None;
+            self.focused_key = None;
+            return;
+        };
+        if !self.dom_nodes.contains_key(node_key) {
+            self.focused = None;
+            self.focused_key = None;
+            return;
+        }
+        self.focused_key = Some(node_key);
+        self.focused = self.dom_nodes[node_key].inner.id.clone();
+    }
+
+    pub fn set_focused(&mut self, node_key: Option<DomNodeKey>) {
         let prev_focused_id = if let Some(focused_key) = self.focused_key {
             let node_id = self.dom_nodes[focused_key].inner.id.clone();
             let mut on_blur = self.dom_nodes[focused_key]
@@ -619,10 +691,7 @@ impl NodeTree {
                 .clone();
             if let Some(on_blur) = &mut on_blur {
                 let rect = *self.dom_nodes[focused_key].inner.rect.borrow();
-                let focus_id = self.dom_nodes[node_key].inner.id.clone(); //with_nodes(|nodes| nodes[node_key].id.clone());
-
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                let focus_id = node_key.and_then(|k| self.dom_nodes[k].inner.id.clone());
                 on_blur.borrow_mut()(
                     BlurEvent {
                         new_target: focus_id,
@@ -635,9 +704,14 @@ impl NodeTree {
             None
         };
 
-        self.focused_key = Some(node_key);
-        self.set_focused
-            .set(self.dom_nodes[node_key].inner.id.to_owned());
+        self.set_focused_untracked(node_key);
+        if prev_focused_id != self.focused {
+            (self.on_focus_change)(self.focused.clone());
+        }
+        let Some(node_key) = self.focused_key else {
+            refresh_dom();
+            return;
+        };
 
         let mut on_focus = self.dom_nodes[node_key]
             .inner
@@ -647,8 +721,6 @@ impl NodeTree {
 
         if let Some(on_focused) = &mut on_focus {
             let rect = *self.dom_nodes[node_key].inner.rect.borrow();
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
             on_focused.borrow_mut()(
                 FocusEvent {
                     previous_target: prev_focused_id,
@@ -656,36 +728,11 @@ impl NodeTree {
                 EventData { rect },
             );
         }
+        refresh_dom();
     }
 
     pub(crate) fn set_hovered(&mut self, node_key: DomNodeKey) {
-        if let Some(hovered_key) = self.hovered_key {
-            let mut on_mouse_leave = self.dom_nodes[hovered_key]
-                .inner
-                .event_handlers
-                .on_mouse_leave
-                .clone();
-            if let Some(on_mouse_leave) = &mut on_mouse_leave {
-                let rect = *self.dom_nodes[hovered_key].inner.rect.borrow();
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                on_mouse_leave.borrow_mut()(EventData { rect });
-            }
-        }
-
         self.hovered_key = Some(node_key);
-
-        let mut on_mouse_enter = self.dom_nodes[node_key]
-            .inner
-            .event_handlers
-            .on_mouse_enter
-            .clone();
-        if let Some(on_mouse_enter) = &mut on_mouse_enter {
-            let rect = *self.dom_nodes[node_key].inner.rect.borrow();
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            on_mouse_enter.borrow_mut()(EventData { rect });
-        }
     }
 
     pub(crate) fn focus_next(&mut self) {
@@ -700,13 +747,13 @@ impl NodeTree {
             let last = self.focusable_nodes.borrow().len() - 1;
             if current_focused < last {
                 let next = self.focusable_nodes.borrow()[current_focused + 1];
-                self.set_focused(next);
+                self.set_focused(Some(next));
                 return;
             }
         }
         let next = self.focusable_nodes.borrow().first().cloned();
         if let Some(next) = next {
-            self.set_focused(next);
+            self.set_focused(Some(next));
         }
     }
 
@@ -720,13 +767,13 @@ impl NodeTree {
                 .unwrap();
             if current_focused > 0 {
                 let prev = self.focusable_nodes.borrow()[current_focused - 1];
-                self.set_focused(prev);
+                self.set_focused(Some(prev));
                 return;
             }
         }
         let prev = self.focusable_nodes.borrow().last().cloned();
         if let Some(prev) = prev {
-            self.set_focused(prev);
+            self.set_focused(Some(prev));
         }
     }
 }

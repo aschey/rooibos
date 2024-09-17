@@ -1,5 +1,4 @@
 use core::fmt::Debug;
-use std::any::Any;
 use std::cell::RefCell;
 use std::fmt::{self};
 use std::rc::Rc;
@@ -10,15 +9,14 @@ use educe::Educe;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
-use reactive_graph::effect::RenderEffect;
-use tachys::renderer::Renderer;
-use tachys::view::{Mountable, Render};
-use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use terminput::{Event, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::node_tree::{tree_is_accessible, DomNodeKey, NodeTree};
-use super::{unmount_child, with_nodes, with_nodes_mut, RooibosDom};
+use super::node_tree::{DomNodeKey, NodeTree};
+use super::unmount_child;
 use crate::{
-    dispatch_event, next_node_id, reset_mouse_position, DomWidgetNode, EventHandlers, Role,
+    dispatch_event, next_node_id, reset_mouse_position, tree_is_accessible, with_nodes,
+    with_nodes_mut, BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers,
+    FocusEvent, MatchBehavior, Role,
 };
 
 pub trait AsDomNode {
@@ -124,61 +122,6 @@ impl Debug for NodeType {
     }
 }
 
-impl Render<RooibosDom> for NodeType {
-    type State = Option<RenderEffect<()>>;
-
-    fn build(self) -> Self::State {
-        match self {
-            NodeType::Layout => None,
-            NodeType::Widget(node) => Some(node.build()),
-            NodeType::Placeholder => None,
-        }
-    }
-
-    fn rebuild(self, state: &mut Self::State) {
-        match self {
-            NodeType::Layout => {}
-            NodeType::Widget(node) => {
-                if let Some(s) = state.as_mut() {
-                    node.rebuild(s)
-                }
-            }
-            NodeType::Placeholder => {}
-        }
-    }
-}
-
-pub trait AnyMountable: Mountable<RooibosDom> + Any {
-    fn as_any(&mut self) -> &mut dyn Any;
-}
-
-impl<T> AnyMountable for T
-where
-    T: Mountable<RooibosDom> + Any,
-{
-    fn as_any(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-
-impl Mountable<RooibosDom> for Box<dyn AnyMountable> {
-    fn mount(
-        &mut self,
-        parent: &<RooibosDom as Renderer>::Element,
-        marker: Option<&<RooibosDom as Renderer>::Node>,
-    ) {
-        (**self).mount(parent, marker)
-    }
-
-    fn unmount(&mut self) {
-        (**self).unmount()
-    }
-
-    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
-        (**self).insert_before_this(child)
-    }
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
     Layout { block: Option<Block<'static>> },
@@ -196,7 +139,7 @@ pub struct DomNodeRepr {
 }
 
 impl DomNodeRepr {
-    pub(crate) fn from_node(key: DomNodeKey, node: &DomNodeInner) -> Self {
+    pub(crate) fn from_node(key: DomNodeKey, node: &NodeProperties) -> Self {
         Self {
             key,
             rect: *node.rect.borrow(),
@@ -228,7 +171,7 @@ impl DomNodeRepr {
                     let repr = DomNodeRepr::from_node(key, node);
                     if f(&repr) { Some(repr) } else { None }
                 },
-                true,
+                MatchBehavior::StopOnFistMatch,
             )
             .first()
             .cloned()
@@ -250,7 +193,7 @@ impl DomNodeRepr {
                 let repr = DomNodeRepr::from_node(key, node);
                 if f(&repr) { Some(repr) } else { None }
             },
-            false,
+            MatchBehavior::ContinueOnMatch,
         )
     }
 
@@ -264,7 +207,7 @@ impl DomNodeRepr {
                     None
                 }
             },
-            true,
+            MatchBehavior::StopOnFistMatch,
         );
         nodes.first().cloned()
     }
@@ -283,7 +226,7 @@ impl DomNodeRepr {
                 }
                 None
             },
-            false,
+            MatchBehavior::ContinueOnMatch,
         )
     }
 
@@ -297,7 +240,7 @@ impl DomNodeRepr {
 
                 None
             },
-            false,
+            MatchBehavior::ContinueOnMatch,
         )
     }
 
@@ -321,7 +264,7 @@ impl DomNodeRepr {
                 .iter_nodes()
                 .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
             if let Some(found_node) = found_node {
-                nodes.set_focused(found_node);
+                nodes.set_focused(Some(found_node));
             }
         });
     }
@@ -329,7 +272,7 @@ impl DomNodeRepr {
 
 #[derive(Educe, Default)]
 #[educe(Debug)]
-pub struct DomNodeInner {
+pub struct NodeProperties {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
     pub(crate) original_display: taffy::Display,
@@ -348,18 +291,6 @@ pub struct DomNodeInner {
     pub(crate) unmounted: Arc<AtomicBool>,
 }
 
-impl Render<RooibosDom> for DomNodeInner {
-    type State = <NodeType as Render<RooibosDom>>::State;
-
-    fn build(self) -> Self::State {
-        self.node_type.build()
-    }
-
-    fn rebuild(self, state: &mut Self::State) {
-        self.node_type.rebuild(state);
-    }
-}
-
 struct RenderProps<'a> {
     buf: &'a mut Buffer,
     window: Rect,
@@ -367,7 +298,7 @@ struct RenderProps<'a> {
     dom_nodes: &'a NodeTree,
 }
 
-impl DomNodeInner {
+impl NodeProperties {
     fn render(&self, props: RenderProps) {
         let RenderProps {
             buf,
@@ -403,7 +334,7 @@ impl DomNodeInner {
                 });
             }
             NodeType::Widget(widget) => {
-                // if the widget width == the window width, there's probably no explicit width set
+                // if the widget width == the window width, there's probably no explicit width
                 // subtract the extra to prevent clamp from removing any margins
                 if rect.width == window.width {
                     rect.width -= rect.x;
@@ -446,30 +377,6 @@ impl PartialEq for DomNode {
 
 impl Eq for DomNode {}
 
-impl Mountable<RooibosDom> for DomNode {
-    fn unmount(&mut self) {
-        unmount_child(self.key(), false);
-        self.unmounted.store(true, Ordering::SeqCst);
-    }
-
-    fn mount(
-        &mut self,
-        parent: &<RooibosDom as Renderer>::Element,
-        marker: Option<&<RooibosDom as Renderer>::Node>,
-    ) {
-        RooibosDom::insert_node(parent, self, marker);
-        self.unmounted.store(false, Ordering::SeqCst);
-    }
-
-    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
-        if let Some(parent) = RooibosDom::get_parent(self) {
-            child.mount(&parent, Some(self));
-            return true;
-        }
-        false
-    }
-}
-
 impl Drop for DomNode {
     fn drop(&mut self) {
         // The thread-local may already have been destroyed
@@ -488,9 +395,9 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn placeholder() -> Self {
+    pub fn placeholder() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "placeholder".to_string(),
             node_type: NodeType::Placeholder,
             original_display: taffy::Display::None,
@@ -507,9 +414,9 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn widget(widget: DomWidgetNode) -> Self {
+    pub fn widget(widget: DomWidgetNode) -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
             original_display: taffy::Display::Block,
@@ -520,9 +427,9 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn flex_row() -> Self {
+    pub fn flex_row() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "flex_row".to_string(),
             node_type: NodeType::Layout,
             original_display: taffy::Display::Flex,
@@ -540,9 +447,9 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn div() -> Self {
+    pub fn div() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "div".to_string(),
             node_type: NodeType::Layout,
             original_display: taffy::Display::Block,
@@ -559,9 +466,9 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn flex_col() -> Self {
+    pub fn flex_col() -> Self {
         let unmounted = Arc::new(AtomicBool::new(false));
-        let inner = DomNodeInner {
+        let inner = NodeProperties {
             name: "flex_col".to_string(),
             node_type: NodeType::Layout,
             original_display: taffy::Display::Flex,
@@ -579,7 +486,7 @@ impl DomNode {
         Self { key, unmounted }
     }
 
-    pub(crate) fn replace_node(&mut self, node: &DomNode) {
+    pub fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|nodes| {
             nodes.replace_node(self.key, node.key);
         });
@@ -588,8 +495,8 @@ impl DomNode {
         self.key = node.key;
     }
 
-    pub(crate) fn replace_widget(&self, widget: DomWidgetNode) {
-        let inner = DomNodeInner {
+    pub fn replace_widget(&self, widget: DomWidgetNode) {
+        let inner = NodeProperties {
             name: widget.widget_type.clone(),
             node_type: NodeType::Widget(widget),
             parent: self.get_parent_key(),
@@ -598,32 +505,76 @@ impl DomNode {
         with_nodes_mut(|n| n.replace_inner(self.key, inner));
     }
 
-    pub(crate) fn update_event_handlers<F>(&self, update: F)
+    pub fn update_event_handlers<F>(&self, update: F)
     where
         F: FnOnce(EventHandlers) -> EventHandlers,
     {
         with_nodes_mut(|n| n.update_event_handlers(self.key, update));
     }
 
-    pub(crate) fn set_id(&self, id: impl Into<NodeId>) {
+    pub fn on_key_down<F>(self, handler: F) -> Self
+    where
+        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_key_down(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+        self
+    }
+
+    pub fn on_click<F>(self, handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_click(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+        self
+    }
+
+    pub fn on_focus<F>(self, handler: F) -> Self
+    where
+        F: FnMut(FocusEvent, EventData) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_focus(handler));
+        self
+    }
+
+    pub fn on_blur<F>(self, handler: F) -> Self
+    where
+        F: FnMut(BlurEvent, EventData) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_blur(handler));
+        self
+    }
+
+    pub fn id(self, id: impl Into<NodeId>) -> Self {
         with_nodes_mut(|n| {
             n.set_id(self.key, id);
         });
+        self
     }
 
-    pub(crate) fn set_z_index(&self, z_index: i32) {
+    pub fn block(self, block: Block<'static>) -> Self {
+        with_nodes_mut(|n| {
+            n.set_block(self.key, block);
+        });
+        self
+    }
+
+    pub fn z_index(self, z_index: i32) -> Self {
         with_nodes_mut(|n| {
             n.set_z_index(self.key, z_index);
         });
+        self
     }
 
-    pub(crate) fn set_class(&self, class: impl Into<String>) {
+    pub fn class(self, class: impl Into<String>) -> Self {
         with_nodes_mut(|n| {
             n.set_class(self.key, class);
         });
+        self
     }
 
-    pub(crate) fn key(&self) -> DomNodeKey {
+    pub fn get_key(&self) -> DomNodeKey {
         self.key
     }
 
@@ -631,7 +582,7 @@ impl DomNode {
         with_nodes(|n| n[self.key].parent)
     }
 
-    pub(crate) fn get_parent(&self) -> Option<DomNode> {
+    pub fn get_parent(&self) -> Option<DomNode> {
         let parent_key = with_nodes(|n| n[self.key].parent);
 
         parent_key.map(|k| {
@@ -640,7 +591,7 @@ impl DomNode {
         })
     }
 
-    pub(crate) fn get_next_sibling(&self) -> Option<DomNode> {
+    pub fn get_next_sibling(&self) -> Option<DomNode> {
         let parent_key = with_nodes(|n| n[self.key].parent);
 
         parent_key.and_then(|k| {
@@ -657,7 +608,7 @@ impl DomNode {
         })
     }
 
-    pub(crate) fn get_first_child(&self) -> Option<DomNode> {
+    pub fn get_first_child(&self) -> Option<DomNode> {
         let child_key = with_nodes(|n| n[self.key].children.first().cloned());
 
         child_key.map(|k| {
@@ -666,11 +617,28 @@ impl DomNode {
         })
     }
 
-    pub(crate) fn insert_before(&self, child: &DomNode, reference: Option<&DomNode>) {
-        with_nodes_mut(|nodes| nodes.insert_before(self.key, child.key, reference.map(|r| r.key)))
+    pub fn insert_before<D1, D2>(&self, child: &D1, reference: Option<&D2>)
+    where
+        D1: AsDomNode,
+        D2: AsDomNode,
+    {
+        with_nodes_mut(|nodes| {
+            nodes.insert_before(
+                self.key,
+                child.as_dom_node().key,
+                reference.map(|r| r.as_dom_node().key),
+            )
+        })
     }
 
-    pub(crate) fn render(&self, buf: &mut Buffer, rect: Rect) {
+    pub fn append<D1>(&self, child: &D1)
+    where
+        D1: AsDomNode,
+    {
+        self.insert_before::<D1, D1>(child, None)
+    }
+
+    pub fn render(&self, buf: &mut Buffer, rect: Rect) {
         with_nodes(|nodes| {
             nodes[self.key].render(RenderProps {
                 buf,
@@ -680,18 +648,5 @@ impl DomNode {
             });
         });
         reset_mouse_position();
-    }
-}
-
-impl Render<RooibosDom> for DomNode {
-    type State = (DomNode, <NodeType as Render<RooibosDom>>::State);
-
-    fn build(self) -> Self::State {
-        let state = with_nodes(|n| n[self.key].node_type.clone().build());
-        (self, state)
-    }
-
-    fn rebuild(self, (_node, ref mut node_type_state): &mut Self::State) {
-        with_nodes(|n| n[self.key].node_type.clone().rebuild(node_type_state));
     }
 }

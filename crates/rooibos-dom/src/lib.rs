@@ -1,8 +1,6 @@
 mod dom;
-mod error_boundary;
 mod events;
 mod macros;
-mod suspense;
 mod widgets;
 
 use std::cell::{LazyCell, OnceCell};
@@ -13,17 +11,12 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub use dom::*;
-pub use error_boundary::*;
 pub use events::*;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
 #[doc(hidden)]
 pub use ratatui::widgets as __widgets;
-#[doc(hidden)]
-pub use reactive_graph as __reactive;
-pub use suspense::*;
-pub use tachys::reactive_graph as __tachys_reactive;
 pub use terminput::*;
 pub use throw_error::*;
 pub use widgets::*;

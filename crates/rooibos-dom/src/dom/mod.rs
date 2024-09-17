@@ -1,36 +1,19 @@
 use std::cell::RefCell;
-use std::future::Future;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
-pub use any_view::*;
-pub use children::*;
 pub use dom_node::*;
 pub use dom_widget::*;
-pub use focus::*;
-pub use into_view::*;
 pub use node_tree::*;
 use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
-use reactive_graph::signal::ReadSignal;
-pub use renderer::*;
 use tokio::sync::watch;
 use tracing::error;
 
-use crate::text;
-
-mod any_view;
-mod children;
-pub mod div;
 mod dom_node;
 mod dom_widget;
-pub mod flex_node;
-mod focus;
-mod into_view;
-pub mod layout;
+
 mod node_tree;
-mod renderer;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
 
@@ -73,7 +56,7 @@ pub fn dom_update_receiver() -> DomUpdateReceiver {
     DomUpdateReceiver(rx)
 }
 
-fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
+pub fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
     let children = with_nodes_mut(|nodes| {
         nodes.unset_state(node);
         nodes[*node].children.clone()
@@ -90,30 +73,34 @@ fn cleanup_removed_nodes(node: &DomNodeKey, remove: bool) {
     }
 }
 
-fn clear_children(parent: DomNodeKey) {
+pub fn clear_children(parent: DomNodeKey) {
     let children = with_nodes(|nodes| nodes[parent].children.clone());
     for child in children {
         unmount_child(child, true);
     }
 }
 
-fn unmount_child(child: DomNodeKey, cleanup: bool) {
+pub fn unmount_child(child: DomNodeKey, cleanup: bool) {
     with_nodes_mut(|nodes| {
         nodes.unmount_child(child);
     });
 
     cleanup_removed_nodes(&child, cleanup);
+    if !cleanup {
+        with_nodes_mut(|nodes| nodes.set_unmounted(child, true));
+    }
     refresh_dom();
 }
 
 pub fn print_dom() -> Paragraph<'static> {
-    let lines = with_nodes(|nodes| print_dom_inner(nodes, nodes.root(0).as_dom_node().key(), ""));
+    let lines =
+        with_nodes(|nodes| print_dom_inner(nodes, nodes.root(0).as_dom_node().get_key(), ""));
     Paragraph::new(lines.clone()).wrap(Wrap { trim: false })
 }
 
 pub fn root() -> DomNodeRepr {
     with_nodes(|nodes| {
-        let root = nodes.root(0).as_dom_node().key();
+        let root = nodes.root(0).as_dom_node().get_key();
         let node = &nodes[root];
         DomNodeRepr::from_node(root, node)
     })
@@ -152,7 +139,7 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
     lines
 }
 
-pub fn refresh_dom() {
+pub(crate) fn refresh_dom() {
     let _ = DOM_UPDATE_TX.with(|tx| {
         tx.borrow()
             .send(())
@@ -160,16 +147,11 @@ pub fn refresh_dom() {
     });
 }
 
-pub fn mount<F, M>(f: F)
+pub fn mount<N>(node: N)
 where
-    F: FnOnce() -> M + 'static,
-    M: Render,
-    <M as Render>::DomState: 'static,
+    N: AsDomNode + 'static,
 {
-    let node = f().build();
-    with_nodes_mut(|n| {
-        n.set_root(0, Box::new(node));
-    });
+    with_nodes_mut(|n| n.set_root(0, node));
 }
 
 pub fn unmount() {
@@ -178,7 +160,7 @@ pub fn unmount() {
 
 pub fn render_dom(buf: &mut Buffer) {
     if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
-        with_nodes(|nodes| nodes.set_window_size(buf.area));
+        with_nodes_mut(|nodes| nodes.set_window_size(buf.area));
     }
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
@@ -207,17 +189,9 @@ pub fn focus(id: impl Into<NodeId>) {
             }
         });
         if let Some(node) = node {
-            nodes.set_focused(node);
+            nodes.set_focused(Some(node));
         }
     });
-}
-
-pub fn use_focused_node() -> ReadSignal<Option<NodeId>> {
-    with_nodes(|nodes| nodes.focused())
-}
-
-pub fn use_window_size() -> ReadSignal<Rect> {
-    with_nodes(|nodes| nodes.window_size())
 }
 
 pub fn focus_id(id: impl Into<NodeId>) {
@@ -232,18 +206,7 @@ pub fn focus_id(id: impl Into<NodeId>) {
             None
         });
         if let Some(found_node) = found_node {
-            nodes.set_focused(found_node);
+            nodes.set_focused(Some(found_node));
         }
     });
-}
-
-pub fn after_render_async(fut: impl Future<Output = ()> + 'static) {
-    wasm_compat::futures::spawn_local(fut)
-}
-
-pub fn after_render(f: impl FnOnce() + 'static) {
-    wasm_compat::futures::spawn_local(async move {
-        any_spawner::Executor::tick().await;
-        f();
-    })
 }

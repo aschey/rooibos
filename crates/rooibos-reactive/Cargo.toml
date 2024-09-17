@@ -20,7 +20,7 @@ any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de3
 ] }
 throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
-rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-dom = { path = "../rooibos-dom" }
 ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
