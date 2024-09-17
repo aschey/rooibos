@@ -9,7 +9,7 @@ russh-keys = "0.45"
 russh = "0.45"
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-reactive = {path="../rooibos-reactive"}
+rooibos-reactive = { path = "../rooibos-reactive" }
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
 ratatui = { version = "0.28", default-features = false }
 tracing = "0.1"

@@ -9,13 +9,13 @@ either_of = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35c
 tui-textarea = { version = "0.6", default-features = false, optional = true }
 crossterm = { version = "0.28.1", optional = true }
 tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "reactive_graph",
-    "tracing",
+  "reactive_graph",
+  "tracing",
 ] }
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-reactive = { path="../rooibos-reactive" }
+rooibos-reactive = { path = "../rooibos-reactive" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
-    "all",
+  "all",
 ] }
 educe = "0.6"
 ratatui = { version = "0.28", default-features = false }

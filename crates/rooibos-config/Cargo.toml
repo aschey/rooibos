@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 watch-config = { git = "https://github.com/aschey/watch-config", rev = "22d150c387f0f9961cdd9167dfa3ecaa6d1817a4" }
 reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "tracing",
-    "effects",
+  "tracing",
+  "effects",
 ] }
 rooibos-runtime = { path = "../rooibos-runtime" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }

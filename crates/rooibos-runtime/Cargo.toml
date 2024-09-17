@@ -5,19 +5,19 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.28.1", features = [
-    "event-stream",
-    "use-dev-tty",
+  "event-stream",
+  "use-dev-tty",
 ], optional = true }
 futures-util = "0.3"
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-reactive = { path="../rooibos-reactive" }
+rooibos-reactive = { path = "../rooibos-reactive" }
 ratatui = { version = "0.28", default-features = false }
 tracing = "0.1"
 educe = "0.6"
 termwiz = { version = "0.22.0", optional = true }
 tokio-util = "0.7"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
-    "all",
+  "all",
 ] }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
@@ -29,12 +29,12 @@ termion = { version = "4", optional = true }
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.64"
 any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "wasm-bindgen",
+  "wasm-bindgen",
 ] }
 tokio = { version = "1.38.1", default-features = false, features = [
-    "sync",
-    "macros",
-    "rt",
+  "sync",
+  "macros",
+  "rt",
 ] }
 web-sys = { version = "0.3.64", features = ["console", "Window", "Document"] }
 wasm-bindgen-futures = "0.4.37"
@@ -42,17 +42,17 @@ console_error_panic_hook = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-    "tokio",
-    "tracing",
+  "tokio",
+  "tracing",
 ] }
 signal-hook = "0.3"
 async-signal = "0.2"
 tokio = { version = "1.38.1", default-features = false, features = [
-    "sync",
-    "macros",
-    "time",
-    "rt-multi-thread",
-    "process",
+  "sync",
+  "macros",
+  "time",
+  "rt-multi-thread",
+  "process",
 ] }
 
 [target.'cfg(not(windows))'.dependencies]

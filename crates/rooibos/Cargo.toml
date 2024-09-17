@@ -17,23 +17,21 @@ rooibos-router = { path = "../rooibos-router", optional = true }
 ratatui = { version = "0.28", features = ["unstable"] }
 
 [features]
-nightly = [
-    "rooibos-reactive/nightly"
-]
+nightly = ["rooibos-reactive/nightly"]
 crossterm = [
-    "rooibos-dom/crossterm",
-    "rooibos-runtime/crossterm",
-    "rooibos-components/crossterm",
+  "rooibos-dom/crossterm",
+  "rooibos-runtime/crossterm",
+  "rooibos-components/crossterm",
 ]
 termion = [
-    "rooibos-dom/termion",
-    "rooibos-runtime/termion",
-    "rooibos-components/termion",
+  "rooibos-dom/termion",
+  "rooibos-runtime/termion",
+  "rooibos-components/termion",
 ]
 termwiz = [
-    "rooibos-dom/termwiz",
-    "rooibos-runtime/termwiz",
-    "rooibos-components/termwiz",
+  "rooibos-dom/termwiz",
+  "rooibos-runtime/termwiz",
+  "rooibos-components/termwiz",
 ]
 xterm-js = ["rooibos-xterm-js"]
 config = ["rooibos-config"]
