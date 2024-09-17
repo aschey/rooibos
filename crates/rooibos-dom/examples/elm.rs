@@ -13,7 +13,7 @@ use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use ratatui::Terminal;
 use rooibos_dom::{
-    dispatch_event, focus_next, render_dom, with_nodes, with_nodes_mut, AsDomNode, DomNode,
+    dispatch_event, focus_next, mount, render_dom, with_nodes, with_nodes_mut, AsDomNode, DomNode,
     DomWidgetNode, NodeId,
 };
 use taffy::style_helpers::length;
@@ -35,9 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let tx = tx.clone();
         app.view(move |msg| tx.clone().try_send(msg).unwrap())
     };
-    with_nodes_mut(|nodes| {
-        nodes.set_root(0, view);
-    });
+    mount(view);
 
     terminal.draw(|frame| render_dom(frame.buffer_mut()))?;
     let mut event_reader = EventStream::new().fuse();
@@ -51,10 +49,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 app.update(msg);
                 let tx = tx.clone();
                 let view = app.view(move |msg| tx.clone().try_send(msg).unwrap());
-                with_nodes_mut(|nodes| {
-                    nodes.set_root(0, view);
-                    let prev_focused_key = prev_focused_id.and_then(|p| nodes.get_key(p));
+                mount(view);
 
+                with_nodes_mut(|nodes| {
+                    let prev_focused_key = prev_focused_id.and_then(|p| nodes.get_key(p));
                     nodes.set_focused_untracked(prev_focused_key);
                 });
 
