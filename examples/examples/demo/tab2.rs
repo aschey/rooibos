@@ -1,4 +1,4 @@
-use rooibos::dom::{row, wgt, Render};
+use rooibos::reactive::{row, wgt, Render};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};

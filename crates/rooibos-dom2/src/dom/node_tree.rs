@@ -478,6 +478,7 @@ impl NodeTree {
             self.update_sizes(parent_node.layout_id);
         }
         self.set_unmounted(child_key, false);
+        refresh_dom();
     }
 
     pub(crate) fn remove(&mut self, node: DomNodeKey) -> Option<TreeValue> {
@@ -487,7 +488,7 @@ impl NodeTree {
         if let Some(parent) = parent {
             self.update_sizes(parent);
         }
-
+        refresh_dom();
         self.dom_nodes.remove(node)
     }
 
@@ -508,6 +509,7 @@ impl NodeTree {
                 .remove_child(parent_node.layout_id, child_node.layout_id)
                 .unwrap();
             self.update_sizes(parent_node.layout_id);
+            refresh_dom();
         }
     }
 
@@ -558,10 +560,12 @@ impl NodeTree {
         new.clear = clear;
         new.disabled = disabled;
         // self.dom_nodes[new_key].layout_id = layout_id;
+        refresh_dom();
     }
 
     pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: NodeProperties) {
         self.dom_nodes[node].inner = inner;
+        refresh_dom();
     }
 
     pub fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
@@ -705,6 +709,7 @@ impl NodeTree {
             (self.on_focus_change)(self.focused.clone());
         }
         let Some(node_key) = self.focused_key else {
+            refresh_dom();
             return;
         };
 
@@ -723,6 +728,7 @@ impl NodeTree {
                 EventData { rect },
             );
         }
+        refresh_dom();
     }
 
     pub(crate) fn set_hovered(&mut self, node_key: DomNodeKey) {

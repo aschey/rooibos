@@ -1,6 +1,7 @@
-use rooibos::dom::layout::{height, pct};
-use rooibos::dom::{col, line, span, wgt, Render};
-use rooibos::reactive::wrappers::read::Signal;
+use rooibos::dom::{line, span};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::layout::{height, pct};
+use rooibos::reactive::{col, wgt, Render};
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
 use taffy::Dimension;

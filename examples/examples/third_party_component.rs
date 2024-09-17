@@ -1,7 +1,8 @@
-use rooibos::dom::{DomWidget, KeyEvent, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Update};
-use rooibos::reactive::wrappers::read::MaybeSignal;
+use rooibos::dom::KeyEvent;
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::graph::wrappers::read::MaybeSignal;
+use rooibos::reactive::{DomWidget, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
@@ -23,7 +24,7 @@ fn app() -> impl Render {
     text_area_widget.set_block(Block::bordered().title("Example"));
     let text_area_widget = RwSignal::new(text_area_widget);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         text_area_widget.update(|t| {
             if let Ok(event) =
                 <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(key_event)

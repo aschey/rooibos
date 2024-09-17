@@ -1,6 +1,7 @@
-use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{execute, run_with_executor, Runtime};
@@ -23,7 +24,7 @@ async fn async_main() -> Result<()> {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             set_count.update(|c| *c += 1);
         }

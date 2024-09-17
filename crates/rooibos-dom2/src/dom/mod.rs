@@ -86,7 +86,9 @@ pub fn unmount_child(child: DomNodeKey, cleanup: bool) {
     });
 
     cleanup_removed_nodes(&child, cleanup);
-    with_nodes_mut(|nodes| nodes.set_unmounted(child, true));
+    if !cleanup {
+        with_nodes_mut(|nodes| nodes.set_unmounted(child, true));
+    }
     refresh_dom();
 }
 
@@ -137,7 +139,7 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
     lines
 }
 
-pub fn refresh_dom() {
+pub(crate) fn refresh_dom() {
     let _ = DOM_UPDATE_TX.with(|tx| {
         tx.borrow()
             .send(())

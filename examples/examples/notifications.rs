@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use rooibos::components::{Notification, Notifications, Notifier};
-use rooibos::dom::{col, line, wgt, Render};
+use rooibos::reactive::{col, line, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{wasm_compat, Runtime};

@@ -1,10 +1,9 @@
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::layout::chars;
-use rooibos::dom::{
-    line, row, span, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps,
-};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set, Update};
+use rooibos::dom::{line, span, text, KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set, Update};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{row, Render, UpdateLayoutProps};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
@@ -45,7 +44,7 @@ fn app() -> impl Render {
         }
     };
 
-    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+    let on_key_down = move |key_event: KeyEvent, _, _| {
         let tabs = tabs.get();
 
         match key_event.code {

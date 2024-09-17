@@ -1,8 +1,8 @@
 use rooibos::components::Button;
-use rooibos::dom::layout::chars;
-use rooibos::dom::{col, derive_signal, line, span, Render, UpdateLayoutProps};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{col, derive_signal, line, span, Render, UpdateLayoutProps};
 
 #[cfg(target_arch = "wasm32")]
 #[rooibos::wasm_bindgen(start)]

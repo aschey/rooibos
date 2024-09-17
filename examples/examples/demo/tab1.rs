@@ -1,7 +1,7 @@
-use rooibos::dom::{col, row, wgt, width, Render};
-use rooibos::reactive::computed::Memo;
-use rooibos::reactive::owner::StoredValue;
-use rooibos::reactive::traits::Get;
+use rooibos::reactive::graph::computed::Memo;
+use rooibos::reactive::graph::owner::StoredValue;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::{col, row, wgt, width, Render};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;

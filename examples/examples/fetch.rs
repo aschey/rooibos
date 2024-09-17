@@ -3,13 +3,13 @@ use std::error::Error;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::dom::layout::chars;
-use rooibos::dom::{
+use rooibos::reactive::graph::computed::AsyncDerived;
+use rooibos::reactive::graph::signal::{signal, ArcRwSignal};
+use rooibos::reactive::graph::traits::{Get, Set, With};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{
     col, line, max_width, span, suspense, text, wgt, Errors, Render, UpdateLayoutProps,
 };
-use rooibos::reactive::computed::AsyncDerived;
-use rooibos::reactive::signal::{signal, ArcRwSignal};
-use rooibos::reactive::traits::{Get, Set, With};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
 use rooibos::tui::style::Stylize;

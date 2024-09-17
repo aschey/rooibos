@@ -1,9 +1,8 @@
-use rooibos::dom::layout::{align_items, clear, justify_content, position, show};
-use rooibos::dom::{
-    col, height, line, max_height, max_width, row, wgt, width, KeyCode, KeyEvent, Render,
-};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::Update;
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::Update;
+use rooibos::reactive::layout::{align_items, clear, justify_content, position, show};
+use rooibos::reactive::{col, height, line, max_height, max_width, row, wgt, width, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
@@ -21,7 +20,7 @@ async fn main() -> Result<()> {
 fn app() -> impl Render {
     let show_popup = RwSignal::new(true);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             show_popup.update(|p| *p = !*p);
         }

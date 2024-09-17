@@ -1,7 +1,8 @@
-use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::dom::{focus_id, KeyCode, KeyEvent};
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{after_render, col, wgt, Render};
 use rooibos::router::{use_router, DefaultRoute, Route, RouteFromStatic, Router};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
@@ -55,7 +56,7 @@ fn child0() -> impl Render {
         focus_id("child0");
     });
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             router.push(Child1::new(Some(1)));
         }
@@ -74,7 +75,7 @@ fn child1(child2_id: RwSignal<i32>) -> impl Render {
         focus_id("child1");
     });
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             router.push(Child2::new(child2_id.get()));
             child2_id.update(|id| *id += 1);
@@ -94,7 +95,7 @@ fn child2() -> impl Render {
         focus_id("child2");
     });
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             router.pop();
         }

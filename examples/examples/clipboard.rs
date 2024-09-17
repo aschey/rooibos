@@ -1,7 +1,7 @@
 use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
-use rooibos::dom::layout::chars;
-use rooibos::dom::{col, span, text, Render, UpdateLayoutProps};
-use rooibos::reactive::traits::Get;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{col, span, text, Render, UpdateLayoutProps};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::backend::ClipboardKind;
 use rooibos::runtime::error::RuntimeError;

@@ -1,5 +1,5 @@
 use rooibos::components::{self, CommandBuilder};
-use rooibos::dom::Render;
+use rooibos::reactive::Render;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;

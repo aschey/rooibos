@@ -1,6 +1,6 @@
-use rooibos::dom::{col, row, use_window_size, wgt, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set};
+use rooibos::reactive::{col, row, use_window_size, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;

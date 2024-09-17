@@ -1,6 +1,7 @@
-use rooibos::dom::{col, focus_next, focus_prev, row, use_focus, wgt, KeyCode, Render};
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::traits::Get;
+use rooibos::dom::{focus_next, focus_prev, KeyCode};
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::{col, row, use_focus, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};

@@ -9,8 +9,8 @@ use async_trait::async_trait;
 use background_service::Manager;
 use futures::{Future, StreamExt};
 use futures_cancel::FutureExt;
-use reactive_graph::owner::Owner;
 use rooibos_dom::Event;
+use rooibos_reactive::graph::owner::Owner;
 use rooibos_runtime::{
     init_executor, restore_terminal, set_external_signal_source, with_runtime, CancellationToken,
     ServiceContext,

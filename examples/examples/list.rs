@@ -1,7 +1,8 @@
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set, With};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set, With};
+use rooibos::reactive::Render;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
@@ -24,7 +25,7 @@ fn app() -> impl Render {
         ListItem::new("Item 3"),
     ]));
 
-    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+    let on_key_down = move |key_event: KeyEvent, _, _| {
         let selected_idx = selected.get().unwrap();
         match key_event.code {
             KeyCode::Down => {

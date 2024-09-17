@@ -254,6 +254,7 @@ impl Counter {
 
             move |rect, buf| paragraph.render_ref(rect, buf)
         });
+        widget.build();
 
         let node = DomNode::widget(widget.clone())
             .on_key_down({

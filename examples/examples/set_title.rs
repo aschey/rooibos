@@ -1,9 +1,10 @@
 use std::io::Stdout;
 
-use rooibos::dom::{wgt, KeyCode, KeyEvent, Render};
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{wgt, Render};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{set_title, Runtime};
@@ -31,7 +32,7 @@ fn app() -> impl Render {
         }
     });
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             update_count();
         }
@@ -39,5 +40,5 @@ fn app() -> impl Render {
 
     wgt!(format!("count {}", count.get()))
         .on_key_down(key_down)
-        .on_click(move |_, _| update_count())
+        .on_click(move |_, _, _| update_count())
 }

@@ -1,9 +1,10 @@
 use std::io::Stdout;
 
 use rooibos::components::Show;
-use rooibos::dom::{after_render, row, wgt, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::{signal, RwSignal};
-use rooibos::reactive::traits::{Get, Set, Update};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::traits::{Get, Set, Update};
+use rooibos::reactive::{after_render, row, wgt, Render};
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{before_exit, exit, ExitResult, Runtime};
@@ -34,7 +35,7 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             update_count();
         }
@@ -45,7 +46,7 @@ fn app() -> impl Render {
             .fallback(move || {
                 wgt!(format!("count {}", count.get()))
                     .on_key_down(key_down)
-                    .on_click(move |_, _| update_count())
+                    .on_click(move |_, _, _| update_count())
             })
             .render(exiting, move || {
                 after_render(move || {

@@ -2,9 +2,10 @@ use std::error::Error;
 use std::io::{stdout, IsTerminal, Stderr};
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set, With};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set, With};
+use rooibos::reactive::Render;
 use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::runtime::{exit, Runtime};
 use rooibos::tui::style::{Style, Stylize};
@@ -40,7 +41,7 @@ fn app() -> impl Render {
         item_text.iter().map(|t| ListItem::new(*t)).collect(),
     ));
 
-    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+    let on_key_down = move |key_event: KeyEvent, _, _| {
         let selected_idx = selected.get().unwrap();
         match key_event.code {
             KeyCode::Down => {

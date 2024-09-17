@@ -1,10 +1,9 @@
 use rooibos::components::Show;
-use rooibos::dom::layout::{align_items, justify_content, position};
-use rooibos::dom::{
-    after_render, col, focus_id, height, line, row, wgt, width, KeyCode, NodeId, Render,
-};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set};
+use rooibos::dom::{focus_id, KeyCode, NodeId};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set};
+use rooibos::reactive::layout::{align_items, justify_content, position};
+use rooibos::reactive::{after_render, col, height, line, row, wgt, width, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{before_exit, exit, ExitResult, Runtime};
@@ -64,7 +63,7 @@ fn app() -> impl Render {
                             .block(Block::bordered())
                     )
                     .id(popup_id)
-                    .on_key_down(move |key_event, _| {
+                    .on_key_down(move |key_event, _, _| {
                         if key_event.code == KeyCode::Char('y') {
                             quit_confirmed.set(true);
                             exit();

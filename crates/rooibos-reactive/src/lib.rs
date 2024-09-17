@@ -25,16 +25,8 @@ pub use ratatui::widgets as __widgets;
 pub use reactive_graph as __reactive;
 pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
-pub use terminput::*;
 pub use throw_error::*;
 pub use widgets::*;
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum WidgetState {
-    Focused,
-    Active,
-    Default,
-}
 
 pub fn delay<F>(duration: Duration, f: F)
 where

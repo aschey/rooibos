@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
-use rooibos::dom::{col, line, span, wgt, Render};
-use rooibos::reactive::signal::{signal, RwSignal};
-use rooibos::reactive::traits::{Get, Set, Update};
+use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::traits::{Get, Set, Update};
+use rooibos::reactive::{col, line, span, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{spawn_service, wasm_compat, Runtime, ServiceContext};

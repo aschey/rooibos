@@ -9,6 +9,7 @@ russh-keys = "0.45"
 russh = "0.45"
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-dom = { path = "../rooibos-dom2" }
+rooibos-reactive = {path="../rooibos-reactive"}
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
 ratatui = { version = "0.28", default-features = false }
 tracing = "0.1"
@@ -16,10 +17,6 @@ tap = "1"
 futures = "0.3"
 async-signal = "0.2"
 async-trait = "0.1"
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "c5dea52e69fd1c1c83c0c089d1c73692ed2b4fea", features = [
-    "tracing",
-    "effects",
-] }
 terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }

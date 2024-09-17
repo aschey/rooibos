@@ -1,7 +1,8 @@
 use rooibos::components::Input;
-use rooibos::dom::layout::chars;
-use rooibos::dom::{col, wgt, Render, UpdateLayoutProps, WidgetState};
-use rooibos::reactive::traits::Get;
+use rooibos::dom::WidgetState;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{col, wgt, Render, UpdateLayoutProps};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;

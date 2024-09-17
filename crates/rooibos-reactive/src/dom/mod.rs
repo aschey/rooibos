@@ -41,9 +41,7 @@ where
     <M as Render>::DomState: 'static,
 {
     let node = f().build();
-    with_nodes_mut(|n| {
-        n.set_root(0, node);
-    });
+    rooibos_dom::mount(node);
 }
 
 pub fn use_window_size() -> ReadSignal<Rect> {

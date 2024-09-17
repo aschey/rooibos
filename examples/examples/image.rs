@@ -1,10 +1,11 @@
 use std::path::PathBuf;
 
 use rooibos::components::Image;
-use rooibos::dom::{col, height, width, KeyCode, Render};
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, GetUntracked, Update};
+use rooibos::dom::KeyCode;
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
+use rooibos::reactive::{col, height, width, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};

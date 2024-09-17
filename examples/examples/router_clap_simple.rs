@@ -1,5 +1,6 @@
 use clap::Parser;
-use rooibos::dom::{after_render, col, focus_id, wgt, KeyCode, KeyEvent, Render};
+use rooibos::dom::{focus_id, KeyCode, KeyEvent};
+use rooibos::reactive::{after_render, col, wgt, Render};
 use rooibos::router::{use_router, Route, RouteFrom, Router, ToRoute};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
@@ -45,7 +46,7 @@ fn child1() -> impl Render {
         focus_id("child1");
     });
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             router.push(AppRoute::Child2);
         }
@@ -63,7 +64,7 @@ fn child2() -> impl Render {
         focus_id("child2");
     });
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             router.push(AppRoute::Child1);
         }

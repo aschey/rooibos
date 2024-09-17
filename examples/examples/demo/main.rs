@@ -1,11 +1,12 @@
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::layout::{chars, pct};
-use rooibos::dom::{line, EventData, KeyCode, KeyEvent, Render};
-use rooibos::reactive::owner::provide_context;
-use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
-use rooibos::reactive::traits::{Get, Set};
+use rooibos::dom::{line, KeyCode, KeyEvent};
+use rooibos::reactive::graph::owner::provide_context;
+use rooibos::reactive::graph::signal::{signal, ReadSignal, RwSignal};
+use rooibos::reactive::graph::traits::{Get, Set};
+use rooibos::reactive::layout::{chars, pct};
+use rooibos::reactive::Render;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
 use rooibos::tui::style::{Style, Stylize};
@@ -66,7 +67,7 @@ fn header_tabs() -> impl Render {
         Tab::new(tab_header(TAB2), TAB2.to_string(), tab2),
     ]));
 
-    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+    let on_key_down = move |key_event: KeyEvent, _, _| {
         let tabs = tabs.get();
         match key_event.code {
             KeyCode::Left => {

@@ -1,12 +1,13 @@
 use rooibos::components::{for_each, Button};
-use rooibos::dom::layout::{chars, height};
-use rooibos::dom::{
-    col, height, line, max_width, row, span, text, wgt, width, KeyCode, Render, UpdateLayoutProps,
+use rooibos::dom::KeyCode;
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::layout::{chars, height};
+use rooibos::reactive::{
+    col, height, line, max_width, row, span, text, wgt, width, Render, UpdateLayoutProps,
 };
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::signal::{signal, RwSignal};
-use rooibos::reactive::traits::{Get, GetUntracked, Update};
-use rooibos::reactive::wrappers::read::Signal;
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
@@ -54,7 +55,7 @@ fn counter(
             props(width!(10.)),
             Paragraph::new(line!("count: ".bold(), span!(count.get()).cyan())).block(block.get())
         )
-        .on_click(move |_, _| update_count(1))
+        .on_click(move |_, _, _| update_count(1))
         .id(id.to_string())
     ]
 }

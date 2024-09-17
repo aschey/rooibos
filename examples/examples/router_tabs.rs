@@ -1,8 +1,9 @@
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::layout::chars;
-use rooibos::dom::{col, line, row, text, EventData, KeyCode, KeyEvent, Render, UpdateLayoutProps};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{col, line, row, text, Render, UpdateLayoutProps};
 use rooibos::router::{use_router, Route, RouteFromStatic, Router};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
@@ -54,7 +55,7 @@ fn tabs() -> impl Render {
 
     let on_key_down = {
         let tabs = tabs.clone();
-        move |key_event: KeyEvent, _: EventData| match key_event.code {
+        move |key_event: KeyEvent, _, _| match key_event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&current_route.get()) {
                     router.push(Tabs::new(prev.get_value()));

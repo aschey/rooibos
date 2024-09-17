@@ -42,8 +42,7 @@ impl DomWidgetNode {
         let widget_type = type_name::<T>();
         let role = T::widget_role();
         let id = next_node_id();
-        let rc_f: Rc<RefCell<DomWidgetFn>> = Rc::new(RefCell::new(Box::new(f())));
-
+        let rc_f: Rc<RefCell<DomWidgetFn>> = Rc::new(RefCell::new(Box::new(|_, _| {})));
         Self {
             id,
             role,

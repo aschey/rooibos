@@ -1,5 +1,5 @@
 use ratatui::widgets::WidgetRef;
-use rooibos_dom::{clear_children, refresh_dom, unmount_child, AsDomNode};
+use rooibos_dom::{clear_children, unmount_child, AsDomNode};
 use tachys::prelude::Renderer;
 use tachys::renderer::CastFrom;
 use tachys::view::Render as _;
@@ -74,7 +74,6 @@ impl Renderer for RooibosDom {
 
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
         parent.insert_before(new_child, marker);
-        refresh_dom();
     }
 
     fn remove_node(_parent: &Self::Element, child: &Self::Node) -> Option<Self::Node> {

@@ -28,7 +28,7 @@ termion = { version = "4", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 js-sys = "0.3.64"
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "a083b57260db4fa6588ff392bf24b4422047c0f6", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "73f0207a7d7002a5ca73b5bd578624abe17e0056", features = [
     "wasm-bindgen",
 ] }
 tokio = { version = "1.38.1", default-features = false, features = [
@@ -41,7 +41,7 @@ wasm-bindgen-futures = "0.4.37"
 console_error_panic_hook = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "a083b57260db4fa6588ff392bf24b4422047c0f6", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "73f0207a7d7002a5ca73b5bd578624abe17e0056", features = [
     "tokio",
     "tracing",
 ] }

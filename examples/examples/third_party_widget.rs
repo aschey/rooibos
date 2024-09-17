@@ -1,6 +1,7 @@
-use rooibos::dom::{DomWidget, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Track, Update, UpdateUntracked};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
+use rooibos::reactive::{DomWidget, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
@@ -40,7 +41,7 @@ fn app() -> impl Render {
         TreeItem::new_leaf("h", "h"),
     ]);
 
-    let key_down = move |key_event: KeyEvent, _| match key_event.code {
+    let key_down = move |key_event: KeyEvent, _, _| match key_event.code {
         KeyCode::Char('\n' | ' ') => {
             state.update(|s| {
                 s.toggle_selected();

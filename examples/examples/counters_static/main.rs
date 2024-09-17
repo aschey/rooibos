@@ -1,8 +1,9 @@
-use rooibos::dom::layout::{chars, height};
-use rooibos::dom::{col, height, line, max_width, span, wgt, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::{signal, RwSignal};
-use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::reactive::wrappers::read::Signal;
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::traits::{Get, Set, Update};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::layout::{chars, height};
+use rooibos::reactive::{col, height, line, max_width, span, wgt, Render};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
@@ -26,7 +27,7 @@ fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Up {
             update_count(1);
         }
@@ -43,7 +44,7 @@ fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
     .on_focus(move |_, _| block.set(Block::bordered().blue()))
     .on_blur(move |_, _| block.set(Block::bordered().border_set(border::EMPTY)))
     .on_key_down(key_down)
-    .on_click(move |_, _| update_count(1))
+    .on_click(move |_, _, _| update_count(1))
     .id(id.to_string())
 }
 

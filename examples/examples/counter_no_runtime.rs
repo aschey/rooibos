@@ -8,13 +8,13 @@ use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
 use rooibos::dom::{
-    dispatch_event, dom_update_receiver, focus_next, line, mount, render_dom, set_pixel_size,
-    set_supports_keyboard_enhancement, span, unmount, wgt, Event, KeyCode, KeyEvent, KeyModifiers,
-    Render,
+    dispatch_event, dom_update_receiver, focus_next, line, render_dom, set_pixel_size,
+    set_supports_keyboard_enhancement, span, unmount, Event, KeyCode, KeyEvent, KeyModifiers,
 };
-use rooibos::reactive::owner::Owner;
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::reactive::graph::owner::Owner;
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{mount, wgt, Render};
 use rooibos::tui::backend::CrosstermBackend;
 use rooibos::tui::layout::Size;
 use rooibos::tui::prelude::Backend;
@@ -119,7 +119,7 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             update_count();
         }
@@ -127,5 +127,5 @@ fn app() -> impl Render {
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_down)
-        .on_click(move |_, _| update_count())
+        .on_click(move |_, _, _| update_count())
 }

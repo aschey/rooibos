@@ -1,8 +1,9 @@
 use std::env;
 
 use rooibos::components::Button;
-use rooibos::dom::layout::chars;
-use rooibos::dom::{text, Render, UpdateLayoutProps};
+use rooibos::dom::text;
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{Render, UpdateLayoutProps};
 use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{exec, Runtime};

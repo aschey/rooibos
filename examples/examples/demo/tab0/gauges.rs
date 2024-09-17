@@ -1,10 +1,11 @@
-use rooibos::dom::layout::{block, chars, height};
-use rooibos::dom::{col, wgt, Render, Sparkline};
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::owner::use_context;
-use rooibos::reactive::signal::{signal, ReadSignal, RwSignal};
-use rooibos::reactive::traits::{Get, Update};
-use rooibos::reactive::wrappers::read::Signal;
+use rooibos::dom::Sparkline;
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::owner::use_context;
+use rooibos::reactive::graph::signal::{signal, ReadSignal, RwSignal};
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::layout::{block, chars, height};
+use rooibos::reactive::{col, wgt, Render};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Block, Gauge, LineGauge};
