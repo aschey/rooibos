@@ -56,11 +56,11 @@ async fn test_todos() {
 
     update_todo(&mut harness, &todos_block, "1", "todo 11", false).await;
     assert_snapshot!("keyboard_update", harness.terminal());
-    wait_for_notification(&mut harness).await;
+    wait_for_notification(&mut harness, "Todo updated").await;
 
     update_todo(&mut harness, &todos_block, "2", "todo 112", true).await;
     assert_snapshot!("click_update", harness.terminal());
-    wait_for_notification(&mut harness).await;
+    wait_for_notification(&mut harness, "Todo updated").await;
 
     // Delete todo
     harness.get_by_text(&todos_block, "x").click();
@@ -68,6 +68,7 @@ async fn test_todos() {
         .wait_for(|harness, _| harness.find_by_text(&todos_block, "No todos").is_some())
         .await
         .unwrap();
+    wait_for_notification(&mut harness, "Todo deleted").await;
     assert_snapshot!("delete", harness.terminal());
 
     harness.exit().await;
@@ -108,9 +109,9 @@ async fn update_todo(
         .unwrap();
 }
 
-async fn wait_for_notification(harness: &mut TestHarness) {
+async fn wait_for_notification(harness: &mut TestHarness, text: &str) {
     harness
-        .wait_for(|harness, _| !harness.buffer().terminal_view().contains("Todo updated"))
+        .wait_for(|harness, _| !harness.buffer().terminal_view().contains(text))
         .await
         .unwrap();
 }

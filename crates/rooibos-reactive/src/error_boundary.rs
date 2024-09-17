@@ -3,9 +3,11 @@ use std::sync::Arc;
 
 use reactive_graph::computed::ArcMemo;
 use reactive_graph::effect::RenderEffect;
+use reactive_graph::owner::{provide_context, Owner};
 use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Update, With};
 use rustc_hash::FxHashMap;
+use tachys::reactive_graph::OwnedView;
 use tachys::view::{Mountable, Render};
 use throw_error::{Error, ErrorHook, ErrorId};
 
@@ -14,7 +16,7 @@ use crate::{DomNode, IntoView, RenderAny, RooibosDom};
 pub fn error_boundary<FalFn, Fal, F, R>(children: F, fallback: FalFn) -> impl IntoView
 where
     F: Fn() -> R + Send + 'static,
-    R: RenderAny,
+    R: RenderAny + 'static,
     R::State: 'static,
     FalFn: FnMut(ArcRwSignal<Errors>) -> Fal + Clone + Send + 'static,
     Fal: RenderAny + 'static,
@@ -28,14 +30,23 @@ where
     let hook = hook as Arc<dyn ErrorHook>;
 
     // provide the error hook and render children
-    throw_error::set_error_hook(Arc::clone(&hook));
-    ErrorBoundaryView {
-        hook,
-        errors_empty,
-        children,
-        fallback,
-        errors,
-    }
+    let _guard = throw_error::set_error_hook(Arc::clone(&hook));
+
+    let owner = Owner::new();
+    let children = owner.with(|| {
+        provide_context(Arc::clone(&hook));
+        children()
+    });
+    OwnedView::new_with_owner(
+        ErrorBoundaryView {
+            hook,
+            errors_empty,
+            children,
+            fallback,
+            errors,
+        },
+        owner,
+    )
 }
 
 struct ErrorBoundaryView<Chil, FalFn> {

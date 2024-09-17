@@ -116,12 +116,28 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     let delete_version = delete_todo.version();
     let notifier = Notifier::new();
 
+    Effect::new({
+        let notifier = notifier.clone();
+        move || {
+            if let Some(update_value) = update_todo.value().get() {
+                let notification = match update_value {
+                    Ok(()) => Notification::new(text!("", "  Todo updated", "")),
+                    Err(e) => {
+                        Notification::new(text!("", "  Failed to update todo", e.to_string()))
+                    }
+                };
+                notifier.notify(notification.timeout(notification_timeout));
+            }
+        }
+    });
+
     Effect::new(move || {
-        // Version 0 is the initial render, nothing has updated yet
-        if update_version.get() > 0 {
-            notifier.notify(
-                Notification::new(text!("", "  Todo updated", "")).timeout(notification_timeout),
-            );
+        if let Some(update_value) = delete_todo.value().get() {
+            let notification = match update_value {
+                Ok(()) => Notification::new(text!("", "  Todo deleted", "")),
+                Err(e) => Notification::new(text!("", "  Failed to delete todo", e.to_string())),
+            };
+            notifier.notify(notification.timeout(notification_timeout));
         }
     });
 

@@ -7,8 +7,10 @@ pub async fn fetch_todos() -> rooibos::dom::Result<Vec<Todo>> {
         .get("http://localhost:9353/todos")
         .send()
         .await?
+        .error_for_status()?
         .json::<Vec<Todo>>()
         .await?;
+
     Ok(res)
 }
 
@@ -17,7 +19,8 @@ pub async fn add_todo(text: String) -> rooibos::dom::Result<()> {
         .post("http://localhost:9353/todos")
         .json(&CreateTodo { text })
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
 
     Ok(())
 }
@@ -30,15 +33,18 @@ pub async fn update_todo(id: u32, text: String) -> rooibos::dom::Result<()> {
             completed: None,
         })
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
 
     Ok(())
 }
+
 pub async fn delete_todo(id: u32) -> rooibos::dom::Result<()> {
     Client::new()
         .delete(format!("http://localhost:9353/todos/{id}"))
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
 
     Ok(())
 }
