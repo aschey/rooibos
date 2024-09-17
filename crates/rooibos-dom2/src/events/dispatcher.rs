@@ -8,7 +8,7 @@ use terminput::{
 use super::EventData;
 use crate::{
     focus_next, focus_prev, set_pending_resize, toggle_print_dom, with_nodes, with_nodes_mut,
-    DomNodeKey, EventHandle, EventHandlers, MatchBehavior,
+    DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType,
 };
 
 thread_local! {
@@ -205,7 +205,9 @@ fn hit_test(position: Position) -> Vec<DomNodeKey> {
     for root in roots {
         let found = root.get_key().traverse(
             |key, inner| {
-                if inner.disabled {
+                // Only widgets are actually drawn on the screen, layout types or placeholders
+                // can't have click events
+                if inner.disabled || !matches!(inner.node_type, NodeType::Widget(_)) {
                     return None;
                 }
 
