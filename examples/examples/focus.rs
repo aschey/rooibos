@@ -1,16 +1,17 @@
 use rooibos::dom::{focus_next, focus_prev, KeyCode};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, row, use_focus, wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{col, mount, row, use_focus, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

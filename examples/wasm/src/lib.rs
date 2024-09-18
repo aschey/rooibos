@@ -10,7 +10,8 @@ async fn start() -> Result<(), wasm_bindgen::JsError> {
     use rooibos::runtime::{Runtime, RuntimeSettings};
     use rooibos::xterm_js::WasmBackend;
 
-    let runtime = Runtime::initialize(WasmBackend::default(), app);
+    rooibos::reactive::mount(app);
+    let runtime = Runtime::initialize(WasmBackend::default());
     runtime
         .run()
         .await

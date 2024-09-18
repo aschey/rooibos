@@ -6,9 +6,10 @@ use crossterm::terminal::disable_raw_mode;
 use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use rooibos_dom::Event;
-use rooibos_runtime::backend::crossterm::CrosstermBackend;
-use rooibos_runtime::backend::{self, Backend};
 use rooibos_runtime::ServiceContext;
+use rooibos_terminal;
+use rooibos_terminal::crossterm::CrosstermBackend;
+use rooibos_terminal::Backend;
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
@@ -99,7 +100,7 @@ impl SshBackend {
         settings: TerminalSettings,
     ) -> Self {
         let mut crossterm_settings =
-            backend::crossterm::TerminalSettings::from_writer(move || handle.clone())
+            rooibos_terminal::crossterm::TerminalSettings::from_writer(move || handle.clone())
                 .raw_mode(false)
                 .alternate_screen(settings.alternate_screen)
                 .bracketed_paste(settings.bracketed_paste)
@@ -161,7 +162,7 @@ impl Backend for SshBackend {
         &self,
         terminal: &mut Terminal<Self::TuiBackend>,
         content: T,
-        clipboard_kind: rooibos_runtime::backend::ClipboardKind,
+        clipboard_kind: rooibos_terminal::ClipboardKind,
     ) -> io::Result<()> {
         self.inner.set_clipboard(terminal, content, clipboard_kind)
     }

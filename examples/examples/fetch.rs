@@ -8,17 +8,18 @@ use rooibos::reactive::graph::signal::{signal, ArcRwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::layout::chars;
 use rooibos::reactive::{
-    col, line, max_width, span, suspense, text, wgt, Errors, Render, UpdateLayoutProps,
+    col, line, max_width, mount, span, suspense, text, wgt, Errors, Render, UpdateLayoutProps,
 };
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::Paragraph;
 use serde::Deserialize;
 
 #[rooibos::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
 
     Ok(())

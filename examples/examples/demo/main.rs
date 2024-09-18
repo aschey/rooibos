@@ -6,9 +6,9 @@ use rooibos::reactive::graph::owner::provide_context;
 use rooibos::reactive::graph::signal::{signal, ReadSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{chars, pct};
-use rooibos::reactive::Render;
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{mount, Render};
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 use tokio::time;
@@ -27,7 +27,8 @@ type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

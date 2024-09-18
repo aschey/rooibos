@@ -14,10 +14,7 @@ tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c
   "reactive_graph",
   "tracing",
 ] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
-  "tokio",
-  "tracing",
-] }
+
 throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
 rooibos-dom = { path = "../rooibos-dom" }
@@ -37,8 +34,17 @@ taffy = "0.5.2"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+  "tokio",
+  "tracing",
+] }
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+  "wasm-bindgen",
+] }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]

@@ -2,7 +2,7 @@ use rooibos::components::Button;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{col, derive_signal, line, span, Render, UpdateLayoutProps};
+use rooibos::reactive::{col, derive_signal, line, mount, span, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::ssh::backend::SshBackend;
@@ -34,7 +34,8 @@ impl SshHandler for SshApp {
         event_rx: tokio::sync::mpsc::Receiver<rooibos::dom::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
-        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx), app);
+        mount(app);
+        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx));
         runtime.run().await.unwrap();
     }
 }

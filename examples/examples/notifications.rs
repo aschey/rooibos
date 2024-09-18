@@ -1,16 +1,17 @@
 use std::time::Duration;
 
 use rooibos::components::{Notification, Notifications, Notifier};
-use rooibos::reactive::{col, line, wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{col, line, mount, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{wasm_compat, Runtime};
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
 
     Ok(())

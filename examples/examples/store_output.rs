@@ -5,9 +5,9 @@ use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::Render;
-use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::reactive::{mount, Render};
 use rooibos::runtime::{exit, Runtime};
+use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
 use rooibos::tui::Viewport;
@@ -21,14 +21,12 @@ async fn main() -> Result<()> {
         return Err("Try redirecting the output")?;
     }
 
-    let runtime = Runtime::initialize(
-        CrosstermBackend::new(
-            TerminalSettings::<Stderr>::new()
-                .alternate_screen(false)
-                .viewport(Viewport::Inline(3)),
-        ),
-        app,
-    );
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::new(
+        TerminalSettings::<Stderr>::new()
+            .alternate_screen(false)
+            .viewport(Viewport::Inline(3)),
+    ));
     runtime.run().await?;
 
     Ok(())

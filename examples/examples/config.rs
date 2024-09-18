@@ -5,9 +5,9 @@ use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{text, wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{mount, text, wgt, Render};
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use schematic::Format;
 
 #[derive(Config, PartialEq, Eq, Clone, Debug)]
@@ -28,7 +28,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     provide_config(config);
 
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

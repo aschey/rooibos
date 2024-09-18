@@ -2,7 +2,7 @@
 members = [
   "./crates/*",
   "crates/rooibos-config",
-  "crates/rooibos-router",
+  "crates/rooibos-router", "crates/rooibos-terminal",
   "examples",
   "examples/wasm",
 ]

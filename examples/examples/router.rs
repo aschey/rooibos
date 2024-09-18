@@ -2,11 +2,11 @@ use rooibos::dom::{focus_id, KeyCode, KeyEvent};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{after_render, col, wgt, Render};
+use rooibos::reactive::{after_render, col, mount, wgt, Render};
 use rooibos::router::{use_router, DefaultRoute, Route, RouteFromStatic, Router};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Paragraph;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -34,7 +34,8 @@ impl Child2 {
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

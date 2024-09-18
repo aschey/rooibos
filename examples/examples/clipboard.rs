@@ -1,18 +1,19 @@
 use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{col, span, text, Render, UpdateLayoutProps};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::backend::ClipboardKind;
+use rooibos::reactive::{col, mount, span, text, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{set_clipboard, Runtime};
+use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::ClipboardKind;
 use taffy::LengthPercentageAuto;
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
 
     Ok(())

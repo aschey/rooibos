@@ -3,17 +3,18 @@ use rooibos::dom::{line, span, text, KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{row, Render, UpdateLayoutProps};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{mount, row, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

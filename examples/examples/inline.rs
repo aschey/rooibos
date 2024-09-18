@@ -4,19 +4,19 @@ use std::time::Duration;
 use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{wgt, Render};
-use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::reactive::{mount, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{insert_before, Runtime};
+use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        CrosstermBackend::<Stdout>::new(TerminalSettings::default().viewport(Viewport::Inline(8))),
-        app,
-    );
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::<Stdout>::new(
+        TerminalSettings::default().viewport(Viewport::Inline(8)),
+    ));
     runtime.run().await?;
     Ok(())
 }

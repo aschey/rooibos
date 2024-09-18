@@ -1,20 +1,21 @@
 use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{execute_with_owner, mount, run_with_executor, wgt, Render};
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{execute, run_with_executor, Runtime};
+use rooibos::runtime::Runtime;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 fn main() -> Result<()> {
-    execute(async_main)
+    execute_with_owner(async_main)
 }
 
 #[tokio::main]
 async fn async_main() -> Result<()> {
     run_with_executor(async {
-        let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+        mount(app);
+        let runtime = Runtime::initialize(CrosstermBackend::stdout());
         runtime.run().await?;
         Ok(())
     })

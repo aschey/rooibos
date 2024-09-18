@@ -2,10 +2,10 @@ use rooibos::components::Input;
 use rooibos::dom::WidgetState;
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{col, wgt, Render, UpdateLayoutProps};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{col, mount, wgt, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
@@ -13,7 +13,8 @@ type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

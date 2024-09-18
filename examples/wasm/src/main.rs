@@ -1,12 +1,14 @@
 use std::error::Error;
 
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::mount;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use wasm_test::app;
 
 #[rooibos::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

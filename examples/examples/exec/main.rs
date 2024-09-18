@@ -3,18 +3,18 @@ use std::env;
 use rooibos::components::Button;
 use rooibos::dom::text;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{mount, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{exec, Runtime};
+use rooibos::terminal::crossterm::CrosstermBackend;
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
-
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), || app(editor, Vec::new()));
+    mount(|| app(editor, Vec::new()));
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

@@ -2,10 +2,12 @@ use rooibos::components::Button;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, derive_signal, height, padding_right, row, text, wgt, width, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{
+    col, derive_signal, height, mount, padding_right, row, text, wgt, width, Render,
+};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;
 use rooibos::tui::widgets::Paragraph;
@@ -14,7 +16,8 @@ type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }
@@ -26,9 +29,9 @@ fn app() -> impl Render {
     let (block_height, set_block_height) = signal(5.);
     let block_width = derive_signal!(block_height.get() * 2.);
 
-    let adjust_size = move |factor: f32| {
+    let adjust_size = move |adjustment: f32| {
         set_block_height.update(|b| {
-            *b += 1. * factor;
+            *b += adjustment;
         });
     };
 
@@ -51,8 +54,8 @@ fn app() -> impl Render {
             Paragraph::new(format!("{} x {}", block_width.get(), block_height.get()))
                 .centered()
                 .bg({
-                    let h = block_height.get() as f64;
-                    Color::from_hsl(18.0 * h, 5.0 * h, 5.0 * h)
+                    let height = block_height.get() as f64;
+                    Color::from_hsl(18.0 * height, 5.0 * height, 5.0 * height)
                 })
         )
     ]

@@ -9,7 +9,7 @@ pub mod test;
 use std::fmt::Display;
 use std::{future, io};
 
-use background_service::ServiceContext;
+pub use background_service::ServiceContext;
 use futures_util::Future;
 use ratatui::Terminal;
 use tokio::sync::broadcast;

@@ -1,15 +1,16 @@
 use rooibos::dom::{focus_next, render_dom, KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{mount, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, TickResult};
+use rooibos::runtime::{restore_terminal, Runtime, TickResult};
+use rooibos::terminal::crossterm::CrosstermBackend;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let mut runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let mut runtime = Runtime::initialize(CrosstermBackend::stdout());
     let mut terminal = runtime.setup_terminal()?;
 
     terminal.draw(|f| render_dom(f.buffer_mut()))?;
@@ -27,6 +28,7 @@ async fn main() -> Result<()> {
             TickResult::Exit => {
                 if runtime.should_exit().await {
                     runtime.handle_exit(&mut terminal).await.unwrap();
+                    restore_terminal()?;
                     return Ok(());
                 }
             }

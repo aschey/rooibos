@@ -7,10 +7,11 @@ edition = "2021"
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-runtime = { path = "../rooibos-runtime" }
-rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
+rooibos-reactive-macros = { path = "../rooibos-reactive-macros" }
 rooibos-components = { path = "../rooibos-components" }
 rooibos-config = { path = "../rooibos-config", optional = true }
 rooibos-tester = { path = "../rooibos-tester" }
+rooibos-terminal = { path = "../rooibos-terminal" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
@@ -22,11 +23,13 @@ crossterm = [
   "rooibos-dom/crossterm",
   "rooibos-runtime/crossterm",
   "rooibos-components/crossterm",
+  "rooibos-terminal/crossterm",
 ]
 termion = [
   "rooibos-dom/termion",
   "rooibos-runtime/termion",
   "rooibos-components/termion",
+  "rooibos-terminal/termion",
 ]
 termwiz = [
   "rooibos-dom/termwiz",
@@ -42,4 +45,8 @@ input-search = ["rooibos-components/input-search"]
 terminal-widget = ["rooibos-components/terminal-widget"]
 input = ["rooibos-components/input", "rooibos-dom/input"]
 image = ["rooibos-components/image"]
-clipboard = ["rooibos-runtime/clipboard", "rooibos-ssh?/clipboard"]
+clipboard = [
+  "rooibos-runtime/clipboard",
+  "rooibos-terminal/clipboard",
+  "rooibos-ssh?/clipboard",
+]

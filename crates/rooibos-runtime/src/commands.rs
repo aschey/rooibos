@@ -15,7 +15,7 @@ use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
-use crate::{backend, with_all_state, with_state, ExitResult, RuntimeCommand};
+use crate::{with_all_state, with_state, ExitResult, RuntimeCommand};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
@@ -70,7 +70,7 @@ pub enum TerminalCommand {
     SetTitle(String),
     Custom(#[educe(Debug(ignore))] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
     #[cfg(feature = "clipboard")]
-    SetClipboard(String, backend::ClipboardKind),
+    SetClipboard(String, rooibos_terminal::ClipboardKind),
     #[cfg(not(target_arch = "wasm32"))]
     Exec {
         #[educe(Debug(ignore))]
@@ -136,7 +136,7 @@ pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskI
 #[cfg(feature = "clipboard")]
 pub fn set_clipboard<T: Display>(
     title: T,
-    kind: backend::ClipboardKind,
+    kind: rooibos_terminal::ClipboardKind,
 ) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
     send_command(TerminalCommand::SetClipboard(title.to_string(), kind))
 }

@@ -10,6 +10,7 @@ pub mod graph {
 use std::cell::{LazyCell, OnceCell};
 use std::future::Future;
 use std::ops::Deref;
+use std::panic::{set_hook, take_hook};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -23,10 +24,61 @@ pub use ratatui::text as __text;
 pub use ratatui::widgets as __widgets;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
+use reactive_graph::owner::Owner;
 pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use throw_error::*;
 pub use widgets::*;
+
+pub fn execute_with_owner<T>(f: impl FnOnce() -> T) -> T {
+    let owner = Owner::new();
+    set_panic_hook(owner.clone());
+    let res = owner.with(f);
+
+    owner.cleanup();
+    drop(owner);
+    res
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn run_with_executor<T, F>(f: F) -> T
+where
+    F: Future<Output = T>,
+{
+    init_executor();
+    let local = tokio::task::LocalSet::new();
+    local.run_until(f).await
+}
+
+#[cfg(target_arch = "wasm32")]
+pub async fn run_with_executor<T, F>(f: F) -> T
+where
+    F: Future<Output = T>,
+{
+    init_executor();
+    f.await
+}
+
+fn set_panic_hook(owner: Owner) {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let original_hook = take_hook();
+        set_hook(Box::new(move |panic_info| {
+            owner.cleanup();
+            original_hook(panic_info);
+        }));
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn init_executor() {
+    any_spawner::Executor::init_tokio().expect("executor already initialized");
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn init_executor() {
+    any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
+}
 
 pub fn delay<F>(duration: Duration, f: F)
 where

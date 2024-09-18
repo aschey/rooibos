@@ -4,16 +4,17 @@ use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
 use rooibos::reactive::graph::signal::{signal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{col, line, span, wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{col, line, mount, span, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{spawn_service, wasm_compat, Runtime, ServiceContext};
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

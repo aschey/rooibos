@@ -1,9 +1,9 @@
 use std::error::Error;
 use std::io::{stdin, IsTerminal};
 
-use rooibos::reactive::{line, wgt, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{line, mount, wgt, Render};
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -21,7 +21,8 @@ async fn main() -> Result<()> {
         buffer
     };
 
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), || app(input));
+    mount(|| app(input));
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

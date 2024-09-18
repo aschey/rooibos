@@ -5,15 +5,16 @@ use rooibos::dom::KeyCode;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
-use rooibos::reactive::{col, height, width, Render};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
+use rooibos::reactive::{col, height, mount, width, Render};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
+use rooibos::terminal::crossterm::CrosstermBackend;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

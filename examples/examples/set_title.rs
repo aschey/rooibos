@@ -4,18 +4,18 @@ use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{wgt, Render};
-use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::reactive::{mount, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{set_title, Runtime};
+use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        CrosstermBackend::<Stdout>::new(TerminalSettings::default().title("initial title")),
-        app,
-    );
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::<Stdout>::new(
+        TerminalSettings::default().title("initial title"),
+    ));
     runtime.run().await?;
     Ok(())
 }

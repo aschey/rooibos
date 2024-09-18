@@ -1,10 +1,10 @@
 use clap::Parser;
 use rooibos::dom::{focus_id, KeyCode, KeyEvent};
-use rooibos::reactive::{after_render, col, wgt, Render};
+use rooibos::reactive::{after_render, col, mount, wgt, Render};
 use rooibos::router::{use_router, Route, RouteFrom, Router, ToRoute};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Paragraph;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -22,7 +22,8 @@ fn main() -> Result<()> {
 
 #[rooibos::main]
 async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), move || app(route));
+    mount(move || app(route));
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
 
     Ok(())

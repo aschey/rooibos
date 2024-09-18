@@ -19,10 +19,11 @@ use rooibos::reactive::layout::{
 };
 use rooibos::reactive::{
     after_render, col, derive_signal, height, line, margin, margin_left, margin_top, max_width,
-    row, span, text, transition, wgt, width, Errors, IntoAny, Render, RenderAny, UpdateLayoutProps,
+    mount, row, span, text, transition, wgt, width, Errors, IntoAny, Render, RenderAny,
+    UpdateLayoutProps,
 };
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::Runtime;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -35,7 +36,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await
         .unwrap();
 
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), || app(Duration::from_secs(3)));
+    mount(|| app(Duration::from_secs(3)));
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     tokio::spawn(run_server(listener));
     runtime.run().await?;
 

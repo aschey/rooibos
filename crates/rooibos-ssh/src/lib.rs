@@ -11,9 +11,9 @@ use futures::{Future, StreamExt};
 use futures_cancel::FutureExt;
 use rooibos_dom::Event;
 use rooibos_reactive::graph::owner::Owner;
+use rooibos_reactive::init_executor;
 use rooibos_runtime::{
-    init_executor, restore_terminal, set_external_signal_source, with_runtime, CancellationToken,
-    ServiceContext,
+    restore_terminal, set_external_signal_source, with_runtime, CancellationToken, ServiceContext,
 };
 pub use russh::server::Config as SshConfig;
 use russh::server::{Auth, Handle, Handler, Msg, Server, Session};

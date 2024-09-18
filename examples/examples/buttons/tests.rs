@@ -1,4 +1,5 @@
 use rooibos::dom::{root, KeyCode};
+use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::TestHarness;
 
@@ -16,11 +17,11 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_buttons() {
-    let mut harness = TestHarness::new(
+    mount(app);
+    let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         20,
         10,
-        app,
     );
     let root_node = root();
     assert_snapshot!(harness.terminal());

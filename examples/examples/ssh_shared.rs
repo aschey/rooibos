@@ -2,7 +2,7 @@ use rooibos::components::Button;
 use rooibos::reactive::graph::signal::ReadSignal;
 use rooibos::reactive::graph::traits::{FromStream, Get};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{derive_signal, line, span, Render, UpdateLayoutProps};
+use rooibos::reactive::{derive_signal, line, mount, span, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::ssh::backend::SshBackend;
@@ -40,7 +40,8 @@ impl SshHandler for SshApp {
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();
-        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx), move || app(count_tx));
+        mount(move || app(count_tx));
+        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx));
         runtime.run().await.unwrap();
     }
 }

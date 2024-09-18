@@ -8,13 +8,15 @@ use rooibos_dom::{
     focus_next, render_dom, DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton,
     MouseEvent, MouseEventKind, NodeTypeRepr,
 };
-use rooibos_reactive::Render;
-use rooibos_runtime::backend::test::TestBackend;
+#[cfg(feature = "runtime")]
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
+#[cfg(feature = "runtime")]
 use rooibos_runtime::{Runtime, RuntimeSettings, TickResult};
+use rooibos_terminal::test::TestBackend;
 use tokio::sync::broadcast;
 use unicode_width::UnicodeWidthStr;
 
+#[cfg(feature = "runtime")]
 wasm_compat::static_init! {
     static DEFAULT_TIMEOUT: Lazy<RwLock<Duration>> =
         Lazy::new(move || RwLock::new(Duration::from_secs(1)));
@@ -62,25 +64,23 @@ impl TerminalView for Buffer {
 }
 
 pub struct TestHarness {
+    #[cfg(feature = "runtime")]
     runtime: Runtime<TestBackend>,
     terminal: Terminal<ratatui::backend::TestBackend>,
     event_tx: broadcast::Sender<Event>,
 }
 
 impl TestHarness {
+    #[cfg(feature = "runtime")]
     pub fn set_default_timeout(timeout: Duration) {
         DEFAULT_TIMEOUT.with(|t| *t.write() = timeout);
     }
 
-    pub fn new<F, M>(runtime_settings: RuntimeSettings, width: u16, height: u16, f: F) -> Self
-    where
-        F: FnOnce() -> M + 'static,
-        M: Render,
-        <M as Render>::DomState: 'static,
-    {
+    #[cfg(feature = "runtime")]
+    pub fn new_with_settings(runtime_settings: RuntimeSettings, width: u16, height: u16) -> Self {
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
-        let mut runtime = Runtime::initialize_with_settings(runtime_settings, backend, f);
+        let mut runtime = Runtime::initialize_with_settings(runtime_settings, backend);
         let mut terminal = runtime.setup_terminal().unwrap();
         terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
         focus_next();
@@ -92,6 +92,24 @@ impl TestHarness {
         }
     }
 
+    pub fn from_terminal(
+        mut terminal: Terminal<ratatui::backend::TestBackend>,
+        width: u16,
+        height: u16,
+    ) -> Self {
+        let backend = TestBackend::new(width, height);
+        let event_tx = backend.event_tx();
+        terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+        focus_next();
+
+        Self {
+            terminal,
+            event_tx,
+            #[cfg(feature = "runtime")]
+            runtime: rooibos_runtime::Runtime::initialize(backend),
+        }
+    }
+
     pub fn terminal(&self) -> &Terminal<ratatui::backend::TestBackend> {
         &self.terminal
     }
@@ -100,6 +118,7 @@ impl TestHarness {
         self.terminal.backend().buffer()
     }
 
+    #[cfg(feature = "runtime")]
     pub async fn wait_for(
         &mut self,
         f: impl FnMut(&Self, Option<TickResult>) -> bool,
@@ -224,6 +243,7 @@ impl TestHarness {
         }));
     }
 
+    #[cfg(feature = "runtime")]
     pub async fn wait_for_timeout(
         &mut self,
         mut f: impl FnMut(&Self, Option<TickResult>) -> bool,
@@ -266,6 +286,7 @@ impl TestHarness {
         }
     }
 
+    #[cfg(feature = "runtime")]
     pub async fn exit(mut self) {
         self.event_tx
             .send(Event::Key(KeyEvent::new(

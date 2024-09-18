@@ -10,6 +10,10 @@ pub mod runtime {
     pub use rooibos_runtime::*;
 }
 
+pub mod terminal {
+    pub use rooibos_terminal::*;
+}
+
 pub mod components {
     pub use rooibos_components::*;
 }
@@ -39,4 +43,4 @@ pub mod xterm_js {
     pub use rooibos_xterm_js::*;
 }
 pub use ratatui as tui;
-pub use rooibos_runtime_macros::*;
+pub use rooibos_reactive_macros::*;

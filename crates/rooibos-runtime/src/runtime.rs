@@ -15,18 +15,17 @@ use rooibos_dom::{
     dispatch_event, dom_update_receiver, focus_next, render_dom, set_pixel_size, unmount,
     DomUpdateReceiver, Event,
 };
-use rooibos_reactive::{mount, Render};
+use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 
-use crate::backend::Backend;
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
 use crate::input_handler::InputHandler;
 use crate::{
-    restore_terminal, wasm_compat, with_state, with_state_mut, ExitResult, RuntimeSettings,
-    TerminalCommand, TerminalFnBoxed,
+    restore_terminal, set_panic_hook, wasm_compat, with_state, with_state_mut, ExitResult,
+    RuntimeSettings, TerminalCommand, TerminalFnBoxed,
 };
 
 #[derive(Debug)]
@@ -64,21 +63,12 @@ pub enum TickResult {
 }
 
 impl<B: Backend + 'static> Runtime<B> {
-    pub fn initialize<F, M>(backend: B, f: F) -> Self
-    where
-        F: FnOnce() -> M + 'static,
-        M: Render,
-        <M as Render>::DomState: 'static,
-    {
-        Self::initialize_with_settings(RuntimeSettings::default(), backend, f)
+    pub fn initialize(backend: B) -> Self {
+        Self::initialize_with_settings(RuntimeSettings::default(), backend)
     }
 
-    pub fn initialize_with_settings<F, M>(settings: RuntimeSettings, backend: B, f: F) -> Self
-    where
-        F: FnOnce() -> M + 'static,
-        M: Render,
-        <M as Render>::DomState: 'static,
-    {
+    pub fn initialize_with_settings(settings: RuntimeSettings, backend: B) -> Self {
+        set_panic_hook();
         let backend = Arc::new(backend);
         let (term_parser_tx, _) = broadcast::channel(32);
 
@@ -111,8 +101,6 @@ impl<B: Backend + 'static> Runtime<B> {
         let _ =
             rooibos_dom::set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement());
         spawn_signal_handler(&runtime_command_tx, &service_context, &settings);
-
-        mount(f);
 
         let term_command_tx = with_state(|s| s.term_command_tx.clone());
         let term_event_tx = with_state(|s| s.term_tx.clone());
@@ -226,6 +214,7 @@ impl<B: Backend + 'static> Runtime<B> {
                 TickResult::Exit => {
                     if self.should_exit().await {
                         self.handle_exit(&mut terminal).await?;
+                        restore_terminal()?;
                         return Ok(());
                     }
                 }
@@ -238,8 +227,6 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     pub async fn should_exit(&self) -> bool {
-        #[cfg(debug_assertions)]
-        let _guard = rooibos_reactive::graph::diagnostics::SpecialNonReactiveZone::enter();
         let exit_result = with_state_mut(|s| (s.before_exit.lock())());
         exit_result.await == ExitResult::Exit
     }

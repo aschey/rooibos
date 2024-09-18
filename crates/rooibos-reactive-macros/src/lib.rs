@@ -37,7 +37,7 @@ fn create_main(
     func_copy.vis = Visibility::Inherited;
     func_copy.sig.ident = Ident::new(&format!("__{}", func.sig.ident), Span::call_site());
 
-    let runtime = get_runtime_import();
+    let reactive = get_reactive_import();
     let output = func.sig.output.clone();
 
     let func_copy_ident = func_copy.sig.ident.clone();
@@ -60,11 +60,11 @@ fn create_main(
         Ok(quote! {
             #[::wasm_bindgen::prelude::wasm_bindgen(#attrs)]
             #vis #func_sig {
-                #runtime::execute(move || ___async_main(#func_param_idents)).await
+                #reactive::execute_with_owner(move || ___async_main(#func_param_idents)).await
             }
 
             async fn ___async_main(#inputs) #output {
-                #runtime::run_with_executor(#func_copy_ident(#func_param_idents)).await
+                #reactive::run_with_executor(#func_copy_ident(#func_param_idents)).await
             }
 
             #func_copy
@@ -73,12 +73,12 @@ fn create_main(
         Ok(quote! {
             #test_attr
             #vis #func_sig {
-                #runtime::execute(move || ___async_main(#func_param_idents))
+                #reactive::execute_with_owner(move || ___async_main(#func_param_idents))
             }
 
             #[::tokio::main(#attrs)]
             async fn ___async_main(#inputs) #output {
-                #runtime::run_with_executor(#func_copy_ident(#func_param_idents)).await
+                #reactive::run_with_executor(#func_copy_ident(#func_param_idents)).await
             }
 
             #func_copy
@@ -86,19 +86,31 @@ fn create_main(
     }
 }
 
-fn get_runtime_import() -> proc_macro2::TokenStream {
+fn get_reactive_import() -> TokenStream {
+    get_import(
+        "rooibos-reactive",
+        quote!(reactive),
+        quote!(::rooibos_reactive),
+    )
+}
+
+fn get_import(
+    crate_name_str: &str,
+    main_self_name: TokenStream,
+    direct_self_name: TokenStream,
+) -> TokenStream {
     if let Ok(found_crate) = crate_name("rooibos") {
         match found_crate {
-            FoundCrate::Itself => quote::quote!(crate::runtime),
+            FoundCrate::Itself => quote!(crate::#main_self_name),
             FoundCrate::Name(name) => {
                 let ident = Ident::new(&name, Span::call_site());
-                quote::quote!(#ident::runtime)
+                quote::quote!(#ident::#main_self_name)
             }
         }
     } else {
-        let found_crate = crate_name("rooibos-dom").expect("rooibos-dom not found");
+        let found_crate = crate_name(crate_name_str).unwrap_or_else(|_| panic!("{crate_name_str} not found"));
         match found_crate {
-            FoundCrate::Itself => quote::quote!(::rooibos_runtime),
+            FoundCrate::Itself => direct_self_name,
             FoundCrate::Name(name) => {
                 let ident = Ident::new(&name, Span::call_site());
                 quote::quote!(#ident)

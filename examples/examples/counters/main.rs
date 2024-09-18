@@ -6,18 +6,19 @@ use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
 use rooibos::reactive::{
-    col, height, line, max_width, row, span, text, wgt, width, Render, UpdateLayoutProps,
+    col, height, line, max_width, mount, row, span, text, wgt, width, Render, UpdateLayoutProps,
 };
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout(), app);
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await?;
     Ok(())
 }

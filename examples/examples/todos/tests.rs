@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use rooibos::dom::{root, DomNodeRepr, KeyCode, Role};
+use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
@@ -24,11 +25,11 @@ async fn test_todos() {
         .unwrap();
 
     tokio::spawn(run_server(listener));
-    let mut harness = TestHarness::new(
+    mount(|| app(Duration::from_millis(500)));
+    let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         10,
-        || app(Duration::from_millis(500)),
     );
     let root_layout = root();
     // Wait for initial data load

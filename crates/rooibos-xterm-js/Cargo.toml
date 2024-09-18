@@ -12,6 +12,6 @@ tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
 tracing = "0.1"
 web-sys = { version = "0.3.64", features = ["console", "Window", "Document"] }
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-runtime = { path = "../rooibos-runtime" }
+rooibos-terminal = { path = "../rooibos-terminal" }
 tap = "1"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }

@@ -1,5 +1,5 @@
 [package]
-name = "rooibos-runtime-macros"
+name = "rooibos-reactive-macros"
 version = "0.1.0"
 edition = "2021"
 
