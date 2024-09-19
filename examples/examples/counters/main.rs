@@ -1,18 +1,19 @@
 use rooibos::components::{for_each, Button};
 use rooibos::dom::KeyCode;
 use rooibos::reactive::graph::effect::Effect;
-use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
 use rooibos::reactive::{
-    col, height, line, max_width, mount, row, span, text, wgt, width, Render, UpdateLayoutProps,
+    col, height, line, margin, max_width, mount, padding_left, row, span, text, wgt, width, Render,
+    UpdateLayoutProps,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{use_keypress, Runtime};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::widgets::{Block, Padding, Paragraph};
+use rooibos::tui::widgets::Paragraph;
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -25,39 +26,34 @@ async fn main() -> Result<()> {
 
 fn counter(
     row_height: Signal<taffy::Dimension>,
-    id: i32,
     on_remove: impl Fn() + Clone + 'static,
 ) -> impl Render {
     let (count, set_count) = signal(0);
-    let default_padding = Padding {
-        left: 1,
-        top: 1,
-        ..Default::default()
-    };
-    let block = RwSignal::new(Block::default().padding(default_padding));
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
+    let increase = move || update_count(1);
+    let decrease = move || update_count(-1);
 
     row![
-        props(height(row_height)),
+        props(height(row_height), padding_left!(1.)),
         Button::new()
             .width(chars(6.))
-            .on_click(move || update_count(-1))
+            .on_click(decrease)
             .render(text!("-1")),
         Button::new()
             .width(chars(6.))
-            .on_click(move || update_count(1))
+            .on_click(increase)
             .render(text!("+1")),
         Button::new()
             .width(chars(5.))
             .on_click(on_remove)
             .render(text!("x".red())),
         wgt!(
-            props(width!(10.)),
-            Paragraph::new(line!("count: ".bold(), span!(count.get()).cyan())).block(block.get())
+            props(width!(10.), margin!(1.)),
+            Paragraph::new(line!("count: ".bold(), span!(count.get()).cyan()))
         )
-        .on_click(move |_, _, _| update_count(1))
-        .id(id.to_string())
+        .on_click(move |_, _, _| increase())
+        .on_right_click(move |_, _, _| decrease())
     ]
 }
 
@@ -94,7 +90,7 @@ fn app() -> impl Render {
         for_each(
             move || ids.get(),
             |k| *k,
-            move |i| counter(chars(3.), i, move || remove_id(i))
+            move |i| counter(chars(3.), move || remove_id(i))
         )
     ]
     .id("root")

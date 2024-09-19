@@ -125,130 +125,136 @@ where
         }
     }
 
-    pub fn on_key_down<F>(self, mut handler: F) -> DomWidget<P::Output<Focusable>>
+    pub fn on_key_down<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
     {
-        let this = self.focusable(true);
-        this.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_key_down(move |event, data, handle| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data, handle)
-            })
+        self.inner.0 = self.inner.0.on_key_down(move |event, data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data, handle)
         });
 
-        this
+        self
     }
 
-    pub fn on_paste<F>(self, mut handler: F) -> DomWidget<P::Output<Focusable>>
+    pub fn on_paste<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(String, EventData, EventHandle) + 'static,
     {
-        let this = self.focusable(true);
-        this.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_paste(move |val, data, handle| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(val, data, handle);
-            })
+        self.inner.0 = self.inner.0.on_paste(move |val, data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(val, data, handle);
         });
 
-        this
+        self
     }
 
-    pub fn on_key_up<F>(self, mut handler: F) -> DomWidget<P::Output<Focusable>>
+    pub fn on_key_up<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
     {
-        let this = self.focusable(true);
-        this.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_key_up(move |event, data, handle| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data, handle);
-            })
+        self.inner.0 = self.inner.0.on_key_up(move |event, data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data, handle);
         });
-        this
+        self
     }
 
-    pub fn on_focus<F>(self, mut handler: F) -> DomWidget<P::Output<Focusable>>
+    pub fn on_focus<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(FocusEvent, EventData) + 'static,
     {
-        let this = self.focusable(true);
-        this.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_focus(move |event, data| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data);
-            })
+        self.inner.0 = self.inner.0.on_focus(move |event, data| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data);
         });
-        this
+        self
     }
 
-    pub fn on_blur<F>(self, mut handler: F) -> DomWidget<P::Output<Focusable>>
+    pub fn on_blur<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(BlurEvent, EventData) + 'static,
     {
-        let this = self.focusable(true);
-        this.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_blur(move |event, data| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data);
-            })
+        self.inner.0 = self.inner.0.on_blur(move |event, data| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data);
         });
-        this
+        self
     }
 
-    pub fn on_click<F>(self, handler: F) -> Self
+    pub fn on_click<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
-        self.inner
-            .update_event_handlers(|event_handlers| event_handlers.on_click(handler));
-        self
-    }
-
-    pub fn on_mouse_enter<F>(self, mut handler: F) -> Self
-    where
-        F: FnMut(EventData, EventHandle) + 'static,
-    {
-        self.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_mouse_enter(move |event_data, event_handle| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event_data, event_handle);
-            })
+        self.inner.0 = self.inner.0.on_click(move |event, data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data, handle);
         });
         self
     }
 
-    pub fn on_mouse_leave<F>(self, mut handler: F) -> Self
+    pub fn on_right_click<F>(mut self, mut handler: F) -> Self
     where
-        F: FnMut(EventData, EventHandle) + 'static,
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
-        self.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_mouse_leave(move |data, handle| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(data, handle);
-            })
+        self.inner.0 = self.inner.0.on_right_click(move |event, data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data, handle);
         });
         self
     }
 
-    pub fn on_size_change<F>(self, mut handler: F) -> Self
+    pub fn on_middle_click<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+    {
+        self.inner.0 = self.inner.0.on_middle_click(move |event, data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data, handle);
+        });
+        self
+    }
+
+    pub fn on_mouse_enter<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(EventData, EventHandle) + 'static,
+    {
+        self.inner.0 = self.inner.0.on_mouse_enter(move |data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(data, handle);
+        });
+        self
+    }
+
+    pub fn on_mouse_leave<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(EventData, EventHandle) + 'static,
+    {
+        self.inner.0 = self.inner.0.on_mouse_leave(move |data, handle| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(data, handle);
+        });
+        self
+    }
+
+    pub fn on_size_change<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(Rect) + 'static,
     {
-        self.inner.update_event_handlers(|event_handlers| {
-            event_handlers.on_size_change(move |size| {
-                #[cfg(debug_assertions)]
-                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(size);
-            })
+        self.inner.0 = self.inner.0.on_size_change(move |size| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(size);
         });
         self
     }

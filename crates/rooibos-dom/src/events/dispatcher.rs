@@ -8,7 +8,7 @@ use terminput::{
 use super::EventData;
 use crate::{
     focus_next, focus_prev, set_pending_resize, toggle_print_dom, with_nodes, with_nodes_mut,
-    DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType,
+    ClickEventFn, DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType,
 };
 
 thread_local! {
@@ -227,6 +227,23 @@ fn hit_test(position: Position) -> Vec<DomNodeKey> {
 }
 
 fn dispatch_mouse_down(mouse_event: MouseEvent, mouse_button: MouseButton) {
+    match mouse_button {
+        MouseButton::Left | MouseButton::Unknown => {
+            dispatch_mouse_button(mouse_event, |handlers| &handlers.on_click)
+        }
+        MouseButton::Right => {
+            dispatch_mouse_button(mouse_event, |handlers| &handlers.on_right_click)
+        }
+        MouseButton::Middle => {
+            dispatch_mouse_button(mouse_event, |handlers| &handlers.on_middle_click)
+        }
+    }
+}
+
+fn dispatch_mouse_button<GE>(mouse_event: MouseEvent, get_event: GE)
+where
+    GE: Fn(&EventHandlers) -> &Option<ClickEventFn>,
+{
     let found = hit_test(Position {
         x: mouse_event.column,
         y: mouse_event.row,
@@ -246,14 +263,13 @@ fn dispatch_mouse_down(mouse_event: MouseEvent, mouse_button: MouseButton) {
                     }
                 }
                 if !stop_propagation {
-                    if let Some(on_click) = &nodes[key].event_handlers.on_click {
+                    if let Some(on_click) = get_event(&nodes[key].event_handlers) {
                         let handle = EventHandle::default();
                         let rect = nodes[key].rect.borrow();
                         on_click.borrow_mut()(
                             crate::ClickEvent {
                                 column: mouse_event.column,
                                 row: mouse_event.row,
-                                mouse_button,
                                 modifiers: mouse_event.modifiers,
                             },
                             EventData { rect: *rect },

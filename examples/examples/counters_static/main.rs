@@ -1,5 +1,5 @@
 use rooibos::dom::{KeyCode, KeyEvent};
-use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
@@ -21,19 +21,20 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
+fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
     let (count, set_count) = signal(0);
-
-    let block = RwSignal::new(Block::bordered().border_set(border::EMPTY));
+    let (block, set_block) = signal(Block::bordered().border_set(border::EMPTY));
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
+    let increase = move || update_count(1);
+    let decrease = move || update_count(-1);
 
     let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Up {
-            update_count(1);
+            increase();
         }
         if key_event.code == KeyCode::Down {
-            update_count(-1);
+            decrease();
         }
     };
 
@@ -42,17 +43,21 @@ fn counter(id: i32, row_height: Signal<taffy::Dimension>) -> impl Render {
         Paragraph::new(line!("count: ".bold().reset(), span!(count.get()).cyan()))
             .block(block.get())
     ]
-    .on_focus(move |_, _| block.set(Block::bordered().blue()))
-    .on_blur(move |_, _| block.set(Block::bordered().border_set(border::EMPTY)))
+    .on_focus(move |_, _| set_block.set(Block::bordered().blue()))
+    .on_blur(move |_, _| set_block.set(Block::bordered().border_set(border::EMPTY)))
     .on_key_down(key_down)
-    .on_click(move |_, _, _| update_count(1))
-    .id(id.to_string())
+    .on_click(move |_, _, _| increase())
+    .on_right_click(move |_, _, _| decrease())
 }
+
+const NUM_COUNTERS: usize = 5;
 
 fn app() -> impl Render {
     col![
         props(height!(15.), max_width!(20.)),
-        (0..5).map(|i| counter(i, chars(3.))).collect::<Vec<_>>()
+        (0..NUM_COUNTERS)
+            .map(|_| counter(chars(3.)))
+            .collect::<Vec<_>>()
     ]
 }
 

@@ -51,30 +51,39 @@ impl<C, P> FlexNode<C, P> {
         self
     }
 
-    pub fn on_focus<F>(self, handler: F) -> Self
+    pub fn on_focus<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(FocusEvent, EventData) + 'static,
     {
-        self.inner
-            .update_event_handlers(|event_handlers| event_handlers.on_focus(handler));
+        self.inner.0 = self.inner.0.on_focus(move |event, data| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data);
+        });
         self
     }
 
-    pub fn on_blur<F>(self, handler: F) -> Self
+    pub fn on_blur<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(BlurEvent, EventData) + 'static,
     {
-        self.inner
-            .update_event_handlers(|event_handlers| event_handlers.on_blur(handler));
+        self.inner.0 = self.inner.0.on_blur(move |event, data| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(event, data);
+        });
         self
     }
 
-    pub fn on_size_change<F>(self, handler: F) -> Self
+    pub fn on_size_change<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(Rect) + 'static,
     {
-        self.inner
-            .update_event_handlers(|event_handlers| event_handlers.on_size_change(handler));
+        self.inner.0 = self.inner.0.on_size_change(move |size| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler(size);
+        });
         self
     }
 

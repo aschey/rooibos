@@ -16,7 +16,7 @@ rooibos = { path = "../crates/rooibos", features = [
 ] }
 tokio = { version = "1.38.1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.40"
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
     "tokio",
 ] }
 tracing-subscriber = { version = "0.3.18", features = [

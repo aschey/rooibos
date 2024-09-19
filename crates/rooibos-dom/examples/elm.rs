@@ -18,7 +18,7 @@ use rooibos_dom::{
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
-use terminput::{Event, KeyCode, KeyEvent, KeyModifiers, MouseButton};
+use terminput::{Event, KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -272,13 +272,11 @@ impl Counter {
             })
             .on_click({
                 let send = send.clone();
-                move |event, _, _| {
-                    if event.mouse_button == MouseButton::Left {
-                        send(TaskMessage::Increment)
-                    } else {
-                        send(TaskMessage::Decrement)
-                    }
-                }
+                move |_, _, _| send(TaskMessage::Increment)
+            })
+            .on_right_click({
+                let send = send.clone();
+                move |_, _, _| send(TaskMessage::Decrement)
             })
             .id(id.clone())
             .on_focus({

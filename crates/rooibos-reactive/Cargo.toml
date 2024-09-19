@@ -6,17 +6,17 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
   "tracing",
   "effects",
 ] }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
   "reactive_graph",
   "tracing",
 ] }
 
-throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
+throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb" }
 rooibos-dom = { path = "../rooibos-dom" }
 ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
@@ -35,14 +35,14 @@ crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
   "tokio",
   "tracing",
 ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
   "wasm-bindgen",
 ] }
 

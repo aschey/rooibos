@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "ba9604101de35cf9c3bb69db3bee4d91362274d0" }
+throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb" }
 ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }

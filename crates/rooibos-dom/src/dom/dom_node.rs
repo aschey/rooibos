@@ -505,7 +505,7 @@ impl DomNode {
         with_nodes_mut(|n| n.replace_inner(self.key, inner));
     }
 
-    pub fn update_event_handlers<F>(&self, update: F)
+    fn update_event_handlers<F>(&self, update: F)
     where
         F: FnOnce(EventHandlers) -> EventHandlers,
     {
@@ -521,6 +521,15 @@ impl DomNode {
         self
     }
 
+    pub fn on_key_up<F>(self, handler: F) -> Self
+    where
+        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_key_up(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+        self
+    }
+
     pub fn on_click<F>(self, handler: F) -> Self
     where
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
@@ -530,11 +539,39 @@ impl DomNode {
         self
     }
 
+    pub fn on_right_click<F>(self, handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_right_click(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+        self
+    }
+
+    pub fn on_middle_click<F>(self, handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_middle_click(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+        self
+    }
+
+    pub fn on_paste<F>(self, handler: F) -> Self
+    where
+        F: FnMut(String, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_paste(handler));
+        self
+    }
+
     pub fn on_focus<F>(self, handler: F) -> Self
     where
         F: FnMut(FocusEvent, EventData) + 'static,
     {
         self.update_event_handlers(|h| h.on_focus(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+
         self
     }
 
@@ -543,6 +580,32 @@ impl DomNode {
         F: FnMut(BlurEvent, EventData) + 'static,
     {
         self.update_event_handlers(|h| h.on_blur(handler));
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
+
+        self
+    }
+
+    pub fn on_mouse_enter<F>(self, handler: F) -> Self
+    where
+        F: FnMut(EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_mouse_enter(handler));
+        self
+    }
+
+    pub fn on_mouse_leave<F>(self, handler: F) -> Self
+    where
+        F: FnMut(EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_mouse_leave(handler));
+        self
+    }
+
+    pub fn on_size_change<F>(self, handler: F) -> Self
+    where
+        F: FnMut(Rect) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_size_change(handler));
         self
     }
 

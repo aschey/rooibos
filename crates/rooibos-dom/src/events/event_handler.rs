@@ -23,6 +23,8 @@ pub struct EventHandlers {
     pub(crate) on_focus: Option<FocusFn>,
     pub(crate) on_blur: Option<BlurFn>,
     pub(crate) on_click: Option<ClickEventFn>,
+    pub(crate) on_right_click: Option<ClickEventFn>,
+    pub(crate) on_middle_click: Option<ClickEventFn>,
     pub(crate) on_mouse_enter: Option<EventFn>,
     pub(crate) on_mouse_leave: Option<EventFn>,
     pub(crate) on_size_change: Option<SizeChangeFn>,
@@ -74,6 +76,22 @@ impl EventHandlers {
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
         self.on_click = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub fn on_right_click<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+    {
+        self.on_right_click = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub fn on_middle_click<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+    {
+        self.on_middle_click = Some(Rc::new(RefCell::new(handler)));
         self
     }
 

@@ -4,7 +4,7 @@ use std::sync::Arc;
 pub use dispatcher::*;
 pub(crate) use event_handler::*;
 use ratatui::layout::Rect;
-use terminput::{KeyModifiers, MouseButton};
+use terminput::KeyModifiers;
 
 use crate::NodeId;
 
@@ -43,7 +43,6 @@ pub struct FocusEvent {
 
 #[derive(Debug)]
 pub struct ClickEvent {
-    pub mouse_button: MouseButton,
     pub column: u16,
     pub row: u16,
     pub modifiers: KeyModifiers,
