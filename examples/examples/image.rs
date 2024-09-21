@@ -5,7 +5,7 @@ use rooibos::dom::KeyCode;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
-use rooibos::reactive::{Render, col, height, mount, width};
+use rooibos::reactive::{Render, col, height, margin, margin_left, mount, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -43,9 +43,18 @@ fn app() -> impl Render {
             }
         }
     });
-
     col![
-        props(width!(image_length), height!(image_length)),
-        Image::from_url(image_url).render()
+        wgt!(
+            props(height!(1.), margin!(1.)),
+            "Press up to increase image size, down to decrease"
+        ),
+        col![
+            props(
+                width!(image_length),
+                height!(image_length),
+                margin_left!(1.)
+            ),
+            Image::from_url(image_url).render()
+        ]
     ]
 }

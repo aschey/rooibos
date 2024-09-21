@@ -21,7 +21,8 @@ educe = "0.6"
 ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = "0.1"
-ratatui-image = { version = "1.0.5", optional = true }
+# TODO: set this back to the published version after the next release
+ratatui-image = { git = "https://github.com/benjajaja/ratatui-image", rev = "e630e680a186fc0c44c43be0e6966889094e525e", optional = true }
 image = { version = "0.25", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

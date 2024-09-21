@@ -4,11 +4,13 @@ use rooibos::config::watch_config::backend::schematic::AppConfig;
 use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
-use rooibos::dom::{line, text};
+use rooibos::dom::text;
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{Render, mount, wgt};
+use rooibos::reactive::{Render, col, height, margin, max_width, mount, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::style::Stylize;
+use rooibos::tui::widgets::{Block, Padding, Paragraph};
 use schematic::Format;
 
 #[derive(Config, PartialEq, Eq, Clone, Debug)]
@@ -37,5 +39,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 fn app() -> impl Render {
     let config = use_config::<AppConfigExample>();
-    wgt!(text!(line!(format!("{:?}", config.get().new))))
+    col![
+        wgt!(
+            props(margin!(1.), height!(1.)),
+            text!("Update ./.config/config.yml and the changes will update live")
+                .bold()
+                .cyan()
+        ),
+        wgt!(
+            props(max_width!(150.)),
+            Paragraph::new(format!("{:?}", config.get().map(|c| c.new)))
+                .block(Block::bordered().padding(Padding::uniform(1)))
+        )
+    ]
 }

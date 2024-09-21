@@ -8,14 +8,16 @@ use reactive_graph::traits::Set;
 use rooibos_runtime::{ServiceContext, spawn_service};
 pub use watch_config;
 use watch_config::backend::schematic::AppConfig;
-use watch_config::schematic::Config;
+use watch_config::schematic::{Config, ConfigError};
 use watch_config::{ConfigUpdate, ConfigWatcherService, LoadConfig};
 
+pub type ConfigResult<T> = Result<ConfigUpdate<Arc<T>>, Arc<ConfigError>>;
+
 #[derive(Clone)]
-pub struct ConfigSignal<T>(ReadSignal<ConfigUpdate<Arc<T>>>);
+pub struct ConfigSignal<T>(ReadSignal<ConfigResult<T>>);
 
 impl<T> Deref for ConfigSignal<T> {
-    type Target = ReadSignal<ConfigUpdate<Arc<T>>>;
+    type Target = ReadSignal<ConfigResult<T>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -29,11 +31,11 @@ impl<T> DerefMut for ConfigSignal<T> {
 }
 
 pub fn provide_config<T: Config + PartialEq + Send + Sync + 'static>(config: AppConfig<T>) {
-    let initial = config.reload().unwrap();
-    let (config_signal, set_config_signal) = signal(ConfigUpdate {
-        old: initial.clone(),
-        new: initial,
-    });
+    let initial = config.reload();
+    let (config_signal, set_config_signal) = signal(initial.map(|i| ConfigUpdate {
+        old: i.clone(),
+        new: i,
+    }));
     let watcher = ConfigWatcherService::new(config);
     let handle = watcher.handle();
     spawn_service((
@@ -52,9 +54,7 @@ pub fn provide_config<T: Config + PartialEq + Send + Sync + 'static>(config: App
         "config_handler",
         move |context: ServiceContext| async move {
             while let Ok(Ok(update)) = subscriber.recv().cancel_with(context.cancelled()).await {
-                if let Ok(update) = update {
-                    set_config_signal.set(update);
-                }
+                set_config_signal.set(update);
             }
 
             Ok(())
