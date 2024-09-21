@@ -1,14 +1,20 @@
+use std::collections::VecDeque;
 use std::io::Stdout;
 use std::time::Duration;
 
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::components::Show;
+use rooibos::components::spinner::Spinner;
+use rooibos::dom::line;
+use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::signal::signal;
-use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, mount, wgt};
+use rooibos::reactive::graph::traits::{Get, Update, With as _};
+use rooibos::reactive::{Render, after_render, col, derive_signal, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, insert_before};
+use rooibos::runtime::{Runtime, exit, insert_before};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
+use rooibos::tui::style::{Style, Stylize};
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -22,24 +28,50 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    let (count, set_count) = signal(0);
+    let (packages, set_packages) = signal(VecDeque::from(vec![
+        "tokio",
+        "ratatui",
+        "leptos",
+        "taffy",
+        "russh",
+        "crossterm",
+        "termwiz",
+        "termion",
+    ]));
 
-    let update_count = move || set_count.update(|c| *c += 1);
-
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            update_count();
-        }
-    };
+    let current_package = derive_signal!(packages.with(|p| p.front().copied().unwrap_or_default()));
 
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-            insert_before(1, "test").unwrap();
+            tokio::time::sleep(Duration::from_millis(
+                ((rand::random::<f32>() + 0.5) * 500.0).round() as u64,
+            ))
+            .await;
+            insert_before(1, line!("✓ ".green(), current_package.get())).unwrap();
+            set_packages.update(|p| {
+                p.pop_front();
+            });
         }
     });
 
-    wgt!(format!("count {}", count.get()))
-        .on_key_down(key_down)
-        .on_click(move |_, _, _| update_count())
+    let spinner = Spinner::new()
+        .spinner_style(Style::default().cyan())
+        .into_span_signal();
+
+    col![
+        Show::new()
+            .fallback(move || {
+                after_render(exit);
+                wgt!("Done")
+            })
+            .render(
+                Memo::new(move |_| !current_package.get().is_empty()),
+                move || wgt!(line!(
+                    spinner.get(),
+                    "installing ",
+                    current_package.get().bold(),
+                    "..."
+                )),
+            )
+    ]
 }

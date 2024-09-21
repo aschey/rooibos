@@ -6,6 +6,9 @@ use crate::DomWidget;
 
 #[macro_export]
 macro_rules! wgt {
+     (props($($properties:expr),+), $state:expr, $($x:tt)*) => {
+        $crate::stateful_widget(($($properties),+), move || $($x)*, move || $state)
+    };
     (props($($properties:expr),+), $($x:tt)*) => {
         $crate::widget(($($properties),+), move || $($x)*)
     };
@@ -15,9 +18,7 @@ macro_rules! wgt {
     ($state:expr, $($x:tt)*) => {
         $crate::stateful_widget((), move || $($x)*, move || $state)
     };
-    (props($($properties:expr),+), $state:expr, $($x:tt)*) => {
-        $crate::stateful_widget(($($properties),+), move || $($x)*, move || $state)
-    };
+
 }
 
 #[macro_export]
