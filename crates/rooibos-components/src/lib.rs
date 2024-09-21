@@ -8,7 +8,7 @@ mod list_view;
 mod notification;
 mod show;
 #[cfg(feature = "spinner")]
-mod spinner;
+pub mod spinner;
 mod tab_view;
 #[cfg(all(feature = "terminal-widget", not(target_arch = "wasm32")))]
 mod terminal;
@@ -24,8 +24,6 @@ pub use input::*;
 pub use list_view::*;
 pub use notification::*;
 pub use show::*;
-#[cfg(feature = "spinner")]
-pub use spinner::*;
 pub use tab_view::*;
 #[cfg(all(feature = "terminal-widget", not(target_arch = "wasm32")))]
 pub use terminal::*;

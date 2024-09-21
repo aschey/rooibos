@@ -9,7 +9,7 @@ use rooibos_reactive::graph::owner::on_cleanup;
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get as _, Update};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{Render, derive_signal, wgt};
+use rooibos_reactive::{Render, wgt};
 pub use throbber_widgets_tui::WhichUse as SpinnerDisplay;
 pub use throbber_widgets_tui::symbols::throbber::*;
 use throbber_widgets_tui::{Throbber, ThrobberState};
