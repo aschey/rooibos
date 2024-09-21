@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "8f0a1554b155f592cd98e397c4926edd14fac979" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "8f0a1554b155f592cd98e397c4926edd14fac979" }
 tui-textarea = { version = "0.6", default-features = false, optional = true }
 crossterm = { version = "0.28.1", optional = true }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
+tachys = { git = "https://github.com/leptos-rs/leptos", rev = "8f0a1554b155f592cd98e397c4926edd14fac979", features = [
   "reactive_graph",
   "tracing",
 ] }

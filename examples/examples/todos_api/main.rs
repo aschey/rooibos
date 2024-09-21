@@ -45,9 +45,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 #[derive(Clone)]
 struct TodoContext {
-    add_todo: Action<String, Result<(), rooibos::dom::Error>>,
-    update_todo: Action<(u32, String), Result<(), rooibos::dom::Error>>,
-    delete_todo: Action<u32, Result<(), rooibos::dom::Error>>,
+    add_todo: Action<String, Result<(), rooibos::reactive::Error>>,
+    update_todo: Action<(u32, String), Result<(), rooibos::reactive::Error>>,
+    delete_todo: Action<u32, Result<(), rooibos::reactive::Error>>,
 }
 
 fn app(notification_timeout: Duration) -> impl Render {

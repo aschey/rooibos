@@ -16,7 +16,6 @@ use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
 pub use terminput::*;
-pub use throw_error::*;
 pub use widgets::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
