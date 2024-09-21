@@ -8,7 +8,7 @@ pub use dom_widget::*;
 pub use focus::*;
 pub use into_view::*;
 use ratatui::layout::Rect;
-use reactive_graph::signal::{signal, ReadSignal};
+use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::Set as _;
 pub use renderer::*;
 use rooibos_dom::{with_nodes, with_nodes_mut};

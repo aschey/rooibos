@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use futures_cancel::FutureExt;
 use reactive_graph::owner::{provide_context, use_context};
-use reactive_graph::signal::{signal, ReadSignal};
+use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::Set;
-use rooibos_runtime::{spawn_service, ServiceContext};
+use rooibos_runtime::{ServiceContext, spawn_service};
 pub use watch_config;
 use watch_config::backend::schematic::AppConfig;
 use watch_config::schematic::Config;

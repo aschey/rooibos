@@ -1,20 +1,20 @@
 use std::collections::BTreeMap;
 use std::error::Error;
-use std::io::{stdout, Stdout};
+use std::io::{Stdout, stdout};
 
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, EventStream};
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use futures::StreamExt;
+use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
-use ratatui::Terminal;
 use rooibos_dom::{
-    dispatch_event, focus_next, mount, render_dom, with_nodes, with_nodes_mut, AsDomNode, DomNode,
-    DomWidgetNode, NodeId,
+    AsDomNode, DomNode, DomWidgetNode, NodeId, dispatch_event, focus_next, mount, render_dom,
+    with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
@@ -138,14 +138,11 @@ impl Counters {
                 self.counters.get_mut(&id).unwrap().update(task_message);
             }
             Message::Add => {
-                self.counters.insert(
-                    self.next_id,
-                    Counter {
-                        id: self.next_id,
-                        count: 0,
-                        focused: false,
-                    },
-                );
+                self.counters.insert(self.next_id, Counter {
+                    id: self.next_id,
+                    count: 0,
+                    focused: false,
+                });
                 self.next_id += 1;
             }
             Message::Focus => {

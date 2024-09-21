@@ -2,11 +2,11 @@ use std::io::Stdout;
 
 use rooibos::components::Show;
 use rooibos::dom::{KeyCode, KeyEvent};
-use rooibos::reactive::graph::signal::{signal, RwSignal};
+use rooibos::reactive::graph::signal::{RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{after_render, mount, row, wgt, Render};
+use rooibos::reactive::{Render, after_render, mount, row, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{before_exit, exit, ExitResult, Runtime};
+use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 type Result<T> = std::result::Result<T, RuntimeError>;
@@ -23,11 +23,11 @@ async fn main() -> Result<()> {
 
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
-    let exiting = RwSignal::new(false);
+    let is_exiting = RwSignal::new(false);
 
     before_exit(move || async move {
-        if !exiting.get() {
-            exiting.set(true);
+        if !is_exiting.get() {
+            is_exiting.set(true);
             return ExitResult::PreventExit;
         }
         ExitResult::Exit
@@ -48,7 +48,7 @@ fn app() -> impl Render {
                     .on_key_down(key_down)
                     .on_click(move |_, _, _| update_count())
             })
-            .render(exiting, move || {
+            .render(is_exiting, move || {
                 after_render(move || {
                     exit();
                 });

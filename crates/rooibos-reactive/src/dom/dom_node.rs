@@ -3,11 +3,11 @@ use std::any::Any;
 use std::ops::{Deref, DerefMut};
 
 use reactive_graph::effect::RenderEffect;
-use rooibos_dom::{unmount_child, AsDomNode};
+use rooibos_dom::{AsDomNode, unmount_child};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 
-use super::{with_nodes, RooibosDom};
+use super::{RooibosDom, with_nodes};
 use crate::DomWidgetNode;
 
 #[derive(Debug)]

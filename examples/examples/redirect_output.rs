@@ -1,16 +1,16 @@
 use std::error::Error;
-use std::io::{stdout, IsTerminal, Stderr};
+use std::io::{IsTerminal, Stderr, stdout};
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{mount, Render};
-use rooibos::runtime::{exit, Runtime};
+use rooibos::reactive::{Render, mount};
+use rooibos::runtime::{Runtime, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
-use rooibos::tui::Viewport;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
@@ -18,7 +18,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 async fn main() -> Result<()> {
     let output = stdout();
     if output.is_terminal() {
-        return Err("Try redirecting the output")?;
+        return Err("Try redirecting the output. Ex: out=$(cargo run --example=redirect_output)")?;
     }
 
     mount(app);

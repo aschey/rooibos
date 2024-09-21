@@ -1,9 +1,9 @@
-use rooibos::dom::{focus_next, focus_prev, KeyCode};
+use rooibos::dom::{KeyCode, focus_next, focus_prev};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, mount, row, use_focus, wgt, Render};
+use rooibos::reactive::{Render, col, mount, row, use_focus, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{use_keypress, Runtime};
+use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 type Result<T> = std::result::Result<T, RuntimeError>;
@@ -29,10 +29,10 @@ fn app() -> impl Render {
         }
     });
 
-    row![
-        col![focus_block("item 1"), focus_block("item 2")],
-        col![focus_block("item 2"), focus_block("item 3")],
-    ]
+    row![col![focus_block("item 1"), focus_block("item 2")], col![
+        focus_block("item 2"),
+        focus_block("item 3")
+    ],]
 }
 
 fn focus_block(title: &'static str) -> impl Render {

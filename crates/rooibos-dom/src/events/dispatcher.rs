@@ -7,8 +7,8 @@ use terminput::{
 
 use super::EventData;
 use crate::{
-    focus_next, focus_prev, set_pending_resize, toggle_print_dom, with_nodes, with_nodes_mut,
-    ClickEventFn, DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType,
+    ClickEventFn, DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType, focus_next,
+    focus_prev, set_pending_resize, toggle_print_dom, with_nodes, with_nodes_mut,
 };
 
 thread_local! {

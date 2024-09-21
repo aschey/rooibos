@@ -4,11 +4,11 @@ use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
 use rooibos::reactive::graph::computed::AsyncDerived;
-use rooibos::reactive::graph::signal::{signal, ArcRwSignal};
+use rooibos::reactive::graph::signal::{ArcRwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::layout::chars;
 use rooibos::reactive::{
-    col, line, max_width, mount, span, suspense, text, wgt, Errors, Render, UpdateLayoutProps,
+    Errors, Render, UpdateLayoutProps, col, line, max_width, mount, span, suspense, text, wgt,
 };
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;

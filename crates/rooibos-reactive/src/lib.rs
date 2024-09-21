@@ -11,8 +11,8 @@ use std::cell::{LazyCell, OnceCell};
 use std::future::Future;
 use std::ops::Deref;
 use std::panic::{set_hook, take_hook};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 pub use dom::*;

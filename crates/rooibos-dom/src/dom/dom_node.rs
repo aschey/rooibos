@@ -2,8 +2,8 @@ use core::fmt::Debug;
 use std::cell::RefCell;
 use std::fmt::{self};
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use educe::Educe;
 use ratatui::buffer::Buffer;
@@ -14,9 +14,9 @@ use terminput::{Event, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEve
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
 use crate::{
-    dispatch_event, next_node_id, reset_mouse_position, tree_is_accessible, with_nodes,
-    with_nodes_mut, BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers,
-    FocusEvent, MatchBehavior, Role,
+    BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers, FocusEvent,
+    MatchBehavior, Role, dispatch_event, next_node_id, reset_mouse_position, tree_is_accessible,
+    with_nodes, with_nodes_mut,
 };
 
 pub trait AsDomNode {

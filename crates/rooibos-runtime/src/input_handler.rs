@@ -1,5 +1,5 @@
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use background_service::ServiceContext;
 use rooibos_dom::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
@@ -7,7 +7,7 @@ use tokio::sync::broadcast;
 use tracing::{error, warn};
 
 use crate::debounce::Debouncer;
-use crate::{has_external_signal_stream, IsQuitEvent, RuntimeCommand};
+use crate::{IsQuitEvent, RuntimeCommand, has_external_signal_stream};
 
 pub(crate) struct InputHandler {
     pub(crate) term_parser_rx: broadcast::Receiver<Event>,

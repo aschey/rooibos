@@ -1,4 +1,4 @@
-use rooibos::dom::{root, KeyCode};
+use rooibos::dom::{KeyCode, root};
 use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::TestHarness;

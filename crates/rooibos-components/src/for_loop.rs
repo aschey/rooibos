@@ -1,9 +1,9 @@
 use std::hash::Hash;
 
+use rooibos_reactive::IntoView;
 use rooibos_reactive::graph::owner::Owner;
 use rooibos_reactive::graph::signal::{ArcRwSignal, ReadSignal};
 use rooibos_reactive::graph::traits::Set;
-use rooibos_reactive::IntoView;
 use tachys::reactive_graph::OwnedView;
 use tachys::view::keyed::keyed;
 

@@ -1,7 +1,7 @@
 use std::error::Error;
-use std::io::{stdin, IsTerminal};
+use std::io::{IsTerminal, stdin};
 
-use rooibos::reactive::{line, mount, wgt, Render};
+use rooibos::reactive::{Render, line, mount, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
@@ -13,7 +13,7 @@ async fn main() -> Result<()> {
     let input = {
         let input = stdin();
         if input.is_terminal() {
-            return Err("Pipe in some text")?;
+            return Err("Pipe in some text. Ex: echo hi > cargo run --example=pipe_input")?;
         }
 
         let mut buffer = String::new();

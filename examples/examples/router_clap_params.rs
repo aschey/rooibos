@@ -1,12 +1,12 @@
 use clap::{Args, Parser, Subcommand};
-use rooibos::dom::{focus_id, KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, focus_id};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{after_render, col, mount, wgt, Render};
-use rooibos::router::{use_router, DefaultRoute, Route, RouteFromStatic, Router, ToRoute};
-use rooibos::runtime::error::RuntimeError;
+use rooibos::reactive::{Render, after_render, col, mount, wgt};
+use rooibos::router::{DefaultRoute, Route, RouteFromStatic, Router, ToRoute, use_router};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Paragraph;
 type Result<T> = std::result::Result<T, RuntimeError>;

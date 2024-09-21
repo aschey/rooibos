@@ -3,10 +3,10 @@ use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    col, derive_signal, height, mount, padding_right, row, text, wgt, width, Render,
+    Render, col, derive_signal, height, mount, padding_right, row, text, wgt, width,
 };
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;

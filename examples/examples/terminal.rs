@@ -1,7 +1,7 @@
 use rooibos::components::{self, CommandBuilder};
-use rooibos::reactive::{mount, Render};
-use rooibos::runtime::error::RuntimeError;
+use rooibos::reactive::{Render, mount};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Block;
 type Result<T> = std::result::Result<T, RuntimeError>;

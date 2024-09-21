@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use ratatui::layout::Rect;
 use ratatui::widgets::Block;
-use slotmap::{new_key_type, SlotMap};
+use slotmap::{SlotMap, new_key_type};
 use taffy::{
     AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Position, Size, Style,
     TaffyTree,
@@ -188,13 +188,10 @@ impl NodeTree {
         for root_key in root_keys {
             let node = &self.dom_nodes[root_key];
             self.layout_tree
-                .compute_layout(
-                    node.layout_id,
-                    Size::<AvailableSpace> {
-                        width: AvailableSpace::Definite(rect.width.into()),
-                        height: AvailableSpace::Definite(rect.height.into()),
-                    },
-                )
+                .compute_layout(node.layout_id, Size::<AvailableSpace> {
+                    width: AvailableSpace::Definite(rect.width.into()),
+                    height: AvailableSpace::Definite(rect.height.into()),
+                })
                 .unwrap();
             self.recompute_offsets(root_key);
         }

@@ -1,9 +1,9 @@
-use rooibos::dom::{focus_next, render_dom, KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, focus_next, render_dom};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{mount, wgt, Render};
+use rooibos::reactive::{Render, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{restore_terminal, Runtime, TickResult};
+use rooibos::runtime::{Runtime, TickResult, restore_terminal};
 use rooibos::terminal::crossterm::CrosstermBackend;
 type Result<T> = std::result::Result<T, RuntimeError>;
 

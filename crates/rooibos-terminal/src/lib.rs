@@ -9,7 +9,6 @@ pub mod test;
 use std::fmt::Display;
 use std::{future, io};
 
-pub use background_service::ServiceContext;
 use futures_util::Future;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
@@ -72,20 +71,28 @@ pub trait Backend: Send + Sync {
     }
 
     #[cfg(not(target_arch = "wasm32"))]
-    fn read_input(
+    fn read_input<F, Fut>(
         &self,
         _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _context: ServiceContext,
-    ) -> impl Future<Output = ()> + Send {
+        _cancel: F,
+    ) -> impl Future<Output = ()> + Send
+    where
+        F: Fn() -> Fut + Send,
+        Fut: Future<Output = ()> + Send,
+    {
         future::ready(())
     }
 
     #[cfg(target_arch = "wasm32")]
-    fn read_input(
+    fn read_input<F, Fut>(
         &self,
         _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _context: ServiceContext,
-    ) -> impl Future<Output = ()> {
+        _cancel: F,
+    ) -> impl Future<Output = ()>
+    where
+        F: Fn() -> Fut,
+        Fut: Future<Output = ()>,
+    {
         future::ready(())
     }
 

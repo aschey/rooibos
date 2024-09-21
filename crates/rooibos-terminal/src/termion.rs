@@ -1,8 +1,8 @@
-use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
+use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsFd;
 
-use background_service::ServiceContext;
 use futures_cancel::FutureExt;
+use futures_util::Future;
 use ratatui::{Terminal, Viewport};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
@@ -137,11 +137,11 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         ))
     }
 
-    async fn read_input(
-        &self,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-        service_context: ServiceContext,
-    ) {
+    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
+    where
+        F: Fn() -> Fut + Send,
+        Fut: Future<Output = ()> + Send,
+    {
         let reader = spawn_blocking(move || {
             let stdin = io::stdin();
             for event in stdin.events().flatten() {
@@ -152,6 +152,6 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
                 }
             }
         });
-        let _ = reader.cancel_with(service_context.cancelled()).await;
+        let _ = reader.cancel_with(cancel()).await;
     }
 }

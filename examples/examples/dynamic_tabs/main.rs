@@ -1,11 +1,11 @@
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{line, span, text, KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, line, span, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{mount, row, Render, UpdateLayoutProps};
-use rooibos::runtime::error::RuntimeError;
+use rooibos::reactive::{Render, UpdateLayoutProps, mount, row};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;

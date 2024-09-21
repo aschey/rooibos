@@ -1,8 +1,8 @@
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, mount, row, use_window_size, wgt, Render};
-use rooibos::runtime::error::RuntimeError;
+use rooibos::reactive::{Render, col, mount, row, use_window_size, wgt};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::layout::Rect;
 type Result<T> = std::result::Result<T, RuntimeError>;

@@ -6,22 +6,19 @@ edition = "2021"
 [dependencies]
 crossterm = "0.28.1"
 rooibos = { path = "../crates/rooibos", features = [
-    "ssh",
-    "terminal-widget",
-    "input",
-    "image",
-    "clipboard",
-    "config",
-    "router",
+  "ssh",
+  "terminal-widget",
+  "input",
+  "image",
+  "clipboard",
+  "config",
+  "router",
 ] }
 tokio = { version = "1.38.1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.40"
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "b0d8d4ee267719a085ebcc7578500ac2355a46eb", features = [
-    "tokio",
-] }
 tracing-subscriber = { version = "0.3.18", features = [
-    "registry",
-    "env-filter",
+  "registry",
+  "env-filter",
 ] }
 rand = "0.8.5"
 tui-textarea = { version = "0.6" }
@@ -33,8 +30,8 @@ tokio-stream = { version = "0.1.15", features = ["sync"] }
 clap = { version = "4.5.13", features = ["derive"] }
 schematic = { version = "0.17" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-slotmap = "1.0.7"
 taffy = "0.5.2"
+tokio-util = "0.7.12"
 
 [dev-dependencies]
 insta = "1.39.0"

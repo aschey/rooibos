@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
+use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 

@@ -5,7 +5,7 @@ use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{mount, text, wgt, Render};
+use rooibos::reactive::{Render, mount, text, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use schematic::Format;

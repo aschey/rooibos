@@ -1,9 +1,9 @@
 use clap::Parser;
-use rooibos::dom::{focus_id, KeyCode, KeyEvent};
-use rooibos::reactive::{after_render, col, mount, wgt, Render};
-use rooibos::router::{use_router, Route, RouteFrom, Router, ToRoute};
-use rooibos::runtime::error::RuntimeError;
+use rooibos::dom::{KeyCode, KeyEvent, focus_id};
+use rooibos::reactive::{Render, after_render, col, mount, wgt};
+use rooibos::router::{Route, RouteFrom, Router, ToRoute, use_router};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Paragraph;
 type Result<T> = std::result::Result<T, RuntimeError>;

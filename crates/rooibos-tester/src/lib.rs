@@ -1,12 +1,12 @@
 use std::fmt::Write;
 use std::time::{Duration, Instant};
 
+use ratatui::Terminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::Terminal;
 use rooibos_dom::{
-    focus_next, render_dom, DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton,
-    MouseEvent, MouseEventKind, NodeTypeRepr,
+    DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    NodeTypeRepr, focus_next, render_dom,
 };
 #[cfg(feature = "runtime")]
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};

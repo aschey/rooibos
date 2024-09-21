@@ -8,7 +8,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use crate::widgets::WidgetRole;
-use crate::{next_node_id, refresh_dom, Role};
+use crate::{Role, next_node_id, refresh_dom};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
 

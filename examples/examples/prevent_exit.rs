@@ -1,11 +1,11 @@
 use rooibos::components::Show;
-use rooibos::dom::{focus_id, KeyCode, NodeId};
+use rooibos::dom::{KeyCode, NodeId, focus_id};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{align_items, justify_content, position};
-use rooibos::reactive::{after_render, col, height, line, mount, row, wgt, width, Render};
+use rooibos::reactive::{Render, after_render, col, height, line, mount, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{before_exit, exit, ExitResult, Runtime};
+use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 use taffy::{AlignItems, JustifyContent, Position};

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use rooibos::dom::{root, DomNodeRepr, KeyCode, Role};
+use rooibos::dom::{DomNodeRepr, KeyCode, Role, root};
 use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};

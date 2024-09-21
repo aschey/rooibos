@@ -1,4 +1,4 @@
-use rooibos::dom::{root, Role};
+use rooibos::dom::{Role, root};
 use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};

@@ -3,9 +3,9 @@ use std::env;
 use rooibos::components::Button;
 use rooibos::dom::text;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{mount, Render, UpdateLayoutProps};
+use rooibos::reactive::{Render, UpdateLayoutProps, mount};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{exec, Runtime};
+use rooibos::runtime::{Runtime, exec};
 use rooibos::terminal::crossterm::CrosstermBackend;
 
 type Result<T> = std::result::Result<T, RuntimeError>;

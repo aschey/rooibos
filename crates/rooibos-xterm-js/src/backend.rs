@@ -7,15 +7,15 @@ use crossterm::event::{
     PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::{
-    supports_keyboard_enhancement, EnterAlternateScreen, LeaveAlternateScreen, SetTitle,
+    EnterAlternateScreen, LeaveAlternateScreen, SetTitle, supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
-use futures::StreamExt;
+use futures::{Future, StreamExt};
 use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use ratatui_xterm_js::xterm::Theme;
-use ratatui_xterm_js::{init_terminal, EventStream, TerminalHandle, XtermJsBackend};
-use rooibos_terminal::{Backend, ServiceContext};
+use ratatui_xterm_js::{EventStream, TerminalHandle, XtermJsBackend, init_terminal};
+use rooibos_terminal::Backend;
 use tap::TapFallible;
 use tokio::sync::broadcast;
 use tracing::warn;
@@ -153,12 +153,10 @@ impl Backend for WasmBackend {
         }
         handle.flush()?;
 
-        let mut terminal = Terminal::with_options(
-            XtermJsBackend::new(handle),
-            ratatui::TerminalOptions {
+        let mut terminal =
+            Terminal::with_options(XtermJsBackend::new(handle), ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
-            },
-        )?;
+            })?;
 
         terminal.clear()?;
         Ok(terminal)
@@ -213,14 +211,14 @@ impl Backend for WasmBackend {
         handle.write_all(buf)
     }
 
-    async fn read_input(
-        &self,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-        context: ServiceContext,
-    ) {
+    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
+    where
+        F: Fn() -> Fut,
+        Fut: Future<Output = ()>,
+    {
         let mut event_reader = EventStream::new().fuse();
 
-        while let Ok(event) = event_reader.next().cancel_with(context.cancelled()).await {
+        while let Ok(event) = event_reader.next().cancel_with(cancel()).await {
             if let Some(Ok(event)) = event {
                 if let Ok(event) = event.try_into() {
                     let _ = term_tx

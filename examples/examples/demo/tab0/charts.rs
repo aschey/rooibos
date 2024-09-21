@@ -6,15 +6,15 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{height, show};
-use rooibos::reactive::{col, line, row, span, wgt, Render};
+use rooibos::reactive::{Render, col, line, row, span, wgt};
 use rooibos::runtime::use_keypress;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
 use taffy::Dimension;
 
-use crate::random::RandomData;
 use crate::Tick;
+use crate::random::RandomData;
 
 pub(crate) fn charts(enhanced_graphics: bool, chart_min_height: Signal<Dimension>) -> impl Render {
     let show_chart = RwSignal::new(true);

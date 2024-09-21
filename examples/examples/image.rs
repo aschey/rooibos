@@ -5,9 +5,9 @@ use rooibos::dom::KeyCode;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
-use rooibos::reactive::{col, height, mount, width, Render};
+use rooibos::reactive::{Render, col, height, mount, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{use_keypress, Runtime};
+use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
 type Result<T> = std::result::Result<T, RuntimeError>;
 

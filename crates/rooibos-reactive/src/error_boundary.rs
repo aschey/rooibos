@@ -1,9 +1,9 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use reactive_graph::computed::ArcMemo;
 use reactive_graph::effect::RenderEffect;
-use reactive_graph::owner::{provide_context, Owner};
+use reactive_graph::owner::{Owner, provide_context};
 use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Update, With};
 use rustc_hash::FxHashMap;

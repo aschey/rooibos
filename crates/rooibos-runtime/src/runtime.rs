@@ -1,19 +1,19 @@
 use std::io;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
 use futures_util::FutureExt as _;
+use ratatui::Terminal;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::layout::Size;
 use ratatui::widgets::{Paragraph, Widget};
-use ratatui::Terminal;
 use rooibos_dom::{
-    dispatch_event, dom_update_receiver, focus_next, render_dom, set_pixel_size, unmount,
-    DomUpdateReceiver, Event,
+    DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next, render_dom,
+    set_pixel_size, unmount,
 };
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
@@ -24,8 +24,8 @@ use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
 use crate::input_handler::InputHandler;
 use crate::{
-    restore_terminal, set_panic_hook, wasm_compat, with_state, with_state_mut, ExitResult,
-    RuntimeSettings, TerminalCommand, TerminalFnBoxed,
+    ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed, restore_terminal,
+    set_panic_hook, wasm_compat, with_state, with_state_mut,
 };
 
 #[derive(Debug)]
@@ -140,7 +140,9 @@ impl<B: Backend + 'static> Runtime<B> {
                 self.input_task_id = Some(self.service_context.spawn((
                     "input_reader",
                     move |context: ServiceContext| async move {
-                        backend.read_input(term_parser_tx, context).await;
+                        backend
+                            .read_input(term_parser_tx, || context.cancelled_owned())
+                            .await;
                         Ok(())
                     },
                 )));

@@ -3,7 +3,7 @@ use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use taffy::Display;
 
-use super::{with_nodes_mut, DomNode};
+use super::{DomNode, with_nodes_mut};
 use crate::derive_signal;
 
 pub trait Property {

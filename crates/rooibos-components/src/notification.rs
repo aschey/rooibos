@@ -11,7 +11,7 @@ use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::layout::{align_items, chars, clear, height, width, z_index};
-use rooibos_reactive::{col, derive_signal, height, wgt, width, Render};
+use rooibos_reactive::{Render, col, derive_signal, height, wgt, width};
 use tokio::sync::mpsc;
 use wasm_compat::futures::{sleep, spawn};
 

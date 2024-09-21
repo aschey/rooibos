@@ -6,11 +6,11 @@ use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
-use rooibos_dom::{delay, supports_keyboard_enhancement, KeyCode, KeyEvent, NodeId, WidgetState};
+use rooibos_dom::{KeyCode, KeyEvent, NodeId, WidgetState, delay, supports_keyboard_enhancement};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Set};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{derive_signal, wgt, LayoutProps, Render, UpdateLayoutProps};
+use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, derive_signal, wgt};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,

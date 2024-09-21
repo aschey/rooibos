@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "2d4f0dd65c86b50585827cd12adaa57de3f8b214" }
 futures-util = "0.3"
 ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1.38.1", default-features = false, features = [

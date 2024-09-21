@@ -1,6 +1,6 @@
 use manyhow::manyhow;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream};
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
 use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
 
@@ -108,7 +108,8 @@ fn get_import(
             }
         }
     } else {
-        let found_crate = crate_name(crate_name_str).unwrap_or_else(|_| panic!("{crate_name_str} not found"));
+        let found_crate =
+            crate_name(crate_name_str).unwrap_or_else(|_| panic!("{crate_name_str} not found"));
         match found_crate {
             FoundCrate::Itself => direct_self_name,
             FoundCrate::Name(name) => {

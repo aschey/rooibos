@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use rooibos::components::{Notification, Notifications, Notifier};
-use rooibos::reactive::{col, line, mount, wgt, Render};
+use rooibos::reactive::{Render, col, line, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{wasm_compat, Runtime};
+use rooibos::runtime::{Runtime, wasm_compat};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 type Result<T> = std::result::Result<T, RuntimeError>;

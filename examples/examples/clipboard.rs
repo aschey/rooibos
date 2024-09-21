@@ -1,12 +1,15 @@
 use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
+use rooibos::dom::text;
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{col, mount, span, text, Render, UpdateLayoutProps};
+use rooibos::reactive::{
+    Render, UpdateLayoutProps, col, height, line, margin, mount, row, wgt, width,
+};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{set_clipboard, Runtime};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::runtime::{Runtime, set_clipboard};
 use rooibos::terminal::ClipboardKind;
-use taffy::LengthPercentageAuto;
+use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::style::Stylize;
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -26,19 +29,24 @@ fn app() -> impl Render {
     let text = textarea.text();
 
     col![
-        Input::default()
-            .placeholder_text("Enter some text")
-            .height(chars(1.))
-            .margin_left(LengthPercentageAuto::Length(1.))
-            .render(textarea),
+        row![
+            props(height!(1.), margin!(1.)),
+            wgt!(props(width!(7.)), "Input:".bold().cyan()),
+            Input::default()
+                .placeholder_text("Enter some text")
+                .height(chars(1.))
+                .render(textarea),
+        ],
         Button::new()
             .width(chars(25.))
             .height(chars(3.))
             .on_click(move || {
                 set_clipboard(text.get(), ClipboardKind::Clipboard).unwrap();
-                notifier.notify(Notification::new(span!(
-                    " '{}' copied to clipboard",
-                    text.get()
+                notifier.notify(Notification::new(line!(
+                    " '",
+                    text.get().bold().green(),
+                    "' ",
+                    "copied to clipboard",
                 )));
             })
             .render(text!("Copy to clipboard")),

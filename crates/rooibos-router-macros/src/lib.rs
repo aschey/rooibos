@@ -1,8 +1,8 @@
 mod route_derive;
 
-use manyhow::{manyhow, Emitter};
+use manyhow::{Emitter, manyhow};
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Ident, Span};
-use proc_macro_crate::{crate_name, FoundCrate};
 use syn::DeriveInput;
 
 #[manyhow(proc_macro_derive(Route))]

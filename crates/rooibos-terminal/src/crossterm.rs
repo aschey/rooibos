@@ -1,7 +1,6 @@
 use std::fmt::Display;
-use std::io::{self, stderr, stdout, Stderr, Stdout, Write};
+use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 
-use background_service::ServiceContext;
 use crossterm::cursor::{Hide, Show};
 use crossterm::event::{
     DisableBracketedPaste, DisableFocusChange, DisableMouseCapture, EnableBracketedPaste,
@@ -9,12 +8,12 @@ use crossterm::event::{
     PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, supports_keyboard_enhancement, EnterAlternateScreen,
-    LeaveAlternateScreen, SetTitle,
+    EnterAlternateScreen, LeaveAlternateScreen, SetTitle, disable_raw_mode, enable_raw_mode,
+    supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
 use futures_cancel::FutureExt;
-use futures_util::StreamExt;
+use futures_util::{Future, StreamExt};
 use ratatui::{Terminal, Viewport};
 use tokio::sync::broadcast;
 use tracing::warn;
@@ -274,17 +273,13 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    async fn read_input(
-        &self,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-        service_context: ServiceContext,
-    ) {
+    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
+    where
+        F: Fn() -> Fut + Send,
+        Fut: Future<Output = ()> + Send,
+    {
         let mut event_reader = EventStream::new().fuse();
-        while let Ok(event) = event_reader
-            .next()
-            .cancel_with(service_context.cancelled())
-            .await
-        {
+        while let Ok(event) = event_reader.next().cancel_with(cancel()).await {
             if let Some(Ok(event)) = event {
                 if let Ok(event) = event.try_into() {
                     let _ = term_tx

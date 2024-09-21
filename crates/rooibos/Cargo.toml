@@ -35,6 +35,7 @@ termwiz = [
   "rooibos-dom/termwiz",
   "rooibos-runtime/termwiz",
   "rooibos-components/termwiz",
+  "rooibos-terminal/termwiz",
 ]
 xterm-js = ["rooibos-xterm-js"]
 config = ["rooibos-config"]

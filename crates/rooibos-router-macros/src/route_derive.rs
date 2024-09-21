@@ -1,9 +1,9 @@
 use convert_case::{Case, Casing};
-use manyhow::{bail, Emitter, ErrorMessage};
+use manyhow::{Emitter, ErrorMessage, bail};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use syn::{
-    parse_str, Data, DataEnum, DataStruct, DeriveInput, Expr, Fields, Generics, Ident, Type,
+    Data, DataEnum, DataStruct, DeriveInput, Expr, Fields, Generics, Ident, Type, parse_str,
 };
 
 use crate::get_components_import;

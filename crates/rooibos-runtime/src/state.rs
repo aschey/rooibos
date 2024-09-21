@@ -8,7 +8,7 @@ use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
 
-use crate::{wasm_compat, RuntimeCommand, TerminalCommand};
+use crate::{RuntimeCommand, TerminalCommand, wasm_compat};
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 

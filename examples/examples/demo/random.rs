@@ -1,6 +1,6 @@
+use rand::SeedableRng;
 use rand::distributions::{Distribution, Uniform};
 use rand::rngs::StdRng;
-use rand::SeedableRng;
 
 #[derive(Clone)]
 pub(crate) struct RandomData<S>

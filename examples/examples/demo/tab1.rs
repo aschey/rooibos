@@ -1,7 +1,7 @@
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::owner::StoredValue;
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, row, wgt, width, Render};
+use rooibos::reactive::{Render, col, row, wgt, width};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
@@ -36,10 +36,10 @@ pub(crate) fn tab1() -> impl Render {
         },
     ]);
 
-    row![
-        col![props(width!(30.%)), demo_table(servers)],
-        col![props(width!(70.%)), demo_map(servers, true)]
-    ]
+    row![col![props(width!(30.%)), demo_table(servers)], col![
+        props(width!(70.%)),
+        demo_map(servers, true)
+    ]]
 }
 
 #[derive(Clone)]
@@ -67,14 +67,11 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
     });
 
     wgt!(
-        Table::new(
-            rows.get(),
-            [
-                Constraint::Length(15),
-                Constraint::Length(15),
-                Constraint::Length(10),
-            ]
-        )
+        Table::new(rows.get(), [
+            Constraint::Length(15),
+            Constraint::Length(15),
+            Constraint::Length(10),
+        ])
         .header(
             Row::new(vec!["Server", "Location", "Status"])
                 .yellow()

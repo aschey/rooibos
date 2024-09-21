@@ -1,18 +1,18 @@
 use rooibos::dom::Sparkline;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
-use rooibos::reactive::graph::signal::{signal, ReadSignal, RwSignal};
+use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{block, chars, height};
-use rooibos::reactive::{col, wgt, Render};
+use rooibos::reactive::{Render, col, wgt};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Block, Gauge, LineGauge};
 use taffy::Dimension;
 
-use crate::random::{RandomData, RandomDistribution};
 use crate::Tick;
+use crate::random::{RandomData, RandomDistribution};
 
 pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -> impl Render {
     let (progress, set_progress) = signal(0.0);

@@ -3,13 +3,13 @@ use std::io;
 use std::sync::Mutex;
 
 use crossterm::terminal::disable_raw_mode;
+use futures::Future;
 use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use rooibos_dom::Event;
-use rooibos_runtime::ServiceContext;
 use rooibos_terminal;
-use rooibos_terminal::crossterm::CrosstermBackend;
 use rooibos_terminal::Backend;
+use rooibos_terminal::crossterm::CrosstermBackend;
 use tap::TapFallible;
 use tokio::sync::{broadcast, mpsc};
 use tracing::warn;
@@ -171,13 +171,13 @@ impl Backend for SshBackend {
         true
     }
 
-    async fn read_input(
-        &self,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-        context: ServiceContext,
-    ) {
+    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
+    where
+        F: Fn() -> Fut + Send,
+        Fut: Future<Output = ()> + Send,
+    {
         let mut event_rx = self.event_rx.lock().unwrap().take().unwrap();
-        while let Ok(event) = event_rx.recv().cancel_with(context.cancelled()).await {
+        while let Ok(event) = event_rx.recv().cancel_with(cancel()).await {
             if let Some(event) = event {
                 let _ = term_tx
                     .send(event)

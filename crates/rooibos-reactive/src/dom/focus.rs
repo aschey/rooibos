@@ -1,9 +1,9 @@
 use std::cell::LazyCell;
 
-use reactive_graph::signal::{signal, ReadSignal};
+use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::{Get, Set as _};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::{with_nodes_mut, NodeId};
+use rooibos_dom::{NodeId, with_nodes_mut};
 
 use crate::derive_signal;
 
