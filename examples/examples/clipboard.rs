@@ -1,10 +1,8 @@
 use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
-use rooibos::dom::text;
+use rooibos::dom::{line, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, height, line, margin, mount, row, wgt, width,
-};
+use rooibos::reactive::{Render, UpdateLayoutProps, col, height, margin, mount, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_clipboard};
 use rooibos::terminal::ClipboardKind;

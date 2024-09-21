@@ -19,10 +19,6 @@ pub use dom::*;
 pub use error_boundary::*;
 use ratatui::layout::Size;
 #[doc(hidden)]
-pub use ratatui::text as __text;
-#[doc(hidden)]
-pub use ratatui::widgets as __widgets;
-#[doc(hidden)]
 pub use reactive_graph as __reactive;
 use reactive_graph::owner::Owner;
 pub use suspense::*;

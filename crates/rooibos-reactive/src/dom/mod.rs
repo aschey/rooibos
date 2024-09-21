@@ -13,8 +13,6 @@ use reactive_graph::traits::Set as _;
 pub use renderer::*;
 use rooibos_dom::{with_nodes, with_nodes_mut};
 
-use crate::text;
-
 mod any_view;
 mod children;
 pub mod div;

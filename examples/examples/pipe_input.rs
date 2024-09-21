@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::io::{IsTerminal, stdin};
 
-use rooibos::reactive::{Render, line, mount, wgt};
+use rooibos::dom::line;
+use rooibos::reactive::{Render, mount, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;

@@ -1,12 +1,14 @@
 use rooibos::components::Button;
+use rooibos::dom::{line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, derive_signal, line, mount, span};
+use rooibos::reactive::{Render, UpdateLayoutProps, col, derive_signal, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[tokio::main]

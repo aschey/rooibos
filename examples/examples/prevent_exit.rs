@@ -1,14 +1,15 @@
 use rooibos::components::Show;
-use rooibos::dom::{KeyCode, NodeId, focus_id};
+use rooibos::dom::{KeyCode, NodeId, focus_id, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{align_items, justify_content, position};
-use rooibos::reactive::{Render, after_render, col, height, line, mount, row, wgt, width};
+use rooibos::reactive::{Render, after_render, col, height, mount, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 use taffy::{AlignItems, JustifyContent, Position};
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]

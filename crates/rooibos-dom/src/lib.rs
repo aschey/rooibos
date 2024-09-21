@@ -15,8 +15,6 @@ pub use events::*;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
-#[doc(hidden)]
-pub use ratatui::widgets as __widgets;
 pub use terminput::*;
 pub use throw_error::*;
 pub use widgets::*;

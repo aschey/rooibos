@@ -1,9 +1,10 @@
 use rooibos::components::Button;
+use rooibos::dom::text;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Render, col, derive_signal, height, mount, padding_right, row, text, wgt, width,
+    Render, col, derive_signal, height, mount, padding_right, row, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;

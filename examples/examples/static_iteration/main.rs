@@ -1,9 +1,9 @@
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
-use rooibos::reactive::{Render, col, height, line, max_width, mount, span, wgt};
+use rooibos::reactive::{Render, col, height, max_width, mount, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

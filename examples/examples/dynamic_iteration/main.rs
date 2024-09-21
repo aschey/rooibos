@@ -1,19 +1,19 @@
 use rooibos::components::{Button, for_each};
-use rooibos::dom::KeyCode;
+use rooibos::dom::{KeyCode, line, span, text};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
 use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, height, line, margin, max_width, mount, padding_left, row,
-    span, text, wgt, width,
+    Render, UpdateLayoutProps, col, height, margin, max_width, mount, padding_left, row, wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::Paragraph;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]

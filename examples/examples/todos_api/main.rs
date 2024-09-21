@@ -6,7 +6,7 @@ use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{Button, Input, InputRef, Notification, Notifications, Notifier, Show};
-use rooibos::dom::{NodeId, WidgetState, focus_id};
+use rooibos::dom::{NodeId, WidgetState, focus_id, line, span, text};
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::effect::Effect;
@@ -19,8 +19,7 @@ use rooibos::reactive::layout::{
 };
 use rooibos::reactive::{
     Errors, IntoAny, Render, RenderAny, UpdateLayoutProps, after_render, col, derive_signal,
-    height, line, margin, margin_left, margin_top, max_width, mount, row, span, text, transition,
-    wgt, width,
+    height, margin, margin_left, margin_top, max_width, mount, row, transition, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;

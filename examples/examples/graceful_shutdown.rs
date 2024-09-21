@@ -2,13 +2,15 @@ use std::time::Duration;
 
 use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
+use rooibos::dom::{line, span};
 use rooibos::reactive::graph::signal::{RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{Render, col, line, mount, span, wgt};
+use rooibos::reactive::{Render, col, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, ServiceContext, spawn_service, wasm_compat};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]

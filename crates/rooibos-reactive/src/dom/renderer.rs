@@ -1,11 +1,11 @@
 use ratatui::widgets::WidgetRef;
-use rooibos_dom::{AsDomNode, clear_children, unmount_child};
+use rooibos_dom::{AsDomNode, clear_children, text, unmount_child};
 use tachys::prelude::Renderer;
 use tachys::renderer::CastFrom;
 use tachys::view::Render as _;
 use tracing::info;
 
-use super::{DomNode, text};
+use super::DomNode;
 use crate::wgt;
 
 pub trait RenderAny: tachys::view::Render<RooibosDom> {}

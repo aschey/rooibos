@@ -1,14 +1,15 @@
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{block, chars};
-use rooibos::reactive::{Render, col, line, max_height, max_width, mount, row};
+use rooibos::reactive::{Render, col, max_height, max_width, mount, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
