@@ -24,6 +24,10 @@ tracing = "0.1"
 # TODO: set this back to the published version after the next release
 ratatui-image = { git = "https://github.com/benjajaja/ratatui-image", rev = "e630e680a186fc0c44c43be0e6966889094e525e", optional = true }
 image = { version = "0.25", optional = true }
+throbber-widgets-tui = { version = "0.7.0", optional = true }
+tokio-util = "0.7"
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+getrandom = { version = "0.2", features = ["js"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tui-term = { version = "0.1.12", optional = true }
@@ -39,3 +43,4 @@ input-search = ["tui-textarea/search"]
 terminal-widget = ["tui-term", "vt100", "portable-pty"]
 image = ["dep:image", "dep:ratatui-image"]
 input = ["dep:tui-textarea"]
+spinner = ["throbber-widgets-tui", "getrandom"]

@@ -13,6 +13,7 @@ rooibos = { path = "../crates/rooibos", features = [
   "clipboard",
   "config",
   "router",
+  "spinner",
 ] }
 tokio = { version = "1.38.1", features = ["rt-multi-thread", "macros"] }
 tracing = "0.1.40"

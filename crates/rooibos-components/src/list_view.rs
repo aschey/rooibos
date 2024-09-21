@@ -138,25 +138,22 @@ impl<T> ListView<T> {
         let selected: MaybeSignal<Option<usize>> = selected.into();
         {
             let items = items.clone();
-            wgt!(
-                {
-                    let mut list = List::new(items.get().0.into_iter().map(Into::into))
-                        .highlight_style(highlight_style.get())
-                        .direction(direction.get())
-                        .highlight_spacing(highlight_spacing.get())
-                        .repeat_highlight_symbol(repeat_highlight_symbol.get())
-                        .scroll_padding(scroll_padding.get())
-                        .style(style.get());
-                    if let Some(block) = &block {
-                        list = list.block(block.get());
-                    }
-                    if let Some(highlight_symbol) = highlight_symbol {
-                        list = list.highlight_symbol(highlight_symbol.get());
-                    }
-                    list
-                },
-                ListState::default().with_selected(selected.get())
-            )
+            wgt!(ListState::default().with_selected(selected.get()), {
+                let mut list = List::new(items.get().0.into_iter().map(Into::into))
+                    .highlight_style(highlight_style.get())
+                    .direction(direction.get())
+                    .highlight_spacing(highlight_spacing.get())
+                    .repeat_highlight_symbol(repeat_highlight_symbol.get())
+                    .scroll_padding(scroll_padding.get())
+                    .style(style.get());
+                if let Some(block) = &block {
+                    list = list.block(block.get());
+                }
+                if let Some(highlight_symbol) = highlight_symbol {
+                    list = list.highlight_symbol(highlight_symbol.get());
+                }
+                list
+            })
         }
         .on_click(move |mouse_event, event_data, _| {
             let clicked_item = items.with(|items| {

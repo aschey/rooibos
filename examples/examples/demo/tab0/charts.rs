@@ -234,11 +234,11 @@ fn task_list() -> impl Render {
     });
 
     wgt!(
+        ListState::default().with_selected(selected_task.get()),
         List::new(TASKS.map(|t| ListItem::new(span!(t))))
             .block(Block::bordered().title("List"))
             .highlight_style(Style::new().bold())
-            .highlight_symbol("> "),
-        ListState::default().with_selected(selected_task.get())
+            .highlight_symbol("> ")
     )
 }
 

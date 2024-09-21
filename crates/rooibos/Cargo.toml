@@ -51,3 +51,4 @@ clipboard = [
   "rooibos-terminal/clipboard",
   "rooibos-ssh?/clipboard",
 ]
+spinner = ["rooibos-components/spinner"]

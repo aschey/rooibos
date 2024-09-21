@@ -12,11 +12,11 @@ macro_rules! wgt {
     ($x:expr) => {
         $crate::widget((), move || $x)
     };
-    ($x:expr, $y:expr) => {
-        $crate::stateful_widget((), move || $x, move || $y)
+    ($state:expr, $($x:tt)*) => {
+        $crate::stateful_widget((), move || $($x)*, move || $state)
     };
-    (props($($properties:expr),+), $x:expr, $y:expr) => {
-        $crate::stateful_widget(($($properties),+), move || $x, move || $y)
+    (props($($properties:expr),+), $state:expr, $($x:tt)*) => {
+        $crate::stateful_widget(($($properties),+), move || $($x)*, move || $state)
     };
 }
 
