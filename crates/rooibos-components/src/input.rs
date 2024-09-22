@@ -78,6 +78,15 @@ impl InputRef {
             .unwrap()
     }
 
+    pub fn delete_line(&self) -> bool {
+        self.text_area
+            .try_update(|t| {
+                t.move_cursor(CursorMove::End);
+                t.delete_line_by_head()
+            })
+            .unwrap()
+    }
+
     pub fn with_lines<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&[String]) -> T,

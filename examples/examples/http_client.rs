@@ -8,7 +8,9 @@ use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::signal::{ArcRwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Errors, Render, UpdateLayoutProps, col, max_width, mount, suspense, wgt};
+use rooibos::reactive::{
+    Errors, Render, UpdateLayoutProps, col, max_width, mount, padding, suspense, wgt,
+};
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
@@ -37,7 +39,7 @@ fn app() -> impl Render {
     };
 
     col![
-        props(max_width!(25.)),
+        props(max_width!(25.), padding!(1.)),
         Button::new()
             .on_click(move || {
                 set_id.set(rand::thread_rng().gen_range(1..80));

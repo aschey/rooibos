@@ -4,7 +4,7 @@ use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Render, col, derive_signal, height, mount, padding_right, row, wgt, width,
+    Render, col, derive_signal, height, mount, padding, padding_right, row, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -37,6 +37,7 @@ fn app() -> impl Render {
     };
 
     row![
+        props(padding!(1.)),
         col![
             props(width!(20.), padding_right!(2.)),
             button(

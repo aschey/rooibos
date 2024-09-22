@@ -8,7 +8,7 @@ use rooibos::dom::line;
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
-use rooibos::reactive::{Render, after_render, col, derive_signal, mount, wgt};
+use rooibos::reactive::{Render, after_render, col, derive_signal, mount, padding_left, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, exit, insert_before};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
@@ -47,7 +47,7 @@ fn app() -> impl Render {
                 ((rand::random::<f32>() + 0.5) * 500.0).round() as u64,
             ))
             .await;
-            insert_before(1, line!("✓ ".green(), current_package.get())).unwrap();
+            insert_before(1, line!(" ✓ ".green(), current_package.get())).unwrap();
             set_packages.update(|p| {
                 p.pop_front();
             });
@@ -59,6 +59,7 @@ fn app() -> impl Render {
         .into_span_signal();
 
     col![
+        props(padding_left!(1.)),
         Show::new()
             .fallback(move || {
                 after_render(exit);
@@ -68,7 +69,7 @@ fn app() -> impl Render {
                 Memo::new(move |_| !current_package.get().is_empty()),
                 move || wgt!(line!(
                     spinner.get(),
-                    "installing ",
+                    "building ",
                     current_package.get().bold(),
                     "..."
                 )),

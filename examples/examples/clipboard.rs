@@ -2,7 +2,9 @@ use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
 use rooibos::dom::{line, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, height, margin, mount, row, wgt, width};
+use rooibos::reactive::{
+    Render, UpdateLayoutProps, col, height, margin, mount, padding, row, wgt, width,
+};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_clipboard};
 use rooibos::terminal::ClipboardKind;
@@ -27,6 +29,7 @@ fn app() -> impl Render {
     let text = textarea.text();
 
     col![
+        props(padding!(1.)),
         row![
             props(height!(1.), margin!(1.)),
             wgt!(props(width!(7.)), "Input:".bold().cyan()),
@@ -48,6 +51,6 @@ fn app() -> impl Render {
                 )));
             })
             .render(text!("Copy to clipboard")),
-        Notifications::new().width(40).render()
+        Notifications::new().content_width(40).render()
     ]
 }

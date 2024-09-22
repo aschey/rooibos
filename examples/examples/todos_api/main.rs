@@ -15,11 +15,11 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{
-    align_items, block, chars, clear, justify_content, position, show,
+    align_items, block, chars, clear, justify_content, max_width, position, show,
 };
 use rooibos::reactive::{
     Errors, IntoAny, Render, RenderAny, UpdateLayoutProps, after_render, col, derive_signal,
-    height, margin, margin_left, margin_top, max_width, mount, row, transition, wgt, width,
+    height, margin, margin_left, margin_top, mount, row, transition, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -62,47 +62,62 @@ fn app(notification_timeout: Duration) -> impl Render {
         delete_todo,
     });
 
+    let todos_max_width = chars(200.);
+
     col![
+        props(max_width(todos_max_width)),
         row![
-            props(max_width!(100.), height!(3.)),
+            props(height!(3.)),
             wgt!(
                 props(width!(12.), margin_top!(1.), margin_left!(1.)),
                 "Add a Todo"
             ),
-            create_todos_input()
+            add_todo_input()
         ],
         row![
             props(height!(100.%), block(Block::bordered().title("Todos"))),
             col![todos_body(editing_id, notification_timeout)]
         ],
         saving_popup(),
-        Notifications::new().render()
+        Notifications::new()
+            .max_layout_width(todos_max_width)
+            .render()
     ]
 }
 
-fn create_todos_input() -> impl Render {
+fn add_todo_input() -> impl Render {
     let TodoContext { add_todo, .. } = use_context::<TodoContext>().unwrap();
     let input_ref = Input::get_ref();
 
-    Input::default()
-        .placeholder_text("Add a todo")
-        .grow(1.)
-        .block(|state| {
-            Block::bordered()
-                .fg(if state == WidgetState::Focused {
-                    Color::Blue
-                } else {
-                    Color::default()
-                })
-                .title("Input")
-                .into()
-        })
-        .on_submit(move |val| {
-            add_todo.dispatch(val);
-            input_ref.delete_line_by_head();
-        })
-        .height(chars(3.))
-        .render(input_ref)
+    row![
+        Input::default()
+            .placeholder_text("Add a todo")
+            .grow(1.)
+            .block(|state| {
+                Block::bordered()
+                    .fg(if state == WidgetState::Focused {
+                        Color::Blue
+                    } else {
+                        Color::default()
+                    })
+                    .title("Input")
+                    .into()
+            })
+            .on_submit(move |val| {
+                add_todo.dispatch(val);
+                input_ref.delete_line();
+            })
+            .height(chars(3.))
+            .min_width(chars(12.))
+            .max_width(chars(100.))
+            .render(input_ref),
+        Button::new()
+            .width(chars(10.))
+            .on_click(move || {
+                input_ref.submit();
+            })
+            .render(text!("submit"))
+    ]
 }
 
 fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration) -> impl RenderAny {
@@ -158,19 +173,17 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
 
     transition!(
         wgt!(line!(" Loading...".gray())),
-        {
-            todos.await.map(|todos| {
-                col![if todos.is_empty() {
-                    wgt!("No todos".gray()).into_any()
-                } else {
-                    todos
-                        .into_iter()
-                        .map(|t| todo_item(t.id, t.text, editing_id))
-                        .collect::<Vec<_>>()
-                        .into_any()
-                }]
-            })
-        },
+        todos.await.map(|todos| {
+            col![if todos.is_empty() {
+                wgt!("No todos".gray()).into_any()
+            } else {
+                todos
+                    .into_iter()
+                    .map(|t| todo_item(t.id, t.text, editing_id))
+                    .collect::<Vec<_>>()
+                    .into_any()
+            }]
+        }),
         fallback
     )
 }
@@ -272,7 +285,7 @@ fn todo_editor(
 
     let input_id = StoredValue::new(NodeId::new_auto());
 
-    // Focus after the next render
+    // We can't focus until after rendering since the widget ID won't exist in the tree until then
     after_render(move || {
         focus_id(input_id.get_value());
     });

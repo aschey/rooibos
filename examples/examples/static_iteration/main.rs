@@ -3,7 +3,7 @@ use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
-use rooibos::reactive::{Render, col, height, max_width, mount, wgt};
+use rooibos::reactive::{Render, col, height, max_width, mount, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -54,7 +54,7 @@ const NUM_COUNTERS: usize = 5;
 
 fn app() -> impl Render {
     col![
-        props(height!(15.), max_width!(20.)),
+        props(height!(20.), max_width!(20.), padding!(1.)),
         (0..NUM_COUNTERS)
             .map(|_| counter(chars(3.)))
             .collect::<Vec<_>>()

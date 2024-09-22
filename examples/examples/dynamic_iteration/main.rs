@@ -6,7 +6,8 @@ use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{chars, height};
 use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, height, margin, max_width, mount, padding_left, row, wgt, width,
+    Render, UpdateLayoutProps, col, height, margin, max_width, mount, padding, padding_left, row,
+    wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, use_keypress};
@@ -80,7 +81,7 @@ fn app() -> impl Render {
     });
 
     col![
-        props(max_width!(50.)),
+        props(max_width!(50.), padding!(1.)),
         row![
             props(height!(3.)),
             Button::new()

@@ -5,12 +5,12 @@ use std::time::Duration;
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType, Paragraph};
-use rooibos_reactive::div::taffy::AlignItems;
+use rooibos_reactive::div::taffy::{self, AlignItems};
 use rooibos_reactive::graph::owner::{provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::layout::{align_items, chars, clear, height, width, z_index};
+use rooibos_reactive::layout::{align_items, chars, clear, height, max_width, width, z_index};
 use rooibos_reactive::{Render, col, derive_signal, height, wgt, width};
 use tokio::sync::mpsc;
 use wasm_compat::futures::{sleep, spawn};
@@ -77,7 +77,8 @@ impl Notifier {
 }
 
 pub struct Notifications {
-    width: MaybeSignal<u16>,
+    content_width: MaybeSignal<u16>,
+    max_layout_width: MaybeSignal<taffy::Dimension>,
 }
 
 impl Default for Notifications {
@@ -88,20 +89,32 @@ impl Default for Notifications {
 
 impl Notifications {
     pub fn new() -> Self {
-        Self { width: 20.into() }
+        Self {
+            content_width: 20.into(),
+            max_layout_width: taffy::Dimension::Auto.into(),
+        }
     }
 
-    pub fn width<S>(mut self, width: S) -> Self
+    pub fn content_width<S>(mut self, content_width: S) -> Self
     where
         S: Into<MaybeSignal<u16>>,
     {
-        self.width = width.into();
+        self.content_width = content_width.into();
+        self
+    }
+
+    pub fn max_layout_width<S>(mut self, max_layout_width: S) -> Self
+    where
+        S: Into<MaybeSignal<taffy::Dimension>>,
+    {
+        self.max_layout_width = max_layout_width.into();
         self
     }
 
     pub fn render(self) -> impl Render {
         let Notifications {
-            width: content_width,
+            content_width,
+            max_layout_width,
         } = self;
         let content_width = derive_signal!(content_width.get() as f32);
         let (tx, mut rx) = mpsc::channel(32);
@@ -131,6 +144,7 @@ impl Notifications {
                 z_index(2),
                 width!(100.%),
                 height!(100.%),
+                max_width(max_layout_width),
                 align_items(AlignItems::End),
             ),
             col![

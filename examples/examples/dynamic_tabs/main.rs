@@ -3,7 +3,7 @@ use rooibos::dom::{KeyCode, KeyEvent, line, span, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, mount, row};
+use rooibos::reactive::{Render, UpdateLayoutProps, mount, padding, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -24,8 +24,8 @@ fn app() -> impl Render {
     let tabs_block = RwSignal::new(Block::bordered().title("Demo"));
 
     let tabs = RwSignal::new(KeyedWrappingList(vec![
-        Tab::new(line!("Tab1"), "tab1", move || "tab1").decorator(line!("✕".red())),
-        Tab::new(line!("Tab2"), "tab2", move || "tab2").decorator(line!("✕".red())),
+        Tab::new(line!("Tab1"), "tab1", move || " tab1").decorator(line!("✕".red())),
+        Tab::new(line!("Tab2"), "tab2", move || " tab2").decorator(line!("✕".red())),
     ]));
 
     let next_tab = RwSignal::new(3);
@@ -73,6 +73,7 @@ fn app() -> impl Render {
     };
 
     row![
+        props(padding!(1.)),
         TabView::new()
             .header_height(chars(3.))
             .block(tabs_block)
@@ -98,7 +99,7 @@ fn app() -> impl Render {
                     let num = next_tab.get();
                     t.push(
                         Tab::new(line!("Tab", span!(num)), format!("tab{num}"), move || {
-                            format!("tab{num}")
+                            format!(" tab{num}")
                         })
                         .decorator(line!("✕".red())),
                     );

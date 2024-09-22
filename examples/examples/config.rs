@@ -6,7 +6,7 @@ use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
 use rooibos::dom::text;
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{Render, col, height, margin, max_width, mount, wgt};
+use rooibos::reactive::{Render, col, height, margin, max_width, mount, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
@@ -40,9 +40,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 fn app() -> impl Render {
     let config = use_config::<AppConfigExample>();
     col![
+        props(padding!(1.)),
         wgt!(
             props(margin!(1.), height!(1.)),
-            text!("Update ./.config/config.yml and the changes will update live")
+            text!("Update ./.config/config.yml and the changes will render live")
                 .bold()
                 .cyan()
         ),

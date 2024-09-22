@@ -28,7 +28,7 @@ async fn test_todos() {
     mount(|| app(Duration::from_millis(500)));
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
-        40,
+        50,
         10,
     );
     let root_layout = root();

@@ -20,8 +20,8 @@ async fn test_counters() {
     mount(app);
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
-        30,
-        10,
+        40,
+        20,
     );
     let root_layout = root().get_by_id("root");
     let add_button = root_layout

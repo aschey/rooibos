@@ -20,7 +20,7 @@ async fn test_buttons() {
     mount(app);
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
-        20,
+        25,
         10,
     );
     let root_node = root();

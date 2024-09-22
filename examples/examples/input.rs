@@ -1,8 +1,8 @@
 use rooibos::components::Input;
-use rooibos::dom::WidgetState;
+use rooibos::dom::{WidgetState, line};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, wgt};
+use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -24,6 +24,7 @@ fn app() -> impl Render {
 
     let text = textarea.text();
     col![
+        props(padding!(1.)),
         Input::default()
             .block(|state| Block::bordered()
                 .fg(Color::Blue)
@@ -37,9 +38,9 @@ fn app() -> impl Render {
             .placeholder_text("Enter some text")
             .height(chars(3.))
             .on_submit(move |_| {
-                textarea.delete_line_by_head();
+                textarea.delete_line();
             })
             .render(textarea),
-        wgt!(format!("You typed {}", text.get()))
+        wgt!(line!("You typed: ", text.get().bold()))
     ]
 }
