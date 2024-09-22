@@ -6,11 +6,11 @@ use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{Button, Input, InputRef, Notification, Notifications, Notifier, Show};
-use rooibos::dom::{NodeId, WidgetState, focus_id, line, span, text};
+use rooibos::dom::{WidgetState, focus_id, line, span, text};
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::effect::Effect;
-use rooibos::reactive::graph::owner::{StoredValue, provide_context, use_context};
+use rooibos::reactive::graph::owner::{provide_context, use_context};
 use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -18,8 +18,8 @@ use rooibos::reactive::layout::{
     align_items, block, chars, clear, justify_content, max_width, position, show,
 };
 use rooibos::reactive::{
-    Errors, IntoAny, Render, RenderAny, UpdateLayoutProps, after_render, col, derive_signal,
-    height, margin, margin_left, margin_top, mount, row, transition, wgt, width,
+    Errors, IntoAny, NodeId, Render, RenderAny, UpdateLayoutProps, after_render, col,
+    derive_signal, height, margin, margin_left, margin_top, mount, row, transition, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -221,7 +221,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let editing = derive_signal!(editing_id.get() == Some(id));
     let text = RwSignal::new(text);
 
-    let add_edit_id = StoredValue::new(NodeId::new_auto());
+    let add_edit_id = NodeId::new_auto();
 
     let input_ref = Input::get_ref();
 
@@ -240,7 +240,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
 fn add_edit_button(
     id: u32,
     editing: Signal<bool>,
-    add_edit_id: StoredValue<NodeId>,
+    add_edit_id: NodeId,
     editing_id: RwSignal<Option<u32>>,
     input_ref: InputRef,
 ) -> impl Render {
@@ -252,7 +252,7 @@ fn add_edit_button(
 
     Button::new()
         .width(chars(5.))
-        .id(add_edit_id.get_value())
+        .id(add_edit_id)
         .on_click(move || {
             if editing.get() {
                 input_ref.submit();
@@ -278,16 +278,16 @@ fn todo_editor(
     id: u32,
     text: RwSignal<String>,
     editing_id: RwSignal<Option<u32>>,
-    add_edit_id: StoredValue<NodeId>,
+    add_edit_id: NodeId,
     input_ref: InputRef,
 ) -> impl Render {
     let TodoContext { update_todo, .. } = use_context::<TodoContext>().unwrap();
 
-    let input_id = StoredValue::new(NodeId::new_auto());
+    let input_id = NodeId::new_auto();
 
     // We can't focus until after rendering since the widget ID won't exist in the tree until then
     after_render(move || {
-        focus_id(input_id.get_value());
+        focus_id(input_id);
     });
 
     Input::default()
@@ -307,11 +307,11 @@ fn todo_editor(
             editing_id.set(None);
         })
         .on_blur(move |blur_event, _| {
-            if blur_event.new_target != Some(add_edit_id.get_value()) {
+            if blur_event.new_target != Some(add_edit_id.into()) {
                 editing_id.set(None);
             }
         })
-        .id(input_id.get_value())
+        .id(input_id)
         .render(input_ref)
 }
 

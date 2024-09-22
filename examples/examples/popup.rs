@@ -1,11 +1,13 @@
 use rooibos::components::Button;
-use rooibos::dom::{line, text};
+use rooibos::dom::{focus_id, line, text};
 use rooibos::reactive::flex_node::FlexProperty;
+use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
-use rooibos::reactive::graph::traits::Set;
+use rooibos::reactive::graph::traits::{Get as _, Set};
 use rooibos::reactive::layout::{align_items, block, chars, justify_content, show};
 use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, height, margin_left, max_height, max_width, mount, wgt, width,
+    NodeId, Render, UpdateLayoutProps, after_render, col, height, margin_left, max_height,
+    max_width, mount, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -37,6 +39,16 @@ fn app() -> impl Render {
 }
 
 fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) -> impl Render {
+    let id = NodeId::new_auto();
+
+    Effect::new(move || {
+        if show_popup.get() {
+            after_render(move || {
+                focus_id(id);
+            });
+        };
+    });
+
     col![
         props(
             width!(100.%),
@@ -57,6 +69,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
                 .height(chars(3.))
                 .width(chars(9.))
                 .on_click(on_close)
+                .id(id)
                 .render(text!("close"))
         ]
     ]

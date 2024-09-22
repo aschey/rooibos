@@ -791,3 +791,7 @@ pub fn focus_next() {
 pub fn focus_prev() {
     with_nodes_mut(|n| n.focus_prev())
 }
+
+pub fn clear_focus() {
+    with_nodes_mut(|n| n.set_focused(None))
+}

@@ -1,9 +1,9 @@
 use rooibos::components::Show;
-use rooibos::dom::{KeyCode, NodeId, focus_id, line};
+use rooibos::dom::{KeyCode, focus_id, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{align_items, justify_content, position};
-use rooibos::reactive::{Render, after_render, col, height, mount, row, wgt, width};
+use rooibos::reactive::{NodeId, Render, after_render, col, height, mount, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -53,15 +53,12 @@ fn app() -> impl Render {
             Show::new().render(show_popup, move || {
                 let popup_id = NodeId::new_auto();
                 {
-                    after_render({
-                        let popup_id = popup_id.clone();
-                        move || {
-                            focus_id(popup_id);
-                        }
+                    after_render(move || {
+                        focus_id(popup_id);
                     });
                     wgt!(
                         props(height!(3.), width!(40.)),
-                        Paragraph::new("Are you sure you want to quit? [yN]")
+                        Paragraph::new("Are you sure you want to exit? [yN]")
                             .block(Block::bordered())
                     )
                     .id(popup_id)

@@ -3,12 +3,46 @@ use std::any::Any;
 use std::ops::{Deref, DerefMut};
 
 use reactive_graph::effect::RenderEffect;
+use reactive_graph::owner::StoredValue;
 use rooibos_dom::{AsDomNode, unmount_child};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 
 use super::{RooibosDom, with_nodes};
 use crate::DomWidgetNode;
+
+#[derive(Clone, Copy)]
+pub struct NodeId(pub(crate) StoredValue<rooibos_dom::NodeId>);
+
+impl NodeId {
+    pub fn new_auto() -> Self {
+        Self(StoredValue::new(rooibos_dom::NodeId::new_auto()))
+    }
+
+    pub fn new(id: impl Into<String>) -> Self {
+        Self(StoredValue::new(rooibos_dom::NodeId::new(id)))
+    }
+}
+
+impl From<NodeId> for rooibos_dom::NodeId {
+    fn from(value: NodeId) -> Self {
+        value.0.get_value()
+    }
+}
+
+impl From<rooibos_dom::NodeId> for NodeId {
+    fn from(value: rooibos_dom::NodeId) -> Self {
+        Self(StoredValue::new(value))
+    }
+}
+
+impl PartialEq for NodeId {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.with_value(|v1| other.0.with_value(|v2| v1 == v2))
+    }
+}
+
+impl Eq for NodeId {}
 
 #[derive(Debug)]
 pub struct NodeType(rooibos_dom::NodeType);

@@ -1,4 +1,4 @@
-use rooibos::dom::{KeyCode, focus_next, focus_prev, line};
+use rooibos::dom::{KeyCode, clear_focus, focus_next, focus_prev, line};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{
@@ -24,11 +24,17 @@ fn app() -> impl Render {
     let term_signal = use_keypress();
     Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Up {
-                focus_prev();
-            }
-            if term_signal.code == KeyCode::Down {
-                focus_next();
+            match term_signal.code {
+                KeyCode::Up => {
+                    focus_prev();
+                }
+                KeyCode::Down => {
+                    focus_next();
+                }
+                KeyCode::Esc => {
+                    clear_focus();
+                }
+                _ => {}
             }
         }
     });
