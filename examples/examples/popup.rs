@@ -1,13 +1,17 @@
-use rooibos::dom::{KeyCode, KeyEvent, line};
-use rooibos::reactive::graph::signal::RwSignal;
-use rooibos::reactive::graph::traits::Update;
-use rooibos::reactive::layout::{align_items, clear, justify_content, position, show};
-use rooibos::reactive::{Render, col, height, max_height, max_width, mount, row, wgt, width};
+use rooibos::components::Button;
+use rooibos::dom::{line, text};
+use rooibos::reactive::flex_node::FlexProperty;
+use rooibos::reactive::graph::signal::{ReadSignal, signal};
+use rooibos::reactive::graph::traits::Set;
+use rooibos::reactive::layout::{align_items, block, chars, justify_content, show};
+use rooibos::reactive::{
+    Render, UpdateLayoutProps, col, height, margin_left, max_height, max_width, mount, wgt, width,
+};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::widgets::{Block, Paragraph};
-use taffy::{AlignItems, JustifyContent, Position};
+use rooibos::tui::widgets::Block;
+use taffy::{AlignItems, JustifyContent};
 
 type Result<T> = std::result::Result<T, RuntimeError>;
 
@@ -20,39 +24,47 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    let show_popup = RwSignal::new(true);
-
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            show_popup.update(|p| *p = !*p);
-        }
-    };
-
+    let (show_popup, set_show_popup) = signal(false);
     col![
         props(max_width!(50.), max_height!(20.)),
-        wgt!(
-            Paragraph::new(vec![
-                line!("text1"),
-                line!("text2"),
-                line!("text3"),
-                line!("text4")
-            ])
-            .block(Block::bordered())
-        ),
-        row![
-            props(
-                width!(100.%),
-                height!(100.%),
-                position(Position::Absolute),
-                align_items(AlignItems::Center),
-                justify_content(JustifyContent::Center),
-                show(show_popup)
-            ),
-            wgt!(
-                props(clear(true), width!(25.), height!(5.)),
-                Paragraph::new("popup text").block(Block::bordered())
-            )
-            .on_key_down(key_down)
-        ],
+        Button::new()
+            .width(chars(14.))
+            .height(chars(3.))
+            .on_click(move || set_show_popup.set(true))
+            .render(text!("open popup")),
+        popup(show_popup, move || set_show_popup.set(false))
     ]
+}
+
+fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) -> impl Render {
+    col![
+        props(
+            width!(100.%),
+            height!(100.%),
+            center_items(),
+            justify_content(JustifyContent::Center),
+            show(show_popup)
+        ),
+        col![
+            props(
+                max_width!(21.),
+                max_height!(8.),
+                center_items(),
+                block(Block::bordered())
+            ),
+            wgt!(props(margin_left!(1.)), line!("popup text")),
+            Button::new()
+                .height(chars(3.))
+                .width(chars(9.))
+                .on_click(on_close)
+                .render(text!("close"))
+        ]
+    ]
+}
+
+fn center_items() -> impl FlexProperty {
+    (
+        align_items(AlignItems::Center),
+        justify_content(JustifyContent::Center),
+    )
 }

@@ -48,11 +48,6 @@ async fn main() -> Result<()> {
             {
                 let _ = term_tx.send(event);
             }
-            // backend
-            //     .read_input(term_tx, move || {
-            //         cancellation_token.clone().cancelled_owned()
-            //     })
-            //     .await;
         });
     }
     let mut dom_update_rx = dom_update_receiver();

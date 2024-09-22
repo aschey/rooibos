@@ -70,7 +70,10 @@ impl Notifier {
             return;
         }
 
-        let context = use_context::<NotificationContext>().unwrap();
+        let context = use_context::<NotificationContext>().expect(
+            "Notification context not found. Ensure an instance of Notifications is attached to \
+             the widget tree and the Notifier instance was created on the same thread.",
+        );
         context.tx.try_send(notification).unwrap();
         *self.context.write().unwrap() = Some(context);
     }
@@ -79,6 +82,7 @@ impl Notifier {
 pub struct Notifications {
     content_width: MaybeSignal<u16>,
     max_layout_width: MaybeSignal<taffy::Dimension>,
+    rx: mpsc::Receiver<Notification>,
 }
 
 impl Default for Notifications {
@@ -89,9 +93,13 @@ impl Default for Notifications {
 
 impl Notifications {
     pub fn new() -> Self {
+        let (tx, rx) = mpsc::channel(32);
+        provide_context(NotificationContext { tx });
+
         Self {
             content_width: 20.into(),
             max_layout_width: taffy::Dimension::Auto.into(),
+            rx,
         }
     }
 
@@ -115,10 +123,9 @@ impl Notifications {
         let Notifications {
             content_width,
             max_layout_width,
+            mut rx,
         } = self;
         let content_width = derive_signal!(content_width.get() as f32);
-        let (tx, mut rx) = mpsc::channel(32);
-        provide_context(NotificationContext { tx });
 
         let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
 

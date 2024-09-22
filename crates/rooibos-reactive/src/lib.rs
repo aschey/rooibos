@@ -13,7 +13,6 @@ use std::ops::Deref;
 use std::panic::{set_hook, take_hook};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
 pub use dom::*;
 pub use error_boundary::*;
@@ -74,16 +73,6 @@ pub fn init_executor() {
 #[cfg(target_arch = "wasm32")]
 pub fn init_executor() {
     any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
-}
-
-pub fn delay<F>(duration: Duration, f: F)
-where
-    F: Future<Output = ()> + 'static,
-{
-    wasm_compat::futures::spawn_local(async move {
-        wasm_compat::futures::sleep(duration).await;
-        f.await;
-    });
 }
 
 thread_local! {

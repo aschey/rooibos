@@ -99,6 +99,7 @@ fn inner_tabs() -> impl Render {
         TabView::new()
             .header_height(chars(3.))
             .block(tab_block)
+            .fit(true)
             .highlight_style(Style::new().yellow())
             .on_title_click(move |_, tab| {
                 focused_tab.set(tab.to_string());

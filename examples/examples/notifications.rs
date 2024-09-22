@@ -1,12 +1,19 @@
 use std::time::Duration;
 
+use rooibos::components::either_of::Either;
+use rooibos::components::spinner::Spinner;
 use rooibos::components::{Notification, Notifications, Notifier};
-use rooibos::dom::line;
-use rooibos::reactive::{Render, col, mount, wgt};
+use rooibos::dom::{delay, line, span};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Set};
+use rooibos::reactive::layout::{block, chars};
+use rooibos::reactive::{Render, col, height, max_width, mount, row, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, wasm_compat};
+use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::widgets::{Block, Paragraph};
+use rooibos::tui::style::Stylize as _;
+use rooibos::tui::widgets::Block;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -19,23 +26,30 @@ async fn main() -> Result<()> {
 }
 
 fn app() -> impl Render {
-    let notifier = Notifier::new();
-    wasm_compat::spawn_local(async move {
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        notifier.notify(Notification::new("notify 1"));
-        tokio::time::sleep(Duration::from_secs(1)).await;
-        notifier.notify(Notification::new("notify 2"));
-    });
     col![
-        wgt!(
-            Paragraph::new(vec![
-                line!("text1"),
-                line!("text2"),
-                line!("text3"),
-                line!("text4")
-            ])
-            .block(Block::bordered())
-        ),
-        Notifications::new().render()
+        props(max_width!(100.), block(Block::bordered())),
+        (0..5).map(|i| task(i + 1)).collect::<Vec<_>>(),
+        Notifications::new().max_layout_width(chars(100.)).render()
     ]
+}
+
+fn task(id: usize) -> impl Render {
+    let (completed, set_completed) = signal(false);
+    let notifier = Notifier::new();
+    delay(get_random_delay(), async move {
+        set_completed.set(true);
+        notifier.notify(Notification::new(format!("task {id} completed")));
+    });
+
+    row![props(height!(1.)), move || {
+        if completed.get() {
+            Either::Left(wgt!(line!("✓ ".green(), span!("task {id}"))))
+        } else {
+            Either::Right(Spinner::new().label(span!("task {id}")).render())
+        }
+    }]
+}
+
+fn get_random_delay() -> Duration {
+    Duration::from_millis(((rand::random::<f32>() * 3. + 1.0) * 1000.0).round() as u64)
 }
