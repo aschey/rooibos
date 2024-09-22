@@ -6,7 +6,7 @@ use std::time::Duration;
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
-use futures_util::FutureExt as _;
+use futures_util::{FutureExt as _, StreamExt, pin_mut};
 use ratatui::Terminal;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::layout::Size;
@@ -133,16 +133,20 @@ impl<B: Backend + 'static> Runtime<B> {
 
         let backend = self.backend.clone();
         if self.settings.enable_input_reader {
-            let backend = backend.clone();
             let term_parser_tx = self.term_parser_tx.clone();
 
             if backend.supports_async_input() {
+                let input_stream = backend.async_input_stream();
                 self.input_task_id = Some(self.service_context.spawn((
                     "input_reader",
                     move |context: ServiceContext| async move {
-                        backend
-                            .read_input(term_parser_tx, || context.cancelled_owned())
-                            .await;
+                        pin_mut!(input_stream);
+
+                        while let Ok(Some(event)) =
+                            input_stream.next().cancel_with(context.cancelled()).await
+                        {
+                            let _ = term_parser_tx.send(event);
+                        }
                         Ok(())
                     },
                 )));

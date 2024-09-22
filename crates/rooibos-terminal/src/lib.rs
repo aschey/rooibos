@@ -7,16 +7,15 @@ pub mod termwiz;
 pub mod test;
 
 use std::fmt::Display;
-use std::{future, io};
+use std::io;
 
-use futures_util::Future;
+use futures_util::Stream;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
 
 // From https://github.com/crossterm-rs/crossterm/pull/697
 /// Which selection to set. Only affects X11. See
 /// [X Window selection](https://en.wikipedia.org/wiki/X_Window_selection) for details.
-#[cfg(feature = "clipboard")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ClipboardKind {
     /// Set the clipboard selection. This is the only clipboard in most windowing systems.
@@ -30,6 +29,18 @@ pub enum ClipboardKind {
     // XTerm also supports "secondary", "select", and "cut-buffers" 0-7 as kinds.
     // Since those aren't supported elsewhere, not exposing those from here
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+pub trait AsyncInputStream: Stream<Item = rooibos_dom::Event> + Send + 'static {}
+
+#[cfg(target_arch = "wasm32")]
+pub trait AsyncInputStream: Stream<Item = rooibos_dom::Event> + 'static {}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<T> AsyncInputStream for T where T: Stream<Item = rooibos_dom::Event> + Send + 'static {}
+
+#[cfg(target_arch = "wasm32")]
+impl<T> AsyncInputStream for T where T: Stream<Item = rooibos_dom::Event> + 'static {}
 
 pub trait Backend: Send + Sync {
     type TuiBackend: ratatui::backend::Backend;
@@ -50,7 +61,6 @@ pub trait Backend: Send + Sync {
         title: T,
     ) -> io::Result<()>;
 
-    #[cfg(feature = "clipboard")]
     fn set_clipboard<T: Display>(
         &self,
         terminal: &mut Terminal<Self::TuiBackend>,
@@ -70,31 +80,7 @@ pub trait Backend: Send + Sync {
         Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn read_input<F, Fut>(
-        &self,
-        _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _cancel: F,
-    ) -> impl Future<Output = ()> + Send
-    where
-        F: Fn() -> Fut + Send,
-        Fut: Future<Output = ()> + Send,
-    {
-        future::ready(())
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn read_input<F, Fut>(
-        &self,
-        _term_tx: broadcast::Sender<rooibos_dom::Event>,
-        _cancel: F,
-    ) -> impl Future<Output = ()>
-    where
-        F: Fn() -> Fut,
-        Fut: Future<Output = ()>,
-    {
-        future::ready(())
-    }
+    fn async_input_stream(&self) -> impl AsyncInputStream;
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()>;
 }

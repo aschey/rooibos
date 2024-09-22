@@ -8,6 +8,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]

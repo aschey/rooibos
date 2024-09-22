@@ -14,11 +14,11 @@ async fn main() -> Result<()> {
     let input = {
         let input = stdin();
         if input.is_terminal() {
-            return Err("Pipe in some text. Ex: echo hi > cargo run --example=pipe_input")?;
+            return Err("Pipe in some text. Ex: echo hi | cargo run --example=pipe_input")?;
         }
 
         let mut buffer = String::new();
-        input.read_line(&mut buffer)?;
+        while input.read_line(&mut buffer)? > 0 {}
         buffer
     };
 

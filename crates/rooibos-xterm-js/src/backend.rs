@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::io::{self, Write};
 
 use crossterm::cursor::{DisableBlinking, Hide, Show};
@@ -10,14 +11,15 @@ use crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, SetTitle, supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
-use futures::{Future, StreamExt};
+use futures::Future;
 use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use ratatui_xterm_js::xterm::Theme;
 use ratatui_xterm_js::{EventStream, TerminalHandle, XtermJsBackend, init_terminal};
-use rooibos_terminal::Backend;
+use rooibos_terminal::{AsyncInputStream, Backend, ClipboardKind};
 use tap::TapFallible;
 use tokio::sync::broadcast;
+use tokio_stream::StreamExt as _;
 use tracing::warn;
 use web_sys::wasm_bindgen::JsCast;
 
@@ -206,28 +208,28 @@ impl Backend for WasmBackend {
         self.supports_keyboard_enhancement
     }
 
+    fn set_clipboard<T: Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        content: T,
+        clipboard_kind: ClipboardKind,
+    ) -> io::Result<()> {
+        Ok(())
+    }
+
     fn write_all(&self, buf: &[u8]) -> io::Result<()> {
         let mut handle = TerminalHandle::default();
         handle.write_all(buf)
     }
 
-    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
-    where
-        F: Fn() -> Fut,
-        Fut: Future<Output = ()>,
-    {
-        let mut event_reader = EventStream::new().fuse();
-
-        while let Ok(event) = event_reader.next().cancel_with(cancel()).await {
-            if let Some(Ok(event)) = event {
-                if let Ok(event) = event.try_into() {
-                    let _ = term_tx
-                        .send(event)
-                        .tap_err(|e| warn!("failed to send event {e:?}"));
-                }
-            } else {
-                return;
+    fn async_input_stream(&self) -> impl AsyncInputStream {
+        let event_reader = EventStream::new().fuse();
+        event_reader.filter_map(move |e| {
+            if let Ok(e) = e {
+                let e: Result<rooibos_dom::Event, _> = e.try_into();
+                return e.ok();
             }
-        }
+            None
+        })
     }
 }

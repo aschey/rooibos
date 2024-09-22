@@ -12,13 +12,11 @@ use crossterm::terminal::{
     supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
-use futures_cancel::FutureExt;
-use futures_util::{Future, StreamExt};
 use ratatui::{Terminal, Viewport};
-use tokio::sync::broadcast;
-use tracing::warn;
+use tokio_stream::StreamExt as _;
 
 use super::Backend;
+use crate::AsyncInputStream;
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -252,17 +250,22 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         execute!(terminal.backend_mut(), SetTitle(title))
     }
 
-    #[cfg(feature = "clipboard")]
     fn set_clipboard<T: Display>(
         &self,
         terminal: &mut Terminal<Self::TuiBackend>,
         content: T,
         clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {
-        execute!(
+        #[cfg(feature = "clipboard")]
+        return execute!(
             terminal.backend_mut(),
             SetClipboard::new(&content.to_string(), clipboard_kind)
-        )
+        );
+        #[cfg(not(feature = "clipboard"))]
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "clipboard feature not enabled",
+        ));
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
@@ -273,23 +276,15 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
-    where
-        F: Fn() -> Fut + Send,
-        Fut: Future<Output = ()> + Send,
-    {
-        let mut event_reader = EventStream::new().fuse();
-        while let Ok(event) = event_reader.next().cancel_with(cancel()).await {
-            if let Some(Ok(event)) = event {
-                if let Ok(event) = event.try_into() {
-                    let _ = term_tx
-                        .send(event)
-                        .inspect_err(|e| warn!("failed to send event {e:?}"));
-                }
-            } else {
-                return;
+    fn async_input_stream(&self) -> impl AsyncInputStream {
+        let event_reader = EventStream::new().fuse();
+        event_reader.filter_map(move |e| {
+            if let Ok(e) = e {
+                let e: Result<rooibos_dom::Event, _> = e.try_into();
+                return e.ok();
             }
-        }
+            None
+        })
     }
 }
 

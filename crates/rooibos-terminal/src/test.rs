@@ -1,10 +1,9 @@
 use std::io;
 
-use futures_cancel::FutureExt;
-use futures_util::Future;
 use ratatui::Terminal;
 use tokio::sync::broadcast;
-use tracing::warn;
+use tokio_stream::StreamExt;
+use tokio_stream::wrappers::BroadcastStream;
 
 use super::Backend;
 
@@ -52,7 +51,6 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    #[cfg(feature = "clipboard")]
     fn set_clipboard<T: std::fmt::Display>(
         &self,
         _terminal: &mut Terminal<Self::TuiBackend>,
@@ -74,31 +72,8 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
-    where
-        F: Fn() -> Fut + Send,
-        Fut: Future<Output = ()> + Send,
-    {
-        let mut rx = self.event_tx.subscribe();
-        while let Ok(Ok(event)) = rx.recv().cancel_with(cancel()).await {
-            let _ = term_tx
-                .send(event)
-                .inspect_err(|e| warn!("failed to send event: {e:?}"));
-        }
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
-    where
-        F: Fn() -> Fut,
-        Fut: Future<Output = ()>,
-    {
-        let mut rx = self.event_tx.subscribe();
-        while let Ok(Ok(event)) = rx.recv().cancel_with(cancel()).await {
-            let _ = term_tx
-                .send(event)
-                .inspect_err(|e| warn!("failed to send event: {e:?}"));
-        }
+    fn async_input_stream(&self) -> impl crate::AsyncInputStream {
+        let rx = self.event_tx.subscribe();
+        BroadcastStream::new(rx).filter_map(|e| e.ok())
     }
 }

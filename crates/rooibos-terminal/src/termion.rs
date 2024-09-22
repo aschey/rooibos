@@ -1,17 +1,17 @@
 use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsFd;
 
-use futures_cancel::FutureExt;
-use futures_util::Future;
 use ratatui::{Terminal, Viewport};
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
-use tokio::sync::broadcast;
+use tokio::sync::mpsc;
+use tokio::sync::mpsc::error::TrySendError;
 use tokio::task::spawn_blocking;
-use tracing::warn;
+use tokio_stream::wrappers::ReceiverStream;
 
 use super::Backend;
+use crate::AsyncInputStream;
 
 pub struct TermionBackend<W: Write + AsFd> {
     settings: TerminalSettings<W>,
@@ -124,7 +124,6 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         ))
     }
 
-    #[cfg(feature = "clipboard")]
     fn set_clipboard<T: std::fmt::Display>(
         &self,
         _terminal: &mut Terminal<Self::TuiBackend>,
@@ -137,21 +136,20 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         ))
     }
 
-    async fn read_input<F, Fut>(&self, term_tx: broadcast::Sender<rooibos_dom::Event>, cancel: F)
-    where
-        F: Fn() -> Fut + Send,
-        Fut: Future<Output = ()> + Send,
-    {
-        let reader = spawn_blocking(move || {
+    fn async_input_stream(&self) -> impl AsyncInputStream {
+        let (tx, rx) = mpsc::channel(128);
+        spawn_blocking(move || {
             let stdin = io::stdin();
             for event in stdin.events().flatten() {
-                if let Ok(event) = event.try_into() {
-                    let _ = term_tx
-                        .send(event)
-                        .inspect_err(|e| warn!("failed to send event {e:?}"));
+                let event: Result<rooibos_dom::Event, _> = event.try_into();
+                if let Ok(event) = event {
+                    if let Err(TrySendError::Closed(_)) = tx.try_send(event) {
+                        return;
+                    }
                 }
             }
         });
-        let _ = reader.cancel_with(cancel()).await;
+
+        ReceiverStream::new(rx)
     }
 }

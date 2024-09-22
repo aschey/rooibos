@@ -1,10 +1,12 @@
-use rooibos::dom::{KeyCode, KeyEvent, focus_next, render_dom};
+use rooibos::dom::{KeyCode, KeyEvent, focus_next, line, render_dom, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{Render, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, TickResult, restore_terminal};
 use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::style::Stylize;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
@@ -15,6 +17,7 @@ async fn main() -> Result<()> {
 
     terminal.draw(|f| render_dom(f.buffer_mut()))?;
     focus_next();
+
     loop {
         let tick_result = runtime.tick().await?;
         match tick_result {
@@ -51,5 +54,5 @@ fn app() -> impl Render {
         }
     };
 
-    wgt!(format!("count {}", count.get())).on_key_down(key_down)
+    wgt!(line!("count: ".bold(), span!(count.get()).cyan())).on_key_down(key_down)
 }

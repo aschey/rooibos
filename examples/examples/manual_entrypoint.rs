@@ -1,10 +1,12 @@
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{Render, execute_with_owner, mount, run_with_executor, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::style::Stylize;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 fn main() -> Result<()> {
@@ -31,5 +33,5 @@ fn app() -> impl Render {
         }
     };
 
-    wgt!(format!("count {}", count.get())).on_key_down(key_down)
+    wgt!(line!("count: ".bold(), span!(count.get()).cyan())).on_key_down(key_down)
 }

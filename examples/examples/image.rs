@@ -5,12 +5,11 @@ use rooibos::dom::KeyCode;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
-use rooibos::reactive::{
-    Render, col, height, mount, padding, padding_top, wgt, width,
-};
+use rooibos::reactive::{Render, col, height, mount, padding, padding_top, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]

@@ -21,6 +21,7 @@ async-trait = "0.1"
 terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "862b4828db4f5afe8a360d18c3effcd8cbe838a5" }
+tokio-stream = { version = "0.1.16", features = ["sync"] }
 
 [features]
 clipboard = ["rooibos-runtime/clipboard"]

@@ -188,29 +188,36 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
         Ok(())
     }
 
-    #[cfg(feature = "clipboard")]
     fn set_clipboard<T: Display>(
         &self,
         terminal: &mut ratatui::Terminal<Self::TuiBackend>,
         content: T,
         clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {
-        use termwiz::escape::osc::Selection;
+        #[cfg(feature = "clipboard")]
+        {
+            use termwiz::escape::osc::Selection;
 
-        let action = termwiz::escape::Action::OperatingSystemCommand(Box::new(
-            termwiz::escape::OperatingSystemCommand::SetSelection(
-                match clipboard_kind {
-                    super::ClipboardKind::Clipboard => Selection::CLIPBOARD,
-                    super::ClipboardKind::Primary => Selection::PRIMARY,
-                },
-                content.to_string(),
-            ),
+            let action = termwiz::escape::Action::OperatingSystemCommand(Box::new(
+                termwiz::escape::OperatingSystemCommand::SetSelection(
+                    match clipboard_kind {
+                        super::ClipboardKind::Clipboard => Selection::CLIPBOARD,
+                        super::ClipboardKind::Primary => Selection::PRIMARY,
+                    },
+                    content.to_string(),
+                ),
+            ));
+            terminal
+                .backend_mut()
+                .buffered_terminal_mut()
+                .add_change(action.to_string());
+            return Ok(());
+        }
+        #[cfg(not(feature = "clipboard"))]
+        return Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "clipboard feature not enabled",
         ));
-        terminal
-            .backend_mut()
-            .buffered_terminal_mut()
-            .add_change(action.to_string());
-        Ok(())
     }
 
     fn supports_async_input(&self) -> bool {
@@ -235,6 +242,10 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             }
         }
         Ok(())
+    }
+
+    fn async_input_stream(&self) -> impl crate::AsyncInputStream {
+        futures_util::stream::empty()
     }
 }
 

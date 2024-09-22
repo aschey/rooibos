@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::sync::Arc;
 
+use futures_cancel::FutureExt;
 use rooibos::dom::{
     Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver, focus_next, line,
     render_dom, set_pixel_size, set_supports_keyboard_enhancement, span,
@@ -14,6 +15,7 @@ use rooibos::tui::backend::Backend as _;
 use rooibos::tui::layout::Size;
 use rooibos::tui::style::Stylize;
 use tokio::sync::broadcast;
+use tokio_stream::StreamExt as _;
 use tokio_util::sync::CancellationToken;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -36,14 +38,21 @@ async fn main() -> Result<()> {
     let (term_tx, mut term_rx) = broadcast::channel(32);
     focus_next();
     {
-        let backend = backend.clone();
         let cancellation_token = cancellation_token.clone();
+        let mut input_stream = backend.async_input_stream();
         tokio::spawn(async move {
-            backend
-                .read_input(term_tx, move || {
-                    cancellation_token.clone().cancelled_owned()
-                })
-                .await;
+            while let Ok(Some(event)) = input_stream
+                .next()
+                .cancel_on_shutdown(&cancellation_token)
+                .await
+            {
+                let _ = term_tx.send(event);
+            }
+            // backend
+            //     .read_input(term_tx, move || {
+            //         cancellation_token.clone().cancelled_owned()
+            //     })
+            //     .await;
         });
     }
     let mut dom_update_rx = dom_update_receiver();

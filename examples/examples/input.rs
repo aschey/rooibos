@@ -9,6 +9,7 @@ use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]

@@ -15,3 +15,4 @@ rooibos-dom = { path = "../rooibos-dom" }
 rooibos-terminal = { path = "../rooibos-terminal" }
 tap = "1"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+tokio-stream = { version = "0.1.16", features = ["sync"] }

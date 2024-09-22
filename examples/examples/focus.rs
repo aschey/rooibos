@@ -9,6 +9,7 @@ use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Paragraph};
+
 type Result<T> = std::result::Result<T, RuntimeError>;
 
 #[rooibos::main]
