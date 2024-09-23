@@ -9,14 +9,14 @@ use std::sync::Arc;
 
 use background_service::{BackgroundService, LocalBackgroundService, TaskId};
 use educe::Educe;
-use ratatui::Terminal;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
+use ratatui::Terminal;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
-use crate::{ExitResult, RuntimeCommand, with_all_state, with_state};
+use crate::{with_all_state, with_state, ExitResult, RuntimeCommand};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
@@ -192,7 +192,7 @@ where
     });
 }
 
-fn exit_with_code_or_error(res: Result<proc_exit::Code, Arc<dyn Error + Send + Sync>>) {
+fn exit_with_code_or_error(res: Result<proc_exit::Code, Arc<Box<dyn Error + Send + Sync>>>) {
     with_state(|s| {
         s.runtime_command_tx
             .send(RuntimeCommand::Terminate(res))
@@ -208,8 +208,8 @@ pub fn exit_with_code(code: proc_exit::Code) {
     exit_with_code_or_error(Ok(code))
 }
 
-pub fn exit_with_error(error: impl Error + Send + Sync + 'static) {
-    exit_with_code_or_error(Err(Arc::new(error)))
+pub fn exit_with_error(error: impl Into<Box<dyn Error + Send + Sync>>) {
+    exit_with_code_or_error(Err(Arc::new(error.into())))
 }
 
 #[cfg(not(target_arch = "wasm32"))]

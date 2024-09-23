@@ -49,7 +49,7 @@ pub struct Runtime<B: Backend> {
 
 #[derive(Debug, Clone)]
 pub enum RuntimeCommand {
-    Terminate(Result<proc_exit::Code, Arc<dyn Error + Send + Sync>>),
+    Terminate(Result<proc_exit::Code, Arc<Box<dyn Error + Send + Sync>>>),
     Suspend,
     Resume,
     Restart,
@@ -61,7 +61,7 @@ pub enum TickResult {
     Redraw,
     Restart,
     Command(TerminalCommand),
-    Exit(Result<ExitCode, Arc<dyn Error + Send + Sync>>),
+    Exit(Result<ExitCode, Arc<Box<dyn Error + Send + Sync>>>),
 }
 
 impl<B: Backend + 'static> Runtime<B> {
@@ -227,6 +227,8 @@ impl<B: Backend + 'static> Runtime<B> {
                     }
                 }
                 TickResult::Exit(Err(e)) => {
+                    self.handle_exit(&mut terminal).await?;
+                    restore_terminal()?;
                     return Err(RuntimeError::UserDefined(e));
                 }
                 TickResult::Command(command) => {

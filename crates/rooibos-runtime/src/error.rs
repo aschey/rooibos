@@ -18,7 +18,7 @@ pub enum RuntimeError {
     #[error("I/O failure: {0}")]
     IoFailure(#[from] io::Error),
     #[error("{0}")]
-    UserDefined(Arc<dyn Error + Send + Sync>),
+    UserDefined(Arc<Box<dyn Error + Send + Sync>>),
 }
 
 #[derive(thiserror::Error, Debug)]

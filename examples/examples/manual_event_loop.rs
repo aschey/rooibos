@@ -1,11 +1,11 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEvent, focus_next, line, render_dom, span};
+use rooibos::dom::{focus_next, line, render_dom, span, KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, mount, wgt};
+use rooibos::reactive::{mount, wgt, Render};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, TickResult, restore_terminal};
+use rooibos::runtime::{restore_terminal, Runtime, TickResult};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
@@ -38,6 +38,8 @@ async fn main() -> Result {
                 }
             }
             TickResult::Exit(Err(e)) => {
+                runtime.handle_exit(&mut terminal).await.unwrap();
+                restore_terminal()?;
                 return Err(RuntimeError::UserDefined(e));
             }
             TickResult::Command(command) => {
