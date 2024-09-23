@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::process::ExitCode;
 
 use rooibos::config::watch_config::backend::schematic::AppConfig;
 use rooibos::config::watch_config::schematic::Config;
@@ -8,6 +8,7 @@ use rooibos::dom::text;
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{Render, col, height, margin, max_width, mount, padding, wgt};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Padding, Paragraph};
@@ -23,7 +24,7 @@ struct AppConfigExample {
 }
 
 #[rooibos::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<ExitCode, RuntimeError> {
     let config = AppConfig::<AppConfigExample>::new(ConfigSettings::new(
         ConfigDir::Custom("./.config".into()),
         Format::Yaml,
@@ -33,8 +34,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

@@ -1,3 +1,4 @@
+use std::process::ExitCode;
 use std::time::Duration;
 
 use futures_cancel::FutureExt;
@@ -11,14 +12,13 @@ use rooibos::runtime::{Runtime, ServiceContext, spawn_service, wasm_compat};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

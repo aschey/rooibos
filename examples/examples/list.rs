@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::RwSignal;
@@ -9,14 +11,13 @@ use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

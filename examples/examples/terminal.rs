@@ -1,17 +1,19 @@
+use std::process::ExitCode;
+
 use rooibos::components::{self, CommandBuilder};
 use rooibos::reactive::{Render, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Block;
-type Result<T> = std::result::Result<T, RuntimeError>;
+
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

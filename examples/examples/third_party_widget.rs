@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
@@ -10,14 +12,14 @@ use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::{Block, StatefulWidget};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
-type Result<T> = std::result::Result<T, RuntimeError>;
+
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

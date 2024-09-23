@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::process::ExitCode;
 
 use rand::Rng;
 use reqwest::Client;
@@ -12,18 +12,19 @@ use rooibos::reactive::{
     Errors, Render, UpdateLayoutProps, col, max_width, mount, padding, suspense, wgt,
 };
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::Paragraph;
 use serde::Deserialize;
 
+type Result = std::result::Result<ExitCode, RuntimeError>;
+
 #[rooibos::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

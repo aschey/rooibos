@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::components::Input;
 use rooibos::dom::{WidgetState, line};
 use rooibos::reactive::graph::traits::Get;
@@ -10,14 +12,13 @@ use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

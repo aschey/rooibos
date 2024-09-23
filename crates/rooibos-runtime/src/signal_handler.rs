@@ -56,8 +56,16 @@ impl SignalHandler {
             Signal::Cont => {
                 let _ = self.runtime_command_tx.send(RuntimeCommand::Resume);
             }
-            _ => {
-                let _ = self.runtime_command_tx.send(RuntimeCommand::Terminate);
+            signal => {
+                let code = match signal {
+                    Signal::Term => proc_exit::bash::SIGTERM,
+                    Signal::Quit => proc_exit::bash::SIGQUIT,
+                    Signal::Int => proc_exit::bash::SIGINT,
+                    _ => unreachable!(),
+                };
+                let _ = self
+                    .runtime_command_tx
+                    .send(RuntimeCommand::Terminate(code));
             }
         }
     }

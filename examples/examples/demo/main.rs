@@ -1,3 +1,4 @@
+use std::process::ExitCode;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
@@ -8,6 +9,7 @@ use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{chars, pct};
 use rooibos::reactive::{Render, mount};
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
@@ -22,15 +24,13 @@ mod tab0;
 mod tab1;
 mod tab2;
 
-use rooibos::runtime::error::RuntimeError;
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]

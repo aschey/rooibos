@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::dom::{KeyCode, KeyEvent, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
@@ -11,14 +13,13 @@ use rooibos::tui::style::Stylize;
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {

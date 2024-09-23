@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::dom::{KeyCode, KeyEvent, focus_id};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::RwSignal;
@@ -8,7 +10,8 @@ use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Paragraph;
-type Result<T> = std::result::Result<T, RuntimeError>;
+
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[derive(Route)]
 struct Child1 {
@@ -33,11 +36,10 @@ impl Child2 {
 }
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

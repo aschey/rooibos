@@ -2,6 +2,7 @@ use std::panic::{set_hook, take_hook};
 
 pub use background_service::ServiceContext;
 pub use commands::*;
+pub use proc_exit;
 use rooibos_dom::Event;
 #[cfg(feature = "reactive")]
 use rooibos_reactive::graph::traits::IsDisposed as _;

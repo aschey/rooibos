@@ -1,7 +1,7 @@
 mod client;
 mod server;
 
-use std::error::Error;
+use std::process::ExitCode;
 use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
@@ -22,6 +22,7 @@ use rooibos::reactive::{
     derive_signal, height, margin, margin_left, margin_top, mount, row, transition, wgt, width,
 };
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
@@ -29,8 +30,10 @@ use rooibos::tui::widgets::{Block, Paragraph};
 use server::run_server;
 use taffy::{AlignItems, JustifyContent, Position};
 
+type Result = std::result::Result<ExitCode, RuntimeError>;
+
 #[rooibos::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
         .await
         .unwrap();
@@ -38,16 +41,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     mount(|| app(Duration::from_secs(3)));
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
     tokio::spawn(run_server(listener));
-    runtime.run().await?;
-
-    Ok(())
+    runtime.run().await
 }
 
 #[derive(Clone)]
 struct TodoContext {
-    add_todo: Action<String, Result<(), rooibos::reactive::Error>>,
-    update_todo: Action<(u32, String), Result<(), rooibos::reactive::Error>>,
-    delete_todo: Action<u32, Result<(), rooibos::reactive::Error>>,
+    add_todo: Action<String, std::result::Result<(), rooibos::reactive::Error>>,
+    update_todo: Action<(u32, String), std::result::Result<(), rooibos::reactive::Error>>,
+    delete_todo: Action<u32, std::result::Result<(), rooibos::reactive::Error>>,
 }
 
 fn app(notification_timeout: Duration) -> impl Render {

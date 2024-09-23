@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::{IsTerminal, Stderr, stdout};
+use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::dom::{KeyCode, KeyEvent};
@@ -12,10 +13,10 @@ use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     let output = stdout();
     if output.is_terminal() {
         return Err("Try redirecting the output. Ex: out=$(cargo run --example=redirect_output)")?;
@@ -27,9 +28,7 @@ async fn main() -> Result<()> {
             .alternate_screen(false)
             .viewport(Viewport::Inline(3)),
     ));
-    runtime.run().await?;
-
-    Ok(())
+    Ok(runtime.run().await?)
 }
 
 fn app() -> impl Render {

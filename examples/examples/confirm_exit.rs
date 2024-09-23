@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::components::Button;
 use rooibos::dom::{KeyCode, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
@@ -13,14 +15,13 @@ use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::{Block, Paragraph};
 use taffy::{AlignItems, JustifyContent, Position};
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

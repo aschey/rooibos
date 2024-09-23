@@ -1,4 +1,5 @@
 use std::io;
+use std::process::ExitCode;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
@@ -47,7 +48,7 @@ pub struct Runtime<B: Backend> {
 
 #[derive(Debug, Clone)]
 pub enum RuntimeCommand {
-    Terminate,
+    Terminate(proc_exit::Code),
     Suspend,
     Resume,
     Restart,
@@ -59,7 +60,7 @@ pub enum TickResult {
     Redraw,
     Restart,
     Command(TerminalCommand),
-    Exit,
+    Exit(ExitCode),
 }
 
 impl<B: Backend + 'static> Runtime<B> {
@@ -202,7 +203,7 @@ impl<B: Backend + 'static> Runtime<B> {
         );
     }
 
-    pub async fn run(mut self) -> Result<(), RuntimeError> {
+    pub async fn run(mut self) -> Result<ExitCode, RuntimeError> {
         let mut terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
         self.draw(&mut terminal);
         focus_next();
@@ -217,11 +218,11 @@ impl<B: Backend + 'static> Runtime<B> {
                     terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
                     self.draw(&mut terminal);
                 }
-                TickResult::Exit => {
+                TickResult::Exit(code) => {
                     if self.should_exit().await {
                         self.handle_exit(&mut terminal).await?;
                         restore_terminal()?;
-                        return Ok(());
+                        return Ok(code);
                     }
                 }
                 TickResult::Command(command) => {
@@ -380,8 +381,8 @@ impl<B: Backend + 'static> Runtime<B> {
 
     pub async fn tick(&mut self) -> Result<TickResult, RuntimeError> {
         tokio::select! {
-            signal = self.runtime_command_rx.recv() => {
-                match signal {
+            command = self.runtime_command_rx.recv() => {
+                match command {
                     Ok(RuntimeCommand::Suspend) => {
                         restore_terminal()?;
                         #[cfg(unix)]
@@ -398,8 +399,12 @@ impl<B: Backend + 'static> Runtime<B> {
                     Ok(RuntimeCommand::Restart) => {
                         Ok(TickResult::Restart)
                     }
-                    Ok(RuntimeCommand::Terminate) | Err(_) => {
-                        Ok(TickResult::Exit)
+                    Ok(RuntimeCommand::Terminate(code))  => {
+                        Ok(TickResult::Exit(code.as_exit_code().unwrap_or(ExitCode::FAILURE)))
+                    }
+                    Err(e) => {
+                        error!("error receiving runtime command: {e:?}");
+                        Ok(TickResult::Exit(ExitCode::FAILURE))
                     }
                 }
             }

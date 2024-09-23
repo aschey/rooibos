@@ -1,4 +1,5 @@
 use std::io::Stdout;
+use std::process::ExitCode;
 
 use rooibos::components::Show;
 use rooibos::dom::{KeyCode, KeyEvent};
@@ -9,16 +10,16 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
-type Result<T> = std::result::Result<T, RuntimeError>;
+
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::<Stdout>::new(
         TerminalSettings::default().viewport(Viewport::Inline(8)),
     ));
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

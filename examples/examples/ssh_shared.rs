@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::components::Button;
 use rooibos::dom::{line, span};
 use rooibos::reactive::graph::signal::ReadSignal;
@@ -11,10 +13,10 @@ use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
 use tokio::sync::watch;
 use tokio_stream::wrappers::WatchStream;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     let (count_tx, _) = watch::channel(0);
     let server = AppServer::new(
         SshConfig {
@@ -25,7 +27,7 @@ async fn main() -> Result<()> {
     );
 
     server.run(("0.0.0.0", 2222)).await?;
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }
 
 struct SshApp {

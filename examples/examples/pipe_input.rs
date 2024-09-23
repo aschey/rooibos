@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::{IsTerminal, stdin};
+use std::process::ExitCode;
 
 use rooibos::dom::line;
 use rooibos::reactive::{Render, mount, wgt};
@@ -7,10 +8,10 @@ use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     let input = {
         let input = stdin();
         if input.is_terminal() {
@@ -24,8 +25,7 @@ async fn main() -> Result<()> {
 
     mount(|| app(input));
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    Ok(runtime.run().await?)
 }
 
 fn app(text: String) -> impl Render {

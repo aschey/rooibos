@@ -191,12 +191,16 @@ where
     });
 }
 
-pub fn exit() {
+pub fn exit_with_code(code: proc_exit::Code) {
     with_state(|s| {
         s.runtime_command_tx
-            .send(RuntimeCommand::Terminate)
+            .send(RuntimeCommand::Terminate(code))
             .unwrap()
     });
+}
+
+pub fn exit() {
+    exit_with_code(proc_exit::Code::SUCCESS)
 }
 
 #[cfg(not(target_arch = "wasm32"))]

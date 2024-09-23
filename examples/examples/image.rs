@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::process::ExitCode;
 
 use rooibos::components::Image;
 use rooibos::dom::KeyCode;
@@ -10,14 +11,13 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 fn app() -> impl Render {

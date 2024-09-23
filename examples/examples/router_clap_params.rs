@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use clap::{Args, Parser, Subcommand};
 use rooibos::dom::{KeyCode, KeyEvent, focus_id};
 use rooibos::reactive::graph::effect::Effect;
@@ -9,7 +11,8 @@ use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::widgets::Paragraph;
-type Result<T> = std::result::Result<T, RuntimeError>;
+
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -51,25 +54,23 @@ impl Cmd2 {
     }
 }
 
-fn main() -> Result<()> {
+fn main() -> Result {
     let matches = Cli::parse();
     match matches.command {
         CliCommands::Cmd1(cmd1) => run_tui(cmd1),
         CliCommands::Cmd2(cmd2) => run_tui(cmd2),
         res => {
             println!("{res:?}");
-            Ok(())
+            Ok(ExitCode::SUCCESS)
         }
     }
 }
 
 #[rooibos::main]
-async fn run_tui(route: impl ToRoute + 'static) -> Result<()> {
+async fn run_tui(route: impl ToRoute + 'static) -> Result {
     mount(move || app(route));
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-
-    Ok(())
+    runtime.run().await
 }
 
 fn app(initial_route: impl ToRoute) -> impl Render {

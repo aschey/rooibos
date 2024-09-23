@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::components::Button;
 use rooibos::dom::text;
 use rooibos::reactive::graph::signal::signal;
@@ -13,14 +15,13 @@ use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;
 use rooibos::tui::widgets::Paragraph;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 const MIN_SIZE: f32 = 3.;

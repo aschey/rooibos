@@ -264,7 +264,7 @@ impl TestHarness {
                             self.terminal = self.runtime.setup_terminal().unwrap();
                             self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
                         }
-                        TickResult::Exit => {
+                        TickResult::Exit(_) => {
                             panic!("application exited");
                         }
                         TickResult::Command(command) => {
@@ -288,6 +288,8 @@ impl TestHarness {
 
     #[cfg(feature = "runtime")]
     pub async fn exit(mut self) {
+        use std::process::ExitCode;
+
         self.event_tx
             .send(Event::Key(KeyEvent::new(
                 KeyCode::Char('c'),
@@ -300,9 +302,12 @@ impl TestHarness {
             tokio::select! {
                 tick_result = self.runtime.tick() => {
                     let tick_result = tick_result.unwrap();
-                    if matches!(tick_result, TickResult::Exit) && self.runtime.should_exit().await {
-                        self.runtime.handle_exit(&mut self.terminal).await.unwrap();
-                        return;
+                    if let TickResult::Exit(code) = tick_result {
+                        if self.runtime.should_exit().await {
+                            assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+                            self.runtime.handle_exit(&mut self.terminal).await.unwrap();
+                            return;
+                        }
                     }
                 }
                 _ = tokio::time::sleep(Duration::from_secs(3) - (Instant::now() - start)) => {

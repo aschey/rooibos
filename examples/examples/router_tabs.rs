@@ -1,3 +1,5 @@
+use std::process::ExitCode;
+
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::dom::{KeyCode, KeyEvent, line, text};
 use rooibos::reactive::graph::signal::RwSignal;
@@ -11,14 +13,13 @@ use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 
-type Result<T> = std::result::Result<T, RuntimeError>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await?;
-    Ok(())
+    runtime.run().await
 }
 
 #[derive(Route)]
