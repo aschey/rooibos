@@ -303,6 +303,7 @@ impl TestHarness {
                 tick_result = self.runtime.tick() => {
                     let tick_result = tick_result.unwrap();
                     if let TickResult::Exit(code) = tick_result {
+                        let code = code.unwrap();
                         if self.runtime.should_exit().await {
                             assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
                             self.runtime.handle_exit(&mut self.terminal).await.unwrap();

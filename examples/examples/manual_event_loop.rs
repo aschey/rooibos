@@ -30,12 +30,15 @@ async fn main() -> Result {
                 terminal = runtime.setup_terminal()?;
                 terminal.draw(|f| render_dom(f.buffer_mut()))?;
             }
-            TickResult::Exit(code) => {
+            TickResult::Exit(Ok(code)) => {
                 if runtime.should_exit().await {
                     runtime.handle_exit(&mut terminal).await.unwrap();
                     restore_terminal()?;
                     return Ok(code);
                 }
+            }
+            TickResult::Exit(Err(e)) => {
+                return Err(RuntimeError::UserDefined(e));
             }
             TickResult::Command(command) => {
                 runtime

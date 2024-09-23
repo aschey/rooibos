@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::error::Error;
 use std::fmt::Display;
 use std::future::Future;
 use std::io;
@@ -191,16 +192,24 @@ where
     });
 }
 
-pub fn exit_with_code(code: proc_exit::Code) {
+fn exit_with_code_or_error(res: Result<proc_exit::Code, Arc<dyn Error + Send + Sync>>) {
     with_state(|s| {
         s.runtime_command_tx
-            .send(RuntimeCommand::Terminate(code))
+            .send(RuntimeCommand::Terminate(res))
             .unwrap()
     });
 }
 
 pub fn exit() {
-    exit_with_code(proc_exit::Code::SUCCESS)
+    exit_with_code_or_error(Ok(proc_exit::Code::SUCCESS))
+}
+
+pub fn exit_with_code(code: proc_exit::Code) {
+    exit_with_code_or_error(Ok(code))
+}
+
+pub fn exit_with_error(error: impl Error + Send + Sync + 'static) {
+    exit_with_code_or_error(Err(Arc::new(error)))
 }
 
 #[cfg(not(target_arch = "wasm32"))]

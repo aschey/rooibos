@@ -95,7 +95,7 @@ impl InputHandler {
         if (!editing || has_modifiers) && (self.is_quit_event)(key_event) {
             let _ = self
                 .signal_tx
-                .send(RuntimeCommand::Terminate(proc_exit::Code::SUCCESS))
+                .send(RuntimeCommand::Terminate(Ok(proc_exit::Code::SUCCESS)))
                 .inspect_err(|_| warn!("error sending terminate signal"));
         } else if cfg!(unix)
             && key_event.modifiers == KeyModifiers::CONTROL

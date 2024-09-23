@@ -65,7 +65,7 @@ impl SignalHandler {
                 };
                 let _ = self
                     .runtime_command_tx
-                    .send(RuntimeCommand::Terminate(code));
+                    .send(RuntimeCommand::Terminate(Ok(code)));
             }
         }
     }

@@ -1,5 +1,7 @@
+use std::error::Error;
 use std::io;
 use std::process::ExitStatus;
+use std::sync::Arc;
 
 pub use background_service::error::BackgroundServiceErrors;
 
@@ -15,6 +17,8 @@ pub enum RuntimeError {
     SignalHandlerFailure(io::Error),
     #[error("I/O failure: {0}")]
     IoFailure(#[from] io::Error),
+    #[error("{0}")]
+    UserDefined(Arc<dyn Error + Send + Sync>),
 }
 
 #[derive(thiserror::Error, Debug)]

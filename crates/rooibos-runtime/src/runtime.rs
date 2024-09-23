@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::io;
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -48,7 +49,7 @@ pub struct Runtime<B: Backend> {
 
 #[derive(Debug, Clone)]
 pub enum RuntimeCommand {
-    Terminate(proc_exit::Code),
+    Terminate(Result<proc_exit::Code, Arc<dyn Error + Send + Sync>>),
     Suspend,
     Resume,
     Restart,
@@ -60,7 +61,7 @@ pub enum TickResult {
     Redraw,
     Restart,
     Command(TerminalCommand),
-    Exit(ExitCode),
+    Exit(Result<ExitCode, Arc<dyn Error + Send + Sync>>),
 }
 
 impl<B: Backend + 'static> Runtime<B> {
@@ -218,12 +219,15 @@ impl<B: Backend + 'static> Runtime<B> {
                     terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
                     self.draw(&mut terminal);
                 }
-                TickResult::Exit(code) => {
+                TickResult::Exit(Ok(code)) => {
                     if self.should_exit().await {
                         self.handle_exit(&mut terminal).await?;
                         restore_terminal()?;
                         return Ok(code);
                     }
+                }
+                TickResult::Exit(Err(e)) => {
+                    return Err(RuntimeError::UserDefined(e));
                 }
                 TickResult::Command(command) => {
                     self.handle_terminal_command(command, &mut terminal).await?;
@@ -399,12 +403,12 @@ impl<B: Backend + 'static> Runtime<B> {
                     Ok(RuntimeCommand::Restart) => {
                         Ok(TickResult::Restart)
                     }
-                    Ok(RuntimeCommand::Terminate(code))  => {
-                        Ok(TickResult::Exit(code.as_exit_code().unwrap_or(ExitCode::FAILURE)))
+                    Ok(RuntimeCommand::Terminate(res))  => {
+                        Ok(TickResult::Exit(res.map(|r| r.as_exit_code().unwrap_or(ExitCode::FAILURE))))
                     }
                     Err(e) => {
                         error!("error receiving runtime command: {e:?}");
-                        Ok(TickResult::Exit(ExitCode::FAILURE))
+                        Ok(TickResult::Exit(Ok(ExitCode::FAILURE)))
                     }
                 }
             }
