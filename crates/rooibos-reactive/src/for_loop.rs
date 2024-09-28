@@ -1,11 +1,12 @@
 use std::hash::Hash;
 
-use rooibos_reactive::IntoView;
-use rooibos_reactive::graph::owner::Owner;
-use rooibos_reactive::graph::signal::{ArcRwSignal, ReadSignal};
-use rooibos_reactive::graph::traits::Set;
+use reactive_graph::owner::Owner;
+use reactive_graph::signal::{ArcRwSignal, ReadSignal};
+use reactive_graph::traits::Set;
 use tachys::reactive_graph::OwnedView;
 use tachys::view::keyed::keyed;
+
+use crate::IntoView;
 
 pub fn for_each<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
 where

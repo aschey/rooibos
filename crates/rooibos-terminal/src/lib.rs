@@ -45,7 +45,9 @@ impl<T> AsyncInputStream for T where T: Stream<Item = rooibos_dom::Event> + 'sta
 pub trait Backend: Send + Sync {
     type TuiBackend: ratatui::backend::Backend;
 
-    fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>>;
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend>;
+
+    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
 
     fn restore_terminal(&self) -> io::Result<()>;
 

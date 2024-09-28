@@ -4,14 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "8f0a1554b155f592cd98e397c4926edd14fac979" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "8f0a1554b155f592cd98e397c4926edd14fac979" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
 tui-textarea = { version = "0.6", default-features = false, optional = true }
 crossterm = { version = "0.28.1", optional = true }
-tachys = { git = "https://github.com/leptos-rs/leptos", rev = "8f0a1554b155f592cd98e397c4926edd14fac979", features = [
-  "reactive_graph",
-  "tracing",
-] }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
@@ -35,7 +31,6 @@ vt100 = { version = "0.15", optional = true }
 portable-pty = { version = "0.8", optional = true }
 
 [features]
-nightly = ["tachys/nightly"]
 crossterm = ["dep:crossterm", "tui-textarea?/crossterm"]
 termion = ["tui-textarea?/termion"]
 termwiz = ["tui-textarea?/termwiz"]

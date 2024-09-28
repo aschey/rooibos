@@ -11,7 +11,7 @@ use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
 use rooibos::reactive::{Render, after_render, col, derive_signal, mount, padding_left, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, exit, insert_before};
+use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
@@ -21,9 +21,10 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::<Stdout>::new(
-        TerminalSettings::default().viewport(Viewport::Inline(8)),
-    ));
+    let runtime = Runtime::initialize_with_settings(
+        RuntimeSettings::default().viewport(Viewport::Inline(8)),
+        CrosstermBackend::<Stdout>::new(TerminalSettings::default().alternate_screen(false)),
+    );
     runtime.run().await
 }
 

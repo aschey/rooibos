@@ -11,11 +11,9 @@ use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::layout::{align_items, chars, clear, height, max_width, width, z_index};
-use rooibos_reactive::{Render, col, derive_signal, height, wgt, width};
+use rooibos_reactive::{Render, col, derive_signal, for_each, height, wgt, width};
 use tokio::sync::mpsc;
 use wasm_compat::futures::{sleep, spawn};
-
-use crate::for_each;
 
 #[derive(Clone)]
 struct NotificationContext {

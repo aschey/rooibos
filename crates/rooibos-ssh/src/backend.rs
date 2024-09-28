@@ -120,8 +120,12 @@ impl SshBackend {
 impl Backend for SshBackend {
     type TuiBackend = <CrosstermBackend<ArcHandle> as Backend>::TuiBackend;
 
-    fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
-        self.inner.setup_terminal()
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
+        self.inner.create_tui_backend()
+    }
+
+    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        self.inner.setup_terminal(terminal)
     }
 
     fn restore_terminal(&self) -> io::Result<()> {

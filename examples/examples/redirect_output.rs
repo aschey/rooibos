@@ -7,7 +7,7 @@ use rooibos::dom::{KeyCode, KeyEvent};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{Render, mount};
-use rooibos::runtime::{Runtime, exit};
+use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
@@ -23,11 +23,10 @@ async fn main() -> Result {
     }
 
     mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::new(
-        TerminalSettings::<Stderr>::new()
-            .alternate_screen(false)
-            .viewport(Viewport::Inline(3)),
-    ));
+    let runtime = Runtime::initialize_with_settings(
+        RuntimeSettings::default().viewport(Viewport::Inline(3)),
+        CrosstermBackend::new(TerminalSettings::<Stderr>::new().alternate_screen(false)),
+    );
     Ok(runtime.run().await?)
 }
 

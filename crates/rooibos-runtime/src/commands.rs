@@ -9,14 +9,14 @@ use std::sync::Arc;
 
 use background_service::{BackgroundService, LocalBackgroundService, TaskId};
 use educe::Educe;
+use ratatui::Terminal;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
-use ratatui::Terminal;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
-use crate::{with_all_state, with_state, ExitResult, RuntimeCommand};
+use crate::{ExitResult, RuntimeCommand, with_all_state, with_state};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)

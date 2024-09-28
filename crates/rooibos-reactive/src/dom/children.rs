@@ -1,16 +1,17 @@
 use std::fmt::{self, Debug};
 use std::sync::Arc;
 
+use tachys::view::any_view::{AnyView, IntoAny};
 use tachys::view::fragment::{Fragment, IntoFragment};
 
-use crate::{AnyView, IntoAny, IntoView, RenderAny, RooibosDom, View};
+use crate::{IntoView, RenderAny, RooibosDom, View};
 
 /// The most common type for the `children` property on components,
 /// which can only be called once.
 ///
 /// This does not support iterating over individual nodes within the children.
 /// To iterate over children, use [`ChildrenFragment`].
-pub type Children = Box<dyn FnOnce() -> AnyView + Send>;
+pub type Children = Box<dyn FnOnce() -> AnyView<RooibosDom> + Send>;
 
 /// A type for the `children` property on components that can be called only once,
 /// and provides a collection of all the children passed to this component.
@@ -18,7 +19,7 @@ pub type ChildrenFragment = Box<dyn FnOnce() -> Fragment<RooibosDom> + Send>;
 
 /// A type for the `children` property on components that can be called
 /// more than once.
-pub type ChildrenFn = Arc<dyn Fn() -> AnyView + Send + Sync>;
+pub type ChildrenFn = Arc<dyn Fn() -> AnyView<RooibosDom> + Send + Sync>;
 
 /// A type for the `children` property on components that can be called more than once,
 /// and provides a collection of all the children passed to this component.
@@ -26,7 +27,7 @@ pub type ChildrenFragmentFn = Arc<dyn Fn() -> Fragment<RooibosDom> + Send>;
 
 /// A type for the `children` property on components that can be called
 /// more than once, but may mutate the children.
-pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView + Send>;
+pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView<RooibosDom> + Send>;
 
 /// A type for the `children` property on components that can be called more than once,
 /// but may mutate the children, and provides a collection of all the children
@@ -34,7 +35,7 @@ pub type ChildrenFnMut = Box<dyn FnMut() -> AnyView + Send>;
 pub type ChildrenFragmentMut = Box<dyn FnMut() -> Fragment<RooibosDom> + Send>;
 
 // This is to still support components that accept `Box<dyn Fn() -> AnyView>` as a children.
-type BoxedChildrenFn = Box<dyn Fn() -> AnyView + Send>;
+type BoxedChildrenFn = Box<dyn Fn() -> AnyView<RooibosDom> + Send>;
 
 pub trait ToChildren<F> {
     fn to_children(f: F) -> Self;
@@ -87,7 +88,7 @@ where
 impl<F, C> IntoChildrenFnMut for F
 where
     F: FnMut() -> C + Send + Sync + 'static,
-    C: IntoAny,
+    C: IntoAny<RooibosDom>,
 {
     fn into_children_fn_mut(mut self) -> ChildrenFnMut {
         Box::new(move || self().into_any())
@@ -97,7 +98,7 @@ where
 impl<F, C> IntoChildrenFn for F
 where
     F: Fn() -> C + Send + Sync + 'static,
-    C: IntoAny,
+    C: IntoAny<RooibosDom>,
 {
     fn into_children_fn(self) -> ChildrenFn {
         Arc::new(move || self().into_any())
@@ -162,7 +163,7 @@ where
 /// New-type wrapper for a function that returns a view with `From` and `Default` traits implemented
 /// to enable optional props in for example `<Show>` and `<Suspense>`.
 #[derive(Clone)]
-pub struct ViewFn(Arc<dyn Fn() -> AnyView + Send + Sync + 'static>);
+pub struct ViewFn(Arc<dyn Fn() -> AnyView<RooibosDom> + Send + Sync + 'static>);
 
 impl Default for ViewFn {
     fn default() -> Self {
@@ -182,7 +183,7 @@ where
 
 impl ViewFn {
     /// Execute the wrapped function
-    pub fn run(&self) -> AnyView {
+    pub fn run(&self) -> AnyView<RooibosDom> {
         (self.0)()
     }
 }
@@ -190,7 +191,7 @@ impl ViewFn {
 /// New-type wrapper for a function, which will only be called once and returns a view with `From`
 /// and `Default` traits implemented to enable optional props in for example `<Show>` and
 /// `<Suspense>`.
-pub struct ViewFnOnce(Box<dyn FnOnce() -> AnyView + Send + 'static>);
+pub struct ViewFnOnce(Box<dyn FnOnce() -> AnyView<RooibosDom> + Send + 'static>);
 
 impl Default for ViewFnOnce {
     fn default() -> Self {
@@ -210,7 +211,7 @@ where
 
 impl ViewFnOnce {
     /// Execute the wrapped function
-    pub fn run(self) -> AnyView {
+    pub fn run(self) -> AnyView<RooibosDom> {
         (self.0)()
     }
 }

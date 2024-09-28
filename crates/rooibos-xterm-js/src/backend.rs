@@ -29,7 +29,6 @@ pub struct TerminalSettings {
     keyboard_enhancement: bool,
     focus_change: bool,
     bracketed_paste: bool,
-    viewport: Viewport,
 }
 
 impl Default for TerminalSettings {
@@ -40,7 +39,6 @@ impl Default for TerminalSettings {
             keyboard_enhancement: true,
             focus_change: true,
             bracketed_paste: true,
-            viewport: Viewport::default(),
         }
     }
 }
@@ -63,14 +61,6 @@ impl TerminalSettings {
 
     pub fn bracketed_paste(mut self, bracketed_paste: bool) -> Self {
         self.bracketed_paste = bracketed_paste;
-        self
-    }
-
-    pub fn viewport(mut self, viewport: Viewport) -> Self {
-        if viewport != Viewport::Fullscreen {
-            self.alternate_screen = false;
-        }
-        self.viewport = viewport;
         self
     }
 
@@ -107,7 +97,7 @@ impl Default for WasmBackend {
 impl Backend for WasmBackend {
     type TuiBackend = XtermJsBackend;
 
-    fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let elem = web_sys::window()
             .unwrap()
             .document()
@@ -132,36 +122,34 @@ impl Backend for WasmBackend {
         );
 
         let mut handle = TerminalHandle::default();
+        Ok(XtermJsBackend::new(handle))
+    }
 
-        queue!(handle, Hide)?;
+    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        queue!(terminal.backend_mut(), Hide)?;
         if self.settings.alternate_screen {
-            queue!(handle, EnterAlternateScreen)?;
+            queue!(terminal.backend_mut(), EnterAlternateScreen)?;
         }
         if self.settings.mouse_capture {
-            queue!(handle, EnableMouseCapture)?;
+            queue!(terminal.backend_mut(), EnableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(handle, EnableFocusChange)?;
+            queue!(terminal.backend_mut(), EnableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(handle, EnableBracketedPaste)?;
+            queue!(terminal.backend_mut(), EnableBracketedPaste)?;
         }
 
         if self.supports_keyboard_enhancement {
             queue!(
-                handle,
+                terminal.backend_mut(),
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
         }
-        handle.flush()?;
-
-        let mut terminal =
-            Terminal::with_options(XtermJsBackend::new(handle), ratatui::TerminalOptions {
-                viewport: self.settings.viewport.clone(),
-            })?;
+        terminal.backend_mut().flush()?;
 
         terminal.clear()?;
-        Ok(terminal)
+        Ok(())
     }
 
     fn restore_terminal(&self) -> io::Result<()> {

@@ -5,11 +5,10 @@ use reactive_graph::owner::{Owner, StoredValue, provide_context, use_context};
 use reactive_graph::signal::{WriteSignal, signal};
 use reactive_graph::traits::{Get, Update, With};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_reactive::{
-    AnyViewState, ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom, derive_signal,
-};
+use rooibos_reactive::{ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom, derive_signal};
 pub use rooibos_router_macros::*;
 use tachys::renderer::Renderer;
+use tachys::view::any_view::AnyViewState;
 use tachys::view::{Mountable, Render};
 use url::Url;
 
@@ -201,7 +200,7 @@ impl Router {
 }
 
 pub struct RouterState {
-    state: AnyViewState,
+    state: AnyViewState<RooibosDom>,
     parent: Option<DomNode>,
     index: usize,
 }

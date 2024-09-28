@@ -125,7 +125,12 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     pub fn setup_terminal(&mut self) -> io::Result<Terminal<B::TuiBackend>> {
-        let mut terminal = self.backend.setup_terminal()?;
+        let tui_backend = self.backend.create_tui_backend()?;
+        let mut terminal =
+            ratatui::Terminal::with_options(tui_backend, ratatui::TerminalOptions {
+                viewport: self.settings.viewport.clone(),
+            })?;
+        self.backend.setup_terminal(&mut terminal)?;
 
         let window_size = terminal.backend_mut().window_size().ok();
         let _ = set_pixel_size(window_size.map(|s| Size {
@@ -133,12 +138,11 @@ impl<B: Backend + 'static> Runtime<B> {
             height: s.pixels.height / s.columns_rows.height,
         }));
 
-        let backend = self.backend.clone();
         if self.settings.enable_input_reader {
             let term_parser_tx = self.term_parser_tx.clone();
 
-            if backend.supports_async_input() {
-                let input_stream = backend.async_input_stream();
+            if self.backend.supports_async_input() {
+                let input_stream = self.backend.async_input_stream();
                 self.input_task_id = Some(self.service_context.spawn((
                     "input_reader",
                     move |context: ServiceContext| async move {
@@ -157,6 +161,7 @@ impl<B: Backend + 'static> Runtime<B> {
         }
         let show_final_output = self.settings.show_final_output;
 
+        let backend = self.backend.clone();
         with_state(|s| {
             *s.restore_terminal.lock_mut() = Box::new(move || {
                 backend.restore_terminal()?;

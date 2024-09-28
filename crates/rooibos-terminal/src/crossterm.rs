@@ -12,7 +12,7 @@ use crossterm::terminal::{
     supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
-use ratatui::{Terminal, Viewport};
+use ratatui::Terminal;
 use tokio_stream::StreamExt as _;
 
 use super::Backend;
@@ -25,7 +25,6 @@ pub struct TerminalSettings<W> {
     focus_change: bool,
     bracketed_paste: bool,
     raw_mode: bool,
-    viewport: Viewport,
     title: Option<String>,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
@@ -66,7 +65,6 @@ impl<W> TerminalSettings<W> {
             keyboard_enhancement: true,
             focus_change: true,
             bracketed_paste: true,
-            viewport: Viewport::default(),
             title: None,
             get_writer: Box::new(get_writer),
         }
@@ -94,14 +92,6 @@ impl<W> TerminalSettings<W> {
 
     pub fn raw_mode(mut self, raw_mode: bool) -> Self {
         self.raw_mode = raw_mode;
-        self
-    }
-
-    pub fn viewport(mut self, viewport: Viewport) -> Self {
-        if viewport != Viewport::Fullscreen {
-            self.alternate_screen = false;
-        }
-        self.viewport = viewport;
         self
     }
 
@@ -166,45 +156,40 @@ impl CrosstermBackend<Stderr> {
 impl<W: Write> Backend for CrosstermBackend<W> {
     type TuiBackend = ratatui::backend::CrosstermBackend<W>;
 
-    fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
-        let mut writer = (self.settings.get_writer)();
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
+        let writer = (self.settings.get_writer)();
+        Ok(ratatui::backend::CrosstermBackend::new(writer))
+    }
+
+    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         if self.settings.raw_mode {
             enable_raw_mode()?;
         }
 
-        queue!(writer, Hide)?;
+        queue!(terminal.backend_mut(), Hide)?;
         if self.settings.alternate_screen {
-            queue!(writer, EnterAlternateScreen)?;
+            queue!(terminal.backend_mut(), EnterAlternateScreen)?;
         }
         if self.settings.mouse_capture {
-            queue!(writer, EnableMouseCapture)?;
+            queue!(terminal.backend_mut(), EnableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(writer, EnableFocusChange)?;
+            queue!(terminal.backend_mut(), EnableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(writer, EnableBracketedPaste)?;
+            queue!(terminal.backend_mut(), EnableBracketedPaste)?;
         }
         if self.supports_keyboard_enhancement {
             queue!(
-                writer,
+                terminal.backend_mut(),
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
         }
         if let Some(title) = &self.settings.title {
-            queue!(writer, SetTitle(title))?;
+            queue!(terminal.backend_mut(), SetTitle(title))?;
         }
-        writer.flush()?;
-
-        let mut terminal = Terminal::with_options(
-            ratatui::backend::CrosstermBackend::new(writer),
-            ratatui::TerminalOptions {
-                viewport: self.settings.viewport.clone(),
-            },
-        )?;
-
-        terminal.clear()?;
-        Ok(terminal)
+        terminal.backend_mut().flush()?;
+        Ok(())
     }
 
     fn restore_terminal(&self) -> io::Result<()> {

@@ -1,7 +1,6 @@
 use std::cell::LazyCell;
 use std::future::Future;
 
-pub use any_view::*;
 pub use children::*;
 pub use dom_node::*;
 pub use dom_widget::*;
@@ -13,7 +12,6 @@ use reactive_graph::traits::Set as _;
 pub use renderer::*;
 use rooibos_dom::{with_nodes, with_nodes_mut};
 
-mod any_view;
 mod children;
 pub mod div;
 mod dom_node;

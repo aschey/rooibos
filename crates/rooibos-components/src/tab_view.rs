@@ -5,13 +5,12 @@ use ratatui::widgets::{Block, Tabs};
 use rooibos_dom::{
     BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyEvent, line, span,
 };
+use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::div::taffy::Dimension;
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_reactive::layout::{height, pct};
-use rooibos_reactive::{
-    ChildrenFn, IntoAny, IntoChildrenFn, Render, col, derive_signal, max_height, wgt,
-};
+use rooibos_reactive::{ChildrenFn, IntoChildrenFn, Render, col, derive_signal, max_height, wgt};
 
 use crate::Keyed;
 use crate::wrapping_list::KeyedWrappingList;

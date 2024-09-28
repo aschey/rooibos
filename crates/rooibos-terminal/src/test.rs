@@ -31,8 +31,12 @@ impl TestBackend {
 impl Backend for TestBackend {
     type TuiBackend = ratatui::backend::TestBackend;
 
-    fn setup_terminal(&self) -> std::io::Result<ratatui::prelude::Terminal<Self::TuiBackend>> {
-        Terminal::new(ratatui::backend::TestBackend::new(self.width, self.height))
+    fn create_tui_backend(&self) -> std::io::Result<Self::TuiBackend> {
+        Ok(ratatui::backend::TestBackend::new(self.width, self.height))
+    }
+
+    fn setup_terminal(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        Ok(())
     }
 
     fn restore_terminal(&self) -> std::io::Result<()> {

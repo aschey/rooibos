@@ -23,7 +23,9 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 #[rooibos::main]
 async fn main() -> Result<()> {
     let backend = Arc::new(CrosstermBackend::stdout());
-    let mut terminal = backend.setup_terminal()?;
+    let tui_backend = backend.create_tui_backend()?;
+    let mut terminal = rooibos::tui::Terminal::new(tui_backend)?;
+    backend.setup_terminal(&mut terminal)?;
     let window_size = terminal.backend_mut().window_size().ok();
     set_pixel_size(window_size.map(|s| Size {
         width: s.pixels.width / s.columns_rows.width,

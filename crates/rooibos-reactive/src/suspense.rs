@@ -6,10 +6,11 @@ use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Track, With};
 use slotmap::{DefaultKey, SlotMap};
 use tachys::reactive_graph::{OwnedView, OwnedViewState};
+use tachys::view::any_view::AnyView;
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
 use tachys::view::{Mountable, Render};
 
-use crate::{AnyView, IntoView, RenderAny, RooibosDom, ViewFnOnce};
+use crate::{IntoView, RenderAny, RooibosDom, ViewFnOnce};
 
 #[macro_export]
 macro_rules! suspense {
@@ -45,7 +46,7 @@ pub fn suspense<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl Into
 where
     F: Fn() -> R,
     R: RenderAny,
-    SuspenseBoundary<false, AnyView, F>: IntoView,
+    SuspenseBoundary<false, AnyView<RooibosDom>, F>: IntoView,
 {
     let owner = Owner::new();
     owner.with(|| {
@@ -76,7 +77,7 @@ pub fn transition<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl Re
 where
     F: Fn() -> R,
     R: RenderAny,
-    SuspenseBoundary<true, AnyView, F>: IntoView,
+    SuspenseBoundary<true, AnyView<RooibosDom>, F>: IntoView,
 {
     let fallback = fallback.into().run();
     let tasks = ArcRwSignal::new(SlotMap::<DefaultKey, ()>::new());

@@ -3,7 +3,6 @@ use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
-use ratatui::Viewport;
 use termwiz::caps::Capabilities;
 use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
@@ -19,7 +18,6 @@ pub struct TermwizBackend<W: Write> {
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
-    viewport: Viewport,
     title: Option<String>,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
@@ -31,7 +29,6 @@ impl<W> TerminalSettings<W> {
     {
         Self {
             alternate_screen: true,
-            viewport: Viewport::default(),
             title: None,
             get_writer: Box::new(writer),
         }
@@ -41,14 +38,6 @@ impl<W> TerminalSettings<W> {
 impl<W> TerminalSettings<W> {
     pub fn writer(mut self, get_writer: impl Fn() -> W + Send + Sync + 'static) -> Self {
         self.get_writer = Box::new(get_writer);
-        self
-    }
-
-    pub fn viewport(mut self, viewport: Viewport) -> Self {
-        if viewport != Viewport::Fullscreen {
-            self.alternate_screen = false;
-        }
-        self.viewport = viewport;
         self
     }
 
@@ -111,11 +100,20 @@ impl<W: io::Write> TermwizBackend<W> {
 impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
     type TuiBackend = ratatui::backend::TermwizBackend;
 
-    fn setup_terminal(&self) -> io::Result<ratatui::Terminal<Self::TuiBackend>> {
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let caps = Capabilities::new_from_env().map_err(into_io_error)?;
         let terminal = SystemTerminal::new_with(caps, &io::stdin(), &(self.settings.get_writer)())
             .map_err(into_io_error)?;
-        let mut terminal = BufferedTerminal::new(terminal).map_err(into_io_error)?;
+        let terminal = BufferedTerminal::new(terminal).map_err(into_io_error)?;
+
+        Ok(ratatui::backend::TermwizBackend::with_buffered_terminal(
+            terminal,
+        ))
+    }
+
+    fn setup_terminal(&self, terminal: &mut ratatui::Terminal<Self::TuiBackend>) -> io::Result<()> {
+        let terminal = terminal.backend_mut().buffered_terminal_mut();
+
         terminal.terminal().set_raw_mode().map_err(into_io_error)?;
 
         if self.settings.alternate_screen {
@@ -129,13 +127,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             terminal.add_change(Change::Title(title.clone()));
         }
 
-        let terminal = ratatui::Terminal::with_options(
-            ratatui::backend::TermwizBackend::with_buffered_terminal(terminal),
-            ratatui::TerminalOptions {
-                viewport: self.settings.viewport.clone(),
-            },
-        )?;
-        Ok(terminal)
+        Ok(())
     }
 
     fn restore_terminal(&self) -> io::Result<()> {

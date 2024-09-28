@@ -64,14 +64,6 @@ impl Renderer for RooibosDom {
         node.clone().build();
     }
 
-    fn set_attribute(_node: &Self::Element, _name: &str, _value: &str) {
-        unimplemented!("set attribute not supported")
-    }
-
-    fn remove_attribute(_node: &Self::Element, _name: &str) {
-        unimplemented!("remove attribute not supported")
-    }
-
     fn insert_node(parent: &Self::Element, new_child: &Self::Node, marker: Option<&Self::Node>) {
         parent.insert_before(new_child, marker);
     }

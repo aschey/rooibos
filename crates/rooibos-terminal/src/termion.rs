@@ -1,7 +1,7 @@
 use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsFd;
 
-use ratatui::{Terminal, Viewport};
+use ratatui::Terminal;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
@@ -18,14 +18,12 @@ pub struct TermionBackend<W: Write + AsFd> {
 }
 
 pub struct TerminalSettings<W: Write + AsFd> {
-    viewport: Viewport,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
 impl Default for TerminalSettings<Stdout> {
     fn default() -> Self {
         Self {
-            viewport: Viewport::default(),
             get_writer: Box::new(stdout),
         }
     }
@@ -34,7 +32,6 @@ impl Default for TerminalSettings<Stdout> {
 impl Default for TerminalSettings<Stderr> {
     fn default() -> Self {
         Self {
-            viewport: Viewport::default(),
             get_writer: Box::new(stderr),
         }
     }
@@ -72,19 +69,16 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
     type TuiBackend =
         ratatui::backend::TermionBackend<MouseTerminal<AlternateScreen<RawTerminal<W>>>>;
 
-    fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let terminal = (self.settings.get_writer)()
             .into_raw_mode()?
             .into_alternate_screen()?;
         let terminal = MouseTerminal::from(terminal);
-        let mut terminal = Terminal::with_options(
-            ratatui::backend::TermionBackend::new(terminal),
-            ratatui::TerminalOptions {
-                viewport: self.settings.viewport.clone(),
-            },
-        )?;
-        terminal.clear()?;
-        Ok(terminal)
+        Ok(ratatui::backend::TermionBackend::new(terminal))
+    }
+
+    fn setup_terminal(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        Ok(())
     }
 
     fn restore_terminal(&self) -> io::Result<()> {
