@@ -24,7 +24,7 @@ crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 
 [dev-dependencies]
-tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync"] }
+tokio = { version = "1.40", features = ["rt", "macros", "sync"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }

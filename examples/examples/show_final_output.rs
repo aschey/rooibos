@@ -17,7 +17,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default().viewport(Viewport::Inline(8)),
+        RuntimeSettings::default().viewport(Viewport::Inline(1)),
         CrosstermBackend::new(TerminalSettings::<Stdout>::new().alternate_screen(false)),
     );
     runtime.run().await

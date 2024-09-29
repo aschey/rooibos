@@ -166,7 +166,7 @@ impl<B: Backend + 'static> Runtime<B> {
             *s.restore_terminal.lock_mut() = Box::new(move || {
                 backend.restore_terminal()?;
                 if show_final_output {
-                    // ensure we start a new line before exiting to prevent any interference
+                    // ensure we start a new line before exiting to ensure the full content is shown
                     backend.write_all(b"\n")?;
                 }
                 Ok(())

@@ -1,11 +1,11 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{focus_next, line, render_dom, span, KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, focus_next, line, render_dom, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{mount, wgt, Render};
+use rooibos::reactive::{Render, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{restore_terminal, Runtime, TickResult};
+use rooibos::runtime::{Runtime, TickResult, restore_terminal};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 

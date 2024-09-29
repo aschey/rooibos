@@ -15,7 +15,7 @@ rooibos = { path = "../crates/rooibos", features = [
   "router",
   "spinner",
 ] }
-tokio = { version = "1.38.1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.38.1", features = ["rt", "macros"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [
   "registry",
