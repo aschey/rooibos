@@ -3,10 +3,10 @@ use std::io::{IsTerminal, Stderr, stdout};
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEvent, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{Render, mount};
+use rooibos::reactive::{Render, col, height, mount, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
@@ -17,14 +17,15 @@ type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    let output = stdout();
-    if output.is_terminal() {
+    if stdout().is_terminal() {
         return Err("Try redirecting the output. Ex: out=$(cargo run --example=redirect_output)")?;
     }
 
     mount(app);
     let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default().viewport(Viewport::Inline(3)),
+        RuntimeSettings::default()
+            .viewport(Viewport::Inline(6))
+            .show_final_output(false),
         CrosstermBackend::new(TerminalSettings::<Stderr>::new().alternate_screen(false)),
     );
     Ok(runtime.run().await?)
@@ -57,11 +58,14 @@ fn app() -> impl Render {
             _ => {}
         }
     };
-    ListView::new()
-        .on_item_click(move |i, _| {
-            selected.set(Some(i));
-        })
-        .on_key_down(on_key_down)
-        .highlight_style(Style::new().green())
-        .render(selected, items)
+    col![
+        wgt!(props(height!(2.)), text!("Select an item".bold())),
+        ListView::new()
+            .on_item_click(move |i, _| {
+                selected.set(Some(i));
+            })
+            .on_key_down(on_key_down)
+            .highlight_style(Style::new().green())
+            .render(selected, items)
+    ]
 }

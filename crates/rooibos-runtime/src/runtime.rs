@@ -9,10 +9,10 @@ pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
-use ratatui::Terminal;
 use ratatui::backend::Backend as TuiBackend;
-use ratatui::layout::Size;
+use ratatui::layout::{Position, Size};
 use ratatui::widgets::{Paragraph, Widget};
+use ratatui::{Terminal, Viewport};
 use rooibos_dom::{
     DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next, render_dom,
     set_pixel_size, unmount,
@@ -159,13 +159,14 @@ impl<B: Backend + 'static> Runtime<B> {
             }
             self.handle_term_events();
         }
-        let show_final_output = self.settings.show_final_output;
+        let show_final_output = self.show_final_output();
 
         let backend = self.backend.clone();
         with_state(|s| {
             *s.restore_terminal.lock_mut() = Box::new(move || {
                 backend.restore_terminal()?;
                 if show_final_output {
+                    // ensure we start a new line before exiting to prevent any interference
                     backend.write_all(b"\n")?;
                 }
                 Ok(())
@@ -207,6 +208,17 @@ impl<B: Backend + 'static> Runtime<B> {
                 }
             }),
         );
+    }
+
+    fn show_final_output(&self) -> bool {
+        // Default to true on fixed and inline viewports, false on fullscreen unless explicitly
+        // requested otherwise
+        self.settings
+            .show_final_output
+            .unwrap_or(match self.settings.viewport {
+                Viewport::Fixed(_) | Viewport::Inline(_) => true,
+                Viewport::Fullscreen => false,
+            })
     }
 
     pub async fn run(mut self) -> Result<ExitCode, RuntimeError> {
@@ -253,8 +265,20 @@ impl<B: Backend + 'static> Runtime<B> {
         mut self,
         terminal: &mut Terminal<B::TuiBackend>,
     ) -> Result<(), RuntimeError> {
-        if !self.settings.show_final_output {
-            terminal.clear().map_err(RuntimeError::IoFailure)?;
+        if self.show_final_output() {
+            let y = terminal.current_buffer_mut().area.y;
+            let height = match self.settings.viewport {
+                Viewport::Fullscreen => terminal.size()?.height,
+                Viewport::Inline(size) => size,
+                Viewport::Fixed(rect) => rect.height,
+            };
+            // Move the cursor so we can add a new line at the very bottom
+            terminal.set_cursor_position(Position {
+                x: 0,
+                y: y + height,
+            })?;
+        } else {
+            terminal.clear()?;
         }
 
         let services_cancel =
@@ -351,11 +375,7 @@ impl<B: Backend + 'static> Runtime<B> {
 
         restore_terminal()?;
         terminal.clear()?;
-        let mut child = command
-            .lock()
-            .expect("lock poisoned")
-            .spawn()
-            .map_err(ExecError::IoFailure)?;
+        let mut child = command.lock().expect("lock poisoned").spawn()?;
 
         let child_stdout = child.stdout.take();
         let child_stderr = child.stderr.take();

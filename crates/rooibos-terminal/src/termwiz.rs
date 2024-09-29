@@ -203,7 +203,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
                 .backend_mut()
                 .buffered_terminal_mut()
                 .add_change(action.to_string());
-            return Ok(());
+            Ok(())
         }
         #[cfg(not(feature = "clipboard"))]
         return Err(io::Error::new(

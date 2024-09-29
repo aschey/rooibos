@@ -3,7 +3,7 @@ use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, L
 use rooibos_dom::{BlurEvent, EventData, EventHandle, FocusEvent, KeyEvent};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{Render, wgt};
+use rooibos_reactive::{wgt, LayoutProps, Render, UpdateLayoutProps};
 
 use crate::WrappingList;
 
@@ -22,6 +22,7 @@ pub struct ListView<T> {
     highlight_symbol: Option<MaybeSignal<&'static str>>,
     repeat_highlight_symbol: MaybeSignal<bool>,
     scroll_padding: MaybeSignal<usize>,
+    layout_props: LayoutProps,
 }
 
 impl<T> Default for ListView<T> {
@@ -39,7 +40,19 @@ impl<T> Default for ListView<T> {
             highlight_symbol: Default::default(),
             repeat_highlight_symbol: Default::default(),
             scroll_padding: Default::default(),
+            layout_props: LayoutProps::default(),
         }
+    }
+}
+
+impl<T> UpdateLayoutProps for ListView<T> {
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
+
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
     }
 }
 
@@ -133,6 +146,7 @@ impl<T> ListView<T> {
             highlight_symbol,
             repeat_highlight_symbol,
             scroll_padding,
+            layout_props,
         } = self;
         let items: MaybeSignal<WrappingList<T>> = items.into();
         let selected: MaybeSignal<Option<usize>> = selected.into();
@@ -174,6 +188,7 @@ impl<T> ListView<T> {
                 on_item_click(i, &item);
             }
         })
+        .layout_props(layout_props)
         .on_key_down(on_key_down)
         .on_focus(on_focus)
         .on_blur(on_blur)

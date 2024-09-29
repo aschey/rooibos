@@ -193,7 +193,12 @@ impl NodeTree {
                     height: AvailableSpace::Definite(rect.height.into()),
                 })
                 .unwrap();
-            self.recompute_offsets(root_key);
+            self.recompute_offsets(root_key, Point {
+                // inline viewports will likely have an initial offset relative to the total size of
+                // the terminal
+                x: rect.x as f32,
+                y: rect.y as f32,
+            });
         }
     }
 
@@ -295,25 +300,23 @@ impl NodeTree {
         self.focusable_nodes.borrow_mut().clear();
     }
 
-    fn recompute_offsets(&mut self, root_key: DomNodeKey) {
+    fn recompute_offsets(&mut self, root_key: DomNodeKey, root_offset: Point<f32>) {
         let node = &self.dom_nodes[root_key];
-        self.recompute_offset(node.layout_id);
+        self.recompute_offset(node.layout_id, root_offset);
     }
 
-    fn recompute_offset(&mut self, parent: NodeId) {
+    fn recompute_offset(&mut self, parent: NodeId, root_offset: Point<f32>) {
         let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
         let children = self.layout_tree.children(parent).unwrap();
         for child in &children {
             let child_layout = *self.layout_tree.layout(*child).unwrap();
-            let Some(context) = self.layout_tree.get_node_context_mut(*child) else {
-                panic!()
-            };
-            let new_x = child_layout.location.x + parent_context.offset.x;
-            let new_y = child_layout.location.y + parent_context.offset.y;
+            let context = self.layout_tree.get_node_context_mut(*child).unwrap();
+            let new_x = child_layout.location.x + parent_context.offset.x + root_offset.x;
+            let new_y = child_layout.location.y + parent_context.offset.y + root_offset.y;
             // if context.0.x != new_x || context.0.y != new_y {
             context.offset.x = new_x;
             context.offset.y = new_y;
-            self.recompute_offset(*child);
+            self.recompute_offset(*child, root_offset);
             // }
         }
     }

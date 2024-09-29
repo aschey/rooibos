@@ -334,13 +334,16 @@ impl NodeProperties {
                 });
             }
             NodeType::Widget(widget) => {
-                // if the widget width == the window width, there's probably no explicit width
-                // subtract the extra to prevent clamp from removing any margins
+                // If the widget dimension == the window dimension, there's probably no explicit
+                // constraint. Subtract the extra to prevent clamp from removing any
+                // margins.
+                // If we're using an inline viewport, the (x,y) of the top left corner may be
+                // greater than zero, so we need to account for that too.
                 if rect.width == window.width {
-                    rect.width -= rect.x;
+                    rect.width -= rect.x - window.x;
                 }
                 if rect.height == window.height {
-                    rect.height -= rect.y;
+                    rect.height -= rect.y - window.y;
                 }
                 // prevent panic if the calculated rect overflows the window area
                 let rect = rect.clamp(window);

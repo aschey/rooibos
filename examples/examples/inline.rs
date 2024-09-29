@@ -22,7 +22,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default().viewport(Viewport::Inline(8)),
+        RuntimeSettings::default()
+            .viewport(Viewport::Inline(1))
+            .show_final_output(true),
         CrosstermBackend::<Stdout>::new(TerminalSettings::default().alternate_screen(false)),
     );
     runtime.run().await
@@ -61,7 +63,7 @@ fn app() -> impl Render {
         Show::new()
             .fallback(move || {
                 after_render(exit);
-                wgt!("Done")
+                wgt!("Done".bold())
             })
             .render(
                 Memo::new(move |_| !current_package.get().is_empty()),

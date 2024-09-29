@@ -12,7 +12,7 @@ pub type IsQuitEvent = dyn Fn(KeyEvent) -> bool + Send + Sync;
 pub struct RuntimeSettings {
     pub(crate) enable_input_reader: bool,
     pub(crate) enable_signal_handler: bool,
-    pub(crate) show_final_output: bool,
+    pub(crate) show_final_output: Option<bool>,
     pub(crate) hover_debounce: Duration,
     pub(crate) resize_debounce: Duration,
     pub(crate) viewport: Viewport,
@@ -25,7 +25,7 @@ impl Default for RuntimeSettings {
         Self {
             enable_input_reader: true,
             enable_signal_handler: true,
-            show_final_output: true,
+            show_final_output: None,
             viewport: Viewport::Fullscreen,
             hover_debounce: Duration::from_millis(20),
             resize_debounce: Duration::from_millis(20),
@@ -51,7 +51,7 @@ impl RuntimeSettings {
     }
 
     pub fn show_final_output(mut self, show_final_output: bool) -> Self {
-        self.show_final_output = show_final_output;
+        self.show_final_output = Some(show_final_output);
         self
     }
 

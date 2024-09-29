@@ -262,10 +262,10 @@ where
     pub fn layout_props(
         self,
         layout_props: LayoutProps,
-    ) -> DomWidget<<P as NextTuple>::Output<(LayoutProps,)>> {
+    ) -> DomWidget<<P as NextTuple>::Output<LayoutProps>> {
         DomWidget {
             inner: self.inner,
-            properties: self.properties.next_tuple((layout_props,)),
+            properties: self.properties.next_tuple(layout_props),
         }
     }
 }
