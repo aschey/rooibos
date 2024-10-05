@@ -11,14 +11,14 @@
 
 </div>
 
-**NOTE: This project is currently in a pre-alpha state and should not be used for anything beyond experimentation yet.**
+**NOTE:** This project is currently in a pre-alpha state and should not be used for anything beyond experimentation yet.
 
-# Intro
+## Intro
 
 Rooibos is an application framework for creating TUI ([text-based user interface](https://en.wikipedia.org/wiki/Text-based_user_interface)) apps that can run in a variety of different environments - in the terminal, web, desktop and more.
 It uses a [signal-based](https://github.com/leptos-rs/leptos/tree/main/reactive_graph) reactivity model to build declarative user interfaces.
 
-# Example
+## Example
 
 ```rust
 use std::process::ExitCode;
@@ -57,3 +57,31 @@ fn app() -> impl Render {
         .on_click(move |_, _, _| update_count())
 }
 ```
+
+## Backend Support Status
+
+| Name                                                | Backend                                                        | Type     | Status                            |
+| --------------------------------------------------- | -------------------------------------------------------------- | -------- | --------------------------------- |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [crossterm](https://docs.rs/crossterm/latest/crossterm/)       | Terminal | Implemented                       |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termion](https://docs.rs/termion/latest/termion/)             | Terminal | Implemented, but missing features |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termwiz](https://docs.rs/termwiz/latest/termwiz/)             | Terminal | Implemented, but missing features |
+| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)                   | SSH      | Implemented                       |
+| [**`rooibos-xterm-js`**](./crates/rooibos-xterm-js) | [xterm-js-rs](https://docs.rs/xterm-js-rs/latest/xterm_js_rs/) | Web      | Implemented                       |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                      | Desktop  | Planned                           |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                      | Mobile   | Planned                           |
+| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                      | Games    | Planned                           |
+
+## Structure
+
+- [**`rooibos-dom`**](./crates/rooibos-dom) - Structures for representing user interfaces as a tree of nodes, loosely based on the DOM model from HTML
+- [**`rooibos-reactive`**](./crates/rooibos-reactive) - Implements signal-based reactivity on top of `rooibos-dom`
+- [**`rooibos-reactive-macros`**](./crates/rooibos-reactive-macros) - Procedural macros for setting up the reactive system
+- [**`rooibos-terminal`**](./crates/rooibos-terminal) - Abstraction for using Rooibos with different terminal backends
+- [**`rooibos-components`**](./crates/rooibos-components) - High-level reactive UI components
+- [**`rooibos-runtime`**](./crates/rooibos-runtime) - Application runtime for managing the event loop
+- [**`rooibos-tester`**](./crates/rooibos-tester) - Harness for testing components using an in-memory backend
+- [**`rooibos-router`**](./crates/rooibos-router) - Router component, useful for multi-screen applications
+- [**`rooibos-router-macros`**](./crates/rooibos-router-macros) - Procedural macros for type-safe routing
+- [**`rooibos-ssh`**](./crates/rooibos-ssh) - Serves Rooibos applications over SSH
+- [**`rooibos-xterm-js`**](./crates/rooibos-xterm-js) - Serves Rooibos applications on the brower using [xterm-js](https://xtermjs.org/)
+- [**`rooibos-config`**](./crates/rooibos-config) - Utility for integrating configuration files with live reload support
