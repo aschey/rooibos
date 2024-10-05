@@ -83,7 +83,7 @@ async fn update_todo(
     use_keyboard: bool,
 ) {
     // Update todo
-    let edit_node = harness.get_by_text(todos_block, "");
+    let edit_node = harness.get_by_text(todos_block, "󱞁");
     edit_node.click();
     harness
         .wait_for(|_, _| todos_block.find_all_by_role(Role::TextInput).len() == 1)

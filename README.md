@@ -16,9 +16,8 @@
 ## Intro
 
 Rooibos is an application framework for creating TUI ([text-based user interface](https://en.wikipedia.org/wiki/Text-based_user_interface)) apps that can run in a variety of different environments - in the terminal, web, desktop and more.
-It uses a [signal-based](https://github.com/leptos-rs/leptos/tree/main/reactive_graph) reactivity model to build declarative user interfaces.
-
-## Example
+It uses [Leptos'](https://github.com/leptos-rs/leptos) [signal-based](https://github.com/leptos-rs/leptos/tree/main/reactive_graph) reactivity model to create declarative user interfaces.
+Elements are rendered to the screen using [Ratatui](https://docs.rs/ratatui/latest/ratatui/) widgets.
 
 ```rust
 use std::process::ExitCode;
@@ -57,6 +56,14 @@ fn app() -> impl Render {
         .on_click(move |_, _, _| update_count())
 }
 ```
+
+## Demo
+
+![demo](./examples/examples/todos_api/todos_api.gif)
+
+## Examples
+
+See [examples](./examples/examples).
 
 ## Backend Support Status
 

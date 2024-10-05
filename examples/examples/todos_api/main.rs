@@ -16,11 +16,11 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{
-    align_items, block, chars, clear, justify_content, max_width, position, show,
+    align_items, block, chars, clear, grow, justify_content, max_width, position, show,
 };
 use rooibos::reactive::{
     Errors, NodeId, Render, RenderAny, UpdateLayoutProps, after_render, col, derive_signal, height,
-    margin, margin_left, margin_top, mount, row, transition, wgt, width,
+    margin, margin_left, margin_top, mount, padding_left, row, transition, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -92,6 +92,7 @@ fn add_todo_input() -> impl Render {
     let input_ref = Input::get_ref();
 
     row![
+        props(grow(1.), padding_left!(1.)),
         Input::default()
             .placeholder_text("Add a todo")
             .grow(1.)
@@ -249,7 +250,7 @@ fn add_edit_button(
     let edit_save_text = derive_signal!(text!(if editing.get() {
         "".green()
     } else {
-        "".blue()
+        "󱞁".blue()
     }));
 
     Button::new()
@@ -313,6 +314,8 @@ fn todo_editor(
                 editing_id.set(None);
             }
         })
+        .grow(1.)
+        .max_width(chars(100.))
         .id(input_id)
         .render(input_ref)
 }
