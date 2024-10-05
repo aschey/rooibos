@@ -55,6 +55,7 @@ impl RouteFromStatic for Route {
         }
     }
 }
+
 impl RouteFrom for Route {
     fn new(route: impl ToRouteTemplate, children: impl IntoChildrenFnMut) -> Self {
         Self {
@@ -63,6 +64,7 @@ impl RouteFrom for Route {
         }
     }
 }
+
 pub struct DefaultRoute;
 
 impl ToRoute for DefaultRoute {
@@ -82,6 +84,9 @@ pub struct RouteContext {
     set_history: WriteSignal<Vec<Url>>,
     current_route: Signal<Url>,
     router: StoredValue<matchit::Router<usize>>,
+    set_buffer: WriteSignal<Vec<Url>>,
+    can_go_forward: Signal<bool>,
+    can_go_back: Signal<bool>,
 }
 
 impl RouteContext {
@@ -94,6 +99,10 @@ impl RouteContext {
             .base_url(Some(&"app://".parse().unwrap()))
             .parse(&route)
             .unwrap();
+        self.push_url(url, true);
+    }
+
+    fn push_url(&self, url: Url, clear_buffer: bool) {
         self.set_history.update(|h| {
             // prevent storing duplicate history entries
             if let Some(last) = h.last() {
@@ -102,16 +111,34 @@ impl RouteContext {
                 }
             }
             h.push(url);
+            if clear_buffer {
+                self.set_buffer.update(|b| b.clear());
+            }
         });
     }
 
-    pub fn pop(&self) {
+    fn replace_root(&self, new_root: String) {
+        self.set_history.update(|h| {
+            h.clear();
+        });
+        self.push_str(new_root);
+    }
+
+    pub fn back(&self) {
         self.set_history.update(|h| {
             // ensure we always have the initial history entry
             if h.len() > 1 {
-                h.pop();
+                self.set_buffer.update(|b| b.push(h.pop().unwrap()));
             }
         });
+    }
+
+    pub fn forward(&self) {
+        self.set_buffer.update(|b| {
+            if let Some(entry) = b.pop() {
+                self.push_url(entry, false);
+            }
+        })
     }
 
     pub fn current_route(&self) -> Url {
@@ -152,18 +179,34 @@ impl RouteContext {
         let query = self.try_use_query(query);
         derive_signal!(query.get().unwrap())
     }
+
+    pub fn can_go_forward(&self) -> Signal<bool> {
+        self.can_go_forward
+    }
+
+    pub fn can_go_back(&self) -> Signal<bool> {
+        self.can_go_back
+    }
 }
 
 pub fn use_router() -> RouteContext {
     use_context::<RouteContext>().expect("use_router called outside of router context")
 }
 
+pub fn provide_router() {
+    init_router("/".to_string());
+}
+
 fn init_router(initial: String) {
     let (history, set_history) = signal(vec![]);
+    let (buffer, set_buffer) = signal(vec![]);
     let context = RouteContext {
         set_history,
         router: StoredValue::new(matchit::Router::new()),
         current_route: derive_signal!(history.with(|h| h.last().cloned().unwrap())),
+        set_buffer,
+        can_go_forward: derive_signal!(buffer.with(|b| !b.is_empty())),
+        can_go_back: derive_signal!(history.with(|h| h.len() > 1)),
     };
     context.push_str(initial);
     provide_context(context);
@@ -228,7 +271,11 @@ impl Render<RooibosDom> for Router {
     type State = RenderEffect<RouterState>;
 
     fn build(self) -> Self::State {
-        init_router(self.initial);
+        if let Some(context) = use_context::<RouteContext>() {
+            context.replace_root(self.initial);
+        } else {
+            init_router(self.initial);
+        }
         let router_ctx = use_router();
 
         let mut routes = self.routes;

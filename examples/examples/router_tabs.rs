@@ -89,7 +89,7 @@ fn tabs() -> impl Render {
             .width(chars(20.))
             .height(chars(3.))
             .on_click(move || {
-                router.pop();
+                router.back();
             })
             .render(text!("Previous"))
     ]

@@ -197,20 +197,20 @@ impl Property for Focusable {
     }
 }
 
-pub struct Disabled(pub(crate) MaybeSignal<bool>);
+pub struct Enabled(pub(crate) MaybeSignal<bool>);
 
-pub fn disabled(disabled: impl Into<MaybeSignal<bool>>) -> Disabled {
-    Disabled(disabled.into())
+pub fn enabled(enabled: impl Into<MaybeSignal<bool>>) -> Enabled {
+    Enabled(enabled.into())
 }
 
-impl Property for Disabled {
+impl Property for Enabled {
     type State = RenderEffect<()>;
 
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
-                nodes.set_disabled(key, self.0.get());
+                nodes.set_enabled(key, self.0.get());
             });
         })
     }

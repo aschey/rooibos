@@ -43,12 +43,12 @@ fn app() -> impl Render {
             props(width!(20.), padding_right!(2.)),
             button(
                 "bigger".bold(),
-                derive_signal!(block_height.get() >= MAX_SIZE),
+                derive_signal!(block_height.get() < MAX_SIZE),
                 move || adjust_size(1.)
             ),
             button(
                 "smaller".bold(),
-                derive_signal!(block_height.get() <= MIN_SIZE),
+                derive_signal!(block_height.get() > MIN_SIZE),
                 move || adjust_size(-1.)
             )
         ],
@@ -64,14 +64,14 @@ fn app() -> impl Render {
     ]
 }
 
-fn button<F>(title: Span<'static>, disabled: Signal<bool>, on_click: F) -> impl Render
+fn button<F>(title: Span<'static>, enabled: Signal<bool>, on_click: F) -> impl Render
 where
     F: Fn() + Clone + 'static,
 {
     row![
         props(height!(3.)),
         Button::new()
-            .disabled(disabled)
+            .enabled(enabled)
             .on_click(on_click)
             .render(text!(title))
     ]

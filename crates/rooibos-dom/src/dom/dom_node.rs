@@ -270,8 +270,8 @@ impl DomNodeRepr {
     }
 }
 
-#[derive(Educe, Default)]
-#[educe(Debug)]
+#[derive(Educe)]
+#[educe(Debug, Default)]
 pub struct NodeProperties {
     pub(crate) node_type: NodeType,
     pub(crate) name: String,
@@ -287,7 +287,8 @@ pub struct NodeProperties {
     pub(crate) z_index: Option<i32>,
     pub(crate) block: Option<Block<'static>>,
     pub(crate) clear: bool,
-    pub(crate) disabled: bool,
+    #[educe(Default = true)]
+    pub(crate) enabled: bool,
     pub(crate) unmounted: Arc<AtomicBool>,
 }
 

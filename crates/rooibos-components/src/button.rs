@@ -18,7 +18,7 @@ pub struct Button {
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
-    disabled: MaybeSignal<bool>,
+    enabled: MaybeSignal<bool>,
     id: Option<NodeId>,
     class: Option<String>,
 }
@@ -48,7 +48,7 @@ impl Button {
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
-            disabled: false.into(),
+            enabled: true.into(),
             id: None,
             class: None,
         }
@@ -69,8 +69,8 @@ impl Button {
         self
     }
 
-    pub fn disabled(mut self, disabled: impl Into<MaybeSignal<bool>>) -> Self {
-        self.disabled = disabled.into();
+    pub fn enabled(mut self, enabled: impl Into<MaybeSignal<bool>>) -> Self {
+        self.enabled = enabled.into();
         self
     }
 
@@ -113,7 +113,7 @@ impl Button {
             border_color,
             focused_border_color,
             active_border_color,
-            disabled,
+            enabled,
             id,
             class,
         } = self;
@@ -161,30 +161,30 @@ impl Button {
         let children = children.into();
         let mut button = wgt![
             rooibos_dom::Button::new(children.get())
-                .block(if disabled.get() {
-                    Block::bordered()
-                        .bg(Color::Reset)
-                        .border_set(symbols::border::QUADRANT_INSIDE)
-                        .fg(Color::DarkGray)
-                } else {
+                .block(if enabled.get() {
                     Block::bordered()
                         .bg(Color::Reset)
                         .border_type(border_type.get())
                         .border_style(Style::default().fg(current_border_color.get()))
+                } else {
+                    Block::bordered()
+                        .bg(Color::Reset)
+                        .border_set(symbols::border::QUADRANT_INSIDE)
+                        .fg(Color::DarkGray)
                 })
-                .fg(if disabled.get() {
+                .fg(if enabled.get() {
+                    Color::Reset
+                } else {
                     Color::Gray
-                } else {
-                    Color::Reset
                 })
-                .bg(if disabled.get() {
-                    Color::DarkGray
-                } else {
+                .bg(if enabled.get() {
                     Color::Reset
+                } else {
+                    Color::DarkGray
                 })
                 .centered()
         ]
-        .disabled(disabled)
+        .enabled(enabled)
         .layout_props(layout_props)
         .on_mouse_enter(move |_, _| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_, _| border_type.set(BorderType::Rounded))

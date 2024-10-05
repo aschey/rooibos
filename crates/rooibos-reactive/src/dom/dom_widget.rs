@@ -11,7 +11,7 @@ use tachys::prelude::*;
 use super::dom_node::DomNode;
 use super::layout::{
     AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Clear, Disabled, Focusable, Grow, Height, Margin, MarginBottom, MarginLeft,
+    BorderX, BorderY, Clear, Enabled, Focusable, Grow, Height, Margin, MarginBottom, MarginLeft,
     MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
     PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
     Shrink, UpdateLayout, Width, align_self, aspect_ratio, basis, border, border_bottom,
@@ -33,7 +33,7 @@ pub trait WidgetProperty: Property {}
 impl WidgetProperty for () {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
-impl WidgetProperty for Disabled {}
+impl WidgetProperty for Enabled {}
 
 pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
 
@@ -115,13 +115,13 @@ where
         }
     }
 
-    pub fn disabled<S>(self, disabled: S) -> DomWidget<P::Output<Disabled>>
+    pub fn enabled<S>(self, enabled: S) -> DomWidget<P::Output<Enabled>>
     where
         S: Into<MaybeSignal<bool>>,
     {
         DomWidget {
             inner: self.inner,
-            properties: self.properties.next_tuple(Disabled(disabled.into())),
+            properties: self.properties.next_tuple(Enabled(enabled.into())),
         }
     }
 

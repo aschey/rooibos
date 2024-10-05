@@ -1,38 +1,33 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEvent, focus_id};
-use rooibos::reactive::graph::effect::Effect;
-use rooibos::reactive::graph::signal::RwSignal;
-use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, after_render, col, mount, wgt};
-use rooibos::router::{DefaultRoute, Route, RouteFromStatic, Router, use_router};
+use rooibos::components::Button;
+use rooibos::dom::text;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::layout::{align_items, block, chars};
+use rooibos::reactive::{
+    Render, UpdateLayoutProps, col, derive_signal, height, mount, row, wgt, width,
+};
+use rooibos::router::{Route, RouteFromStatic, Router, provide_router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::widgets::Paragraph;
+use rooibos::tui::widgets::Block;
+use taffy::AlignItems;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[derive(Route)]
-struct Child1 {
-    id: Option<u32>,
-}
-
-impl Child1 {
-    fn new(id: Option<u32>) -> Self {
-        Self { id }
-    }
-}
+struct Home;
 
 #[derive(Route)]
-struct Child2 {
-    id: i32,
-}
+struct About;
 
-impl Child2 {
-    fn new(id: i32) -> Self {
-        Self { id }
-    }
+#[derive(Route)]
+struct BlogIndex;
+
+#[derive(Route)]
+struct BlogPost {
+    id: usize,
 }
 
 #[rooibos::main]
@@ -43,68 +38,88 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    let child2_id = RwSignal::new(0);
-
-    col![Router::new().routes([
-        Route::new::<DefaultRoute>(child0),
-        Route::new::<Child1>(move || child1(child2_id)),
-        Route::new::<Child2>(child2)
-    ])]
+    provide_router();
+    col![
+        props(align_items(AlignItems::Center), width!(30.),),
+        col![
+            props(height!(10.), block(Block::bordered())),
+            Router::new()
+                .routes([
+                    Route::new::<Home>(home),
+                    Route::new::<About>(about),
+                    Route::new::<BlogIndex>(blog_index),
+                    Route::new::<BlogPost>(blog_post)
+                ])
+                .initial(Home)
+        ],
+        footer()
+    ]
 }
 
-fn child0() -> impl Render {
+fn home() -> impl Render {
     let router = use_router();
-
-    Effect::new(move || {
-        focus_id("child0");
-    });
-
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            router.push(Child1::new(Some(1)));
-        }
-    };
-
-    wgt!(Paragraph::new("child0"))
-        .on_key_down(key_down)
-        .id("child0")
+    let about_click = move || router.push(About);
+    let blog_click = move || router.push(BlogIndex);
+    col![
+        props(align_items(AlignItems::Center)),
+        wgt!(props(width!(22.), height!(2.)), "This is the home page"),
+        row![
+            props(width!(18.)),
+            Button::new()
+                .width(chars(9.))
+                .height(chars(3.))
+                .on_click(about_click)
+                .render(text!("About")),
+            Button::new()
+                .width(chars(9.))
+                .height(chars(3.))
+                .on_click(blog_click)
+                .render(text!("Blog"))
+        ]
+    ]
 }
 
-fn child1(child2_id: RwSignal<i32>) -> impl Render {
-    let router = use_router();
-    let id = router.use_query(Child1::ID);
-
-    after_render(move || {
-        focus_id("child1");
-    });
-
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            router.push(Child2::new(child2_id.get()));
-            child2_id.update(|id| *id += 1);
-        }
-    };
-
-    wgt!(Paragraph::new(format!("child1 id={}", id.get())))
-        .on_key_down(key_down)
-        .id("child1")
+fn about() -> impl Render {
+    wgt!("This is the about page")
 }
 
-fn child2() -> impl Render {
+fn blog_index() -> impl Render {
     let router = use_router();
-    let id = router.use_param(Child2::ID);
+    let route_to_post = move |id: usize| router.push(BlogPost { id });
+    col![
+        wgt!("This is the blog page"),
+        Button::new()
+            .height(chars(3.))
+            .on_click(move || route_to_post(1))
+            .render(text!("post 1")),
+        Button::new()
+            .height(chars(3.))
+            .on_click(move || route_to_post(2))
+            .render(text!("post 2"))
+    ]
+}
 
-    after_render(move || {
-        focus_id("child2");
-    });
+fn blog_post() -> impl Render {
+    let router = use_router();
+    let id = router.use_param(BlogPost::ID);
+    wgt!(format!("blog post {}", id.get()))
+}
 
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            router.pop();
-        }
-    };
-
-    wgt!(Paragraph::new(format!("child2 id={}", id.get())))
-        .on_key_down(key_down)
-        .id("child2")
+fn footer() -> impl Render {
+    let router = use_router();
+    let on_forward = move || router.forward();
+    let on_back = move || router.back();
+    row![
+        props(width!(10.), height!(3.)),
+        Button::new()
+            .height(chars(3.))
+            .on_click(on_back)
+            .enabled(derive_signal!(router.can_go_back().get()))
+            .render(text!("←")),
+        Button::new()
+            .height(chars(3.))
+            .on_click(on_forward)
+            .enabled(derive_signal!(router.can_go_forward().get()))
+            .render(text!("→"))
+    ]
 }
