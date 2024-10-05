@@ -248,7 +248,7 @@ fn add_edit_button(
     input_ref: InputRef,
 ) -> impl Render {
     let edit_save_text = derive_signal!(text!(if editing.get() {
-        "".green()
+        "󱣪".green()
     } else {
         "󱞁".blue()
     }));
