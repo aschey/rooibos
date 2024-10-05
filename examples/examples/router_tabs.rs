@@ -86,11 +86,20 @@ fn tabs() -> impl Render {
             .on_key_down(on_key_down)
             .render(current_route, tabs),
         Button::new()
-            .width(chars(20.))
+            .width(chars(14.))
             .height(chars(3.))
             .on_click(move || {
                 router.back();
             })
-            .render(text!("Previous"))
+            .enabled(router.can_go_back())
+            .render(text!("Previous")),
+        Button::new()
+            .width(chars(14.))
+            .height(chars(3.))
+            .on_click(move || {
+                router.forward();
+            })
+            .enabled(router.can_go_forward())
+            .render(text!("Next"))
     ]
 }

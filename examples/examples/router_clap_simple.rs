@@ -3,11 +3,8 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use rooibos::components::Button;
 use rooibos::dom::text;
-use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::{align_items, block, chars};
-use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, derive_signal, height, mount, row, wgt, width,
-};
+use rooibos::reactive::{Render, UpdateLayoutProps, col, height, mount, row, wgt, width};
 use rooibos::router::{Route, RouteFrom, Router, ToRoute, provide_router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -101,12 +98,12 @@ fn footer() -> impl Render {
         Button::new()
             .height(chars(3.))
             .on_click(on_back)
-            .enabled(derive_signal!(router.can_go_back().get()))
+            .enabled(router.can_go_back())
             .render(text!("←")),
         Button::new()
             .height(chars(3.))
             .on_click(on_forward)
-            .enabled(derive_signal!(router.can_go_forward().get()))
+            .enabled(router.can_go_forward())
             .render(text!("→"))
     ]
 }
