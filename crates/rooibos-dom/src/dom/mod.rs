@@ -1,12 +1,15 @@
 use std::cell::RefCell;
+use std::io::{self, Write};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use node_tree::*;
+use ratatui::backend::Backend;
 use ratatui::buffer::Buffer;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
+use ratatui::{CompletedFrame, Terminal};
 use tokio::sync::watch;
 use tracing::error;
 
@@ -176,6 +179,22 @@ pub fn render_dom(buf: &mut Buffer) {
             root.render(buf, buf.area);
         }
     }
+}
+
+pub fn render_terminal<B>(terminal: &mut Terminal<B>) -> Result<CompletedFrame, io::Error>
+where
+    B: Backend,
+{
+    terminal.draw(|f| render_dom(f.buffer_mut()))
+}
+
+pub fn render_single_frame<B>(terminal: &mut Terminal<B>) -> Result<(), io::Error>
+where
+    B: Backend + Write,
+{
+    render_terminal(terminal)?;
+    terminal.backend_mut().write_all(b"\n")?;
+    Ok(())
 }
 
 pub fn focus(id: impl Into<NodeId>) {

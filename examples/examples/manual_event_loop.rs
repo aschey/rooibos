@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEvent, focus_next, line, render_dom, span};
+use rooibos::dom::{KeyCode, KeyEvent, focus_next, line, render_terminal, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{Render, mount, wgt};
@@ -17,18 +17,18 @@ async fn main() -> Result {
     let mut runtime = Runtime::initialize(CrosstermBackend::stdout());
     let mut terminal = runtime.setup_terminal()?;
 
-    terminal.draw(|f| render_dom(f.buffer_mut()))?;
+    render_terminal(&mut terminal)?;
     focus_next();
 
     loop {
         let tick_result = runtime.tick().await?;
         match tick_result {
             TickResult::Redraw => {
-                terminal.draw(|f| render_dom(f.buffer_mut()))?;
+                render_terminal(&mut terminal)?;
             }
             TickResult::Restart => {
                 terminal = runtime.setup_terminal()?;
-                terminal.draw(|f| render_dom(f.buffer_mut()))?;
+                render_terminal(&mut terminal)?;
             }
             TickResult::Exit(Ok(code)) => {
                 if runtime.should_exit().await {

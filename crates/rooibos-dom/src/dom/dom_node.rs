@@ -319,6 +319,21 @@ impl NodeProperties {
             Clear.render(rect, buf);
         }
 
+        // If the widget dimension == the window dimension, there's probably no explicit
+        // constraint. Subtract the extra to prevent clamp from removing any
+        // margins.
+
+        // If we're using an inline viewport, the (x,y) of the top left corner may be
+        // greater than zero, so we need to account for that too.
+        if rect.width == window.width {
+            rect.width = normalize_rect(rect.width, rect.x, window.x);
+        }
+        if rect.height == window.height {
+            rect.height = normalize_rect(rect.height, rect.y, window.y);
+        }
+        // prevent panic if the calculated rect overflows the window area
+        let rect = rect.clamp(window);
+
         match &self.node_type {
             NodeType::Layout => {
                 if let Some(block) = &self.block {
@@ -335,19 +350,6 @@ impl NodeProperties {
                 });
             }
             NodeType::Widget(widget) => {
-                // If the widget dimension == the window dimension, there's probably no explicit
-                // constraint. Subtract the extra to prevent clamp from removing any
-                // margins.
-                // If we're using an inline viewport, the (x,y) of the top left corner may be
-                // greater than zero, so we need to account for that too.
-                if rect.width == window.width {
-                    rect.width -= rect.x - window.x;
-                }
-                if rect.height == window.height {
-                    rect.height -= rect.y - window.y;
-                }
-                // prevent panic if the calculated rect overflows the window area
-                let rect = rect.clamp(window);
                 widget.render(rect, buf);
             }
             NodeType::Placeholder => {}
@@ -359,6 +361,11 @@ impl NodeProperties {
             }
         }
     }
+}
+
+fn normalize_rect(dimension: u16, coord: u16, window_coord: u16) -> u16 {
+    // convert to signed values first to prevent overflow on subtraction
+    (dimension as i16 - coord as i16 - window_coord as i16) as u16
 }
 
 #[derive(Clone, Debug, Default)]

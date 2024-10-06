@@ -6,7 +6,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use rooibos_dom::{
     DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
-    NodeTypeRepr, focus_next, render_dom,
+    NodeTypeRepr, focus_next, render_terminal,
 };
 #[cfg(feature = "runtime")]
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
@@ -78,11 +78,13 @@ impl TestHarness {
 
     #[cfg(feature = "runtime")]
     pub fn new_with_settings(runtime_settings: RuntimeSettings, width: u16, height: u16) -> Self {
+        use rooibos_dom::render_terminal;
+
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
         let mut runtime = Runtime::initialize_with_settings(runtime_settings, backend);
         let mut terminal = runtime.setup_terminal().unwrap();
-        terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+        render_terminal(&mut terminal).unwrap();
         focus_next();
 
         Self {
@@ -99,7 +101,7 @@ impl TestHarness {
     ) -> Self {
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
-        terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+        render_terminal(&mut terminal).unwrap();
         focus_next();
 
         Self {
@@ -249,6 +251,8 @@ impl TestHarness {
         mut f: impl FnMut(&Self, Option<TickResult>) -> bool,
         timeout: Duration,
     ) -> Result<(), Buffer> {
+        use rooibos_dom::render_terminal;
+
         let start = Instant::now();
         loop {
             let mut last_tick_result = None;
@@ -258,11 +262,11 @@ impl TestHarness {
                     last_tick_result = Some(tick_result.clone());
                     match tick_result {
                         TickResult::Redraw => {
-                            self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+                            render_terminal(&mut self.terminal).unwrap();
                         }
                         TickResult::Restart => {
                             self.terminal = self.runtime.setup_terminal().unwrap();
-                            self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+                            render_terminal(&mut self.terminal).unwrap();
                         }
                         TickResult::Exit(_) => {
                             panic!("application exited");

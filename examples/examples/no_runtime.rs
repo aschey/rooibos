@@ -3,8 +3,7 @@ use std::sync::Arc;
 
 use futures_cancel::FutureExt;
 use rooibos::dom::{
-    Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver, focus_next, line,
-    render_dom, set_pixel_size, set_supports_keyboard_enhancement, span,
+    Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver, focus_next, line, render_terminal, set_pixel_size, set_supports_keyboard_enhancement, span,
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -35,7 +34,7 @@ async fn main() -> Result<()> {
     set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement()).unwrap();
 
     mount(app);
-    terminal.draw(|f| render_dom(f.buffer_mut()))?;
+    render_terminal(&mut terminal)?;
     let cancellation_token = CancellationToken::new();
     let (term_tx, mut term_rx) = broadcast::channel(32);
     focus_next();
@@ -57,7 +56,7 @@ async fn main() -> Result<()> {
     loop {
         tokio::select! {
             Ok(()) = dom_update_rx.changed() => {
-                terminal.draw(|f| render_dom(f.buffer_mut()))?;
+               render_terminal(&mut terminal)?;
             }
             Ok(event) = term_rx.recv() => {
                     if should_exit(&event) {
