@@ -1,28 +1,40 @@
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType, Paragraph};
 use rooibos_reactive::div::taffy::{self, AlignItems};
-use rooibos_reactive::graph::owner::{provide_context, use_context};
+use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::layout::{align_items, chars, clear, height, max_width, width, z_index};
 use rooibos_reactive::{Render, col, derive_signal, for_each, height, wgt, width};
-use tokio::sync::mpsc;
+use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 
-#[derive(Clone)]
-struct NotificationContext {
-    tx: mpsc::Sender<Notification>,
+#[derive(Clone, Debug)]
+pub struct NotificationContext {
+    tx: broadcast::Sender<Notification>,
+}
+
+impl Default for NotificationContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NotificationContext {
+    pub fn new() -> Self {
+        let (tx, _) = broadcast::channel(32);
+        Self { tx }
+    }
 }
 
 static NOTIFICATION_ID: AtomicU32 = AtomicU32::new(1);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Notification {
     id: u32,
     content: Text<'static>,
@@ -44,9 +56,20 @@ impl Notification {
     }
 }
 
-#[derive(Clone)]
+pub fn provide_notifications() {
+    provide_context(NotificationContext::new())
+}
+
+fn get_notification_context() -> NotificationContext {
+    use_context::<NotificationContext>().expect(
+        "Notification context not found. Ensure provide_notifications() was called at the root of \
+         your application.",
+    )
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Notifier {
-    context: Arc<RwLock<Option<NotificationContext>>>,
+    context: StoredValue<NotificationContext>,
 }
 
 impl Default for Notifier {
@@ -58,29 +81,20 @@ impl Default for Notifier {
 impl Notifier {
     pub fn new() -> Self {
         Self {
-            context: Arc::new(RwLock::new(use_context::<NotificationContext>())),
+            context: StoredValue::new(get_notification_context()),
         }
     }
 
     pub fn notify(&self, notification: Notification) {
-        if let Some(context) = use_context::<NotificationContext>() {
-            context.tx.try_send(notification).unwrap();
-            return;
-        }
-
-        let context = use_context::<NotificationContext>().expect(
-            "Notification context not found. Ensure an instance of Notifications is attached to \
-             the widget tree and the Notifier instance was created on the same thread.",
-        );
-        context.tx.try_send(notification).unwrap();
-        *self.context.write().unwrap() = Some(context);
+        self.context
+            .with_value(|v| v.tx.send(notification).unwrap());
     }
 }
 
 pub struct Notifications {
     content_width: MaybeSignal<u16>,
     max_layout_width: MaybeSignal<taffy::Dimension>,
-    rx: mpsc::Receiver<Notification>,
+    rx: broadcast::Receiver<Notification>,
 }
 
 impl Default for Notifications {
@@ -91,13 +105,11 @@ impl Default for Notifications {
 
 impl Notifications {
     pub fn new() -> Self {
-        let (tx, rx) = mpsc::channel(32);
-        provide_context(NotificationContext { tx });
-
+        let context = get_notification_context();
         Self {
             content_width: 20.into(),
             max_layout_width: taffy::Dimension::Auto.into(),
-            rx,
+            rx: context.tx.subscribe(),
         }
     }
 
@@ -128,7 +140,7 @@ impl Notifications {
         let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
 
         spawn(async move {
-            while let Some(notification) = rx.recv().await {
+            while let Ok(notification) = rx.recv().await {
                 let id = notification.id;
                 let timeout = notification.timeout;
                 notifications.update(|n| n.push(notification));

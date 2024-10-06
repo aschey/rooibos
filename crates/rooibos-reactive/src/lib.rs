@@ -2,6 +2,7 @@ mod dom;
 mod error_boundary;
 mod for_loop;
 mod macros;
+mod provider;
 mod suspense;
 mod widgets;
 pub mod graph {
@@ -17,6 +18,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub use dom::*;
 pub use error_boundary::*;
 pub use for_loop::*;
+pub use provider::*;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
