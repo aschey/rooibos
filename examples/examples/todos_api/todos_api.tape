@@ -86,6 +86,7 @@ Enter
 
 Sleep 500ms
 Tab 4
+Sleep 1000ms
 Enter
 
-Sleep 2000ms
+Sleep 3000ms
