@@ -42,5 +42,5 @@ flowchart LR
     ML -- Parsed Input Events --> DED[Dom Event Dispatcher]
     DED -- Trigger Event Handler --> D[Dom]
     D -- Notify DOM Changed --> ML
-    ML -- Re-render --> ML
+    ML -- Re-render --> D
 ```
