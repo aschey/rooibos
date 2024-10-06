@@ -61,9 +61,22 @@ fn app() -> impl Render {
 
 ![demo](./examples/examples/todos_api/todos_api.gif)
 
+## Feature Overview
+
+- Declarative and reactive style for building UIs
+- Easy-to-use event handlers with mouse support
+- Compatibility with Ratatui and its widget ecosystem
+- Flexbox and grid layouts powered by [taffy](https://docs.rs/taffy/latest/taffy/)
+- Render your applications on the web, desktop, SSH, or mobile with minimal changes
+- First-class async integration
+
 ## Examples
 
 See [examples](./examples/examples).
+
+## Architecture
+
+See [architecture](./ARCHITECTURE.md).
 
 ## Backend Support Status
 

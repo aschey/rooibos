@@ -63,7 +63,7 @@ Set Shell "zsh"
 Set FontFamily "CaskaydiaCove Nerd Font"
 Set FontSize 32
 Set Width 1200
-Set Height 800
+Set Height 600
 
 Type "cargo run --example=todos_api"
 Enter
