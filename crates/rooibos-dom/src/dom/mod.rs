@@ -42,6 +42,20 @@ thread_local! {
     };
     static PRINT_DOM: AtomicBool = const { AtomicBool::new(false) };
     static PENDING_RESIZE: AtomicBool = const { AtomicBool::new(true) };
+    static ON_WINDOW_FOCUS_CHANGE: RefCell<Box<dyn FnMut(bool)>> = {
+        RefCell::new(Box::new(|_focused| {}))
+    };
+}
+
+pub fn on_window_focus_changed<F>(f: F)
+where
+    F: FnMut(bool) + 'static,
+{
+    ON_WINDOW_FOCUS_CHANGE.with(|on_change| *on_change.borrow_mut() = Box::new(f));
+}
+
+pub(crate) fn trigger_window_focus_changed(focused: bool) {
+    ON_WINDOW_FOCUS_CHANGE.with(|on_change| (on_change.borrow_mut())(focused));
 }
 
 pub(crate) fn toggle_print_dom() {

@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{Render, col, mount, row, use_window_size, wgt};
+use rooibos::reactive::{Render, col, mount, row, use_window_focus, use_window_size, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -20,13 +20,16 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     let window_size = use_window_size();
+    let window_focused = use_window_focus();
 
     col![
         wgt![{
             let window_size = window_size.get();
             format!(
-                "window size width={} height={}",
-                window_size.width, window_size.height
+                "window size width={} height={} focused={}",
+                window_size.width,
+                window_size.height,
+                window_focused.get()
             )
         }],
         row![show_size(1), show_size(2)],
