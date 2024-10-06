@@ -30,17 +30,26 @@ There's several advantages to using an async model here:
 
 ## Rendering Model
 
+### Terminal Event and Signal Handling
+
 ```mermaid
 flowchart LR
     T[Terminal] -- Input Events --> IR[Input Reader]
-    OS[OS] -- OS Signals --> OSSH[OS Signal Handler]
-    IR -- Parsed Events --> ML[Main Loop]
+    OS[OS] -- OS Signals --> OSSR[OS Signal Reader]
+    IR -- Parsed Input Events --> ML[Main Loop]
+    OSSR -- Processed Signals --> ML
+    ML -- Parsed Input Events --> DED[DOM Event Dispatcher]
+```
+
+### User Event Handling
+
+```mermaid
+flowchart LR
     A[Application] -- Terminal Commands --> ML
     A -- Reactive Signals --> SS[Signal Subscribers]
     SS -- Modify DOM --> D
-    OSSH -- Processed Signals --> ML
-    ML -- Parsed Input Events --> DED[Dom Event Dispatcher]
-    DED -- Trigger Event Handler --> D[Dom]
-    D -- Notify DOM Changed --> ML
+    DED[DOM Event Dispatcher] -- Trigger Event Handler --> D[Dom]
+    D -- Notify DOM Changed --> ML[Main Loop]
     ML -- Re-render --> D
+    ML -- Invoke Terminal Command --> T[Terminal]
 ```
