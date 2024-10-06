@@ -1,8 +1,8 @@
-use rooibos::dom::{col, row, widget_ref, Constrainable, Render};
-use rooibos::reactive::computed::Memo;
-use rooibos::reactive::owner::StoredValue;
-use rooibos::reactive::traits::Get;
-use rooibos::tui::layout::Constraint::*;
+use rooibos::reactive::graph::computed::Memo;
+use rooibos::reactive::graph::owner::StoredValue;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::{Render, col, row, wgt, width};
+use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::canvas::{self, Canvas, Circle, Context, Map, MapResolution, Rectangle};
@@ -36,10 +36,10 @@ pub(crate) fn tab1() -> impl Render {
         },
     ]);
 
-    row![
-        col![demo_table(servers)].percentage(30),
-        col![demo_map(servers, true)].percentage(70)
-    ]
+    row![col![props(width!(30.%)), demo_table(servers)], col![
+        props(width!(70.%)),
+        demo_map(servers, true)
+    ]]
 }
 
 #[derive(Clone)]
@@ -66,14 +66,18 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
             .collect::<Vec<_>>()
     });
 
-    widget_ref!(
-        Table::new(rows.get(), [Length(15), Length(15), Length(10),])
-            .header(
-                Row::new(vec!["Server", "Location", "Status"])
-                    .yellow()
-                    .bottom_margin(1)
-            )
-            .block(Block::bordered().title("Servers"))
+    wgt!(
+        Table::new(rows.get(), [
+            Constraint::Length(15),
+            Constraint::Length(15),
+            Constraint::Length(10),
+        ])
+        .header(
+            Row::new(vec!["Server", "Location", "Status"])
+                .yellow()
+                .bottom_margin(1)
+        )
+        .block(Block::bordered().title("Servers"))
     )
 }
 
@@ -119,7 +123,7 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
         }
     };
 
-    widget_ref!(
+    wgt!(
         Canvas::default()
             .block(Block::bordered().title("World"))
             .paint(paint_map)

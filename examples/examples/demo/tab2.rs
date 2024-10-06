@@ -1,13 +1,13 @@
-use rooibos::dom::{col, row, widget_ref, Constrainable, Render};
-use rooibos::tui::layout::Constraint::{self, *};
+use rooibos::reactive::{Render, row, wgt};
+use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {
-    row![colors_table(Ratio(2, 1)), col![].ratio(2, 1)]
+    row![colors_table()]
 }
 
-fn colors_table(constraint: Constraint) -> impl Render {
+fn colors_table() -> impl Render {
     let colors = [
         Color::Reset,
         Color::Black,
@@ -28,7 +28,7 @@ fn colors_table(constraint: Constraint) -> impl Render {
         Color::White,
     ];
 
-    widget_ref!(
+    wgt![
         Table::new(
             colors.iter().map(|c| {
                 Row::new(vec![
@@ -37,9 +37,12 @@ fn colors_table(constraint: Constraint) -> impl Render {
                     Cell::new("Background".bg(*c)),
                 ])
             }),
-            [Ratio(1, 3), Ratio(1, 3), Ratio(1, 3)]
+            [
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 3)
+            ]
         )
         .block(Block::bordered().title("Colors"))
-    )
-    .constraint(constraint)
+    ]
 }

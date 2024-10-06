@@ -4,25 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
-    "tracing",
-    "effects",
-] }
-crossterm = { version = "0.27", optional = true }
-tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
-next_tuple = { path = "../../../leptos/next_tuple" }
-either_of = { path = "../../../leptos/either_of" }
-matchit = "0.8"
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
+tui-textarea = { version = "0.6", default-features = false, optional = true }
+crossterm = { version = "0.28.1", optional = true }
 rooibos-dom = { path = "../rooibos-dom" }
-rooibos-runtime = { path = "../rooibos-runtime" }
-url = "2"
-derivative = "2"
-ratatui = { version = "0.27", default-features = false }
-tui-textarea = { version = "0.5", default-features = false, optional = true }
+rooibos-reactive = { path = "../rooibos-reactive" }
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+  "all",
+] }
+educe = "0.6"
+ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = "0.1"
-ratatui-image = { version = "1.0.5", optional = true }
+# TODO: set this back to the published version after the next release
+ratatui-image = { git = "https://github.com/benjajaja/ratatui-image", rev = "e630e680a186fc0c44c43be0e6966889094e525e", optional = true }
 image = { version = "0.25", optional = true }
+throbber-widgets-tui = { version = "0.7.0", optional = true }
+tokio-util = "0.7"
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+getrandom = { version = "0.2", features = ["js"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tui-term = { version = "0.1.12", optional = true }
@@ -30,7 +31,6 @@ vt100 = { version = "0.15", optional = true }
 portable-pty = { version = "0.8", optional = true }
 
 [features]
-nightly = ["reactive_graph/nightly", "tachys/nightly"]
 crossterm = ["dep:crossterm", "tui-textarea?/crossterm"]
 termion = ["tui-textarea?/termion"]
 termwiz = ["tui-textarea?/termwiz"]
@@ -38,3 +38,4 @@ input-search = ["tui-textarea/search"]
 terminal-widget = ["tui-term", "vt100", "portable-pty"]
 image = ["dep:image", "dep:ratatui-image"]
 input = ["dep:tui-textarea"]
+spinner = ["throbber-widgets-tui", "getrandom"]

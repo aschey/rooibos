@@ -1,49 +1,56 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
-use rooibos::dom::{
-    col, focus_next, focus_prev, row, use_focus, widget_ref, Constrainable, KeyCode, Render,
+use rooibos::dom::{KeyCode, clear_focus, focus_next, focus_prev, line};
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::{
+    Render, col, derive_signal, height, max_width, mount, padding, row, use_focus, wgt,
 };
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::traits::Get;
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{use_keypress, Runtime, RuntimeSettings};
+use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, use_keypress};
+use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Paragraph};
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
     let term_signal = use_keypress();
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Up {
-                focus_prev();
-            }
-            if term_signal.code == KeyCode::Down {
-                focus_next();
+            match term_signal.code {
+                KeyCode::Up => {
+                    focus_prev();
+                }
+                KeyCode::Down => {
+                    focus_next();
+                }
+                KeyCode::Esc => {
+                    clear_focus();
+                }
+                _ => {}
             }
         }
     });
 
     row![
+        props(padding!(1.)),
         col![
-            row![focus_block("item 1")].percentage(50),
-            row![focus_block("item 2")].percentage(50)
+            props(max_width!(60.)),
+            focus_block("item 1"),
+            focus_block("item 2")
         ],
         col![
-            row![focus_block("item 3")].percentage(50),
-            row![focus_block("item 4")].percentage(50)
+            props(max_width!(60.)),
+            focus_block("item 3"),
+            focus_block("item 4")
         ]
     ]
 }
@@ -51,8 +58,17 @@ fn app() -> impl Render {
 fn focus_block(title: &'static str) -> impl Render {
     let (id, focused) = use_focus();
 
-    widget_ref!(
-        Paragraph::new(format!("{title} - focused: {}", focused.get())).block(Block::default())
+    let title = derive_signal!(if focused.get() {
+        line!(title, " - ", "focused".green())
+    } else {
+        line!(title)
+    });
+
+    wgt!(
+        props(height!(3.), max_width!(30.)),
+        Paragraph::new(title.get())
+            .centered()
+            .block(Block::bordered())
     )
     .id(id)
     .focusable(true)

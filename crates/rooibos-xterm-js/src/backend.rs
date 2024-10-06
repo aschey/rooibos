@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::io::{self, Write};
 
 use crossterm::cursor::{DisableBlinking, Hide, Show};
@@ -7,17 +8,18 @@ use crossterm::event::{
     PushKeyboardEnhancementFlags,
 };
 use crossterm::terminal::{
-    supports_keyboard_enhancement, EnterAlternateScreen, LeaveAlternateScreen, SetTitle,
+    EnterAlternateScreen, LeaveAlternateScreen, SetTitle, supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
-use futures::StreamExt;
+use futures::Future;
+use futures_cancel::FutureExt;
 use ratatui::{Terminal, Viewport};
 use ratatui_xterm_js::xterm::Theme;
-use ratatui_xterm_js::{init_terminal, EventStream, TerminalHandle, XtermJsBackend};
-use rooibos_runtime::backend::Backend;
-use rooibos_runtime::CancellationToken;
+use ratatui_xterm_js::{EventStream, TerminalHandle, XtermJsBackend, init_terminal};
+use rooibos_terminal::{AsyncInputStream, Backend, ClipboardKind};
 use tap::TapFallible;
 use tokio::sync::broadcast;
+use tokio_stream::StreamExt as _;
 use tracing::warn;
 use web_sys::wasm_bindgen::JsCast;
 
@@ -27,7 +29,6 @@ pub struct TerminalSettings {
     keyboard_enhancement: bool,
     focus_change: bool,
     bracketed_paste: bool,
-    viewport: Viewport,
 }
 
 impl Default for TerminalSettings {
@@ -38,7 +39,6 @@ impl Default for TerminalSettings {
             keyboard_enhancement: true,
             focus_change: true,
             bracketed_paste: true,
-            viewport: Viewport::default(),
         }
     }
 }
@@ -61,14 +61,6 @@ impl TerminalSettings {
 
     pub fn bracketed_paste(mut self, bracketed_paste: bool) -> Self {
         self.bracketed_paste = bracketed_paste;
-        self
-    }
-
-    pub fn viewport(mut self, viewport: Viewport) -> Self {
-        if viewport != Viewport::Fullscreen {
-            self.alternate_screen = false;
-        }
-        self.viewport = viewport;
         self
     }
 
@@ -105,7 +97,7 @@ impl Default for WasmBackend {
 impl Backend for WasmBackend {
     type TuiBackend = XtermJsBackend;
 
-    fn setup_terminal(&self) -> io::Result<Terminal<Self::TuiBackend>> {
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let elem = web_sys::window()
             .unwrap()
             .document()
@@ -130,38 +122,34 @@ impl Backend for WasmBackend {
         );
 
         let mut handle = TerminalHandle::default();
+        Ok(XtermJsBackend::new(handle))
+    }
 
-        queue!(handle, Hide)?;
+    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+        queue!(terminal.backend_mut(), Hide)?;
         if self.settings.alternate_screen {
-            queue!(handle, EnterAlternateScreen)?;
+            queue!(terminal.backend_mut(), EnterAlternateScreen)?;
         }
         if self.settings.mouse_capture {
-            queue!(handle, EnableMouseCapture)?;
+            queue!(terminal.backend_mut(), EnableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(handle, EnableFocusChange)?;
+            queue!(terminal.backend_mut(), EnableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(handle, EnableBracketedPaste)?;
+            queue!(terminal.backend_mut(), EnableBracketedPaste)?;
         }
 
         if self.supports_keyboard_enhancement {
             queue!(
-                handle,
+                terminal.backend_mut(),
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
         }
-        handle.flush()?;
-
-        let mut terminal = Terminal::with_options(
-            XtermJsBackend::new(handle),
-            ratatui::TerminalOptions {
-                viewport: self.settings.viewport.clone(),
-            },
-        )?;
+        terminal.backend_mut().flush()?;
 
         terminal.clear()?;
-        Ok(terminal)
+        Ok(())
     }
 
     fn restore_terminal(&self) -> io::Result<()> {
@@ -208,35 +196,28 @@ impl Backend for WasmBackend {
         self.supports_keyboard_enhancement
     }
 
+    fn set_clipboard<T: Display>(
+        &self,
+        terminal: &mut Terminal<Self::TuiBackend>,
+        content: T,
+        clipboard_kind: ClipboardKind,
+    ) -> io::Result<()> {
+        Ok(())
+    }
+
     fn write_all(&self, buf: &[u8]) -> io::Result<()> {
         let mut handle = TerminalHandle::default();
         handle.write_all(buf)
     }
 
-    async fn read_input(
-        &self,
-        term_tx: broadcast::Sender<rooibos_dom::Event>,
-        cancellation_token: CancellationToken,
-    ) {
-        let mut event_reader = EventStream::new().fuse();
-
-        loop {
-            tokio::select! {
-                _ = cancellation_token.cancelled() => {
-                    return;
-                }
-                event = event_reader.next() => {
-                    if let Some(Ok(event)) = event {
-                        if let Ok(event) = event.try_into() {
-                            let _ = term_tx
-                                .send(event)
-                                .tap_err(|e| warn!("failed to send event {e:?}"));
-                        }
-                    } else {
-                        return;
-                    }
-                }
+    fn async_input_stream(&self) -> impl AsyncInputStream {
+        let event_reader = EventStream::new().fuse();
+        event_reader.filter_map(move |e| {
+            if let Ok(e) = e {
+                let e: Result<rooibos_dom::Event, _> = e.try_into();
+                return e.ok();
             }
-        }
+            None
+        })
     }
 }

@@ -5,44 +5,50 @@ edition = "2021"
 
 [dependencies]
 rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
-    "tracing",
-    "effects",
-] }
+rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-runtime = { path = "../rooibos-runtime" }
-rooibos-runtime-macros = { path = "../rooibos-runtime-macros" }
+rooibos-reactive-macros = { path = "../rooibos-reactive-macros" }
 rooibos-components = { path = "../rooibos-components" }
+rooibos-config = { path = "../rooibos-config", optional = true }
 rooibos-tester = { path = "../rooibos-tester" }
+rooibos-terminal = { path = "../rooibos-terminal" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
-ratatui = { version = "0.27", features = ["unstable"] }
+rooibos-router = { path = "../rooibos-router", optional = true }
+ratatui = { version = "0.28", features = ["unstable"] }
 
 [features]
-nightly = [
-    "reactive_graph/nightly",
-    "rooibos-dom/nightly",
-    "rooibos-runtime/nightly",
-]
+nightly = ["rooibos-reactive/nightly"]
 crossterm = [
-    "rooibos-dom/crossterm",
-    "rooibos-runtime/crossterm",
-    "rooibos-components/crossterm",
-    "rooibos-ssh?/crossterm",
+  "rooibos-dom/crossterm",
+  "rooibos-runtime/crossterm",
+  "rooibos-components/crossterm",
+  "rooibos-terminal/crossterm",
 ]
 termion = [
-    "rooibos-dom/termion",
-    "rooibos-runtime/termion",
-    "rooibos-components/termion",
+  "rooibos-dom/termion",
+  "rooibos-runtime/termion",
+  "rooibos-components/termion",
+  "rooibos-terminal/termion",
 ]
 termwiz = [
-    "rooibos-dom/termwiz",
-    "rooibos-runtime/termwiz",
-    "rooibos-components/termwiz",
+  "rooibos-dom/termwiz",
+  "rooibos-runtime/termwiz",
+  "rooibos-components/termwiz",
+  "rooibos-terminal/termwiz",
 ]
 xterm-js = ["rooibos-xterm-js"]
+config = ["rooibos-config"]
 default = ["crossterm"]
 ssh = ["rooibos-ssh"]
+router = ["rooibos-router"]
 input-search = ["rooibos-components/input-search"]
 terminal-widget = ["rooibos-components/terminal-widget"]
 input = ["rooibos-components/input", "rooibos-dom/input"]
 image = ["rooibos-components/image"]
+clipboard = [
+  "rooibos-runtime/clipboard",
+  "rooibos-terminal/clipboard",
+  "rooibos-ssh?/clipboard",
+]
+spinner = ["rooibos-components/spinner"]

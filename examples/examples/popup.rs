@@ -1,59 +1,84 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
-use rooibos::components::Popup;
-use rooibos::dom::{
-    clear, col, line, overlay, widget_ref, Constrainable, KeyCode, KeyEvent, Render,
+use rooibos::components::Button;
+use rooibos::dom::{focus_id, line, text};
+use rooibos::reactive::flex_node::FlexProperty;
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::signal::{ReadSignal, signal};
+use rooibos::reactive::graph::traits::{Get as _, Set};
+use rooibos::reactive::layout::{align_items, block, chars, justify_content, show};
+use rooibos::reactive::{
+    NodeId, Render, UpdateLayoutProps, after_render, col, height, margin_left, max_height,
+    max_width, mount, wgt, width,
 };
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::Update;
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::tui::widgets::{Block, Paragraph};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::widgets::Block;
+use taffy::{AlignItems, JustifyContent};
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
-    let show_popup = RwSignal::new(false);
-
-    let key_down = move |key_event: KeyEvent, _| {
-        if key_event.code == KeyCode::Enter {
-            show_popup.update(|p| *p = !*p);
-        }
-    };
-
-    overlay![
-        widget_ref!(
-            Paragraph::new(vec![
-                line!("text1"),
-                line!("text2"),
-                line!("text3"),
-                line!("text4")
-            ])
-            .block(Block::bordered())
-        )
-        .on_key_down(key_down),
-        Popup::default()
-            .percent_x(50)
-            .percent_y(50)
-            .render(show_popup, move || col![
-                col![].fill(1),
-                clear![widget_ref!(
-                    Paragraph::new("popup text").block(Block::bordered())
-                )]
-                .length(3),
-                col![].fill(1),
-            ])
+    let (show_popup, set_show_popup) = signal(false);
+    col![
+        props(max_width!(50.), max_height!(20.)),
+        Button::new()
+            .width(chars(14.))
+            .height(chars(3.))
+            .on_click(move || set_show_popup.set(true))
+            .render(text!("open popup")),
+        popup(show_popup, move || set_show_popup.set(false))
     ]
+}
+
+fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) -> impl Render {
+    let id = NodeId::new_auto();
+
+    Effect::new(move || {
+        if show_popup.get() {
+            after_render(move || {
+                focus_id(id);
+            });
+        };
+    });
+
+    col![
+        props(
+            width!(100.%),
+            height!(100.%),
+            center_items(),
+            justify_content(JustifyContent::Center),
+            show(show_popup)
+        ),
+        col![
+            props(
+                max_width!(21.),
+                max_height!(8.),
+                center_items(),
+                block(Block::bordered())
+            ),
+            wgt!(props(margin_left!(1.)), line!("popup text")),
+            Button::new()
+                .height(chars(3.))
+                .width(chars(9.))
+                .on_click(on_close)
+                .id(id)
+                .render(text!("close"))
+        ]
+    ]
+}
+
+fn center_items() -> impl FlexProperty {
+    (
+        align_items(AlignItems::Center),
+        justify_content(JustifyContent::Center),
+    )
 }

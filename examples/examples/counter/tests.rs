@@ -1,4 +1,5 @@
 use rooibos::dom::KeyCode;
+use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
@@ -16,11 +17,11 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_counter() {
-    let mut harness = TestHarness::new(
+    mount(app);
+    let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         20,
         10,
-        app,
     );
 
     assert_snapshot!(harness.terminal());

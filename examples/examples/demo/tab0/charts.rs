@@ -1,26 +1,26 @@
-use rooibos::dom::{
-    col, derive_signal, line, row, span, stateful_widget, widget_ref, Chart, Constrainable,
-    Dataset, KeyCode, Render,
-};
-use rooibos::reactive::computed::Memo;
-use rooibos::reactive::effect::Effect;
-use rooibos::reactive::owner::use_context;
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Update};
+use rooibos::dom::{Chart, Dataset, KeyCode, line, span};
+use rooibos::reactive::graph::computed::Memo;
+use rooibos::reactive::graph::effect::Effect;
+use rooibos::reactive::graph::owner::use_context;
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::layout::{height, show};
+use rooibos::reactive::{Render, col, row, wgt};
 use rooibos::runtime::use_keypress;
-use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
+use taffy::Dimension;
 
-use crate::random::RandomData;
 use crate::Tick;
+use crate::random::RandomData;
 
-pub(crate) fn charts(enhanced_graphics: bool, constraint: Constraint) -> impl Render {
+pub(crate) fn charts(enhanced_graphics: bool, chart_min_height: Signal<Dimension>) -> impl Render {
     let show_chart = RwSignal::new(true);
 
     let term_signal = use_keypress();
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
             if term_signal.code == KeyCode::Char('t') {
                 show_chart.update(|s| *s = !*s);
@@ -28,22 +28,11 @@ pub(crate) fn charts(enhanced_graphics: bool, constraint: Constraint) -> impl Re
         }
     });
 
-    let percentage1 = derive_signal!(if show_chart.get() { 50 } else { 100 });
-    let percentage2 = derive_signal!(100 - percentage1.get());
-
     row![
-        col![
-            row![
-                col![task_list()].percentage(50),
-                col![logs()].percentage(50)
-            ]
-            .percentage(50),
-            row![demo_bar_chart(enhanced_graphics)]
-        ]
-        .percentage(percentage1),
-        col![demo_chart(enhanced_graphics)].percentage(percentage2)
+        props(height(chart_min_height)),
+        col![row![task_list(), logs()], demo_bar_chart(enhanced_graphics)],
+        col![props(show(show_chart)), demo_chart(enhanced_graphics)]
     ]
-    .constraint(constraint)
 }
 
 #[derive(Clone)]
@@ -111,7 +100,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let window_start = Memo::new(move |_| window.get()[0]);
     let window_end = Memo::new(move |_| window.get()[1]);
 
-    widget_ref!(
+    wgt!(
         Chart::new(vec![
             Dataset::default()
                 .name("data2")
@@ -197,7 +186,7 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
         seq
     });
 
-    widget_ref!(
+    wgt!(
         BarChart::default()
             .block(Block::bordered().title("Bar chart"))
             .data(&bar_chart_data.get())
@@ -234,7 +223,7 @@ fn task_list() -> impl Render {
     };
 
     let term_signal = use_keypress();
-    Effect::new(move |_| {
+    Effect::new(move || {
         if let Some(term_signal) = term_signal.get() {
             if term_signal.code == KeyCode::Up {
                 update_current_task(-1)
@@ -244,12 +233,12 @@ fn task_list() -> impl Render {
         }
     });
 
-    stateful_widget!(
+    wgt!(
+        ListState::default().with_selected(selected_task.get()),
         List::new(TASKS.map(|t| ListItem::new(span!(t))))
             .block(Block::bordered().title("List"))
             .highlight_style(Style::new().bold())
-            .highlight_symbol("> "),
-        ListState::default().with_selected(selected_task.get())
+            .highlight_symbol("> ")
     )
 }
 
@@ -321,7 +310,7 @@ fn logs() -> impl Render {
             .collect::<Vec<_>>()
     });
 
-    widget_ref!(
+    wgt!(
         List::new(logs.get().iter().map(|(evt, level, style)| {
             ListItem::new(line!(span!(*style; "{level:<9}"), span!(*evt)))
         }))

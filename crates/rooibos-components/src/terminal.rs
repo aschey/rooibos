@@ -6,11 +6,12 @@ use portable_pty::{MasterPty, NativePtySystem, PtySize, PtySystem, SlavePty};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
-use reactive_graph::owner::StoredValue;
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Update};
-use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{DomWidget, Event, Render};
+use rooibos_dom::Event;
+use rooibos_reactive::graph::owner::StoredValue;
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Update};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::{DomWidget, Render};
 use tokio::sync::mpsc;
 use tokio::task::spawn_blocking;
 use tui_term::widget::PseudoTerminal;
@@ -122,7 +123,7 @@ impl Terminal {
                 term.render(rect, buf);
             }
         })
-        .on_key_down(move |key, _| {
+        .on_key_down(move |key, _, _| {
             tx.try_send(Event::Key(key).to_escape_sequence()).unwrap();
         })
         .on_size_change(move |rect| {

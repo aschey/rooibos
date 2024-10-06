@@ -1,7 +1,10 @@
-use rooibos::dom::{col, line, span, widget_ref, Constrainable, Render};
-use rooibos::tui::layout::Constraint::{self, *};
+use rooibos::dom::{line, span};
+use rooibos::reactive::graph::wrappers::read::Signal;
+use rooibos::reactive::layout::{height, pct};
+use rooibos::reactive::{Render, col, wgt};
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
+use taffy::Dimension;
 
 use crate::tab0::charts::charts;
 use crate::tab0::gauges::gauges;
@@ -11,14 +14,15 @@ mod gauges;
 
 pub(crate) fn tab0() -> impl Render {
     col![
-        gauges(true, Length(9)),
-        charts(true, Min(8)),
-        footer(Length(7))
+        gauges(true, pct(30.)),
+        charts(true, pct(50.)),
+        footer(pct(20.))
     ]
 }
 
-fn footer(constraint: Constraint) -> impl Render {
-    widget_ref!(
+fn footer(footer_height: Signal<Dimension>) -> impl Render {
+    wgt![
+        props(height(footer_height)),
         Paragraph::new(vec![
             line!(
                 "This is a paragraph with several lines. You can style your text the way you want"
@@ -52,6 +56,5 @@ fn footer(constraint: Constraint) -> impl Render {
                 .add_modifier(Modifier::BOLD)
         )
         .wrap(Wrap { trim: true })
-    )
-    .constraint(constraint)
+    ]
 }

@@ -4,58 +4,46 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-crossterm = { version = "0.27", features = [
-    "event-stream",
-    "use-dev-tty",
-], optional = true }
 futures-util = "0.3"
 rooibos-dom = { path = "../rooibos-dom" }
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
-    "tracing",
-    "effects",
-] }
-ratatui = { version = "0.27", default-features = false }
-tap = "1"
+rooibos-reactive = { path = "../rooibos-reactive", optional = true }
+ratatui = { version = "0.28", default-features = false }
 tracing = "0.1"
-derivative = "2"
-termwiz = { version = "0.22.0", optional = true }
+educe = "0.6"
 tokio-util = "0.7"
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "84c52ad6b049e169ca7f7c0a566ba45817cb31dd", features = [
-    "all",
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+  "all",
 ] }
-
-[target.'cfg(unix)'.dependencies]
-termion = { version = "4", optional = true }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "14ead7cf98eb9c32962665abb00a06df728992c8" }
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+thiserror = "1.0.63"
+rooibos-terminal = { path = "../rooibos-terminal" }
+proc-exit = "2.0.2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-js-sys = "0.3.64"
-any_spawner = { path = "../../../leptos/any_spawner", features = [
-    "wasm-bindgen",
-] }
 tokio = { version = "1.38.1", default-features = false, features = [
-    "sync",
-    "macros",
-    "rt",
+  "sync",
+  "macros",
+  "rt",
 ] }
-web-sys = { version = "0.3.64", features = ["console", "Window", "Document"] }
-wasm-bindgen-futures = "0.4.37"
 console_error_panic_hook = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
 signal-hook = "0.3"
 async-signal = "0.2"
 tokio = { version = "1.38.1", default-features = false, features = [
-    "sync",
-    "macros",
-    "time",
-    "rt-multi-thread",
-    "process",
+  "sync",
+  "macros",
+  "time",
+  "rt",
+  "process",
 ] }
 
+
 [features]
-default = ["crossterm"]
-crossterm = ["dep:crossterm", "ratatui/crossterm"]
-termion = ["dep:termion", "ratatui/termion"]
-nightly = ["reactive_graph/nightly"]
-termwiz = ["dep:termwiz", "ratatui/termwiz"]
+default = ["crossterm", "reactive"]
+reactive = ["rooibos-reactive"]
+crossterm = ["rooibos-terminal/crossterm"]
+termion = ["rooibos-terminal/termion"]
+termwiz = ["rooibos-terminal/termwiz"]
+clipboard = ["rooibos-terminal/clipboard"]

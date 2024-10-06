@@ -1,19 +1,22 @@
 use std::fmt::Write;
 use std::time::{Duration, Instant};
 
+use ratatui::Terminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::Terminal;
 use rooibos_dom::{
-    focus_next, render_dom, DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton,
-    MouseEvent, MouseEventKind, NodeTypeRepr, Render,
+    DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    NodeTypeRepr, focus_next, render_terminal,
 };
-use rooibos_runtime::backend::test::TestBackend;
+#[cfg(feature = "runtime")]
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
+#[cfg(feature = "runtime")]
 use rooibos_runtime::{Runtime, RuntimeSettings, TickResult};
+use rooibos_terminal::test::TestBackend;
 use tokio::sync::broadcast;
 use unicode_width::UnicodeWidthStr;
 
+#[cfg(feature = "runtime")]
 wasm_compat::static_init! {
     static DEFAULT_TIMEOUT: Lazy<RwLock<Duration>> =
         Lazy::new(move || RwLock::new(Duration::from_secs(1)));
@@ -31,7 +34,7 @@ impl TerminalView for Buffer {
         let mut string_buf = String::with_capacity((width * height) as usize);
         for row in 0..*height {
             for col in 0..*width {
-                let cell = self.get(col, row);
+                let cell = self.cell((col, row)).unwrap();
                 write!(&mut string_buf, "{}", cell.symbol()).unwrap();
             }
             writeln!(&mut string_buf).unwrap();
@@ -48,8 +51,8 @@ impl TerminalView for Buffer {
         });
         for row in rect.y..rect.y + rect.height {
             for col in rect.x..rect.x + rect.width {
-                let cur = self.get(col, row);
-                let new = buf.get_mut(col - rect.x, row - rect.y);
+                let cur = self.cell((col, row)).unwrap();
+                let new = buf.cell_mut((col - rect.x, row - rect.y)).unwrap();
 
                 new.set_skip(cur.skip);
                 new.set_style(cur.style());
@@ -61,32 +64,51 @@ impl TerminalView for Buffer {
 }
 
 pub struct TestHarness {
+    #[cfg(feature = "runtime")]
     runtime: Runtime<TestBackend>,
     terminal: Terminal<ratatui::backend::TestBackend>,
     event_tx: broadcast::Sender<Event>,
 }
 
 impl TestHarness {
+    #[cfg(feature = "runtime")]
     pub fn set_default_timeout(timeout: Duration) {
         DEFAULT_TIMEOUT.with(|t| *t.write() = timeout);
     }
 
-    pub fn new<F, M>(runtime_settings: RuntimeSettings, width: u16, height: u16, f: F) -> Self
-    where
-        F: FnOnce() -> M + 'static,
-        M: Render,
-    {
+    #[cfg(feature = "runtime")]
+    pub fn new_with_settings(runtime_settings: RuntimeSettings, width: u16, height: u16) -> Self {
+        use rooibos_dom::render_terminal;
+
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
-        let mut runtime = Runtime::initialize(runtime_settings, backend, f);
+        let mut runtime = Runtime::initialize_with_settings(runtime_settings, backend);
         let mut terminal = runtime.setup_terminal().unwrap();
-        terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+        render_terminal(&mut terminal).unwrap();
         focus_next();
 
         Self {
             runtime,
             terminal,
             event_tx,
+        }
+    }
+
+    pub fn from_terminal(
+        mut terminal: Terminal<ratatui::backend::TestBackend>,
+        width: u16,
+        height: u16,
+    ) -> Self {
+        let backend = TestBackend::new(width, height);
+        let event_tx = backend.event_tx();
+        render_terminal(&mut terminal).unwrap();
+        focus_next();
+
+        Self {
+            terminal,
+            event_tx,
+            #[cfg(feature = "runtime")]
+            runtime: rooibos_runtime::Runtime::initialize(backend),
         }
     }
 
@@ -98,6 +120,7 @@ impl TestHarness {
         self.terminal.backend().buffer()
     }
 
+    #[cfg(feature = "runtime")]
     pub async fn wait_for(
         &mut self,
         f: impl FnMut(&Self, Option<TickResult>) -> bool,
@@ -124,8 +147,8 @@ impl TestHarness {
         let text = text.as_ref();
         let buf = self.buffer();
         node.find(|node| {
-            if let NodeTypeRepr::Layout(props) = node.node_type() {
-                if props.block.is_some() {
+            if let NodeTypeRepr::Layout { block } = node.node_type() {
+                if block.is_some() {
                     let rect = node.rect();
 
                     // Check top of block
@@ -222,26 +245,30 @@ impl TestHarness {
         }));
     }
 
+    #[cfg(feature = "runtime")]
     pub async fn wait_for_timeout(
         &mut self,
         mut f: impl FnMut(&Self, Option<TickResult>) -> bool,
         timeout: Duration,
     ) -> Result<(), Buffer> {
+        use rooibos_dom::render_terminal;
+
         let start = Instant::now();
         loop {
             let mut last_tick_result = None;
             tokio::select! {
                 tick_result = self.runtime.tick() => {
+                    let tick_result = tick_result.unwrap();
                     last_tick_result = Some(tick_result.clone());
                     match tick_result {
                         TickResult::Redraw => {
-                            self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+                            render_terminal(&mut self.terminal).unwrap();
                         }
                         TickResult::Restart => {
                             self.terminal = self.runtime.setup_terminal().unwrap();
-                            self.terminal.draw(|f| render_dom(f.buffer_mut())).unwrap();
+                            render_terminal(&mut self.terminal).unwrap();
                         }
-                        TickResult::Exit => {
+                        TickResult::Exit(_) => {
                             panic!("application exited");
                         }
                         TickResult::Command(command) => {
@@ -263,7 +290,10 @@ impl TestHarness {
         }
     }
 
+    #[cfg(feature = "runtime")]
     pub async fn exit(mut self) {
+        use std::process::ExitCode;
+
         self.event_tx
             .send(Event::Key(KeyEvent::new(
                 KeyCode::Char('c'),
@@ -275,8 +305,14 @@ impl TestHarness {
         loop {
             tokio::select! {
                 tick_result = self.runtime.tick() => {
-                    if matches!(tick_result, TickResult::Exit) {
-                        return;
+                    let tick_result = tick_result.unwrap();
+                    if let TickResult::Exit(code) = tick_result {
+                        let code = code.unwrap();
+                        if self.runtime.should_exit().await {
+                            assert_eq!(format!("{code:?}"), format!("{:?}", ExitCode::SUCCESS));
+                            self.runtime.handle_exit(&mut self.terminal).await.unwrap();
+                            return;
+                        }
                     }
                 }
                 _ = tokio::time::sleep(Duration::from_secs(3) - (Instant::now() - start)) => {

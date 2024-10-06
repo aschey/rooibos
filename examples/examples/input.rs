@@ -1,26 +1,24 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
 use rooibos::components::Input;
-use rooibos::dom::{col, widget_ref, Constrainable, Render, WidgetState};
-use rooibos::reactive::traits::Get;
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::dom::{WidgetState, line};
+use rooibos::reactive::graph::traits::Get;
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, padding, wgt};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
@@ -28,6 +26,7 @@ fn app() -> impl Render {
 
     let text = textarea.text();
     col![
+        props(padding!(1.)),
         Input::default()
             .block(|state| Block::bordered()
                 .fg(Color::Blue)
@@ -39,11 +38,11 @@ fn app() -> impl Render {
                 .title("Input")
                 .into())
             .placeholder_text("Enter some text")
-            .length(3)
+            .height(chars(3.))
             .on_submit(move |_| {
-                textarea.delete_line_by_head();
+                textarea.delete_line();
             })
             .render(textarea),
-        widget_ref!(format!("You typed {}", text.get()))
+        wgt!(line!("You typed: ", text.get().bold()))
     ]
 }

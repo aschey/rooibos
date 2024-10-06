@@ -1,17 +1,16 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::reactive::mount;
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use wasm_test::app;
 
+type Result = std::result::Result<ExitCode, RuntimeError>;
+
 #[rooibos::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }

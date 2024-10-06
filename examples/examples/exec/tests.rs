@@ -1,4 +1,5 @@
 use rooibos::dom::KeyCode;
+use rooibos::reactive::mount;
 use rooibos::runtime::{RuntimeSettings, TickResult};
 use rooibos::tester::{TerminalView, TestHarness};
 
@@ -16,27 +17,21 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_exec() {
-    let mut harness = TestHarness::new(
+    mount(|| {
+        if cfg!(windows) {
+            app("cmd".to_string(), vec!["/C".to_string(), "dir".to_string()])
+        } else {
+            app("ls".to_string(), Vec::new())
+        }
+    });
+    let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         10,
-        || {
-            if cfg!(windows) {
-                app("cmd".to_string(), vec!["/C".to_string(), "dir".to_string()])
-            } else {
-                app("ls".to_string(), Vec::new())
-            }
-        },
     );
     assert_snapshot!(harness.terminal());
 
     harness.send_key(KeyCode::Enter);
-    harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
-        .await
-        .unwrap();
-
-    harness.send_key(KeyCode::Char('e'));
 
     // Wait for process to finish
     harness
@@ -44,13 +39,7 @@ async fn test_exec() {
         .await
         .unwrap();
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
-        .await
-        .unwrap();
-
-    harness.send_key(KeyCode::Enter);
-    harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 2"))
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("Open Editor"))
         .await
         .unwrap();
 

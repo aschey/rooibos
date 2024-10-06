@@ -1,24 +1,21 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
-use rooibos::dom::{line, span, widget_ref, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::dom::{KeyCode, KeyEvent, line, span};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{Render, mount, wgt};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
@@ -26,15 +23,15 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_down = move |key_event: KeyEvent, _| {
+    let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
             update_count();
         }
     };
 
-    widget_ref!(line!("count: ".bold(), span!(count.get()).cyan()))
+    wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_down)
-        .on_click(move |_, _| update_count())
+        .on_click(move |_, _, _| update_count())
 }
 
 #[cfg(test)]

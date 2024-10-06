@@ -1,29 +1,40 @@
 use std::sync::atomic::{AtomicU32, Ordering};
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType, Paragraph};
-use reactive_graph::owner::{provide_context, use_context};
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Update};
-use rooibos_dom::{
-    absolute, clear, col, derive_signal, use_window_size, widget_ref, Constrainable, Render,
-};
-use rooibos_runtime::wasm_compat;
-use tokio::sync::mpsc;
+use rooibos_reactive::div::taffy::{self, AlignItems};
+use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Update};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::layout::{align_items, chars, clear, height, max_width, width, z_index};
+use rooibos_reactive::{Render, col, derive_signal, for_each, height, wgt, width};
+use tokio::sync::broadcast;
+use wasm_compat::futures::{sleep, spawn};
 
-use crate::for_each;
+#[derive(Clone, Debug)]
+pub struct NotificationContext {
+    tx: broadcast::Sender<Notification>,
+}
 
-#[derive(Clone)]
-struct NotificationContext {
-    tx: mpsc::Sender<Notification>,
+impl Default for NotificationContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl NotificationContext {
+    pub fn new() -> Self {
+        let (tx, _) = broadcast::channel(32);
+        Self { tx }
+    }
 }
 
 static NOTIFICATION_ID: AtomicU32 = AtomicU32::new(1);
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Notification {
     id: u32,
     content: Text<'static>,
@@ -45,8 +56,20 @@ impl Notification {
     }
 }
 
+pub fn provide_notifications() {
+    provide_context(NotificationContext::new())
+}
+
+fn get_notification_context() -> NotificationContext {
+    use_context::<NotificationContext>().expect(
+        "Notification context not found. Ensure provide_notifications() was called at the root of \
+         your application.",
+    )
+}
+
+#[derive(Clone, Copy, Debug)]
 pub struct Notifier {
-    context: Arc<RwLock<Option<NotificationContext>>>,
+    context: StoredValue<NotificationContext>,
 }
 
 impl Default for Notifier {
@@ -58,64 +81,111 @@ impl Default for Notifier {
 impl Notifier {
     pub fn new() -> Self {
         Self {
-            context: Arc::new(RwLock::new(use_context::<NotificationContext>())),
+            context: StoredValue::new(get_notification_context()),
         }
     }
 
     pub fn notify(&self, notification: Notification) {
-        if let Some(context) = use_context::<NotificationContext>() {
-            context.tx.try_send(notification).unwrap();
-            return;
-        }
-
-        let context = use_context::<NotificationContext>().unwrap();
-        context.tx.try_send(notification).unwrap();
-        *self.context.write().unwrap() = Some(context);
+        self.context
+            .with_value(|v| v.tx.send(notification).unwrap());
     }
 }
 
-pub fn notifications() -> impl Render {
-    let (tx, mut rx) = mpsc::channel(32);
-    provide_context(NotificationContext { tx });
+pub struct Notifications {
+    content_width: MaybeSignal<u16>,
+    max_layout_width: MaybeSignal<taffy::Dimension>,
+    rx: broadcast::Receiver<Notification>,
+}
 
-    let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
-    let window_size = use_window_size();
-    let anchor = derive_signal!((window_size.get().width.saturating_sub(20), 0));
+impl Default for Notifications {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
-    wasm_compat::spawn(async move {
-        while let Some(notification) = rx.recv().await {
-            let id = notification.id;
-            let timeout = notification.timeout;
-            notifications.update(|n| n.push(notification));
-            wasm_compat::spawn(async move {
-                wasm_compat::sleep(timeout).await;
-                notifications.update(|n| {
-                    let idx = n.iter().position(|n| n.id == id);
-                    if let Some(idx) = idx {
-                        n.remove(idx);
-                    }
-                });
-            });
+impl Notifications {
+    pub fn new() -> Self {
+        let context = get_notification_context();
+        Self {
+            content_width: 20.into(),
+            max_layout_width: taffy::Dimension::Auto.into(),
+            rx: context.tx.subscribe(),
         }
-    });
+    }
 
-    absolute![
-        anchor,
-        col![for_each(
-            move || notifications.get(),
-            |n| n.id,
-            move |n| {
-                let height = n.content.height();
-                clear!(widget_ref!(
-                    Paragraph::new(n.content.clone()).block(
-                        Block::bordered()
-                            .border_type(BorderType::Rounded)
-                            .border_style(Style::new().blue())
-                    )
-                ))
-                // +2 for borders
-                .length(height as u16 + 2)
+    pub fn content_width<S>(mut self, content_width: S) -> Self
+    where
+        S: Into<MaybeSignal<u16>>,
+    {
+        self.content_width = content_width.into();
+        self
+    }
+
+    pub fn max_layout_width<S>(mut self, max_layout_width: S) -> Self
+    where
+        S: Into<MaybeSignal<taffy::Dimension>>,
+    {
+        self.max_layout_width = max_layout_width.into();
+        self
+    }
+
+    pub fn render(self) -> impl Render {
+        let Notifications {
+            content_width,
+            max_layout_width,
+            mut rx,
+        } = self;
+        let content_width = derive_signal!(content_width.get() as f32);
+
+        let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
+
+        spawn(async move {
+            while let Ok(notification) = rx.recv().await {
+                let id = notification.id;
+                let timeout = notification.timeout;
+                notifications.update(|n| n.push(notification));
+                spawn(async move {
+                    sleep(timeout).await;
+                    notifications.update(|n| {
+                        let idx = n.iter().position(|n| n.id == id);
+                        if let Some(idx) = idx {
+                            n.remove(idx);
+                        }
+                    });
+                });
             }
-        )]
-    ]
+        });
+
+        col![
+            props(
+                z_index(2),
+                width!(100.%),
+                height!(100.%),
+                max_width(max_layout_width),
+                align_items(AlignItems::End),
+            ),
+            col![
+                props(width(chars(content_width)),),
+                for_each(
+                    move || notifications.get(),
+                    |n| n.id,
+                    move |n| {
+                        let content_height = n.content.height() as f32;
+                        wgt!(
+                            props(
+                                // +2 for borders
+                                height(chars(content_height + 2.)),
+                                clear(true)
+                            ),
+                            Paragraph::new(n.content.clone()).block(
+                                Block::bordered()
+                                    .border_type(BorderType::Rounded)
+                                    .border_style(Style::new().blue())
+                            )
+                        )
+                    }
+                )
+            ]
+        ]
+    }
 }

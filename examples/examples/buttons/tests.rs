@@ -1,4 +1,5 @@
-use rooibos::dom::{root, KeyCode};
+use rooibos::dom::{KeyCode, root};
+use rooibos::reactive::mount;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::TestHarness;
 
@@ -16,15 +17,15 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_buttons() {
-    let mut harness = TestHarness::new(
+    mount(app);
+    let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
-        20,
+        25,
         10,
-        app,
     );
     let root_node = root();
     assert_snapshot!(harness.terminal());
-    let top_button = harness.find_all_by_text(&root_node, "count: 0")[0].clone();
+    let top_button = harness.find_by_text(&root_node, "bigger").unwrap();
     let button_rect = top_button.rect();
     harness.send_mouse_move(button_rect.x, button_rect.y);
 
@@ -34,11 +35,10 @@ async fn test_buttons() {
         .unwrap();
     assert_snapshot!(harness.terminal());
 
-    harness.send_key(KeyCode::Tab);
     harness.send_key(KeyCode::Enter);
 
     harness
-        .wait_for(|harness, _| harness.find_by_text(&root_node, "count: 1").is_some())
+        .wait_for(|harness, _| harness.find_by_text(&root_node, "12 x 6").is_some())
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());

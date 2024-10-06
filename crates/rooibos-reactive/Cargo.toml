@@ -1,0 +1,55 @@
+[package]
+name = "rooibos-reactive"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+  "tracing",
+  "effects",
+] }
+tachys = { git = "https://github.com/aschey/leptos", rev = "375b72ba8d03674fe85025c14f94fb976711811e", features = [
+  "reactive_graph",
+  "tracing",
+] }
+
+throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
+rooibos-dom = { path = "../rooibos-dom" }
+ratatui = { version = "0.28", features = ["unstable"] }
+slotmap = "1"
+tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
+bitflags = "2"
+educe = "0.6"
+futures = "0.3"
+rustc-hash = "2"
+tui-textarea = { version = "0.6", optional = true, default-features = false }
+paste = "1"
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+  "all",
+] }
+taffy = "0.5.2"
+crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
+tracing = "0.1"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+  "tokio",
+  "tracing",
+] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+  "wasm-bindgen",
+] }
+
+[features]
+nightly = ["reactive_graph/nightly", "tachys/nightly"]
+crossterm = ["rooibos-dom/crossterm", "tui-textarea?/crossterm"]
+termion = ["rooibos-dom/termion", "tui-textarea?/termion"]
+termwiz = ["rooibos-dom/termwiz", "tui-textarea?/termwiz"]
+input = ["tui-textarea"]
+default = ["crossterm"]

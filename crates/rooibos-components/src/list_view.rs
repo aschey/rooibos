@@ -1,8 +1,9 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
-use reactive_graph::traits::{Get, With};
-use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{stateful_widget, BlurEvent, EventData, FocusEvent, KeyEvent, Render};
+use rooibos_dom::{BlurEvent, EventData, EventHandle, FocusEvent, KeyEvent};
+use rooibos_reactive::graph::traits::{Get, With};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, wgt};
 
 use crate::WrappingList;
 
@@ -11,7 +12,7 @@ type ItemSelectFn<T> = dyn FnMut(usize, &T);
 pub struct ListView<T> {
     style: MaybeSignal<Style>,
     on_item_click: Box<ItemSelectFn<T>>,
-    on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
+    on_key_down: Box<dyn FnMut(KeyEvent, EventData, EventHandle)>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     highlight_style: MaybeSignal<Style>,
@@ -21,6 +22,7 @@ pub struct ListView<T> {
     highlight_symbol: Option<MaybeSignal<&'static str>>,
     repeat_highlight_symbol: MaybeSignal<bool>,
     scroll_padding: MaybeSignal<usize>,
+    layout_props: LayoutProps,
 }
 
 impl<T> Default for ListView<T> {
@@ -28,7 +30,7 @@ impl<T> Default for ListView<T> {
         Self {
             style: Default::default(),
             on_item_click: Box::new(move |_, _| {}),
-            on_key_down: Box::new(move |_, _| {}),
+            on_key_down: Box::new(move |_, _, _| {}),
             on_focus: Box::new(move |_, _| {}),
             on_blur: Box::new(move |_, _| {}),
             highlight_style: Style::default().into(),
@@ -38,7 +40,19 @@ impl<T> Default for ListView<T> {
             highlight_symbol: Default::default(),
             repeat_highlight_symbol: Default::default(),
             scroll_padding: Default::default(),
+            layout_props: LayoutProps::default(),
         }
+    }
+}
+
+impl<T> UpdateLayoutProps for ListView<T> {
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
+
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
     }
 }
 
@@ -57,7 +71,10 @@ impl<T> ListView<T> {
         self
     }
 
-    pub fn on_key_down(mut self, on_key_down: impl FnMut(KeyEvent, EventData) + 'static) -> Self {
+    pub fn on_key_down(
+        mut self,
+        on_key_down: impl FnMut(KeyEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
         self.on_key_down = Box::new(on_key_down);
         self
     }
@@ -129,32 +146,30 @@ impl<T> ListView<T> {
             highlight_symbol,
             repeat_highlight_symbol,
             scroll_padding,
+            layout_props,
         } = self;
         let items: MaybeSignal<WrappingList<T>> = items.into();
         let selected: MaybeSignal<Option<usize>> = selected.into();
         {
             let items = items.clone();
-            stateful_widget!(
-                {
-                    let mut list = List::new(items.get().0.into_iter().map(Into::into))
-                        .highlight_style(highlight_style.get())
-                        .direction(direction.get())
-                        .highlight_spacing(highlight_spacing.get())
-                        .repeat_highlight_symbol(repeat_highlight_symbol.get())
-                        .scroll_padding(scroll_padding.get())
-                        .style(style.get());
-                    if let Some(block) = &block {
-                        list = list.block(block.get());
-                    }
-                    if let Some(highlight_symbol) = highlight_symbol {
-                        list = list.highlight_symbol(highlight_symbol.get());
-                    }
-                    list
-                },
-                ListState::default().with_selected(selected.get())
-            )
+            wgt!(ListState::default().with_selected(selected.get()), {
+                let mut list = List::new(items.get().0.into_iter().map(Into::into))
+                    .highlight_style(highlight_style.get())
+                    .direction(direction.get())
+                    .highlight_spacing(highlight_spacing.get())
+                    .repeat_highlight_symbol(repeat_highlight_symbol.get())
+                    .scroll_padding(scroll_padding.get())
+                    .style(style.get());
+                if let Some(block) = &block {
+                    list = list.block(block.get());
+                }
+                if let Some(highlight_symbol) = highlight_symbol {
+                    list = list.highlight_symbol(highlight_symbol.get());
+                }
+                list
+            })
         }
-        .on_click(move |mouse_event, event_data| {
+        .on_click(move |mouse_event, event_data, _| {
             let clicked_item = items.with(|items| {
                 let start_row = event_data.rect.y;
                 let row_offset = mouse_event.row - start_row;
@@ -173,6 +188,7 @@ impl<T> ListView<T> {
                 on_item_click(i, &item);
             }
         })
+        .layout_props(layout_props)
         .on_key_down(on_key_down)
         .on_focus(on_focus)
         .on_blur(on_blur)

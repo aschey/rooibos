@@ -2,24 +2,23 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
-use ratatui::layout::Constraint;
-use ratatui::style::{Color, Style};
+use ratatui::style::{Color, Style, Stylize};
+use ratatui::symbols;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Set};
-use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{
-    derive_signal, widget_ref, Constrainable, KeyCode, KeyEvent, NodeId, Render, WidgetState,
-};
-use rooibos_runtime::{delay, supports_key_up};
+use rooibos_dom::{KeyCode, KeyEvent, NodeId, WidgetState, delay, supports_keyboard_enhancement};
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Set};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, derive_signal, wgt};
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
-    constraint: MaybeSignal<Constraint>,
+    layout_props: LayoutProps,
     border_color: MaybeSignal<Color>,
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
+    enabled: MaybeSignal<bool>,
     id: Option<NodeId>,
     class: Option<String>,
 }
@@ -30,12 +29,13 @@ impl Default for Button {
     }
 }
 
-impl Constrainable for Button {
-    fn constraint<S>(mut self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        self.constraint = constraint.into();
+impl UpdateLayoutProps for Button {
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
+
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
         self
     }
 }
@@ -44,13 +44,19 @@ impl Button {
     pub fn new() -> Self {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
-            constraint: Default::default(),
+            layout_props: LayoutProps::default(),
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
+            enabled: true.into(),
             id: None,
             class: None,
         }
+    }
+
+    pub fn style(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
     }
 
     pub fn id(mut self, id: impl Into<NodeId>) -> Self {
@@ -60,6 +66,11 @@ impl Button {
 
     pub fn class(mut self, class: impl Into<String>) -> Self {
         self.class = Some(class.into());
+        self
+    }
+
+    pub fn enabled(mut self, enabled: impl Into<MaybeSignal<bool>>) -> Self {
+        self.enabled = enabled.into();
         self
     }
 
@@ -98,16 +109,26 @@ impl Button {
     {
         let Self {
             on_click,
-            constraint,
+            layout_props,
             border_color,
             focused_border_color,
             active_border_color,
+            enabled,
             id,
             class,
         } = self;
 
         let border_type = RwSignal::new(BorderType::Rounded);
-        let widget_state = RwSignal::new(WidgetState::Default);
+        let focused = RwSignal::new(false);
+        let active = RwSignal::new(false);
+
+        let widget_state = derive_signal!(if active.get() {
+            WidgetState::Active
+        } else if focused.get() {
+            WidgetState::Focused
+        } else {
+            WidgetState::Default
+        });
 
         let current_border_color = derive_signal!({
             match widget_state.get() {
@@ -118,45 +139,62 @@ impl Button {
         });
 
         let on_enter = move || {
-            widget_state.set(WidgetState::Active);
-            if !supports_key_up() {
+            active.set(true);
+            if !supports_keyboard_enhancement() {
                 delay(Duration::from_millis(50), async move {
-                    // Need to use try_get here in case the button was already disposed
-                    if widget_state.try_get() == Some(WidgetState::Active) {
-                        widget_state.set(WidgetState::Focused);
-                    }
+                    // Need to use try_set here in case the button was already disposed
+                    active.try_set(false);
                 });
             }
             on_click.borrow_mut()()
         };
 
-        let on_enter_ = on_enter.clone();
-
-        let key_up = move |key_event: KeyEvent, _| {
-            if !supports_key_up() {
+        let key_up = move |key_event: KeyEvent, _, _| {
+            if !supports_keyboard_enhancement() {
                 return;
             }
             if key_event.code == KeyCode::Enter {
-                widget_state.set(WidgetState::Focused);
+                focused.set(true);
             }
         };
+
         let children = children.into();
-        let mut button = widget_ref!(
+        let mut button = wgt![
             rooibos_dom::Button::new(children.get())
-                .block(
+                .block(if enabled.get() {
                     Block::bordered()
+                        .bg(Color::Reset)
                         .border_type(border_type.get())
                         .border_style(Style::default().fg(current_border_color.get()))
-                )
+                } else {
+                    Block::bordered()
+                        .bg(Color::Reset)
+                        .border_set(symbols::border::QUADRANT_INSIDE)
+                        .fg(Color::DarkGray)
+                })
+                .fg(if enabled.get() {
+                    Color::Reset
+                } else {
+                    Color::Gray
+                })
+                .bg(if enabled.get() {
+                    Color::Reset
+                } else {
+                    Color::DarkGray
+                })
                 .centered()
-        )
-        .constraint(constraint)
-        .on_mouse_enter(move |_| border_type.set(BorderType::Double))
-        .on_mouse_leave(move |_| border_type.set(BorderType::Rounded))
-        .on_click(move |_, _| on_enter_())
-        .on_focus(move |_, _| widget_state.set(WidgetState::Focused))
-        .on_blur(move |_, _| widget_state.set(WidgetState::Default))
-        .on_key_down(move |key_event, _| {
+        ]
+        .enabled(enabled)
+        .layout_props(layout_props)
+        .on_mouse_enter(move |_, _| border_type.set(BorderType::Double))
+        .on_mouse_leave(move |_, _| border_type.set(BorderType::Rounded))
+        .on_click({
+            let on_enter = on_enter.clone();
+            move |_, _, _| on_enter()
+        })
+        .on_focus(move |_, _| focused.set(true))
+        .on_blur(move |_, _| focused.set(false))
+        .on_key_down(move |key_event, _, _| {
             if key_event.code == KeyCode::Enter {
                 on_enter()
             }

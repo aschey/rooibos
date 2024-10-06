@@ -1,26 +1,23 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{EventData, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set, With};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set, With};
+use rooibos::reactive::{Render, mount};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
@@ -31,7 +28,7 @@ fn app() -> impl Render {
         ListItem::new("Item 3"),
     ]));
 
-    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+    let on_key_down = move |key_event: KeyEvent, _, _| {
         let selected_idx = selected.get().unwrap();
         match key_event.code {
             KeyCode::Down => {

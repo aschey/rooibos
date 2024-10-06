@@ -4,8 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ratatui = { version = "0.27" }
-rooibos-runtime = { path = "../rooibos-runtime" }
+ratatui = "0.28"
+rooibos-runtime = { path = "../rooibos-runtime", optional = true }
+rooibos-terminal = { path = "../rooibos-terminal" }
 tokio = { version = "1.38.1", default-features = false, features = ["time"] }
 rooibos-dom = { path = "../rooibos-dom" }
+# rooibos-reactive = { path = "../rooibos-reactive" }
 unicode-width = "0.1.13"
+
+[features]
+default = ["runtime"]
+runtime = ["rooibos-runtime"]

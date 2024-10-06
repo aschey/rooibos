@@ -1,19 +1,19 @@
 use ratatui::buffer::Buffer;
-use ratatui::layout::{Alignment, Constraint, Rect};
+use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
-use reactive_graph::effect::Effect;
-use reactive_graph::owner::StoredValue;
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Set, Update, UpdateUntracked, With};
-use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_dom::{
-    derive_signal, BlurEvent, Constrainable, DomWidget, EventData, FocusEvent, KeyCode, KeyEvent,
-    NodeId, Render, WidgetState,
+    BlurEvent, EventData, FocusEvent, KeyCode, KeyEvent, NodeId, WidgetState, set_editing,
 };
-use rooibos_runtime::wasm_compat;
+use rooibos_reactive::graph::effect::Effect;
+use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
+use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
+use rooibos_reactive::{DomWidget, LayoutProps, Render, UpdateLayoutProps, derive_signal};
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
+use wasm_compat::futures::spawn_local;
 
 #[derive(Clone, Copy)]
 pub struct InputRef {
@@ -78,6 +78,15 @@ impl InputRef {
             .unwrap()
     }
 
+    pub fn delete_line(&self) -> bool {
+        self.text_area
+            .try_update(|t| {
+                t.move_cursor(CursorMove::End);
+                t.delete_line_by_head()
+            })
+            .unwrap()
+    }
+
     pub fn with_lines<F, T>(&self, f: F) -> T
     where
         F: FnOnce(&[String]) -> T,
@@ -109,7 +118,7 @@ impl InputRef {
 }
 
 pub struct Input {
-    constraint: MaybeSignal<Constraint>,
+    layout_props: LayoutProps,
     alignment: MaybeSignal<Alignment>,
     block: Box<dyn Fn(WidgetState) -> Option<Block<'static>> + Send + Sync>,
     cursor_style: MaybeSignal<Style>,
@@ -123,23 +132,13 @@ pub struct Input {
     id: Option<NodeId>,
 }
 
-impl Constrainable for Input {
-    fn constraint<S>(mut self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        self.constraint = constraint.into();
-        self
-    }
-}
-
 impl Default for Input {
     fn default() -> Self {
         Self {
             alignment: Alignment::Left.into(),
             block: Box::new(move |_| None),
-            constraint: Constraint::default().into(),
-            cursor_style: Style::default().reversed().into(),
+            layout_props: LayoutProps::default(),
+            cursor_style: Style::reset().reversed().into(),
             placeholder_style: Style::default().dark_gray().into(),
             placeholder_text: String::new().into(),
             style: Style::default().into(),
@@ -149,6 +148,17 @@ impl Default for Input {
             initial_value: "".to_string(),
             id: None,
         }
+    }
+}
+
+impl UpdateLayoutProps for Input {
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
+
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
     }
 }
 
@@ -201,7 +211,7 @@ impl Input {
 
     pub fn render(self, input_ref: InputRef) -> impl Render {
         let Self {
-            constraint,
+            layout_props,
             alignment,
             block,
             cursor_style,
@@ -219,6 +229,10 @@ impl Input {
         let submit_tx = input_ref.submit_tx.get_value();
         let mut submit_rx = submit_tx.subscribe();
 
+        on_cleanup(|| {
+            set_editing(false);
+        });
+
         text_area.update_untracked(|t| {
             t.delete_line_by_head();
             t.insert_str(initial_value);
@@ -230,18 +244,25 @@ impl Input {
             return block(state);
         });
 
-        wasm_compat::spawn_local(async move {
+        spawn_local(async move {
             while let Ok(line) = submit_rx.recv().await {
                 on_submit(line);
             }
         });
 
-        Effect::new(move |_| {
+        Effect::new(move || {
             text_area.update(|t| {
                 t.set_cursor_line_style(Style::default());
                 t.set_alignment(alignment.get());
                 t.set_style(style.get());
-                t.set_cursor_style(cursor_style.get());
+                t.set_cursor_style(Style::new());
+                if widget_state.get() == WidgetState::Focused {
+                    t.set_cursor_style(cursor_style.get());
+                } else {
+                    // hide cursor when not focused
+                    t.set_cursor_style(Style::reset());
+                }
+
                 t.set_placeholder_text(placeholder_text.get());
                 t.set_placeholder_style(placeholder_style.get());
                 if let Some(block) = block.get() {
@@ -250,7 +271,7 @@ impl Input {
             });
         });
 
-        let key_down = move |key_event: KeyEvent, _| {
+        let key_down = move |key_event: KeyEvent, _, _| {
             if key_event.code == KeyCode::Enter && key_event.modifiers.is_empty() {
                 let line = text_area.with(|t| t.lines()[0].clone());
                 submit_tx.send(line).unwrap();
@@ -267,26 +288,29 @@ impl Input {
             });
         };
 
-        let paste = move |text: String, _| {
+        let paste = move |text: String, _, _| {
             text_area.update(|t| {
                 t.insert_str(text);
             });
         };
 
         let mut widget = DomWidget::new::<TextArea, _, _>(move || {
-            let text_area = text_area.get();
+            text_area.track();
             move |area: Rect, buf: &mut Buffer| {
-                text_area.widget().render(area, buf);
+                text_area.with(|t| t.render(area, buf));
             }
         })
-        .constraint(constraint)
+        .layout_props(layout_props)
         .on_key_down(key_down)
         .on_paste(paste)
         .on_focus(move |focus_event, event_data| {
+            set_editing(true);
             widget_state.set(WidgetState::Focused);
             on_focus(focus_event, event_data);
         })
         .on_blur(move |blur_event, event_data| {
+            // Notify DOM that we're editing to suppress any quit sequences that could interfere
+            set_editing(false);
             widget_state.set(WidgetState::Default);
             on_blur(blur_event, event_data);
         });

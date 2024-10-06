@@ -1,50 +1,34 @@
 use std::env;
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
-use rooibos::dom::{widget_ref, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{exec, Runtime, RuntimeSettings};
+use rooibos::components::Button;
+use rooibos::dom::text;
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{Render, UpdateLayoutProps, mount};
+use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, exec};
+use rooibos::terminal::crossterm::CrosstermBackend;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
+async fn main() -> Result {
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
-
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        || app(editor, Vec::new()),
-    );
-    runtime.run().await?;
-    Ok(())
+    mount(|| app(editor, Vec::new()));
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app(editor: String, args: Vec<String>) -> impl Render {
-    let (count, set_count) = signal(0);
-
-    let update_count = move || set_count.update(|c| *c += 1);
-
-    let key_down = move |key_event: KeyEvent, _| {
-        if key_event.code == KeyCode::Enter {
-            update_count();
-        }
-        if key_event.code == KeyCode::Char('e') {
+    Button::new()
+        .width(chars(20.))
+        .height(chars(3.))
+        .on_click(move || {
             let mut cmd = tokio::process::Command::new(&editor);
             cmd.args(&args);
             exec(cmd, |_, _, _| {});
-        }
-    };
-
-    widget_ref!(format!(
-        "count: {}. Press 'e' to open your editor.",
-        count.get()
-    ))
-    .on_key_down(key_down)
-    .on_click(move |_, _| update_count())
+        })
+        .render(text!("Open Editor"))
 }
 
 #[cfg(test)]

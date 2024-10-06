@@ -1,18 +1,20 @@
-use std::error::Error;
+use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::{col, derive_signal, line, row, span, Constrainable, Render};
-use rooibos::reactive::signal::signal;
-use rooibos::reactive::traits::{Get, Update};
-use rooibos::runtime::backend::crossterm::{CrosstermBackend, TerminalSettings};
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::dom::{line, span};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{Render, UpdateLayoutProps, col, derive_signal, mount};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
-#[rooibos::main]
-async fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result {
     let server = AppServer::new(
         SshConfig {
             keys: vec![KeyPair::generate_ed25519().unwrap()],
@@ -22,7 +24,7 @@ async fn main() -> Result<()> {
     );
 
     server.run(("0.0.0.0", 2222)).await?;
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }
 
 struct SshApp;
@@ -36,14 +38,8 @@ impl SshHandler for SshApp {
         event_rx: tokio::sync::mpsc::Receiver<rooibos::dom::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
-        let runtime = Runtime::initialize(
-            RuntimeSettings::default(),
-            SshBackend::new(
-                CrosstermBackend::new(TerminalSettings::from_writer(move || handle.clone())),
-                event_rx,
-            ),
-            app,
-        );
+        mount(app);
+        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx));
         runtime.run().await.unwrap();
     }
 }
@@ -54,11 +50,9 @@ fn app() -> impl Render {
 
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
-    row![
-        Button::new()
-            .length(20)
-            .on_click(move || set_count.update(|c| *c += 1))
-            .render(derive_signal!(line!("count ", span!(count.get())).into()))
-    ]
-    .length(3)
+    Button::new()
+        .width(chars(20.))
+        .height(chars(3.))
+        .on_click(move || set_count.update(|c| *c += 1))
+        .render(derive_signal!(line!("count ", span!(count.get())).into()))
 }

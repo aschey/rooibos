@@ -1,53 +1,45 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
-use rooibos::dom::{DomWidget, KeyCode, KeyEvent, Render};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Track, Update, UpdateUntracked};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
+use rooibos::reactive::{DomWidget, Render, mount};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::buffer::Buffer;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::{Block, StatefulWidget};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
     let state = RwSignal::new(TreeState::default());
     let tree = RwSignal::new(vec![
         TreeItem::new_leaf("a", "a"),
-        TreeItem::new(
-            "b",
-            "b",
-            vec![
-                TreeItem::new_leaf("c", "c"),
-                TreeItem::new(
-                    "d",
-                    "d",
-                    vec![TreeItem::new_leaf("e", "e"), TreeItem::new_leaf("f", "f")],
-                )
-                .unwrap(),
-                TreeItem::new_leaf("g", "g"),
-            ],
-        )
+        TreeItem::new("b", "b", vec![
+            TreeItem::new_leaf("c", "c"),
+            TreeItem::new("d", "d", vec![
+                TreeItem::new_leaf("e", "e"),
+                TreeItem::new_leaf("f", "f"),
+            ])
+            .unwrap(),
+            TreeItem::new_leaf("g", "g"),
+        ])
         .unwrap(),
         TreeItem::new_leaf("h", "h"),
     ]);
 
-    let key_down = move |key_event: KeyEvent, _| match key_event.code {
+    let key_down = move |key_event: KeyEvent, _, _| match key_event.code {
         KeyCode::Char('\n' | ' ') => {
             state.update(|s| {
                 s.toggle_selected();

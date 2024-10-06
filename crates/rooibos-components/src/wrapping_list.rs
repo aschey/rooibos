@@ -22,6 +22,12 @@ impl<T> DerefMut for KeyedWrappingList<T> {
     }
 }
 
+impl<T> From<Vec<T>> for KeyedWrappingList<T> {
+    fn from(value: Vec<T>) -> Self {
+        Self(value)
+    }
+}
+
 impl<T> KeyedWrappingList<T>
 where
     T: Keyed,

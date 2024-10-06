@@ -10,11 +10,12 @@ use ratatui_image::picker::Picker;
 use ratatui_image::protocol::StatefulProtocol;
 use ratatui_image::thread::{ThreadImage, ThreadProtocol};
 use ratatui_image::{CropOptions, FilterType, Resize};
-use reactive_graph::effect::Effect;
-use reactive_graph::signal::RwSignal;
-use reactive_graph::traits::{Get, Set, Track, Update, UpdateUntracked};
-use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{DomWidget, Render};
+use rooibos_dom::pixel_size;
+use rooibos_reactive::graph::effect::Effect;
+use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked};
+use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::{DomWidget, Render};
 
 #[derive(Clone)]
 pub enum ResizeMode {
@@ -56,7 +57,7 @@ impl Image {
 
         let image = RwSignal::new(None);
 
-        Effect::new(move |_| match &image_source {
+        Effect::new(move || match &image_source {
             ImageSource::Url(url) => {
                 let url = url.get();
                 thread::spawn(move || {
@@ -76,31 +77,28 @@ impl Image {
         Effect::new(move |prev_picker: Option<Option<Picker>>| {
             let image = image.get();
             if let Some(image) = image {
-                if let Some(Some(mut picker)) = prev_picker {
-                    async_state.set(Some(ThreadProtocol::new(
-                        tx_worker.clone(),
-                        picker.new_resize_protocol(image),
-                    )));
-                    Some(picker)
+                let (mut picker, image) = if let Some(Some(picker)) = prev_picker {
+                    (picker, image)
                 } else {
                     let fallback_size = Size {
                         width: 8,
                         height: 16,
                     };
-                    let mut pixel_size = rooibos_runtime::pixel_size().unwrap_or(fallback_size);
+                    let mut pixel_size = pixel_size().unwrap_or(fallback_size);
                     if pixel_size == Size::default() {
                         pixel_size = fallback_size;
                     }
                     let mut picker = Picker::new((pixel_size.width, pixel_size.height));
                     picker.guess_protocol();
 
-                    async_state.set(Some(ThreadProtocol::new(
-                        tx_worker.clone(),
-                        picker.new_resize_protocol(image),
-                    )));
+                    (picker, image)
+                };
 
-                    Some(picker)
-                }
+                async_state.set(Some(ThreadProtocol::new(
+                    tx_worker.clone(),
+                    picker.new_resize_protocol(image),
+                )));
+                Some(picker)
             } else {
                 None
             }

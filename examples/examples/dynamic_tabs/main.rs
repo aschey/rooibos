@@ -1,28 +1,24 @@
-use std::error::Error;
-use std::io::Stdout;
+use std::process::ExitCode;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{
-    col, line, row, span, text, Constrainable, EventData, KeyCode, KeyEvent, Render,
-};
-use rooibos::reactive::signal::RwSignal;
-use rooibos::reactive::traits::{Get, Set, Update};
-use rooibos::runtime::backend::crossterm::CrosstermBackend;
-use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::tui::layout::Constraint::*;
+use rooibos::dom::{KeyCode, KeyEvent, line, span, text};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set, Update};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{Render, UpdateLayoutProps, mount, padding, row};
+use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
+use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
-async fn main() -> Result<()> {
-    let runtime = Runtime::initialize(
-        RuntimeSettings::default(),
-        CrosstermBackend::<Stdout>::default(),
-        app,
-    );
-    runtime.run().await?;
-    Ok(())
+async fn main() -> Result {
+    mount(app);
+    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    runtime.run().await
 }
 
 fn app() -> impl Render {
@@ -30,8 +26,8 @@ fn app() -> impl Render {
     let tabs_block = RwSignal::new(Block::bordered().title("Demo"));
 
     let tabs = RwSignal::new(KeyedWrappingList(vec![
-        Tab::new(line!("Tab1"), "tab1", move || "tab1").decorator(line!("✕".red())),
-        Tab::new(line!("Tab2"), "tab2", move || "tab2").decorator(line!("✕".red())),
+        Tab::new(line!("Tab1"), "tab1", move || " tab1").decorator(line!("✕".red())),
+        Tab::new(line!("Tab2"), "tab2", move || " tab2").decorator(line!("✕".red())),
     ]));
 
     let next_tab = RwSignal::new(3);
@@ -51,7 +47,7 @@ fn app() -> impl Render {
         }
     };
 
-    let on_key_down = move |key_event: KeyEvent, _: EventData| {
+    let on_key_down = move |key_event: KeyEvent, _, _| {
         let tabs = tabs.get();
 
         match key_event.code {
@@ -79,8 +75,9 @@ fn app() -> impl Render {
     };
 
     row![
+        props(padding!(1.)),
         TabView::new()
-            .header_constraint(Length(3))
+            .header_height(chars(3.))
             .block(tabs_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
@@ -96,32 +93,26 @@ fn app() -> impl Render {
             .on_decorator_click(remove_tab)
             .on_key_down(on_key_down)
             .render(focused, tabs),
-        col![
-            row![
-                Button::new()
-                    .on_click(move || {
-                        tabs.update(|t| {
-                            let num = next_tab.get();
-                            t.push(
-                                Tab::new(
-                                    line!("Tab", span!(num)),
-                                    format!("tab{num}"),
-                                    move || format!("tab{num}"),
-                                )
-                                .decorator(line!("✕".red())),
-                            );
-                            next_tab.update(|t| *t += 1);
-                        });
-                        let tabs = tabs.get();
-                        if tabs.len() == 1 {
-                            focused.set(tabs[0].get_value().to_string());
-                        }
-                    })
-                    .render(text!("+".green()))
-            ]
-            .length(3)
-        ]
-        .length(5)
+        Button::new()
+            .width(chars(5.))
+            .height(chars(3.))
+            .on_click(move || {
+                tabs.update(|t| {
+                    let num = next_tab.get();
+                    t.push(
+                        Tab::new(line!("Tab", span!(num)), format!("tab{num}"), move || {
+                            format!(" tab{num}")
+                        })
+                        .decorator(line!("✕".red())),
+                    );
+                    next_tab.update(|t| *t += 1);
+                });
+                let tabs = tabs.get();
+                if tabs.len() == 1 {
+                    focused.set(tabs[0].get_value().to_string());
+                }
+            })
+            .render(text!("+".green()))
     ]
 }
 

@@ -1,0 +1,19 @@
+[package]
+name = "rooibos-router"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+matchit = "0.8"
+tachys = { git = "https://github.com/aschey/leptos", rev = "375b72ba8d03674fe85025c14f94fb976711811e", features = [
+  "reactive_graph",
+  "tracing",
+] }
+url = "2"
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+  "tracing",
+  "effects",
+] }
+rooibos-dom = { path = "../rooibos-dom" }
+rooibos-reactive = { path = "../rooibos-reactive" }
+rooibos-router-macros = { path = "../rooibos-router-macros" }

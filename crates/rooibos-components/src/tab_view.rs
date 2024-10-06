@@ -1,18 +1,19 @@
-use ratatui::layout::Constraint;
-use ratatui::layout::Constraint::*;
 use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use reactive_graph::traits::{Get, With};
-use reactive_graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
 use rooibos_dom::{
-    col, derive_signal, line, span, widget_ref, BlurEvent, ChildrenFn, Constrainable, EventData,
-    FocusEvent, IntoAny, IntoChildrenFn, KeyEvent, MouseEvent, Render,
+    BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyEvent, line, span,
 };
+use rooibos_reactive::any_view::IntoAny as _;
+use rooibos_reactive::div::taffy::Dimension;
+use rooibos_reactive::graph::traits::{Get, With};
+use rooibos_reactive::graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
+use rooibos_reactive::layout::{height, pct};
+use rooibos_reactive::{ChildrenFn, IntoChildrenFn, Render, col, derive_signal, max_height, wgt};
 
-use crate::wrapping_list::KeyedWrappingList;
 use crate::Keyed;
+use crate::wrapping_list::KeyedWrappingList;
 
 pub type TabList = KeyedWrappingList<Tab>;
 
@@ -71,13 +72,14 @@ pub struct TabView {
     on_decorator_click: Option<Box<OnChangeFn>>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
-    on_key_down: Box<dyn FnMut(KeyEvent, EventData)>,
-    constraint: MaybeSignal<Constraint>,
+    on_key_down: Box<dyn FnMut(KeyEvent, EventData, EventHandle)>,
     fit: MaybeSignal<bool>,
     divider: MaybeSignal<Span<'static>>,
-    header_constraint: MaybeSignal<Constraint>,
+    header_height: MaybeSignal<Dimension>,
+    width: MaybeSignal<Dimension>,
     padding_left: MaybeSignal<Line<'static>>,
     padding_right: MaybeSignal<Line<'static>>,
+    body_height: MaybeSignal<Dimension>,
 }
 
 enum ClickAction<'a> {
@@ -90,30 +92,21 @@ impl Default for TabView {
         Self {
             on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: None,
-            on_key_down: Box::new(move |_, _| {}),
+            on_key_down: Box::new(move |_, _, _| {}),
             on_focus: Box::new(move |_, _| {}),
             on_blur: Box::new(move |_, _| {}),
             block: Default::default(),
             highlight_style: Default::default(),
             decorator_highlight_style: Default::default(),
             style: Default::default(),
-            constraint: Default::default(),
             fit: false.into(),
             divider: span!(symbols::line::VERTICAL).into(),
-            header_constraint: Constraint::Length(1).into(),
+            header_height: Dimension::Length(1.).into(),
+            width: pct(100.).into(),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
+            body_height: Dimension::Auto.into(),
         }
-    }
-}
-
-impl Constrainable for TabView {
-    fn constraint<S>(mut self, constraint: S) -> Self
-    where
-        S: Into<MaybeSignal<Constraint>>,
-    {
-        self.constraint = constraint.into();
-        self
     }
 }
 
@@ -127,11 +120,18 @@ impl TabView {
         self
     }
 
-    pub fn header_constraint(
-        mut self,
-        header_constraint: impl Into<MaybeSignal<Constraint>>,
-    ) -> Self {
-        self.header_constraint = header_constraint.into();
+    pub fn header_height(mut self, header_height: impl Into<MaybeSignal<Dimension>>) -> Self {
+        self.header_height = header_height.into();
+        self
+    }
+
+    pub fn body_height(mut self, body_height: impl Into<MaybeSignal<Dimension>>) -> Self {
+        self.body_height = body_height.into();
+        self
+    }
+
+    pub fn width(mut self, width: impl Into<MaybeSignal<Dimension>>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -168,7 +168,10 @@ impl TabView {
         self
     }
 
-    pub fn on_key_down(mut self, on_key_down: impl FnMut(KeyEvent, EventData) + 'static) -> Self {
+    pub fn on_key_down(
+        mut self,
+        on_key_down: impl FnMut(KeyEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
         self.on_key_down = Box::new(on_key_down);
         self
     }
@@ -216,12 +219,13 @@ impl TabView {
             on_focus,
             on_blur,
             on_key_down,
-            constraint,
+            width,
             fit,
-            header_constraint,
+            header_height,
             divider,
             padding_left,
             padding_right,
+            body_height,
         } = self;
 
         let children: MaybeSignal<TabList> = children.into();
@@ -329,15 +333,15 @@ impl TabView {
             })
         });
 
-        let constraint = derive_signal!({
+        let width = derive_signal!({
             if fit.get() {
-                Length(headers_len.get())
+                Dimension::Length(headers_len.get() as f32)
             } else {
-                constraint.get()
+                width.get()
             }
         });
 
-        let on_click = move |mouse_event: MouseEvent, event_data: EventData| {
+        let on_click = move |mouse_event: ClickEvent, event_data: EventData, _| {
             let start_col = event_data.rect.x;
             let col_offset = mouse_event.column - start_col;
 
@@ -392,7 +396,8 @@ impl TabView {
         };
 
         col![
-            widget_ref!({
+            props(rooibos_reactive::layout::width(width)),
+            wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())
                     .style(style.get())
@@ -404,18 +409,17 @@ impl TabView {
                 } else {
                     headers
                 }
-            })
-            .focusable(true)
+            }]
             .on_click(on_click)
             .on_key_down(on_key_down)
             .on_focus(on_focus)
-            .on_blur(on_blur)
-            .constraint(header_constraint.get()),
-            move || cur_tab
-                .get()
-                .map(|c| c.0())
-                .unwrap_or_else(|| ().into_any())
+            .on_blur(on_blur),
+            col![props(max_height!(100.%), height(body_height)), move || {
+                cur_tab
+                    .get()
+                    .map(|c| c.0())
+                    .unwrap_or_else(|| ().into_any())
+            }]
         ]
-        .constraint(constraint)
     }
 }

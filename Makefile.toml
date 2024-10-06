@@ -3,14 +3,14 @@ default_to_workspace = false
 
 [tasks.coverage]
 args = [
-    "llvm-cov",
-    "--workspace",
-    "--all-features",
-    "--examples",
-    "--html",
-    "--open",
-    "--ignore-filename-regex",
-    "\".cargo|.*_test\\.rs|integration_tests.*|tests.rs\"",
+  "llvm-cov",
+  "--workspace",
+  "--all-features",
+  "--examples",
+  "--html",
+  "--open",
+  "--ignore-filename-regex",
+  "\".cargo|.*_test\\.rs|integration_tests.*|tests.rs\"",
 ]
 toolchain = "nightly"
 clear = true

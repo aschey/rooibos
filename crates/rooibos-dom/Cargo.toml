@@ -6,30 +6,30 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { path = "../../../leptos/reactive_graph", features = [
-    "tracing",
-    "effects",
-] }
-tachys = { path = "../../../leptos/tachys", features = ["reactive_graph"] }
-any_spawner = { path = "../../../leptos/any_spawner", features = ["tokio"] }
-throw_error = { path = "../../../leptos/any_error" }
-next_tuple = { path = "../../../leptos/next_tuple" }
-ratatui = { version = "0.27", features = ["unstable"] }
+ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
 bitflags = "2"
-derivative = "2"
+educe = "0.6"
 futures = "0.3"
 rustc-hash = "2"
-terminput = { git = "https://github.com/aschey/terminput", rev = "85e84fb29e77ee9c26ed09c80ca1eec002a75c55" }
-tui-textarea = { version = "0.5", optional = true, default-features = false }
+terminput = { git = "https://github.com/aschey/terminput", rev = "0eeca408b9eadf5dca616a8473454488877ecf3e" }
+tui-textarea = { version = "0.6", optional = true, default-features = false }
+paste = "1"
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+  "all",
+] }
+taffy = "0.5.2"
+crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
+tracing = "0.1"
 
+[dev-dependencies]
+tokio = { version = "1.40", features = ["rt", "macros", "sync"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
 
 [features]
-nightly = ["reactive_graph/nightly", "tachys/nightly"]
 crossterm = ["terminput/crossterm", "tui-textarea?/crossterm"]
 termion = ["terminput/termion", "tui-textarea?/termion"]
 termwiz = ["terminput/termwiz", "tui-textarea?/termwiz"]
