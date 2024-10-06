@@ -8,7 +8,8 @@ use terminput::{
 use super::EventData;
 use crate::{
     ClickEventFn, DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType, focus_next,
-    focus_prev, set_pending_resize, toggle_print_dom, with_nodes, with_nodes_mut,
+    focus_prev, set_pending_resize, toggle_print_dom, trigger_window_focus_changed, with_nodes,
+    with_nodes_mut,
 };
 
 thread_local! {
@@ -45,11 +46,21 @@ impl EventDispatcher {
 
     fn dispatch(&mut self, event: Event) {
         match event {
-            Event::Key(key_event) => dispatch_key_event(key_event),
-            Event::FocusGained => {}
-            Event::FocusLost => {}
-            Event::Mouse(mouse_event) => self.dispatch_mouse_event(mouse_event),
-            Event::Paste(val) => dispatch_paste(val),
+            Event::Key(key_event) => {
+                dispatch_key_event(key_event);
+            }
+            Event::FocusGained => {
+                trigger_window_focus_changed(true);
+            }
+            Event::FocusLost => {
+                trigger_window_focus_changed(false);
+            }
+            Event::Mouse(mouse_event) => {
+                self.dispatch_mouse_event(mouse_event);
+            }
+            Event::Paste(val) => {
+                dispatch_paste(val);
+            }
             Event::Resize(_, _) => {
                 set_pending_resize();
             }

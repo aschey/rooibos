@@ -1,6 +1,8 @@
 use std::process::ExitCode;
 
-use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
+use rooibos::components::{
+    Button, Input, Notification, Notifications, Notifier, provide_notifications,
+};
 use rooibos::dom::{line, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::layout::chars;
@@ -23,6 +25,7 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    provide_notifications();
     let notifier = Notifier::new();
     let textarea = Input::get_ref();
 

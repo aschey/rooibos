@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use rooibos::components::either_of::Either;
 use rooibos::components::spinner::Spinner;
-use rooibos::components::{Notification, Notifications, Notifier};
+use rooibos::components::{Notification, Notifications, Notifier, provide_notifications};
 use rooibos::dom::{delay, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
@@ -25,6 +25,7 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    provide_notifications();
     col![
         props(max_width!(100.), block(Block::bordered())),
         (0..5).map(|i| task(i + 1)).collect::<Vec<_>>(),

@@ -14,8 +14,8 @@ use ratatui::layout::{Position, Size};
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::{Terminal, Viewport};
 use rooibos_dom::{
-    DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next, render_dom,
-    set_pixel_size, unmount,
+    DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next,
+    render_terminal, set_pixel_size, unmount,
 };
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
@@ -405,9 +405,7 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     fn draw(&self, terminal: &mut Terminal<B::TuiBackend>) {
-        terminal
-            .draw(|f| render_dom(f.buffer_mut()))
-            .expect("draw failed");
+        render_terminal(terminal).expect("draw failed");
     }
 
     pub async fn tick(&mut self) -> Result<TickResult, RuntimeError> {

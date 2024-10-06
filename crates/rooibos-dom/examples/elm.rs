@@ -13,8 +13,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use rooibos_dom::{
-    AsDomNode, DomNode, DomWidgetNode, NodeId, dispatch_event, focus_next, mount, render_dom,
-    with_nodes, with_nodes_mut,
+    AsDomNode, DomNode, DomWidgetNode, NodeId, dispatch_event, focus_next, mount,
+    render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
@@ -37,7 +37,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     mount(view);
 
-    terminal.draw(|frame| render_dom(frame.buffer_mut()))?;
+    render_terminal(&mut terminal)?;
     let mut event_reader = EventStream::new().fuse();
     focus_next();
 
@@ -55,8 +55,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let prev_focused_key = prev_focused_id.and_then(|p| nodes.get_key(p));
                     nodes.set_focused_untracked(prev_focused_key);
                 });
-
-                terminal.draw(|frame| render_dom(frame.buffer_mut()))?;
+                render_terminal(&mut terminal)?;
             }
             Some(Ok(event)) = event_reader.next() => {
                 if let Ok(event) = event.try_into() {

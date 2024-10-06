@@ -5,7 +5,9 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
-use rooibos::components::{Button, Input, InputRef, Notification, Notifications, Notifier, Show};
+use rooibos::components::{
+    Button, Input, InputRef, Notification, Notifications, Notifier, Show, provide_notifications,
+};
 use rooibos::dom::{WidgetState, focus_id, line, span, text};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::graph::actions::Action;
@@ -53,6 +55,8 @@ struct TodoContext {
 }
 
 fn app(notification_timeout: Duration) -> impl Render {
+    provide_notifications();
+
     let editing_id = RwSignal::new(None);
 
     let add_todo = Action::new(move |text: &String| add_todo(text.clone()));
@@ -136,7 +140,6 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     let notifier = Notifier::new();
 
     Effect::new({
-        let notifier = notifier.clone();
         move || {
             if let Some(update_value) = update_todo.value().get() {
                 let notification = match update_value {
