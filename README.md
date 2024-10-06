@@ -84,7 +84,7 @@ See [architecture](./ARCHITECTURE.md).
 
 ## Backend Support Status
 
-| Name                                                | Backend                                                        | Type     | Status                            |
+| Crate                                               | Backend                                                        | Type     | Status                            |
 | --------------------------------------------------- | -------------------------------------------------------------- | -------- | --------------------------------- |
 | [**`rooibos-terminal`**](./crates/rooibos-terminal) | [crossterm](https://docs.rs/crossterm/latest/crossterm/)       | Terminal | Implemented                       |
 | [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termion](https://docs.rs/termion/latest/termion/)             | Terminal | Implemented, but missing features |
