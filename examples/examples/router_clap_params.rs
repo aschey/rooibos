@@ -54,7 +54,7 @@ fn main() -> Result {
     }
 }
 
-#[rooibos::main]
+#[rooibos::main(flavor = "current_thread")]
 async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
     mount(|| app(initial_route));
     let runtime = Runtime::initialize(CrosstermBackend::stdout());

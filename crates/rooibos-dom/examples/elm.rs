@@ -13,15 +13,15 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use rooibos_dom::{
-    AsDomNode, DomNode, DomWidgetNode, NodeId, dispatch_event, focus_next, mount,
-    render_terminal, with_nodes, with_nodes_mut,
+    AsDomNode, DomNode, DomWidgetNode, NodeId, dispatch_event, focus_next, mount, render_terminal,
+    with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
 use terminput::{Event, KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc;
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = setup_terminal()?;
     let (tx, mut rx) = mpsc::channel(32);

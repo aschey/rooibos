@@ -10,7 +10,7 @@ use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
-#[rooibos::main]
+#[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
     let input = {
         let input = stdin();

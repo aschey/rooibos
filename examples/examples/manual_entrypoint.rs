@@ -15,7 +15,7 @@ fn main() -> Result {
     execute_with_owner(async_main)
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn async_main() -> Result {
     run_with_executor(async {
         mount(app);

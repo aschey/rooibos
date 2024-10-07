@@ -23,7 +23,7 @@ struct AppConfigExample {
     pub optional: Option<String>,
 }
 
-#[rooibos::main]
+#[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result<ExitCode, RuntimeError> {
     let config = AppConfig::<AppConfigExample>::new(ConfigSettings::new(
         ConfigDir::Custom("./.config".into()),

@@ -14,7 +14,7 @@ use rooibos::tui::style::{Style, Stylize};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
-#[rooibos::main]
+#[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());

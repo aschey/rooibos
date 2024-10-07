@@ -19,7 +19,7 @@ use tokio_util::sync::CancellationToken;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-#[rooibos::main]
+#[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result<()> {
     let backend = Arc::new(CrosstermBackend::stdout());
     let tui_backend = backend.create_tui_backend()?;

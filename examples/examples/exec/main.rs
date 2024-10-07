@@ -11,7 +11,7 @@ use rooibos::terminal::crossterm::CrosstermBackend;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
-#[rooibos::main]
+#[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
     mount(|| app(editor, Vec::new()));
