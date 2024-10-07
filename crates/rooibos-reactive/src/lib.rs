@@ -27,6 +27,12 @@ pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use tachys::view::any_view;
 pub use throw_error::*;
+#[doc(hidden)]
+#[cfg(not(target_arch = "wasm32"))]
+pub use tokio as __tokio;
+#[doc(hidden)]
+#[cfg(target_arch = "wasm32")]
+pub use wasm_bindgen as __wasm_bindgen;
 pub use widgets::*;
 
 pub fn execute_with_owner<T>(f: impl FnOnce() -> T) -> T {

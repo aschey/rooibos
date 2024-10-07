@@ -20,7 +20,9 @@ jobs:
       - name: Test
         env:
           RUST_BACKTRACE: 1
-        run: cargo test --examples
+        run: |
+          cargo test --examples
+          cargo test --doc
   all-features-unix:
     strategy:
       matrix:

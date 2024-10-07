@@ -1,3 +1,5 @@
+#![doc = include_str!("../../../README.md")]
+
 pub mod reactive {
     pub use rooibos_reactive::*;
 }

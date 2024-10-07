@@ -17,6 +17,9 @@ rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
 ratatui = { version = "0.28", features = ["unstable"] }
 
+[dev-dependencies]
+tokio = "1.40.0"
+
 [features]
 nightly = ["rooibos-reactive/nightly"]
 crossterm = [
