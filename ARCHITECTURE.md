@@ -112,7 +112,7 @@ An example of running an application without the runtime layer is shown
 - **Main Loop** - The application's main loop that's responsible for
   coordinating events that need to be processed on the main thread
 - **DOM Event Dispatcher** - A component in the DOM that routes events to
-  specific nodes that may be interested (i.e. click events need to go to the
+  specific nodes that may be interested (e.g. click events need to go to the
   correct element)
 - **Signal Subscribers** - Async tasks inside of the reactive graph that are
   invoked when their reactive signals are modified

@@ -11,7 +11,6 @@ use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use ratatui::{CompletedFrame, Terminal};
 use tokio::sync::watch;
-use tracing::error;
 
 mod dom_node;
 mod dom_widget;
@@ -157,10 +156,8 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
 }
 
 pub(crate) fn refresh_dom() {
-    let _ = DOM_UPDATE_TX.with(|tx| {
-        tx.borrow()
-            .send(())
-            .inspect_err(|e| error!("error sending DOM update: {e:?}"))
+    DOM_UPDATE_TX.with(|tx| {
+        tx.borrow().send_modify(|_| {});
     });
 }
 

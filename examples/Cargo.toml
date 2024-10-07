@@ -15,7 +15,7 @@ rooibos = { path = "../crates/rooibos", features = [
   "router",
   "spinner",
 ] }
-tokio = { version = "1.38.1", features = ["rt", "macros"] }
+tokio = { version = "1.40.0", features = ["rt", "macros"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [
   "registry",
@@ -25,17 +25,18 @@ rand = "0.8.5"
 tui-textarea = { version = "0.6" }
 tui-tree-widget = "0.22.0"
 reqwest = { version = "0.12.4", features = ["json"] }
-serde = "1.0.203"
-axum = "0.7.5"
-tokio-stream = { version = "0.1.15", features = ["sync"] }
-clap = { version = "4.5.13", features = ["derive"] }
-schematic = { version = "0.17" }
+serde = "1.0.210"
+axum = "0.7.7"
+tokio-stream = { version = "0.1.16", features = ["sync"] }
+clap = { version = "4.5.19", features = ["derive"] }
+schematic = { version = "0.17.5" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 taffy = "0.5.2"
 tokio-util = "0.7.12"
+tracing-appender = "0.2.3"
 
 [dev-dependencies]
-insta = "1.39.0"
+insta = "1.40.0"
 
 [features]
 nightly = ["rooibos/nightly"]
