@@ -120,13 +120,13 @@ fn app() -> impl Render {
 
     let key_down = move |key_event: KeyEvent, _, _| {
         if key_event.code == KeyCode::Enter {
-            // Signals implement `Copy` and can be moved into closures without cloning
+            // Signals implement `Copy` and can be moved into closures without cloning.
             update_count();
         }
     };
     col![
         // Reading a signal inside a widget will cause the widget to re-render
-        // when the signal updates
+        // when the signal updates.
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(key_down)
             .on_click(move |_, _, _| update_count()),
@@ -171,8 +171,8 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     row![
-        // props() is special syntax that sets the layout properties on a widget
-        // or layout node
+        // `props()` is special syntax that sets the layout properties on a widget
+        // or layout node.
         props(padding!(1.)),
         col![
             props(width!(20.), padding_right!(2.)),
@@ -182,8 +182,8 @@ fn app() -> impl Render {
     ]
 }
 
-// Simple components can be written as functions, while larger ones such as
-// `Button` may be written as structs
+// Simple components can be written as functions, while complex ones with optional arguments,
+// such as `Button`, may be written as structs.
 fn button(title: Span<'static>) -> impl Render {
     row![props(height!(3.)), Button::new().render(text!(title))]
 }
@@ -230,7 +230,7 @@ fn app() -> impl Render {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
             // No need to coordinate dispatching events to the main thread
-            // to trigger a re-render
+            // to trigger a re-render.
             update_count();
         }
     });
@@ -260,30 +260,3 @@ For details on internals and the reason behind certain design decisions, see
 | **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                      | Desktop  | Planned                           |
 | **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                      | Mobile   | Planned                           |
 | **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                      | Games    | Planned                           |
-
-## Structure
-
-- [**`rooibos-dom`**](./crates/rooibos-dom) - Structures for representing user
-  interfaces as a tree of nodes, loosely based on the DOM model from HTML
-- [**`rooibos-reactive`**](./crates/rooibos-reactive) - Implements signal-based
-  reactivity on top of `rooibos-dom`
-- [**`rooibos-reactive-macros`**](./crates/rooibos-reactive-macros) - Procedural
-  macros for setting up the reactive system
-- [**`rooibos-terminal`**](./crates/rooibos-terminal) - Abstraction for using
-  Rooibos with different terminal backends
-- [**`rooibos-components`**](./crates/rooibos-components) - High-level reactive
-  UI components
-- [**`rooibos-runtime`**](./crates/rooibos-runtime) - Application runtime for
-  managing the event loop
-- [**`rooibos-tester`**](./crates/rooibos-tester) - Harness for testing
-  components using an in-memory backend
-- [**`rooibos-router`**](./crates/rooibos-router) - Router component, useful for
-  multi-screen applications
-- [**`rooibos-router-macros`**](./crates/rooibos-router-macros) - Procedural
-  macros for type-safe routing
-- [**`rooibos-ssh`**](./crates/rooibos-ssh) - Serves Rooibos applications over
-  SSH
-- [**`rooibos-xterm-js`**](./crates/rooibos-xterm-js) - Serves Rooibos
-  applications on the brower using [xterm-js](https://xtermjs.org/)
-- [**`rooibos-config`**](./crates/rooibos-config) - Utility for integrating
-  configuration files with live reload support

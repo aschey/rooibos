@@ -53,6 +53,43 @@ There's several advantages to using an async model here:
   single-threaded runtime allows the application to run concurrent tasks without
   blocking the UI and avoiding the overhead of spawning threads.
 
+## Structure
+
+Rooibos is designed to be modular, allowing the application logic to be
+separated from the backend. Additionally, the reactive system can be used
+without the runtime layer and the DOM can be used without the reactive system.
+
+An example of how to create an (overly simplified) Elm-based architecture on top
+of the DOM layer is given [here](./crates/rooibos-dom/examples/elm.rs).
+
+An example of running an application without the runtime layer is shown
+[here](./examples/examples/no_runtime.rs).
+
+- [**`rooibos-dom`**](./crates/rooibos-dom) - Structures for representing user
+  interfaces as a tree of nodes, loosely based on the DOM model from HTML
+- [**`rooibos-reactive`**](./crates/rooibos-reactive) - Implements signal-based
+  reactivity on top of `rooibos-dom`
+- [**`rooibos-reactive-macros`**](./crates/rooibos-reactive-macros) - Procedural
+  macros for setting up the reactive system
+- [**`rooibos-terminal`**](./crates/rooibos-terminal) - Abstraction for using
+  Rooibos with different terminal backends
+- [**`rooibos-components`**](./crates/rooibos-components) - High-level reactive
+  UI components
+- [**`rooibos-runtime`**](./crates/rooibos-runtime) - Application runtime for
+  managing the event loop
+- [**`rooibos-tester`**](./crates/rooibos-tester) - Harness for testing
+  components using an in-memory backend
+- [**`rooibos-router`**](./crates/rooibos-router) - Router component, useful for
+  multi-screen applications
+- [**`rooibos-router-macros`**](./crates/rooibos-router-macros) - Procedural
+  macros for type-safe routing
+- [**`rooibos-ssh`**](./crates/rooibos-ssh) - Serves Rooibos applications over
+  SSH
+- [**`rooibos-xterm-js`**](./crates/rooibos-xterm-js) - Serves Rooibos
+  applications on the brower using [xterm-js](https://xtermjs.org/)
+- [**`rooibos-config`**](./crates/rooibos-config) - Utility for integrating
+  configuration files with live reload support
+
 ## Rendering Model
 
 ### Terminal Event and Signal Handling
