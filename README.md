@@ -13,7 +13,9 @@
 
 > [!WARNING]
 > This project is currently in a pre-alpha state and should not be used for
-> anything beyond experimentation yet.
+> anything beyond experimentation yet. There's a high level todo list for the
+> initial release
+> [here](https://github.com/aschey/rooibos/issues?q=is%3Aissue+is%3Aopen+label%3AMVP).
 
 ## Intro
 
@@ -21,9 +23,9 @@ Rooibos is an application framework for creating TUI
 ([text-based user interface](https://en.wikipedia.org/wiki/Text-based_user_interface))
 apps that can run in a variety of different environments - in the terminal, web,
 desktop and more. It uses [Leptos'](https://github.com/leptos-rs/leptos)
-[signal-based](https://github.com/leptos-rs/leptos/tree/main/reactive_graph)
-reactivity model to create declarative user interfaces. Elements are rendered to
-the screen using [Ratatui](https://docs.rs/ratatui/latest/ratatui/) widgets.
+[signal-based reactivity model](https://github.com/leptos-rs/leptos/tree/main/reactive_graph)
+to create declarative user interfaces. Elements are rendered to the screen using
+[Ratatui](https://docs.rs/ratatui/latest/ratatui/) widgets.
 
 ![counter](./examples/examples/counter/counter.gif)
 
@@ -74,8 +76,7 @@ fn app() -> impl Render {
 - Compatibility with Ratatui and its widget ecosystem
 - Flexbox and grid layouts powered by
   [taffy](https://docs.rs/taffy/latest/taffy/)
-- Render your applications on the web, desktop, SSH, or mobile with minimal
-  changes
+- Render your applications on a variety of platforms with with minimal setup
 - First-class async support
 - Supports full screen and inline apps
 
@@ -236,6 +237,72 @@ fn app() -> impl Render {
     });
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
+}
+```
+
+## Testing
+
+We provide a first-party package for testing your apps and components at a high
+level. The API is inspired by [Testing Library](https://testing-library.com/).
+
+```rust
+use rooibos::dom::{span, KeyCode, KeyEvent};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{mount, wgt, Render};
+use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tester::{TerminalView, TestHarness};
+use rooibos::tui::style::Stylize;
+
+fn app() -> impl Render {
+    let (count, set_count) = signal(0);
+
+    let update_count = move || set_count.update(|c| *c += 1);
+
+    let key_down = move |key_event: KeyEvent, _, _| {
+        if key_event.code == KeyCode::Enter {
+            update_count();
+        }
+    };
+
+    wgt!(rooibos::dom::line!(
+        "count: ".bold(),
+        span!(count.get()).cyan()
+    ))
+    .on_key_down(key_down)
+    .on_click(move |_, _, _| update_count())
+}
+
+macro_rules! assert_snapshot {
+    ($terminal:expr) => {
+        insta::with_settings!({
+            snapshot_path => "./snapshots"
+        }, {
+            insta::assert_debug_snapshot!($terminal.backend().buffer());
+        });
+    };
+}
+
+#[rooibos::test]
+async fn test_counter() {
+    mount(app);
+    let mut harness = TestHarness::new_with_settings(
+        RuntimeSettings::default().enable_signal_handler(false),
+        20,
+        10,
+    );
+
+    assert_snapshot!(harness.terminal());
+
+    harness.send_key(KeyCode::Enter);
+    harness
+        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
+        .await
+        .unwrap();
+
+    harness.exit().await;
 }
 ```
 

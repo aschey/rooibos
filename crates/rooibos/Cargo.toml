@@ -19,6 +19,7 @@ ratatui = { version = "0.28", features = ["unstable"] }
 
 [dev-dependencies]
 tokio = "1.40.0"
+insta = "1.40.0"
 
 [features]
 nightly = ["rooibos-reactive/nightly"]
