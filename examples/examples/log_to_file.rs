@@ -1,4 +1,4 @@
-use std::fs;
+use std::fs::File;
 use std::process::ExitCode;
 use std::time::Duration;
 
@@ -14,8 +14,11 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    // remove the previous output if it exists
-    let _ = fs::remove_file("./example.log");
+    if let Ok(file) = File::options().write(true).open("./example.log") {
+        // Truncate the output from the last run, but don't remove it.
+        // That way you don't need to restart `tail -f example.log` if it's already running.
+        file.set_len(0)?;
+    }
     let appender = tracing_appender::rolling::never(".", "example.log");
     let (non_blocking_appender, _guard) = tracing_appender::non_blocking(appender);
     let subscriber = tracing_subscriber::fmt()
