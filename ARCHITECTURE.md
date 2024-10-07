@@ -9,7 +9,7 @@ updates and
 [`reactive_graph`](https://docs.rs/reactive_graph/latest/reactive_graph/) for
 signals. Unfortunately, Leptos had to remove support for generic rendering due
 to ballooning compile times on large web projects (see
-[the PR](https://github.com/leptos-rs/leptos/pull/3015)) so we use a
+[this PR](https://github.com/leptos-rs/leptos/pull/3015)) so we use a
 [soft fork of tachys](https://github.com/aschey/leptos/tree/main/tachys) which
 restores the generic rendering functionality.
 
@@ -24,6 +24,13 @@ unnecessarily clone the widget's inputs. Whenever possible, we invoke
 to avoid cloning the widget itself, as well. In the future, we could use
 Ratatui's lower level APIs to only re-render the parts of the screen that we
 know have changed.
+
+The DOM is represented using a
+[`slotmap`](https://docs.rs/slotmap/latest/slotmap/). The slotmap structure is
+stored as a thread local variable and each of the DOM nodes keeps track of where
+it is in the tree based on the slotmap key. These keys are used in other parts
+of the framework to modify the DOM. (This is the same technique that
+`reactive_graph` uses to track signals internally).
 
 When a part of the DOM is updated, it sends a message that tells the event loop
 that it needs to re-render.
@@ -86,11 +93,31 @@ An example of running an application without the runtime layer is shown
 - [**`rooibos-ssh`**](./crates/rooibos-ssh) - Serves Rooibos applications over
   SSH
 - [**`rooibos-xterm-js`**](./crates/rooibos-xterm-js) - Serves Rooibos
-  applications on the brower using [xterm-js](https://xtermjs.org/)
+  applications on the browser using [xterm-js](https://xtermjs.org/)
 - [**`rooibos-config`**](./crates/rooibos-config) - Utility for integrating
   configuration files with live reload support
 
-## Rendering Model
+## Event Handling
+
+### Glossary
+
+- **Terminal** - The terminal application
+- **Application** - Logic implemented in the end user application rather than
+  the framework
+- **DOM** - Widget tree stored on the main/UI thread
+- **Input Reader** - An async task that listens for terminal events and maps
+  them from a backend-specific structure to a common one
+- **OS Signal Reader** - An async task that listens for signals from the
+  underlying OS and maps them from a specific code to a common structure
+- **Main Loop** - The application's main loop that's responsible for
+  coordinating events that need to be processed on the main thread
+- **DOM Event Dispatcher** - A component in the DOM that routes events to
+  specific nodes that may be interested (i.e. click events need to go to the
+  correct element)
+- **Signal Subscribers** - Async tasks inside of the reactive graph that are
+  invoked when their reactive signals are modified
+- **Terminal Commands** - Commands that can be dispatched by the end user
+  application that modify the terminal state, such as changing the title
 
 ### Terminal Event and Signal Handling
 
@@ -110,7 +137,7 @@ flowchart LR
     A[Application] -- Terminal Commands --> ML
     A -- Reactive Signals --> SS[Signal Subscribers]
     SS -- Modify DOM --> D
-    DED[DOM Event Dispatcher] -- Trigger Event Handler --> D[Dom]
+    DED[DOM Event Dispatcher] -- Trigger Event Handler --> D[DOM]
     D -- Notify DOM Changed --> ML[Main Loop]
     ML -- Re-render --> D
     ML -- Invoke Terminal Command --> T[Terminal]

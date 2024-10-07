@@ -140,9 +140,9 @@ fn app() -> impl Render {
 Rooibos applications are built using a functional component model that will feel
 familiar if you've used a Javascript framework such as React or SolidJS, or one
 of the Rust-based frameworks like Leptos or Dioxus. Anything that returns
-`impl Render` can be added to the DOM tree.
+`impl Render` can be added to the DOM.
 
-Layout properties can be added using the special `props()` syntax.
+Layout properties can be added using the special `props()` keyword.
 
 ```rust,no_run
 use std::process::ExitCode;
@@ -171,7 +171,7 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     row![
-        // `props()` is special syntax that sets the layout properties on a widget
+        // `props()` is a special keyword that sets the layout properties on a widget
         // or layout node.
         props(padding!(1.)),
         col![
