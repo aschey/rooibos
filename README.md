@@ -243,6 +243,24 @@ fn app() -> impl Render {
 
 See [examples](./examples/examples).
 
+## Macro Usage
+
+There are a number of macros used in Rooibos, such as the `row!`, `col!`, and
+`wgt!` calls. These are all simple wrappers to prevent the user from having to
+remember to wrap everything in tuples or add a bunch of extra `move ||` syntax.
+If desired, these macros can be replaced with normal function calls at the cost
+of verbosity.
+
+Originally, Rooibos was designed to use a
+[JSX-like syntax](https://github.com/rs-tml/rstml) (borrowed from Leptos), but
+this was abandoned due to the fact that procedural macros are not formatted by
+`rustfmt` and getting intellisense to work properly inside of a DSL requires
+[some rather esoteric workarounds](https://emi0x7d1.dev/blog/improving-autocompletion-in-your-rust-macros).
+
+This work still exists in the
+[macros branch](https://github.com/aschey/rooibos/tree/macros) and may be
+revived one day, but only as an optional add-on.
+
 ## Architecture
 
 For details on internals and the reason behind certain design decisions, see
