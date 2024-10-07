@@ -125,7 +125,8 @@ fn app() -> impl Render {
         }
     };
     col![
-        // Reading a signal inside a widget will cause the widget to re-render when the signal updates
+        // Reading a signal inside a widget will cause the widget to re-render
+        // when the signal updates
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(key_down)
             .on_click(move |_, _, _| update_count()),
@@ -170,7 +171,8 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     row![
-        // props() is special syntax that sets the layout properties on a widget or layout node
+        // props() is special syntax that sets the layout properties on a widget
+        // or layout node
         props(padding!(1.)),
         col![
             props(width!(20.), padding_right!(2.)),
@@ -180,7 +182,8 @@ fn app() -> impl Render {
     ]
 }
 
-// Simple components can be written as functions, while larger ones such as `Button` may be written as structs
+// Simple components can be written as functions, while larger ones such as
+// `Button` may be written as structs
 fn button(title: Span<'static>) -> impl Render {
     row![props(height!(3.)), Button::new().render(text!(title))]
 }
@@ -226,7 +229,8 @@ fn app() -> impl Render {
     tokio::task::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(1)).await;
-            // No need to coordinate dispatching events to the main thread to trigger a re-render
+            // No need to coordinate dispatching events to the main thread
+            // to trigger a re-render
             update_count();
         }
     });
