@@ -1,3 +1,4 @@
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
@@ -296,8 +297,8 @@ impl Input {
 
         let mut widget = DomWidget::new::<TextArea, _, _>(move || {
             text_area.track();
-            move |area: Rect, buf: &mut Buffer| {
-                text_area.with(|t| t.render(area, buf));
+            move |area: Rect, frame: &mut Frame| {
+                text_area.with(|t| t.render(area, frame.buffer_mut()));
             }
         })
         .layout_props(layout_props)

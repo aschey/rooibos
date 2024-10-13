@@ -5,9 +5,10 @@ use background_service::ServiceContext;
 use rooibos_dom::{Event, KeyCode, KeyEvent, KeyModifiers, MouseEvent, MouseEventKind};
 use tokio::sync::broadcast;
 use tracing::{error, warn};
+use wasm_compat::sync::Mutex;
 
 use crate::debounce::Debouncer;
-use crate::{IsQuitEvent, RuntimeCommand, has_external_signal_stream};
+use crate::{EventFilter, IsQuitEvent, RuntimeCommand, has_external_signal_stream};
 
 pub(crate) struct InputHandler {
     pub(crate) term_parser_rx: broadcast::Receiver<Event>,
@@ -18,6 +19,7 @@ pub(crate) struct InputHandler {
     pub(crate) context: ServiceContext,
     pub(crate) is_quit_event: Arc<IsQuitEvent>,
     pub(crate) editing: Arc<AtomicBool>,
+    pub(crate) event_filter: Arc<Mutex<Box<EventFilter>>>,
 }
 
 impl InputHandler {
@@ -53,34 +55,40 @@ impl InputHandler {
         &mut self,
         next_event: Result<Event, broadcast::error::RecvError>,
     ) -> bool {
+        let Ok(next_event) = next_event.inspect_err(|e| {
+            warn!("event error {e:?}");
+        }) else {
+            return false;
+        };
+
+        let Some(next_event) = self.event_filter.lock_mut()(next_event) else {
+            return true;
+        };
+
         match next_event {
-            Ok(event @ Event::Key(key_event)) => {
+            event @ Event::Key(key_event) => {
                 self.handle_key_event(event, key_event);
             }
-            Ok(
-                mouse_event @ Event::Mouse(MouseEvent {
-                    kind: MouseEventKind::Moved,
-                    ..
-                }),
-            ) => {
+
+            mouse_event @ Event::Mouse(MouseEvent {
+                kind: MouseEventKind::Moved,
+                ..
+            }) => {
                 let _ = self
                     .hover_debouncer
                     .update(mouse_event)
                     .await
                     .inspect_err(|e| error!("error debouncing hover event: {e:?}"));
             }
-            Ok(resize_event @ Event::Resize(_, _)) => {
+            resize_event @ Event::Resize(_, _) => {
                 let _ = self
                     .resize_debouncer
                     .update(resize_event)
                     .await
                     .inspect_err(|e| error!("error debouncing resize event: {e:?}"));
             }
-            Ok(event) => {
+            event => {
                 self.term_event_tx.send(event).ok();
-            }
-            Err(_) => {
-                return false;
             }
         }
         true

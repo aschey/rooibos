@@ -9,7 +9,7 @@ use ratatui::backend::Backend;
 use ratatui::buffer::Buffer;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
-use ratatui::{CompletedFrame, Terminal};
+use ratatui::{CompletedFrame, Frame, Terminal};
 use tokio::sync::watch;
 
 mod dom_node;
@@ -172,7 +172,8 @@ pub fn unmount() {
     with_nodes_mut(|d| *d = NodeTree::new());
 }
 
-pub fn render_dom(buf: &mut Buffer) {
+pub fn render_dom(frame: &mut Frame) {
+    let buf = frame.buffer_mut();
     if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
         with_nodes_mut(|nodes| nodes.set_window_size(buf.area));
     }
@@ -186,8 +187,9 @@ pub fn render_dom(buf: &mut Buffer) {
         });
 
         let roots = with_nodes(|nodes| nodes.roots_asc());
+        let window_area = *frame.buffer_mut().area();
         for root in roots {
-            root.render(buf, buf.area);
+            root.render(window_area, frame);
         }
     }
 }
@@ -196,7 +198,7 @@ pub fn render_terminal<B>(terminal: &mut Terminal<B>) -> Result<CompletedFrame, 
 where
     B: Backend,
 {
-    terminal.draw(|f| render_dom(f.buffer_mut()))
+    terminal.draw(render_dom)
 }
 
 pub fn render_single_frame<B>(terminal: &mut Terminal<B>) -> Result<(), io::Error>
@@ -224,10 +226,21 @@ pub fn focus(id: impl Into<NodeId>) {
     });
 }
 
+#[derive(thiserror::Error, Debug)]
+#[error("node not found: {0:?}")]
+pub struct NodeNotFound(pub NodeId);
+
 pub fn focus_id(id: impl Into<NodeId>) {
+    try_focus_id(id).expect("node not found")
+}
+
+pub fn try_focus_id(id: impl Into<NodeId>) -> Result<(), NodeNotFound> {
     let id = id.into();
     with_nodes_mut(|nodes| {
         let found_node = nodes.iter_nodes().find_map(|(key, node)| {
+            if !node.inner.focusable {
+                return None;
+            }
             if let Some(current_id) = &node.inner.id {
                 if &id == current_id {
                     return Some(key);
@@ -237,6 +250,9 @@ pub fn focus_id(id: impl Into<NodeId>) {
         });
         if let Some(found_node) = found_node {
             nodes.set_focused(Some(found_node));
+            Ok(())
+        } else {
+            Err(NodeNotFound(id))
         }
-    });
+    })
 }

@@ -8,6 +8,7 @@ use rooibos::reactive::{DomWidget, Render, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::Frame;
 use rooibos::tui::buffer::Buffer;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::widgets::{Block, Widget};
@@ -44,8 +45,8 @@ fn text_area(text_area: impl Into<MaybeSignal<TextArea<'static>>>) -> DomWidget<
     let text_area = text_area.into();
     DomWidget::new::<TextArea, _, _>(move || {
         let widget = text_area.get();
-        move |area: Rect, buf: &mut Buffer| {
-            widget.render(area, buf);
+        move |area: Rect, frame: &mut Frame| {
+            widget.render(area, frame.buffer_mut());
         }
     })
 }

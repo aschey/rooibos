@@ -1,3 +1,4 @@
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
@@ -38,8 +39,8 @@ where
 {
     DomWidget::new_with_properties::<W, _, _>(props, move || {
         let props = widget_props();
-        move |rect: Rect, buf: &mut Buffer| {
-            props.render_ref(rect, buf);
+        move |rect: Rect, frame: &mut Frame| {
+            props.render_ref(rect, frame.buffer_mut());
         }
     })
 }
@@ -51,8 +52,8 @@ where
 {
     DomWidget::new_with_properties::<W, _, _>(props, move || {
         let props = widget_props();
-        move |rect: Rect, buf: &mut Buffer| {
-            props.clone().render(rect, buf);
+        move |rect: Rect, frame: &mut Frame| {
+            props.clone().render(rect, frame.buffer_mut());
         }
     })
 }
@@ -66,8 +67,8 @@ where
     DomWidget::new_with_properties::<W, _, _>(props, move || {
         let props = widget_props();
         let mut state = state();
-        move |rect: Rect, buf: &mut Buffer| {
-            props.clone().render(rect, buf, &mut state);
+        move |rect: Rect, frame: &mut Frame| {
+            props.clone().render(rect, frame.buffer_mut(), &mut state);
         }
     })
 }

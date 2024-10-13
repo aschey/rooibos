@@ -3,9 +3,11 @@ use std::time::Duration;
 
 use educe::Educe;
 use ratatui::Viewport;
-use rooibos_dom::{KeyCode, KeyEvent, KeyModifiers};
+use rooibos_dom::{Event, KeyCode, KeyEvent, KeyModifiers};
+use wasm_compat::sync::Mutex;
 
 pub type IsQuitEvent = dyn Fn(KeyEvent) -> bool + Send + Sync;
+pub type EventFilter = dyn FnMut(Event) -> Option<Event> + Send + Sync;
 
 #[derive(Educe)]
 #[educe(Debug)]
@@ -18,6 +20,8 @@ pub struct RuntimeSettings {
     pub(crate) viewport: Viewport,
     #[educe(Debug(ignore))]
     pub(crate) is_quit_event: Arc<IsQuitEvent>,
+    #[educe(Debug(ignore))]
+    pub(crate) event_filter: Arc<Mutex<Box<EventFilter>>>,
 }
 
 impl Default for RuntimeSettings {
@@ -35,6 +39,7 @@ impl Default for RuntimeSettings {
                 let q = key.code == KeyCode::Char('q') && key.modifiers == KeyModifiers::empty();
                 ctrl_c || q
             }),
+            event_filter: Arc::new(Mutex::new(Box::new(Some))),
         }
     }
 }
@@ -75,6 +80,14 @@ impl RuntimeSettings {
         F: Fn(KeyEvent) -> bool + Send + Sync + 'static,
     {
         self.is_quit_event = Arc::new(f);
+        self
+    }
+
+    pub fn event_filter<F>(mut self, f: F) -> Self
+    where
+        F: FnMut(Event) -> Option<Event> + Send + Sync + 'static,
+    {
+        self.event_filter = Arc::new(Mutex::new(Box::new(f)));
         self
     }
 }

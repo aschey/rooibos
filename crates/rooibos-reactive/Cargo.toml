@@ -30,7 +30,7 @@ paste = "1"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
   "all",
 ] }
-taffy = "0.5.2"
+taffy = "0.6.0"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 

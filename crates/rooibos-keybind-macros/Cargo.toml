@@ -1,0 +1,13 @@
+[package]
+name = "rooibos-keybind-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+manyhow = "0.11.4"
+modalkit = { git = "https://github.com/ulyssa/modalkit", rev = "45855daeeb7081eec626a8f9cf657f0fc2ff0a7a" }
+proc-macro2 = "1.0.87"
+quote = "1.0.37"

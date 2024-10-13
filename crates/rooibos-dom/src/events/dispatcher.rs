@@ -171,7 +171,9 @@ fn dispatch_key_event(key_event: KeyEvent) {
                     key,
                     |handlers| handlers.on_key_down.clone(),
                     |event, rect, handle| {
-                        event.borrow_mut()(key_event, EventData { rect }, handle);
+                        event
+                            .borrow_mut()
+                            .handle(key_event, EventData { rect }, handle);
                     },
                 );
             }
@@ -180,7 +182,9 @@ fn dispatch_key_event(key_event: KeyEvent) {
                     key,
                     |handlers| handlers.on_key_up.clone(),
                     |event, rect, handle| {
-                        event.borrow_mut()(key_event, EventData { rect }, handle);
+                        event
+                            .borrow_mut()
+                            .handle(key_event, EventData { rect }, handle);
                     },
                 );
             }

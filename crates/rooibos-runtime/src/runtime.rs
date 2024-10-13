@@ -14,8 +14,8 @@ use ratatui::layout::{Position, Size};
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::{Terminal, Viewport};
 use rooibos_dom::{
-    DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next,
-    render_terminal, set_pixel_size, unmount,
+    DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next, render_terminal,
+    set_pixel_size, unmount,
 };
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
@@ -186,6 +186,7 @@ impl<B: Backend + 'static> Runtime<B> {
         let resize_debouncer = Debouncer::new(self.settings.resize_debounce);
         let parser_running = self.parser_running.clone();
         let is_quit_event = self.settings.is_quit_event.clone();
+        let event_filter = self.settings.event_filter.clone();
         // Make sure we load the editing variable before spawning, because it's a thread local
         let editing = rooibos_dom::editing();
         self.service_context.spawn(
@@ -199,6 +200,7 @@ impl<B: Backend + 'static> Runtime<B> {
                     context,
                     is_quit_event,
                     editing,
+                    event_filter,
                 };
                 loop {
                     if !input_handler.handle().await {

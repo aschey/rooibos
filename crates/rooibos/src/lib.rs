@@ -1,5 +1,15 @@
 #![doc = include_str!("../../../README.md")]
 
+// fn app() {
+//   let handler = handle_command(Command::DoTheThing, do_the_thing);
+//
+//   let bindings = [
+//     bind("C-x", "do the thing", do_the_thing).show(false),
+//     bind_cmd("C-x", "do the thing", handler)
+//   ];
+//   button().on_key_down(bindings)
+// }
+
 pub mod reactive {
     pub use rooibos_reactive::*;
 }

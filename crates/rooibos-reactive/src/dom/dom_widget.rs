@@ -1,4 +1,5 @@
 use next_tuple::NextTuple;
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
@@ -56,7 +57,7 @@ impl Render<RooibosDom> for DomWidgetNode {
 }
 
 impl DomWidget<()> {
-    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
+    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Frame) + 'static>(
         f: F1,
     ) -> Self {
         let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _, _>(f);
@@ -72,7 +73,7 @@ impl<P> DomWidget<P> {
     pub fn new_with_properties<
         T: 'static,
         F1: Fn() -> F2 + 'static,
-        F2: FnMut(Rect, &mut Buffer) + 'static,
+        F2: FnMut(Rect, &mut Frame) + 'static,
     >(
         props: P,
         f: F1,

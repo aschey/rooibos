@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 pub use portable_pty::CommandBuilder;
 use portable_pty::{MasterPty, NativePtySystem, PtySize, PtySystem, SlavePty};
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
@@ -113,14 +114,14 @@ impl Terminal {
         DomWidget::new::<PseudoTerminal<Screen>, _, _>(move || {
             let parser = parser.get();
             let block = block.as_ref().map(|b| b.get());
-            move |rect: Rect, buf: &mut Buffer| {
+            move |rect: Rect, frame: &mut Frame| {
                 let parser = parser.lock().unwrap();
 
                 let mut term = PseudoTerminal::new(parser.screen());
                 if let Some(block) = block.clone() {
                     term = term.block(block);
                 }
-                term.render(rect, buf);
+                term.render(rect, frame.buffer_mut());
             }
         })
         .on_key_down(move |key, _, _| {

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use educe::Educe;
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
@@ -292,8 +293,8 @@ pub struct NodeProperties {
     pub(crate) unmounted: Arc<AtomicBool>,
 }
 
-struct RenderProps<'a> {
-    buf: &'a mut Buffer,
+struct RenderProps<'a, 'b> {
+    frame: &'a mut Frame<'b>,
     window: Rect,
     key: DomNodeKey,
     dom_nodes: &'a NodeTree,
@@ -302,7 +303,7 @@ struct RenderProps<'a> {
 impl NodeProperties {
     fn render(&self, props: RenderProps) {
         let RenderProps {
-            buf,
+            frame,
             window,
             key,
             dom_nodes,
@@ -316,7 +317,7 @@ impl NodeProperties {
         }
 
         if self.clear {
-            Clear.render(rect, buf);
+            Clear.render(rect, frame.buffer_mut());
         }
 
         // If the widget dimension == the window dimension, there's probably no explicit
@@ -337,12 +338,12 @@ impl NodeProperties {
         match &self.node_type {
             NodeType::Layout => {
                 if let Some(block) = &self.block {
-                    block.render_ref(rect, buf);
+                    block.render_ref(rect, frame.buffer_mut());
                 };
 
                 self.children.iter().for_each(|key| {
                     dom_nodes[*key].render(RenderProps {
-                        buf,
+                        frame,
                         window,
                         key: *key,
                         dom_nodes,
@@ -350,7 +351,7 @@ impl NodeProperties {
                 });
             }
             NodeType::Widget(widget) => {
-                widget.render(rect, buf);
+                widget.render(rect, frame);
             }
             NodeType::Placeholder => {}
         }
@@ -712,11 +713,11 @@ impl DomNode {
         self.insert_before::<D1, D1>(child, None)
     }
 
-    pub fn render(&self, buf: &mut Buffer, rect: Rect) {
+    pub fn render(&self, window: Rect, frame: &mut Frame) {
         with_nodes(|nodes| {
             nodes[self.key].render(RenderProps {
-                buf,
-                window: rect,
+                frame,
+                window,
                 key: self.key,
                 dom_nodes: nodes,
             });

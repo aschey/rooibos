@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 pub use dispatcher::*;
-pub(crate) use event_handler::*;
+pub use event_handler::*;
 use ratatui::layout::Rect;
 use terminput::KeyModifiers;
 

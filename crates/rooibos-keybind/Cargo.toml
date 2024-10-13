@@ -1,0 +1,16 @@
+[package]
+name = "rooibos-keybind"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rooibos-dom = { path = "../rooibos-dom" }
+rooibos-reactive = { path = "../rooibos-reactive" }
+modalkit = { path = "../../../modalkit/crates/modalkit" }
+modalkit-ratatui = { path = "../../../modalkit/crates/modalkit-ratatui" }
+terminput = { git = "https://github.com/aschey/terminput", rev = "f07cb891c397c1ab092f0f1d09c085eb52c42e8d" }
+crossterm = "0.28"
+ratatui = { version = "0.28", features = ["unstable"] }
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+  "all",
+] }

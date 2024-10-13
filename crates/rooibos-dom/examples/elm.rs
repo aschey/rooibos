@@ -246,7 +246,7 @@ impl Counter {
                 paragraph = paragraph.block(Block::bordered().border_set(border::EMPTY))
             }
 
-            move |rect, buf| paragraph.render_ref(rect, buf)
+            move |rect, frame| paragraph.render_ref(rect, frame.buffer_mut())
         });
         widget.build();
 

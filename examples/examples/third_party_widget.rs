@@ -7,6 +7,7 @@ use rooibos::reactive::{DomWidget, Render, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::Frame;
 use rooibos::tui::buffer::Buffer;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
@@ -69,13 +70,13 @@ fn app() -> impl Render {
     DomWidget::new::<Tree<&str>, _, _>(move || {
         let tree = tree.get();
         state.track();
-        move |rect: Rect, buf: &mut Buffer| {
+        move |rect: Rect, frame: &mut Frame| {
             state.update_untracked(|s| {
                 Tree::new(&tree)
                     .unwrap()
                     .block(Block::bordered().title("Tree Widget"))
                     .highlight_style(Style::default().black().on_green().bold())
-                    .render(rect, buf, s);
+                    .render(rect, frame.buffer_mut(), s);
             })
         }
     })

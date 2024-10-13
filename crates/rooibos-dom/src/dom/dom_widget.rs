@@ -4,13 +4,13 @@ use std::fmt;
 use std::fmt::Debug;
 use std::rc::Rc;
 
-use ratatui::buffer::Buffer;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 
 use crate::widgets::WidgetRole;
 use crate::{Role, next_node_id, refresh_dom};
 
-pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Buffer)>;
+pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Frame)>;
 
 #[derive(Clone)]
 pub struct DomWidgetNode {
@@ -36,7 +36,7 @@ impl Debug for DomWidgetNode {
 }
 
 impl DomWidgetNode {
-    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Buffer) + 'static>(
+    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Frame) + 'static>(
         f: F1,
     ) -> Self {
         let widget_type = type_name::<T>();
@@ -52,8 +52,8 @@ impl DomWidgetNode {
         }
     }
 
-    pub(crate) fn render(&self, rect: Rect, buf: &mut Buffer) {
-        (*self.rc_f).borrow_mut()(rect, buf);
+    pub(crate) fn render(&self, rect: Rect, frame: &mut Frame) {
+        (*self.rc_f).borrow_mut()(rect, frame);
     }
 
     pub fn build(&self) {

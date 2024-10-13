@@ -7,7 +7,20 @@ use terminput::KeyEvent;
 use super::{BlurEvent, FocusEvent};
 use crate::{ClickEvent, EventData, EventHandle};
 
-pub(crate) type KeyEventFn = Rc<RefCell<dyn FnMut(KeyEvent, EventData, EventHandle)>>;
+pub trait KeyHandler {
+    fn handle(&mut self, event: KeyEvent, data: EventData, handle: EventHandle);
+}
+
+impl<F> KeyHandler for F
+where
+    F: FnMut(KeyEvent, EventData, EventHandle),
+{
+    fn handle(&mut self, event: KeyEvent, data: EventData, handle: EventHandle) {
+        (self)(event, data, handle)
+    }
+}
+
+pub(crate) type KeyEventFn = Rc<RefCell<dyn KeyHandler>>;
 pub(crate) type ClickEventFn = Rc<RefCell<dyn FnMut(ClickEvent, EventData, EventHandle)>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData, EventHandle)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
@@ -31,17 +44,17 @@ pub struct EventHandlers {
 }
 
 impl EventHandlers {
-    pub fn on_key_down<F>(mut self, handler: F) -> Self
+    pub fn on_key_down<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+        H: KeyHandler + 'static,
     {
         self.on_key_down = Some(Rc::new(RefCell::new(handler)));
         self
     }
 
-    pub fn on_key_up<F>(mut self, handler: F) -> Self
+    pub fn on_key_up<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+        H: KeyHandler + 'static,
     {
         self.on_key_up = Some(Rc::new(RefCell::new(handler)));
         self

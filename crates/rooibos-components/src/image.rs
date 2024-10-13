@@ -3,6 +3,7 @@ use std::thread;
 
 use image::DynamicImage;
 pub use image::ImageReader;
+use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
@@ -120,14 +121,14 @@ impl Image {
         DomWidget::new::<ThreadImage, _, _>(move || {
             async_state.track();
             let resize_mode = resize_mode.get();
-            move |rect: Rect, buf: &mut Buffer| {
+            move |rect: Rect, frame: &mut Frame| {
                 let image = ThreadImage::default().resize(match resize_mode.clone() {
                     ResizeMode::Crop(options) => Resize::Crop(options),
                     ResizeMode::Fit(filter_type) => Resize::Fit(filter_type),
                 });
                 async_state.update_untracked(|s| {
                     if let Some(s) = s {
-                        image.render(rect, buf, s)
+                        image.render(rect, frame.buffer_mut(), s)
                     }
                 });
             }
