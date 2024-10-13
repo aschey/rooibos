@@ -1,6 +1,6 @@
 mod command_bar;
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::ffi::OsString;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -8,8 +8,7 @@ use std::sync::Arc;
 use clap::Parser;
 pub use command_bar::*;
 use modalkit::actions::{
-    Action, CommandAction, CommandBarAction, Commandable, EditAction, EditorAction,
-    PromptAction,
+    Action, CommandAction, CommandBarAction, Commandable, EditAction, EditorAction, PromptAction,
 };
 use modalkit::commands::{CommandMachine, CommandResult, CommandStep, ParsedCommand};
 use modalkit::editing::application::{
@@ -27,17 +26,16 @@ use modalkit::env::vim::command::{
 };
 use modalkit::env::vim::keybindings::InputStep;
 use modalkit::key::TerminalKey;
-use modalkit::keybindings::{
-    BindingMachine, EdgeEvent, EdgeRepeat, ModalMachine,
-};
+use modalkit::keybindings::{BindingMachine, EdgeEvent, EdgeRepeat, ModalMachine};
 use modalkit::prelude::{
     CommandType, CompletionDisplay, CompletionSelection, CompletionType, Count, EditTarget,
     MoveDir1D, MoveType, RepeatType, Specifier,
 };
 use rooibos_dom::KeyHandler;
-use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
+use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, use_context};
 use terminput::{Event, KeyEvent};
-use wasm_compat::sync::RwLock;
+use wasm_compat::cell::UsizeCell;
+use wasm_compat::sync::{Mutex, RwLock};
 
 pub struct KeyInputHandler<A, S>
 where
@@ -255,6 +253,7 @@ where
             >,
         >,
     >,
+    command_handlers: Arc<Mutex<HashMap<usize, CommandHandlerFn<T>>>>,
 }
 
 impl<T> CommandBarContext<T>
@@ -291,6 +290,7 @@ where
     provide_context(CommandBarContext {
         store: StoredValue::new(Store::<AppInfo<T>>::new(AppStore {})),
         action_handlers: Arc::new(RwLock::new(Vec::new())),
+        command_handlers: Arc::new(Mutex::new(HashMap::new())),
     });
 }
 
@@ -517,7 +517,12 @@ where
                     }
                     handled = true;
                 }
-                Action::Application(app_action) => {}
+                Action::Application(app_action) => {
+                    let mut handlers = self.context.command_handlers.lock_mut();
+                    for handler in handlers.values_mut() {
+                        handler.handler.lock_mut()(&app_action);
+                    }
+                }
 
                 act => {
                     //println!("{act:?}");
@@ -542,7 +547,7 @@ where
             name: sub.to_string(),
             aliases: vec![],
             f: handler,
-        })
+        });
     }
 }
 
@@ -600,4 +605,44 @@ where
         .into_iter()
         .map(|c| c.get_value().to_string_lossy()[cursor_word_pos..].to_string())
         .collect()
+}
+
+#[derive(Clone)]
+pub struct CommandHandlerFn<T> {
+    handler: Arc<Mutex<Box<dyn FnMut(&T) + Send + Sync>>>,
+}
+
+static HANDLER_ID: UsizeCell = UsizeCell::new(0);
+
+pub fn handle_command<EC, V, T, H>(extract_command: EC, mut handler: H)
+where
+    EC: Fn(&T) -> Option<V> + Send + Sync + 'static,
+    H: FnMut(V) + Send + Sync + 'static,
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+{
+    let handler_fn = CommandHandlerFn {
+        handler: Arc::new(Mutex::new(Box::new(move |command| {
+            if let Some(extracted) = extract_command(command) {
+                handler(extracted);
+            }
+        }))),
+    };
+    let context = use_command_context::<T>();
+    let id = HANDLER_ID.add(1);
+    context.command_handlers.lock_mut().insert(id, handler_fn);
+
+    on_cleanup(move || {
+        context.command_handlers.lock_mut().remove(&id);
+    });
+}
+
+#[macro_export]
+macro_rules! extract {
+    ($v:ident, $pattern:pat $(if $guard:expr)? $(,)?) => {
+        |c: &_| if let $pattern $(if $guard)? = c { Some($v.to_owned()) } else { None }
+    };
+    ($pattern:pat $(if $guard:expr)? $(,)?) => {
+        |c: &_| if let $pattern $(if $guard)? = c { Some(c.to_owned()) } else { None }
+    };
+
 }
