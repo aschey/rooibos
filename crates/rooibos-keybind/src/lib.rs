@@ -34,6 +34,7 @@ use modalkit::prelude::{
 use rooibos_dom::KeyHandler;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, use_context};
 use terminput::{Event, KeyEvent};
+use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
 use wasm_compat::sync::{Mutex, RwLock};
 
@@ -571,6 +572,7 @@ pub fn complete<C>(text: &str, cursor_position: usize) -> Vec<String>
 where
     C: Parser,
 {
+    let cursor_position = char_index_to_offset(text, cursor_position);
     let text = &text[..cursor_position];
     let mut cmd = C::command();
 
@@ -597,6 +599,7 @@ where
     let completions =
         clap_complete::engine::complete(&mut cmd, args, pos, None).unwrap_or_default();
     let cursor_word_pos = if let Some(space_pos) = text.rfind(" ") {
+        let space_pos = char_index_to_offset(text, space_pos);
         cursor_position - space_pos - 1
     } else {
         cursor_position
@@ -605,6 +608,10 @@ where
         .into_iter()
         .map(|c| c.get_value().to_string_lossy()[cursor_word_pos..].to_string())
         .collect()
+}
+
+fn char_index_to_offset(s: &str, char_index: usize) -> usize {
+    s[..s.char_indices().map(|(i, _)| i).nth(char_index).unwrap()].width_cjk()
 }
 
 #[derive(Clone)]
