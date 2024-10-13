@@ -2,23 +2,17 @@ use std::marker::PhantomData;
 
 use modalkit::actions::{CommandBarAction, Editable, Promptable};
 use modalkit::editing::application::ApplicationAction;
-use modalkit::editing::store::Store;
 use modalkit_ratatui::TerminalCursor;
 use modalkit_ratatui::cmdbar::CommandBarState;
 use ratatui::Frame;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::prelude::StatefulWidget;
-use ratatui::style::Stylize;
-use ratatui::text::Span;
-use ratatui::widgets::{Paragraph, WidgetRef};
-use rooibos_dom::{focus_id, focus_prev, span};
-use rooibos_reactive::graph::owner::StoredValue;
+use rooibos_dom::{focus_id, focus_prev};
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Set, Update};
-use rooibos_reactive::{DomWidget, NodeId, Render, wgt};
+use rooibos_reactive::{DomWidget, NodeId, Render};
 
-use crate::{AppInfo, AppStore, CommandHandlerAction, use_command_context};
+use crate::{CommandCompleter, CommandHandlerAction, use_command_context};
 
 pub struct CommandBar<T> {
     _phantom: PhantomData<T>,
@@ -26,7 +20,7 @@ pub struct CommandBar<T> {
 
 impl<T> Default for CommandBar<T>
 where
-    T: ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     fn default() -> Self {
         Self::new()
@@ -35,7 +29,7 @@ where
 
 impl<T> CommandBar<T>
 where
-    T: ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     pub fn new() -> Self {
         Self {

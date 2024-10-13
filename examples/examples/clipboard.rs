@@ -1,6 +1,5 @@
 use std::process::ExitCode;
 
-use modalkit::key::TerminalKey;
 use rooibos::components::{
     Button, Input, Notification, Notifications, Notifier, provide_notifications,
 };

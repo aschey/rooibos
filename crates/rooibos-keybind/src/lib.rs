@@ -1,41 +1,43 @@
 mod command_bar;
 
 use std::collections::VecDeque;
-use std::error::Error;
-use std::io::empty;
+use std::ffi::OsString;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use clap::Parser;
 pub use command_bar::*;
 use modalkit::actions::{
-    Action, CommandAction, CommandBarAction, Commandable, CursorAction, EditAction, EditorAction,
+    Action, CommandAction, CommandBarAction, Commandable, EditAction, EditorAction,
     PromptAction,
 };
-use modalkit::commands::{CommandMachine, CommandResult, CommandStep};
+use modalkit::commands::{CommandMachine, CommandResult, CommandStep, ParsedCommand};
 use modalkit::editing::application::{
     ApplicationAction, ApplicationContentId, ApplicationInfo, ApplicationStore, ApplicationWindowId,
 };
 use modalkit::editing::context::EditContext;
+use modalkit::editing::cursor::Cursor;
 use modalkit::editing::key::KeyManager;
+use modalkit::editing::rope::EditRope;
 use modalkit::editing::store::Store;
 use modalkit::env::CommonKeyClass;
 use modalkit::env::vim::VimMode;
 use modalkit::env::vim::command::{
     CommandContext, CommandDescription, VimCommand, VimCommandMachine,
 };
-use modalkit::env::vim::keybindings::{InputStep, VimBindings, VimMachine};
-use modalkit::errors::EditResult;
+use modalkit::env::vim::keybindings::InputStep;
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::{
-    BindingMachine, EdgeEvent, EdgeRepeat, InputBindings, InputKey, ModalMachine, SequenceStatus,
+    BindingMachine, EdgeEvent, EdgeRepeat, ModalMachine,
 };
 use modalkit::prelude::{
-    CommandType, Count, EditTarget, MoveDir1D, MoveType, RepeatType, Specifier,
+    CommandType, CompletionDisplay, CompletionSelection, CompletionType, Count, EditTarget,
+    MoveDir1D, MoveType, RepeatType, Specifier,
 };
 use rooibos_dom::KeyHandler;
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use terminput::{Event, KeyEvent};
-use wasm_compat::sync::{Mutex, RwLock};
+use wasm_compat::sync::RwLock;
 
 pub struct KeyInputHandler<A, S>
 where
@@ -117,9 +119,13 @@ impl ApplicationContentId for AppContentId {}
 
 impl ApplicationWindowId for AppId {}
 
+pub trait CommandCompleter {
+    fn complete(text: &str, cursor_position: usize) -> Vec<String>;
+}
+
 impl<T> ApplicationInfo for AppInfo<T>
 where
-    T: ApplicationAction,
+    T: ApplicationAction + CommandCompleter,
 {
     type Error = String;
 
@@ -133,6 +139,15 @@ where
 
     fn content_of_command(cmdtype: CommandType) -> Self::ContentId {
         AppContentId::Command(cmdtype)
+    }
+
+    fn complete(
+        text: &EditRope,
+        cursor: &mut Cursor,
+        content: &Self::ContentId,
+        store: &mut Store<Self>,
+    ) -> Vec<String> {
+        T::complete(&text.to_string(), cursor.x)
     }
 }
 
@@ -202,7 +217,7 @@ pub fn once(key: &TerminalKey) -> (EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyC
 
 pub struct CommandHandler<T>
 where
-    T: ApplicationAction,
+    T: ApplicationAction + CommandCompleter,
 {
     manager: KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>,
     cmds: CommandMachine<VimCommand<AppInfo<T>>>,
@@ -213,7 +228,7 @@ where
 
 impl<T> Default for CommandHandler<T>
 where
-    T: ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     fn default() -> Self {
         Self::new()
@@ -223,7 +238,7 @@ where
 #[derive(Clone)]
 pub struct CommandBarContext<T>
 where
-    T: ApplicationAction,
+    T: ApplicationAction + CommandCompleter,
 {
     store: StoredValue<Store<AppInfo<T>>>,
     action_handlers: Arc<
@@ -244,7 +259,7 @@ where
 
 impl<T> CommandBarContext<T>
 where
-    T: ApplicationAction,
+    T: ApplicationAction + CommandCompleter,
 {
     pub fn on_command_bar_action<F>(&self, f: F)
     where
@@ -264,14 +279,14 @@ where
 
 pub fn use_command_context<T>() -> CommandBarContext<T>
 where
-    T: ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     use_context::<CommandBarContext<T>>().unwrap()
 }
 
 pub fn provide_command_context<T>()
 where
-    T: ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     provide_context(CommandBarContext {
         store: StoredValue::new(Store::<AppInfo<T>>::new(AppStore {})),
@@ -281,16 +296,23 @@ where
 
 pub enum CommandHandlerAction<T>
 where
-    T: ApplicationAction,
+    T: ApplicationAction + CommandCompleter,
 {
     CommandBar(CommandBarAction<AppInfo<T>>),
     Editor(EditorAction),
     Prompt(PromptAction),
 }
 
+pub trait CommandGenerator<T>
+where
+    T: ApplicationAction + CommandCompleter,
+{
+    fn generate_commands(command_handler: &mut CommandHandler<T>);
+}
+
 impl<T> CommandHandler<T>
 where
-    T: ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     pub fn new() -> Self {
         let mut ism = ModalMachine::<TerminalKey, InputStep<AppInfo<T>>>::empty();
@@ -301,6 +323,9 @@ where
         let down = "<Down>".parse::<TerminalKey>().unwrap();
         let left = "<Left>".parse::<TerminalKey>().unwrap();
         let right = "<Right>".parse::<TerminalKey>().unwrap();
+        let tab = "<Tab>".parse::<TerminalKey>().unwrap();
+        let shift_tab = "<S-Tab>".parse::<TerminalKey>().unwrap();
+        let backspace = "<BS>".parse::<TerminalKey>().unwrap();
 
         ism.add_mapping(
             VimMode::Normal,
@@ -365,14 +390,38 @@ where
                 EditTarget::Motion(MoveType::Column(MoveDir1D::Next, true), Count::Contextual),
             ))]),
         );
-        ism.get_cursor_indicator();
+        ism.add_mapping(
+            VimMode::Command,
+            &[once(&backspace)],
+            &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Edit(
+                Specifier::Exact(EditAction::Delete),
+                EditTarget::Motion(
+                    MoveType::Column(MoveDir1D::Previous, true),
+                    Count::Contextual,
+                ),
+            ))]),
+        );
+
+        ism.add_mapping(
+            VimMode::Command,
+            &[once(&tab)],
+            &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Complete(
+                CompletionType::Auto,
+                CompletionSelection::List(MoveDir1D::Next),
+                CompletionDisplay::None,
+            ))]),
+        );
+        ism.add_mapping(
+            VimMode::Command,
+            &[once(&shift_tab)],
+            &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Complete(
+                CompletionType::Auto,
+                CompletionSelection::List(MoveDir1D::Previous),
+                CompletionDisplay::None,
+            ))]),
+        );
 
         let cmds = VimCommandMachine::<AppInfo<T>>::default();
-        // cmds.add_command(vimcommand::<appinfo> {
-        //     name: "do".into(),
-        //     aliases: vec![],
-        //     f: handler,
-        // });
 
         Self {
             manager: KeyManager::new(ism),
@@ -385,6 +434,13 @@ where
 
     pub fn add_command(&mut self, cmd: VimCommand<AppInfo<T>>) {
         self.cmds.add_command(cmd);
+    }
+
+    pub fn add_commands<G>(&mut self)
+    where
+        G: CommandGenerator<T>,
+    {
+        G::generate_commands(self);
     }
 
     fn action_pop(&mut self, keyskip: bool) -> Option<(Action<AppInfo<T>>, EditContext)> {
@@ -474,4 +530,74 @@ where
 
         if handled { None } else { Some(event) }
     }
+}
+
+pub fn generate_commands<C>(command_handler: &mut CommandHandler<C>)
+where
+    C: Parser + ApplicationAction + CommandCompleter + Send + Sync + 'static,
+{
+    let cmd = C::command();
+    for sub in cmd.get_subcommands().map(|s| s.get_name()) {
+        command_handler.add_command(VimCommand {
+            name: sub.to_string(),
+            aliases: vec![],
+            f: handler,
+        })
+    }
+}
+
+pub fn handler<C>(
+    desc: CommandDescription,
+    ctx: &mut CommandContext,
+) -> CommandResult<VimCommand<AppInfo<C>>>
+where
+    C: Parser + ApplicationAction + CommandCompleter,
+{
+    let full_cmd = format!("- {} {}", desc.name(), desc.arg.text);
+    let args = shlex::split(&full_cmd).unwrap();
+    let action = C::try_parse_from(args).unwrap();
+    Ok(CommandStep::Continue(
+        Action::Application(action),
+        ctx.context.clone(),
+    ))
+}
+
+pub fn complete<C>(text: &str, cursor_position: usize) -> Vec<String>
+where
+    C: Parser,
+{
+    let text = &text[..cursor_position];
+    let mut cmd = C::command();
+
+    if text.is_empty() {
+        return cmd
+            .get_subcommands()
+            .map(|s| s.get_name().to_string())
+            .collect();
+    }
+
+    let args: Vec<_> = shlex::split(&format!("- {text}"))
+        .unwrap()
+        .into_iter()
+        .map(OsString::from)
+        .collect();
+
+    let pos = if text.ends_with(" \n") {
+        args.len()
+    } else {
+        args.len() - 1
+    };
+    // Note: trailing spaces aren't currently handled
+    // See https://github.com/clap-rs/clap/issues/5587
+    let completions =
+        clap_complete::engine::complete(&mut cmd, args, pos, None).unwrap_or_default();
+    let cursor_word_pos = if let Some(space_pos) = text.rfind(" ") {
+        cursor_position - space_pos - 1
+    } else {
+        cursor_position
+    };
+    completions
+        .into_iter()
+        .map(|c| c.get_value().to_string_lossy()[cursor_word_pos..].to_string())
+        .collect()
 }

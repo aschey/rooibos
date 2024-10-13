@@ -14,3 +14,6 @@ ratatui = { version = "0.28", features = ["unstable"] }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
   "all",
 ] }
+clap = { version = "4.5.20", features = ["derive"] }
+shlex = "1.3.0"
+clap_complete = { version = "4.5.33", features = ["unstable-dynamic"] }

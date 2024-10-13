@@ -1,5 +1,4 @@
 use ratatui::Frame;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
 

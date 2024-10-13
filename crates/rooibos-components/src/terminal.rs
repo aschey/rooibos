@@ -4,7 +4,6 @@ use std::sync::{Arc, Mutex};
 pub use portable_pty::CommandBuilder;
 use portable_pty::{MasterPty, NativePtySystem, PtySize, PtySystem, SlavePty};
 use ratatui::Frame;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
 use rooibos_dom::Event;

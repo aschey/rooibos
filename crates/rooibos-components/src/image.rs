@@ -4,7 +4,6 @@ use std::thread;
 use image::DynamicImage;
 pub use image::ImageReader;
 use ratatui::Frame;
-use ratatui::buffer::Buffer;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
 use ratatui_image::picker::Picker;

@@ -6,7 +6,6 @@ pub use dom_node::*;
 pub use dom_widget::*;
 pub use node_tree::*;
 use ratatui::backend::Backend;
-use ratatui::buffer::Buffer;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use ratatui::{CompletedFrame, Frame, Terminal};

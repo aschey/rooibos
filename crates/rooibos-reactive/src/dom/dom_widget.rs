@@ -1,6 +1,5 @@
 use next_tuple::NextTuple;
 use ratatui::Frame;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;

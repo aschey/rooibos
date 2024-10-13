@@ -7,7 +7,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use educe::Educe;
 use ratatui::Frame;
-use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
 use terminput::{Event, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};

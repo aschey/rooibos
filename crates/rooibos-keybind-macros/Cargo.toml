@@ -11,3 +11,4 @@ manyhow = "0.11.4"
 modalkit = { git = "https://github.com/ulyssa/modalkit", rev = "45855daeeb7081eec626a8f9cf657f0fc2ff0a7a" }
 proc-macro2 = "1.0.87"
 quote = "1.0.37"
+syn = { version = "2.0.79", features = ["full"] }

@@ -1,10 +1,8 @@
 use std::process::ExitCode;
 
 use modalkit::actions::Action;
-use modalkit::commands::{CommandResult, CommandStep};
 use modalkit::editing::application::ApplicationAction;
 use modalkit::editing::context::EditContext;
-use modalkit::env::vim::command::{CommandContext, CommandDescription, VimCommand};
 use modalkit::keybindings::SequenceStatus;
 use rooibos::dom::{KeyCode, KeyEvent, line, span};
 use rooibos::reactive::graph::signal::signal;
@@ -14,7 +12,11 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos_keybind::{AppInfo, CommandBar, CommandHandler, provide_command_context};
+use rooibos_keybind::{
+    AppInfo, CommandBar, CommandCompleter, CommandGenerator, CommandHandler,
+    provide_command_context,
+};
+use rooibos_keybind_macros::Commands;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -22,11 +24,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     provide_command_context::<AppAction>();
     let mut cmd_handler = CommandHandler::<AppAction>::new();
-    cmd_handler.add_command(VimCommand::<AppInfo<AppAction>> {
-        name: "do".into(),
-        aliases: vec![],
-        f: handler,
-    });
+    cmd_handler.add_commands::<AppAction>();
 
     mount(app);
     let runtime = Runtime::initialize_with_settings(
@@ -54,49 +52,14 @@ fn app() -> impl Render {
     ]
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(clap::Parser, Commands, Clone, Debug, PartialEq, Eq)]
 pub enum AppAction {
-    DoTheThing,
+    #[command(subcommand)]
+    Count(Direction),
 }
 
-impl From<AppAction> for Action<AppInfo<AppAction>> {
-    fn from(value: AppAction) -> Self {
-        Action::Application(value)
-    }
-}
-
-impl ApplicationAction for AppAction {
-    fn is_edit_sequence(
-        &self,
-        ctx: &modalkit::editing::context::EditContext,
-    ) -> modalkit::keybindings::SequenceStatus {
-        SequenceStatus::Break
-    }
-
-    fn is_last_action(
-        &self,
-        ctx: &modalkit::editing::context::EditContext,
-    ) -> modalkit::keybindings::SequenceStatus {
-        SequenceStatus::Atom
-    }
-
-    fn is_last_selection(
-        &self,
-        ctx: &modalkit::editing::context::EditContext,
-    ) -> modalkit::keybindings::SequenceStatus {
-        SequenceStatus::Ignore
-    }
-
-    fn is_switchable(&self, ctx: &EditContext) -> bool {
-        false
-    }
-}
-
-fn handler(
-    desc: CommandDescription,
-    ctx: &mut CommandContext,
-) -> CommandResult<VimCommand<AppInfo<AppAction>>> {
-    let act = AppAction::DoTheThing;
-    println!("yoo {desc:?}");
-    Ok(CommandStep::Continue(act.into(), ctx.context.clone()))
+#[derive(clap::Subcommand, Clone, Debug, PartialEq, Eq)]
+pub enum Direction {
+    Up,
+    Down,
 }
