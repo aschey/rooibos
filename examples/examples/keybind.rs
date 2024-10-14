@@ -1,10 +1,9 @@
 use std::process::ExitCode;
 
-use clap::Parser;
 use rooibos::dom::{line, span};
 use rooibos::keybind::{
-    AppInfo, CommandBar, CommandCompleter, CommandGenerator, CommandHandler, Commands,
-    KeyInputHandler, extract, handle_command, key, map_action, map_handler,
+    AppInfo, CommandBar, CommandCompleter, CommandFilter, CommandGenerator, CommandHandler,
+    Commands, KeyInputHandler, extract, handle_command, key, map_action, map_handler,
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -20,11 +19,11 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
     let mut cmd_handler = CommandHandler::<AppAction>::new();
-    cmd_handler.add_commands::<AppAction>();
+    cmd_handler.generate_commands();
 
     mount(app);
-    let runtime = Runtime::initialize_with_settings(
-        RuntimeSettings::default().event_filter(move |event| cmd_handler.event_filter(event)),
+    let runtime = Runtime::initialize_with(
+        RuntimeSettings::default().handle_commands(cmd_handler),
         CrosstermBackend::stdout(),
     );
     runtime.run().await

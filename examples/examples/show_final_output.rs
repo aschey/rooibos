@@ -16,7 +16,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
     mount(app);
-    let runtime = Runtime::initialize_with_settings(
+    let runtime = Runtime::initialize_with(
         RuntimeSettings::default().viewport(Viewport::Inline(1)),
         CrosstermBackend::new(TerminalSettings::<Stdout>::new().alternate_screen(false)),
     );

@@ -22,7 +22,7 @@ async fn main() -> Result {
     }
 
     mount(app);
-    let runtime = Runtime::initialize_with_settings(
+    let runtime = Runtime::initialize_with(
         RuntimeSettings::default()
             .viewport(Viewport::Inline(6))
             .show_final_output(false),

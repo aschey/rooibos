@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
-rooibos-runtime = { path = "../rooibos-runtime" }
+rooibos-runtime = { path = "../rooibos-runtime", optional = true }
 rooibos-reactive-macros = { path = "../rooibos-reactive-macros" }
 rooibos-components = { path = "../rooibos-components" }
 rooibos-config = { path = "../rooibos-config", optional = true }
@@ -42,9 +42,10 @@ termwiz = [
   "rooibos-components/termwiz",
   "rooibos-terminal/termwiz",
 ]
+runtime = ["rooibos-runtime", "rooibos-keybind?/runtime"]
 xterm-js = ["rooibos-xterm-js"]
 config = ["rooibos-config"]
-default = ["crossterm"]
+default = ["crossterm", "runtime"]
 ssh = ["rooibos-ssh"]
 router = ["rooibos-router"]
 input-search = ["rooibos-components/input-search"]

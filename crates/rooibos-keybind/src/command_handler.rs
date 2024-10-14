@@ -35,6 +35,24 @@ use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
 use wasm_compat::sync::{Mutex, RwLock};
 
+#[cfg(feature = "runtime")]
+pub trait CommandFilter<T>
+where
+    T: CommandCompleter + ApplicationAction,
+{
+    fn handle_commands(self, handler: CommandHandler<T>) -> Self;
+}
+
+#[cfg(feature = "runtime")]
+impl<T> CommandFilter<T> for rooibos_runtime::RuntimeSettings
+where
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+{
+    fn handle_commands(self, mut handler: CommandHandler<T>) -> Self {
+        self.event_filter(move |event| handler.event_filter(event))
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AppInfo<T> {
     _phantom: PhantomData<T>,
@@ -332,13 +350,6 @@ where
         self.cmds.add_command(cmd);
     }
 
-    pub fn add_commands<G>(&mut self)
-    where
-        G: CommandGenerator<T>,
-    {
-        G::generate_commands(self);
-    }
-
     fn action_pop(&mut self, keyskip: bool) -> Option<(Action<AppInfo<T>>, EditContext)> {
         if let res @ Some(_) = self.action_stack.pop_front() {
             return res;
@@ -427,6 +438,15 @@ where
         }
 
         if handled { None } else { Some(event) }
+    }
+}
+
+impl<T> CommandHandler<T>
+where
+    T: ApplicationAction + CommandCompleter + CommandGenerator<T> + Send + Sync + 'static,
+{
+    pub fn generate_commands(&mut self) {
+        T::generate_commands(self);
     }
 }
 

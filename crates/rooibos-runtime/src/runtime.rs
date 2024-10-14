@@ -66,10 +66,10 @@ pub enum TickResult {
 
 impl<B: Backend + 'static> Runtime<B> {
     pub fn initialize(backend: B) -> Self {
-        Self::initialize_with_settings(RuntimeSettings::default(), backend)
+        Self::initialize_with(RuntimeSettings::default(), backend)
     }
 
-    pub fn initialize_with_settings(settings: RuntimeSettings, backend: B) -> Self {
+    pub fn initialize_with(settings: RuntimeSettings, backend: B) -> Self {
         set_panic_hook();
         let backend = Arc::new(backend);
         let (term_parser_tx, _) = broadcast::channel(32);
