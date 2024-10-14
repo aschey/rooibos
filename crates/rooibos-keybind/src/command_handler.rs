@@ -29,6 +29,7 @@ use modalkit::prelude::{
     MoveDir1D, MoveType, RepeatType, Specifier,
 };
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, use_context};
+use rooibos_reactive::graph::traits::WriteValue;
 use terminput::Event;
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;

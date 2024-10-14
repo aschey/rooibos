@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 watch-config = { git = "https://github.com/aschey/watch-config", rev = "8603f16e9e371eea251968f36c8c607b568bf2ec" }
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638", features = [
   "tracing",
   "effects",
 ] }

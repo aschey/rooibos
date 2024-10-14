@@ -9,7 +9,7 @@ use rooibos_dom::{
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
 use rooibos_reactive::graph::signal::RwSignal;
-use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
+use rooibos_reactive::graph::traits::{Get, GetValue, Set, Track, Update, UpdateUntracked, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_reactive::{DomWidget, LayoutProps, Render, UpdateLayoutProps, derive_signal};
 use tokio::sync::broadcast;

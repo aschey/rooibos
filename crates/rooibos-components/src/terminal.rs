@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, Widget};
 use rooibos_dom::{Event, KeyEventProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
-use rooibos_reactive::graph::traits::{Get, Update};
+use rooibos_reactive::graph::traits::{Get, GetValue, Update};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::{DomWidget, Render};
 use tokio::sync::mpsc;

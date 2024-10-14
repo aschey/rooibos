@@ -5,12 +5,12 @@ edition = "2021"
 
 [dependencies]
 matchit = "0.8"
-tachys = { git = "https://github.com/aschey/leptos", rev = "375b72ba8d03674fe85025c14f94fb976711811e", features = [
+tachys = { git = "https://github.com/aschey/leptos", rev = "233b7b117f1c48f5735f0aa08c7c3fe3dbbcbd8b", features = [
   "reactive_graph",
   "tracing",
 ] }
 url = "2"
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638", features = [
   "tracing",
   "effects",
 ] }

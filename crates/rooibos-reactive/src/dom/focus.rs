@@ -1,7 +1,7 @@
 use std::cell::LazyCell;
 
 use reactive_graph::signal::{ReadSignal, signal};
-use reactive_graph::traits::{Get, Update as _};
+use reactive_graph::traits::{Get, SetValue, Update as _};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::with_nodes_mut;
 

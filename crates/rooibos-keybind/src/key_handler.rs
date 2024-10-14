@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use modalkit::actions::{Action, MacroAction};
 use modalkit::editing::application::ApplicationAction;
@@ -9,23 +10,51 @@ use modalkit::key::TerminalKey;
 use modalkit::keybindings::BindingMachine;
 use modalkit::prelude::{Count, RepeatType};
 use rooibos_dom::{KeyEventProps, KeyHandler};
+use rooibos_reactive::graph::computed::Memo;
+use rooibos_reactive::graph::effect::Effect;
+use rooibos_reactive::graph::signal::{WriteSignal, signal};
+use rooibos_reactive::graph::traits::{Get, Update, With, WriteValue};
+use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
+use wasm_compat::sync::Mutex;
 
 use crate::{
     AppInfo, CommandBarContext, CommandCompleter, once, provide_command_context,
     use_command_context,
 };
 
+#[derive(Clone)]
+struct KeyMapHolder<T>
+where
+    T: CommandCompleter + ApplicationAction + Send + Sync,
+{
+    bindings: Arc<Mutex<KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>>>,
+    mappings: HashMap<String, Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>>,
+}
+
+impl<T> PartialEq for KeyMapHolder<T>
+where
+    T: CommandCompleter + ApplicationAction + Send + Sync,
+{
+    // this is required to use with Memo, but KeyManager doesn't implement Eq so we don't have a
+    // good way of implementing this
+    fn eq(&self, _other: &Self) -> bool {
+        false
+    }
+}
+
+impl<T> Eq for KeyMapHolder<T> where T: CommandCompleter + ApplicationAction + Send + Sync {}
+
 pub struct KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
 {
-    bindings: VimMachine<TerminalKey, AppInfo<T>>,
-    mappings: HashMap<String, Box<dyn KeyHandler>>,
+    bindings: Signal<KeyMapHolder<T>>,
+    set_key_maps: WriteSignal<HashMap<TerminalKey, InternalKeyMap<T>>>,
 }
 
 impl<T> Default for KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: CommandCompleter + ApplicationAction + Send + Sync,
 {
     fn default() -> Self {
         Self::new()
@@ -34,11 +63,12 @@ where
 
 impl<T, KM> From<KM> for KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: CommandCompleter + ApplicationAction + Send + Sync,
     KM: IntoIterator<Item = KeyMap<T>>,
 {
     fn from(value: KM) -> Self {
         let mut mapper = KeyMapper::new();
+
         for val in value.into_iter() {
             mapper.map(val);
         }
@@ -48,78 +78,166 @@ where
 
 impl<T> KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: CommandCompleter + ApplicationAction + Send + Sync,
 {
     pub fn new() -> Self {
+        let (key_maps, set_key_maps) = signal(HashMap::<TerminalKey, InternalKeyMap<T>>::new());
+        let bindings = Memo::new(move |_| {
+            let mut ism = VimMachine::empty();
+            let mut mappings = HashMap::default();
+            key_maps.with(|k| {
+                for key_map in k.values() {
+                    match key_map {
+                        InternalKeyMap::Action(key, action) => {
+                            ism.add_mapping(
+                                VimMode::Normal,
+                                &[once(key)],
+                                &InputStep::<AppInfo<T>>::new()
+                                    .actions(vec![Action::Application(action.clone())]),
+                            );
+                        }
+                        InternalKeyMap::Handler(key, handler) => {
+                            let macro_key = format!("__internal:{key}");
+                            ism.add_mapping(
+                                VimMode::Normal,
+                                &[once(key)],
+                                &InputStep::<AppInfo<T>>::new().actions(vec![Action::Macro(
+                                    MacroAction::Run(macro_key.clone(), Count::Contextual),
+                                )]),
+                            );
+                            mappings.insert(macro_key, handler.clone());
+                        }
+                    }
+                }
+            });
+            KeyMapHolder {
+                bindings: Arc::new(Mutex::new(KeyManager::new(ism))),
+                mappings,
+            }
+        });
         Self {
-            bindings: VimMachine::empty(),
-            mappings: Default::default(),
+            bindings: bindings.into(),
+            set_key_maps,
         }
     }
 
     fn map(&mut self, map: KeyMap<T>) {
         match map {
             KeyMap::Action(key, action) => {
-                self.map_action(&key, action);
+                self.map_action(key, action);
             }
             KeyMap::Handler(key, handler) => {
-                self.map_handler_inner(&key, handler);
+                self.map_handler_inner(key, handler);
             }
         }
     }
 
-    pub fn map_action(&mut self, key: &TerminalKey, action: T) {
-        self.bindings.add_mapping(
-            VimMode::Normal,
-            &[once(key)],
-            &InputStep::<AppInfo<T>>::new().actions(vec![Action::Application(action)]),
-        );
-    }
-
-    pub fn map_handler<H>(&mut self, key: &TerminalKey, handler: H)
+    pub fn map_action<S>(&mut self, key: S, action: T)
     where
-        H: KeyHandler + 'static,
+        S: Into<MaybeSignal<TerminalKey>>,
     {
-        self.map_handler_inner(key, Box::new(handler))
+        let key = key.into();
+        let mut action = Some(action);
+        let set_key_maps = self.set_key_maps;
+        Effect::new(move |prev| {
+            let new_key = key.get();
+
+            if let Some(prev) = prev {
+                set_key_maps.update(|m| {
+                    let map = m.remove(&prev).unwrap();
+                    let InternalKeyMap::Action(_, action) = map else {
+                        unreachable!();
+                    };
+                    m.insert(new_key, InternalKeyMap::Action(new_key, action));
+                });
+            } else {
+                set_key_maps.update(|m| {
+                    m.insert(
+                        new_key,
+                        InternalKeyMap::Action(new_key, action.take().unwrap()),
+                    );
+                });
+            }
+            new_key
+        });
     }
 
-    fn map_handler_inner(&mut self, key: &TerminalKey, handler: Box<dyn KeyHandler>) {
-        let macro_key = format!("__internal:{key}");
-        self.bindings.add_mapping(
-            VimMode::Normal,
-            &[once(key)],
-            &InputStep::<AppInfo<T>>::new().actions(vec![Action::Macro(MacroAction::Run(
-                macro_key.clone(),
-                Count::Contextual,
-            ))]),
-        );
-        self.mappings.insert(macro_key, handler);
+    pub fn map_handler<S, H>(&mut self, key: S, handler: H)
+    where
+        S: Into<MaybeSignal<TerminalKey>>,
+        H: KeyHandler + Send + Sync + 'static,
+    {
+        let handler = Arc::new(Mutex::new(
+            Box::new(handler) as Box<dyn KeyHandler + Send + Sync>
+        ));
+        self.map_handler_inner(key.into(), handler);
+    }
+
+    fn map_handler_inner(
+        &mut self,
+        key: MaybeSignal<TerminalKey>,
+        handler: Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
+    ) {
+        let set_key_maps = self.set_key_maps;
+        let mut handler = Some(handler);
+        Effect::new(move |prev| {
+            let new_key = key.get();
+
+            if let Some(prev) = prev {
+                set_key_maps.update(|m| {
+                    let map = m.remove(&prev).unwrap();
+                    let InternalKeyMap::Handler(_, handler) = map else {
+                        unreachable!();
+                    };
+                    m.insert(new_key, InternalKeyMap::Handler(new_key, handler));
+                });
+            } else {
+                set_key_maps.update(|m| {
+                    m.insert(
+                        new_key,
+                        InternalKeyMap::Handler(new_key, handler.take().unwrap()),
+                    );
+                });
+            }
+            new_key
+        });
     }
 }
 
 pub enum KeyMap<T> {
+    Action(MaybeSignal<TerminalKey>, T),
+    Handler(
+        MaybeSignal<TerminalKey>,
+        Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
+    ),
+}
+
+enum InternalKeyMap<T> {
     Action(TerminalKey, T),
-    Handler(TerminalKey, Box<dyn KeyHandler>),
+    Handler(TerminalKey, Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>),
 }
 
-pub fn map_action<T>(key: TerminalKey, action: T) -> KeyMap<T> {
-    KeyMap::Action(key, action)
-}
-
-pub fn map_handler<T, H>(key: TerminalKey, handler: H) -> KeyMap<T>
+pub fn map_action<S, T>(key: S, action: T) -> KeyMap<T>
 where
-    H: KeyHandler + 'static,
+    S: Into<MaybeSignal<TerminalKey>>,
 {
-    KeyMap::Handler(key, Box::new(handler))
+    KeyMap::Action(key.into(), action)
+}
+
+pub fn map_handler<S, T, H>(key: S, handler: H) -> KeyMap<T>
+where
+    S: Into<MaybeSignal<TerminalKey>>,
+    H: KeyHandler + Send + Sync + 'static,
+{
+    KeyMap::Handler(key.into(), Arc::new(Mutex::new(Box::new(handler))))
 }
 
 pub struct KeyInputHandler<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
 {
-    manager: KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>,
+    manager: Signal<KeyMapHolder<T>>,
     command_context: CommandBarContext<T>,
-    mappings: HashMap<String, Box<dyn KeyHandler>>,
 }
 
 impl<T> KeyInputHandler<T>
@@ -134,9 +252,8 @@ where
         provide_command_context::<T>();
 
         Self {
-            manager: KeyManager::new(mapper.bindings),
+            manager: mapper.bindings,
             command_context: use_command_context(),
-            mappings: mapper.mappings,
         }
     }
 
@@ -146,9 +263,12 @@ where
             return;
         };
 
-        self.manager.input_key(crossterm_event.into());
+        let mut manager = self.manager.get();
+        let mappings = &mut manager.mappings;
+        let mut manager = manager.bindings.lock_mut();
+        manager.input_key(crossterm_event.into());
 
-        while let Some((action, context)) = self.manager.pop() {
+        while let Some((action, context)) = manager.pop() {
             match action {
                 Action::Application(app_action) => {
                     let mut handlers = self.command_context.command_handlers.lock_mut();
@@ -158,12 +278,12 @@ where
                 }
                 Action::Macro(macro_action) => {
                     if let MacroAction::Run(name, _) = &macro_action {
-                        if let Some(handler) = self.mappings.get_mut(name) {
-                            handler.handle(props.clone());
+                        if let Some(handler) = mappings.get_mut(name) {
+                            handler.lock_mut().handle(props.clone());
                             continue;
                         }
                     }
-                    self.manager
+                    manager
                         .macro_command(
                             &macro_action,
                             &context,

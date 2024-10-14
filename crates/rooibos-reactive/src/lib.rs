@@ -8,6 +8,9 @@ mod widgets;
 pub mod graph {
     pub use reactive_graph::*;
 }
+pub mod stores {
+    pub use reactive_stores::*;
+}
 use std::cell::{LazyCell, OnceCell};
 use std::future::Future;
 use std::ops::Deref;

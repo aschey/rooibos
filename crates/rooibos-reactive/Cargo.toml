@@ -6,17 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638", features = [
   "tracing",
   "effects",
 ] }
-tachys = { git = "https://github.com/aschey/leptos", rev = "375b72ba8d03674fe85025c14f94fb976711811e", features = [
+tachys = { git = "https://github.com/aschey/leptos", rev = "233b7b117f1c48f5735f0aa08c7c3fe3dbbcbd8b", features = [
   "reactive_graph",
   "tracing",
 ] }
 
-throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908" }
+throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638" }
+reactive_stores = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638" }
 rooibos-dom = { path = "../rooibos-dom" }
 ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"
@@ -35,14 +36,14 @@ crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638", features = [
   "tokio",
   "tracing",
 ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
-any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "31cb766206bd73eb6fcdb3c5893b16fd05331908", features = [
+any_spawner = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638", features = [
   "wasm-bindgen",
 ] }
 

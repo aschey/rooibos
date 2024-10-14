@@ -4,6 +4,7 @@ use std::ops::{Deref, DerefMut};
 
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::owner::StoredValue;
+use reactive_graph::traits::{GetValue, WithValue};
 use rooibos_dom::{AsDomNode, unmount_child};
 use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
