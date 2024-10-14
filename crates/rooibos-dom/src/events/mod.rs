@@ -26,7 +26,7 @@ impl EventHandle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct EventData {
     pub rect: Rect,
 }

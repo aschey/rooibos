@@ -163,7 +163,7 @@ impl Counters {
             DomNode::flex_col()
                 .on_key_down({
                     let send = send.clone();
-                    move |event, _, _| {
+                    move |event: KeyEvent, _, _| {
                         if event.code == KeyCode::Char('a') {
                             send(Message::Add);
                         }
@@ -253,7 +253,7 @@ impl Counter {
         let node = DomNode::widget(widget.clone())
             .on_key_down({
                 let send = send.clone();
-                move |event, _, _| match event.code {
+                move |event: KeyEvent, _, _| match event.code {
                     KeyCode::Char('+') => {
                         send(TaskMessage::Increment);
                     }

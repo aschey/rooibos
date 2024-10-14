@@ -3,8 +3,9 @@ use std::process::ExitCode;
 use modalkit::actions::Action;
 use modalkit::editing::application::ApplicationAction;
 use modalkit::editing::context::EditContext;
+use modalkit::key::TerminalKey;
 use modalkit::keybindings::SequenceStatus;
-use rooibos::dom::{KeyCode, KeyEvent, line, span};
+use rooibos::dom::{line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{Render, col, mount, wgt};
@@ -13,16 +14,15 @@ use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos_keybind::{
-    AppInfo, CommandBar, CommandCompleter, CommandGenerator, CommandHandler, extract,
-    handle_command, provide_command_context,
+    AppInfo, CommandBar, CommandCompleter, CommandGenerator, CommandHandler, KeyInputHandler,
+    KeyMapper, extract, handle_command,
 };
-use rooibos_keybind_macros::Commands;
+use rooibos_keybind_macros::{Commands, key};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
-    provide_command_context::<AppAction>();
     let mut cmd_handler = CommandHandler::<AppAction>::new();
     cmd_handler.add_commands::<AppAction>();
 
@@ -40,11 +40,14 @@ fn app() -> impl Render {
     let increase_count = move || set_count.update(|c| *c += 1);
     let decrease_count = move || set_count.update(|c| *c -= 1);
 
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            increase_count();
-        }
-    };
+    let mut bindings = KeyMapper::new();
+    bindings.map_action(&key!(<C-Up>), AppAction::Count(Direction::Up));
+    bindings.map_action(&key!(<C-Down>), AppAction::Count(Direction::Down));
+
+    bindings.map_handler(&key!(<Up>), move |_, _, _| increase_count());
+    bindings.map_handler(&key!(<Down>), move |_, _, _| decrease_count());
+
+    let key_handler = KeyInputHandler::new(bindings);
 
     handle_command(extract!(dir, AppAction::Count(dir)), move |dir| {
         if dir == Direction::Up {
@@ -56,7 +59,7 @@ fn app() -> impl Render {
 
     col![
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-            .on_key_down(key_down)
+            .on_key_down(key_handler)
             .on_click(move |_, _, _| increase_count()),
         CommandBar::<AppAction>::new().render()
     ]

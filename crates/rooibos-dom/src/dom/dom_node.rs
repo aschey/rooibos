@@ -15,8 +15,8 @@ use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
 use crate::{
     BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers, FocusEvent,
-    MatchBehavior, Role, dispatch_event, next_node_id, reset_mouse_position, tree_is_accessible,
-    with_nodes, with_nodes_mut,
+    KeyHandler, MatchBehavior, Role, dispatch_event, next_node_id, reset_mouse_position,
+    tree_is_accessible, with_nodes, with_nodes_mut,
 };
 
 pub trait AsDomNode {
@@ -523,9 +523,9 @@ impl DomNode {
         with_nodes_mut(|n| n.update_event_handlers(self.key, update));
     }
 
-    pub fn on_key_down<F>(self, handler: F) -> Self
+    pub fn on_key_down<H>(self, handler: H) -> Self
     where
-        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+        H: KeyHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_key_down(handler));
         with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));

@@ -194,7 +194,7 @@ impl Button {
         })
         .on_focus(move |_, _| focused.set(true))
         .on_blur(move |_, _| focused.set(false))
-        .on_key_down(move |key_event, _, _| {
+        .on_key_down(move |key_event: KeyEvent, _, _| {
             if key_event.code == KeyCode::Enter {
                 on_enter()
             }
