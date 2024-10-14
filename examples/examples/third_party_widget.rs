@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEventProps};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::reactive::{DomWidget, Render, mount};
@@ -39,7 +39,7 @@ fn app() -> impl Render {
         TreeItem::new_leaf("h", "h"),
     ]);
 
-    let key_down = move |key_event: KeyEvent, _, _| match key_event.code {
+    let key_down = move |props: KeyEventProps| match props.event.code {
         KeyCode::Char('\n' | ' ') => {
             state.update(|s| {
                 s.toggle_selected();

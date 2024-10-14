@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEvent, line, span};
+use rooibos::dom::{KeyCode, KeyEventProps, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -30,11 +30,11 @@ fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
     let increase = move || update_count(1);
     let decrease = move || update_count(-1);
 
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Up {
+    let key_down = move |props: KeyEventProps| {
+        if props.event.code == KeyCode::Up {
             increase();
         }
-        if key_event.code == KeyCode::Down {
+        if props.event.code == KeyCode::Down {
             decrease();
         }
     };

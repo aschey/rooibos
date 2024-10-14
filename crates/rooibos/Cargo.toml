@@ -15,6 +15,7 @@ rooibos-terminal = { path = "../rooibos-terminal" }
 rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
+rooibos-keybind = { path = "../rooibos-keybind", optional = true }
 ratatui = { version = "0.28", features = ["unstable"] }
 
 [dev-dependencies]
@@ -55,4 +56,5 @@ clipboard = [
   "rooibos-terminal/clipboard",
   "rooibos-ssh?/clipboard",
 ]
+keybind = ["rooibos-keybind"]
 spinner = ["rooibos-components/spinner"]

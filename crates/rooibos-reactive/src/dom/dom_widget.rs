@@ -4,7 +4,7 @@ use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    AsDomNode, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyEvent, KeyHandler,
+    AsDomNode, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyHandler,
     NodeId,
 };
 use tachys::prelude::*;
@@ -130,10 +130,10 @@ where
     where
         H: KeyHandler + 'static,
     {
-        self.inner.0 = self.inner.0.on_key_down(move |event, data, handle| {
+        self.inner.0 = self.inner.0.on_key_down(move |props| {
             #[cfg(debug_assertions)]
             let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(event, data, handle)
+            handler.handle(props)
         });
 
         self
@@ -152,14 +152,14 @@ where
         self
     }
 
-    pub fn on_key_up<F>(mut self, mut handler: F) -> Self
+    pub fn on_key_up<H>(mut self, mut handler: H) -> Self
     where
-        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+        H: KeyHandler + 'static,
     {
-        self.inner.0 = self.inner.0.on_key_up(move |event, data, handle| {
+        self.inner.0 = self.inner.0.on_key_up(move |props| {
             #[cfg(debug_assertions)]
             let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data, handle);
+            handler.handle(props);
         });
         self
     }

@@ -1,6 +1,6 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
-use rooibos_dom::{BlurEvent, EventData, EventHandle, FocusEvent, KeyEvent};
+use rooibos_dom::{BlurEvent, EventData, FocusEvent, KeyHandler};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, wgt};
@@ -12,7 +12,7 @@ type ItemSelectFn<T> = dyn FnMut(usize, &T);
 pub struct ListView<T> {
     style: MaybeSignal<Style>,
     on_item_click: Box<ItemSelectFn<T>>,
-    on_key_down: Box<dyn FnMut(KeyEvent, EventData, EventHandle)>,
+    on_key_down: Box<dyn KeyHandler>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     highlight_style: MaybeSignal<Style>,
@@ -30,7 +30,7 @@ impl<T> Default for ListView<T> {
         Self {
             style: Default::default(),
             on_item_click: Box::new(move |_, _| {}),
-            on_key_down: Box::new(move |_, _, _| {}),
+            on_key_down: Box::new(move |_| {}),
             on_focus: Box::new(move |_, _| {}),
             on_blur: Box::new(move |_, _| {}),
             highlight_style: Style::default().into(),
@@ -71,10 +71,7 @@ impl<T> ListView<T> {
         self
     }
 
-    pub fn on_key_down(
-        mut self,
-        on_key_down: impl FnMut(KeyEvent, EventData, EventHandle) + 'static,
-    ) -> Self {
+    pub fn on_key_down(mut self, on_key_down: impl KeyHandler + 'static) -> Self {
         self.on_key_down = Box::new(on_key_down);
         self
     }

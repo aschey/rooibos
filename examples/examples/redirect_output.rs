@@ -3,7 +3,7 @@ use std::io::{IsTerminal, Stderr, stdout};
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{KeyCode, KeyEvent, text};
+use rooibos::dom::{KeyCode, KeyEventProps, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{Render, col, height, mount, wgt};
@@ -38,9 +38,9 @@ fn app() -> impl Render {
         item_text.iter().map(|t| ListItem::new(*t)).collect(),
     ));
 
-    let on_key_down = move |key_event: KeyEvent, _, _| {
+    let on_key_down = move |props: KeyEventProps| {
         let selected_idx = selected.get().unwrap();
-        match key_event.code {
+        match props.event.code {
             KeyCode::Down => {
                 items.with(|i| {
                     selected.set(i.next_index(selected_idx));

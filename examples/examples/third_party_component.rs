@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::dom::KeyEvent;
+use rooibos::dom::{KeyEvent, KeyEventProps};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::MaybeSignal;
@@ -27,10 +27,10 @@ fn app() -> impl Render {
     text_area_widget.set_block(Block::bordered().title("Example"));
     let text_area_widget = RwSignal::new(text_area_widget);
 
-    let key_down = move |key_event: KeyEvent, _, _| {
+    let key_down = move |props: KeyEventProps| {
         text_area_widget.update(|t| {
             if let Ok(event) =
-                <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(key_event)
+                <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
             {
                 t.input(event);
             }

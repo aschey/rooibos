@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEvent, line, text};
+use rooibos::dom::{KeyCode, KeyEventProps, line, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::layout::chars;
@@ -58,7 +58,7 @@ fn tabs() -> impl Render {
 
     let on_key_down = {
         let tabs = tabs.clone();
-        move |key_event: KeyEvent, _, _| match key_event.code {
+        move |props: KeyEventProps| match props.event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&current_route.get()) {
                     router.push(Tabs::new(prev.get_value()));

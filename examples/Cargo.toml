@@ -14,10 +14,8 @@ rooibos = { path = "../crates/rooibos", features = [
   "config",
   "router",
   "spinner",
+  "keybind",
 ] }
-rooibos-keybind-macros = { path = "../crates/rooibos-keybind-macros" }
-rooibos-keybind = { path = "../crates/rooibos-keybind" }
-modalkit = { path = "../../modalkit/crates/modalkit" }
 tokio = { version = "1.40.0", features = ["rt", "macros"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = [

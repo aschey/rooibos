@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{KeyCode, KeyEvent};
+use rooibos::dom::{KeyCode, KeyEventProps};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{Render, mount};
@@ -28,9 +28,9 @@ fn app() -> impl Render {
         ListItem::new("Item 3"),
     ]));
 
-    let on_key_down = move |key_event: KeyEvent, _, _| {
+    let on_key_down = move |props: KeyEventProps| {
         let selected_idx = selected.get().unwrap();
-        match key_event.code {
+        match props.event.code {
             KeyCode::Down => {
                 items.with(|i| {
                     selected.set(i.next_index(selected_idx));

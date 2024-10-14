@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEvent, line};
+use rooibos::dom::{KeyCode, KeyEventProps, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{block, chars};
@@ -31,9 +31,9 @@ fn app() -> impl Render {
         Tab::new(line!("Tab3"), "tab3", move || "tab3"),
     ]));
 
-    let on_key_down = move |key_event: KeyEvent, _, _| {
+    let on_key_down = move |props: KeyEventProps| {
         let tabs = tabs.get();
-        match key_event.code {
+        match props.event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
                     focused.set(prev.get_value().to_string());
@@ -78,9 +78,9 @@ fn inner_tabs() -> impl Render {
         Tab::new(line!("Tab2"), "tab2", move || "tab2"),
     ]));
 
-    let on_key_down = move |key_event: KeyEvent, _, _| {
+    let on_key_down = move |props: KeyEventProps| {
         let tabs = tabs.get();
-        match key_event.code {
+        match props.event.code {
             KeyCode::Left => {
                 if let Some(prev) = tabs.prev_item(&focused_tab.get()) {
                     focused_tab.set(prev.get_value().to_string());

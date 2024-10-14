@@ -13,8 +13,8 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use rooibos_dom::{
-    AsDomNode, DomNode, DomWidgetNode, NodeId, dispatch_event, focus_next, mount, render_terminal,
-    with_nodes, with_nodes_mut,
+    AsDomNode, DomNode, DomWidgetNode, KeyEventProps, NodeId, dispatch_event, focus_next, mount,
+    render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
@@ -163,8 +163,8 @@ impl Counters {
             DomNode::flex_col()
                 .on_key_down({
                     let send = send.clone();
-                    move |event: KeyEvent, _, _| {
-                        if event.code == KeyCode::Char('a') {
+                    move |props: KeyEventProps| {
+                        if props.event.code == KeyCode::Char('a') {
                             send(Message::Add);
                         }
                     }
@@ -253,7 +253,7 @@ impl Counter {
         let node = DomNode::widget(widget.clone())
             .on_key_down({
                 let send = send.clone();
-                move |event: KeyEvent, _, _| match event.code {
+                move |props: KeyEventProps| match props.event.code {
                     KeyCode::Char('+') => {
                         send(TaskMessage::Increment);
                     }

@@ -17,7 +17,7 @@ pub fn key(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
         )));
     }
     Ok(quote! {
-        #str_tokens.parse::<TerminalKey>().expect("already validated")
+        #str_tokens.parse::<rooibos::keybind::TerminalKey>().expect("already validated")
     })
 }
 
@@ -25,48 +25,48 @@ pub fn key(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
 pub fn derive_commands(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Result {
     let ident = input.ident;
     Ok(quote! {
-        impl From<#ident> for Action<AppInfo<#ident>> {
+        impl From<#ident> for rooibos::keybind::Action<AppInfo<#ident>> {
             fn from(value: #ident) -> Self {
-                Action::Application(value)
+                rooibos::keybind::Action::Application(value)
             }
         }
 
-        impl ApplicationAction for #ident {
+        impl rooibos::keybind::ApplicationAction for #ident {
             fn is_edit_sequence(
                 &self,
-                ctx: &modalkit::editing::context::EditContext,
-            ) -> modalkit::keybindings::SequenceStatus {
-                SequenceStatus::Break
+                ctx: &rooibos::keybind::EditContext,
+            ) -> rooibos::keybind::SequenceStatus {
+                rooibos::keybind::SequenceStatus::Break
             }
 
             fn is_last_action(
                 &self,
-                ctx: &modalkit::editing::context::EditContext,
-            ) -> modalkit::keybindings::SequenceStatus {
-                SequenceStatus::Atom
+                ctx: &rooibos::keybind::EditContext,
+            ) -> rooibos::keybind::SequenceStatus {
+                 rooibos::keybind::SequenceStatus::Atom
             }
 
             fn is_last_selection(
                 &self,
-                ctx: &modalkit::editing::context::EditContext,
-            ) -> modalkit::keybindings::SequenceStatus {
-                SequenceStatus::Ignore
+                ctx: &rooibos::keybind::EditContext,
+            ) -> rooibos::keybind::SequenceStatus {
+                 rooibos::keybind::SequenceStatus::Ignore
             }
 
-            fn is_switchable(&self, ctx: &EditContext) -> bool {
+            fn is_switchable(&self, ctx: &rooibos::keybind::EditContext) -> bool {
                 false
             }
         }
 
         impl CommandGenerator<#ident> for #ident {
             fn generate_commands(command_handler: &mut CommandHandler<#ident>) {
-                rooibos_keybind::generate_commands(command_handler)
+                rooibos::keybind::generate_commands(command_handler)
             }
         }
 
         impl CommandCompleter for #ident {
             fn complete(text: &str, cursor_position: usize) -> Vec<String> {
-                rooibos_keybind::complete::<#ident>(text, cursor_position)
+                rooibos::keybind::complete::<#ident>(text, cursor_position)
             }
         }
     })

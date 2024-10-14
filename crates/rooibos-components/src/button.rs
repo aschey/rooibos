@@ -6,7 +6,9 @@ use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
-use rooibos_dom::{KeyCode, KeyEvent, NodeId, WidgetState, delay, supports_keyboard_enhancement};
+use rooibos_dom::{
+    KeyCode, KeyEventProps, NodeId, WidgetState, delay, supports_keyboard_enhancement,
+};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Set};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
@@ -149,11 +151,11 @@ impl Button {
             on_click.borrow_mut()()
         };
 
-        let key_up = move |key_event: KeyEvent, _, _| {
+        let key_up = move |props: KeyEventProps| {
             if !supports_keyboard_enhancement() {
                 return;
             }
-            if key_event.code == KeyCode::Enter {
+            if props.event.code == KeyCode::Enter {
                 focused.set(true);
             }
         };
@@ -194,8 +196,8 @@ impl Button {
         })
         .on_focus(move |_, _| focused.set(true))
         .on_blur(move |_, _| focused.set(false))
-        .on_key_down(move |key_event: KeyEvent, _, _| {
-            if key_event.code == KeyCode::Enter {
+        .on_key_down(move |props: KeyEventProps| {
+            if props.event.code == KeyCode::Enter {
                 on_enter()
             }
         })

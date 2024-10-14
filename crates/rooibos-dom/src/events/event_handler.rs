@@ -2,21 +2,26 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use ratatui::layout::Rect;
-use terminput::KeyEvent;
 
 use super::{BlurEvent, FocusEvent};
-use crate::{ClickEvent, EventData, EventHandle};
+use crate::{ClickEvent, EventData, EventHandle, KeyEventProps};
 
 pub trait KeyHandler {
-    fn handle(&mut self, event: KeyEvent, data: EventData, handle: EventHandle);
+    fn handle(&mut self, props: KeyEventProps);
 }
 
 impl<F> KeyHandler for F
 where
-    F: FnMut(KeyEvent, EventData, EventHandle),
+    F: FnMut(KeyEventProps),
 {
-    fn handle(&mut self, event: KeyEvent, data: EventData, handle: EventHandle) {
-        (self)(event, data, handle)
+    fn handle(&mut self, props: KeyEventProps) {
+        (self)(props)
+    }
+}
+
+impl KeyHandler for Box<dyn KeyHandler> {
+    fn handle(&mut self, props: KeyEventProps) {
+        (**self).handle(props)
     }
 }
 

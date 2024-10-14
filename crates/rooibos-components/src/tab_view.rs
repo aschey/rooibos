@@ -3,7 +3,7 @@ use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
 use rooibos_dom::{
-    BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyEvent, line, span,
+    BlurEvent, ClickEvent, EventData, FocusEvent, KeyHandler, line, span,
 };
 use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::div::taffy::Dimension;
@@ -72,7 +72,7 @@ pub struct TabView {
     on_decorator_click: Option<Box<OnChangeFn>>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
-    on_key_down: Box<dyn FnMut(KeyEvent, EventData, EventHandle)>,
+    on_key_down: Box<dyn KeyHandler>,
     fit: MaybeSignal<bool>,
     divider: MaybeSignal<Span<'static>>,
     header_height: MaybeSignal<Dimension>,
@@ -92,7 +92,7 @@ impl Default for TabView {
         Self {
             on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: None,
-            on_key_down: Box::new(move |_, _, _| {}),
+            on_key_down: Box::new(move |_| {}),
             on_focus: Box::new(move |_, _| {}),
             on_blur: Box::new(move |_, _| {}),
             block: Default::default(),
@@ -168,10 +168,7 @@ impl TabView {
         self
     }
 
-    pub fn on_key_down(
-        mut self,
-        on_key_down: impl FnMut(KeyEvent, EventData, EventHandle) + 'static,
-    ) -> Self {
+    pub fn on_key_down(mut self, on_key_down: impl KeyHandler + 'static) -> Self {
         self.on_key_down = Box::new(on_key_down);
         self
     }

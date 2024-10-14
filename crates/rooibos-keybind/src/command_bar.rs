@@ -10,12 +10,24 @@ use ratatui::prelude::StatefulWidget;
 use rooibos_dom::{focus_id, focus_prev};
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Set, Update};
-use rooibos_reactive::{DomWidget, NodeId, Render};
+use rooibos_reactive::{DomWidget, LayoutProps, NodeId, Render, UpdateLayoutProps};
 
 use crate::{CommandCompleter, CommandHandlerAction, use_command_context};
 
 pub struct CommandBar<T> {
     _phantom: PhantomData<T>,
+    props: LayoutProps,
+}
+
+impl<T> UpdateLayoutProps for CommandBar<T> {
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.props = props;
+        self
+    }
+
+    fn layout_props(&self) -> LayoutProps {
+        self.props.clone()
+    }
 }
 
 impl<T> Default for CommandBar<T>
@@ -33,6 +45,7 @@ where
 {
     pub fn new() -> Self {
         Self {
+            props: LayoutProps::default(),
             _phantom: Default::default(),
         }
     }
@@ -92,6 +105,7 @@ where
                 }
             }
         })
+        .layout_props(self.props)
         .id(id)
         .focusable(true)
     }

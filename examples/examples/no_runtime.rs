@@ -3,7 +3,8 @@ use std::sync::Arc;
 
 use futures_cancel::FutureExt;
 use rooibos::dom::{
-    Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver, focus_next, line, render_terminal, set_pixel_size, set_supports_keyboard_enhancement, span,
+    Event, KeyCode, KeyEvent, KeyEventProps, KeyModifiers, dispatch_event, dom_update_receiver,
+    focus_next, line, render_terminal, set_pixel_size, set_supports_keyboard_enhancement, span,
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -92,8 +93,8 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
+    let key_down = move |props: KeyEventProps| {
+        if props.event.code == KeyCode::Enter {
             update_count();
         }
     };

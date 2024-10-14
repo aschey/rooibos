@@ -9,7 +9,7 @@ use educe::Educe;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
-use terminput::{Event, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
@@ -532,9 +532,9 @@ impl DomNode {
         self
     }
 
-    pub fn on_key_up<F>(self, handler: F) -> Self
+    pub fn on_key_up<H>(self, handler: H) -> Self
     where
-        F: FnMut(KeyEvent, EventData, EventHandle) + 'static,
+        H: KeyHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_key_up(handler));
         with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));

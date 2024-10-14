@@ -3,7 +3,8 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
 use rooibos_dom::{
-    BlurEvent, EventData, FocusEvent, KeyCode, KeyEvent, NodeId, WidgetState, set_editing,
+    BlurEvent, EventData, FocusEvent, KeyCode, KeyEvent, KeyEventProps, NodeId, WidgetState,
+    set_editing,
 };
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
@@ -271,8 +272,8 @@ impl Input {
             });
         });
 
-        let key_down = move |key_event: KeyEvent, _, _| {
-            if key_event.code == KeyCode::Enter && key_event.modifiers.is_empty() {
+        let key_down = move |props: KeyEventProps| {
+            if props.event.code == KeyCode::Enter && props.event.modifiers.is_empty() {
                 let line = text_area.with(|t| t.lines()[0].clone());
                 submit_tx.send(line).unwrap();
                 return;
@@ -281,7 +282,7 @@ impl Input {
             text_area.update(|t| {
                 #[cfg(feature = "crossterm")]
                 if let Ok(event) =
-                    <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(key_event)
+                    <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
                 {
                     t.input(event);
                 }

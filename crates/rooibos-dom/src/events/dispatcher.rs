@@ -7,9 +7,9 @@ use terminput::{
 
 use super::EventData;
 use crate::{
-    ClickEventFn, DomNodeKey, EventHandle, EventHandlers, MatchBehavior, NodeType, focus_next,
-    focus_prev, set_pending_resize, toggle_print_dom, trigger_window_focus_changed, with_nodes,
-    with_nodes_mut,
+    ClickEventFn, DomNodeKey, EventHandle, EventHandlers, KeyEventProps, MatchBehavior, NodeType,
+    focus_next, focus_prev, set_pending_resize, toggle_print_dom, trigger_window_focus_changed,
+    with_nodes, with_nodes_mut,
 };
 
 thread_local! {
@@ -171,9 +171,11 @@ fn dispatch_key_event(key_event: KeyEvent) {
                     key,
                     |handlers| handlers.on_key_down.clone(),
                     |event, rect, handle| {
-                        event
-                            .borrow_mut()
-                            .handle(key_event, EventData { rect }, handle);
+                        event.borrow_mut().handle(KeyEventProps {
+                            event: key_event,
+                            data: EventData { rect },
+                            handle,
+                        });
                     },
                 );
             }
@@ -182,9 +184,11 @@ fn dispatch_key_event(key_event: KeyEvent) {
                     key,
                     |handlers| handlers.on_key_up.clone(),
                     |event, rect, handle| {
-                        event
-                            .borrow_mut()
-                            .handle(key_event, EventData { rect }, handle);
+                        event.borrow_mut().handle(KeyEventProps {
+                            event: key_event,
+                            data: EventData { rect },
+                            handle,
+                        });
                     },
                 );
             }

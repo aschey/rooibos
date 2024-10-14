@@ -3,17 +3,16 @@ use std::collections::HashMap;
 use modalkit::actions::{Action, MacroAction};
 use modalkit::editing::application::ApplicationAction;
 use modalkit::editing::key::KeyManager;
-use modalkit::env::vim::VimMode;
 use modalkit::env::vim::keybindings::{InputStep, VimMachine};
+use modalkit::env::vim::VimMode;
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::BindingMachine;
 use modalkit::prelude::{Count, RepeatType};
-use rooibos_dom::{EventData, EventHandle, KeyHandler};
-use terminput::KeyEvent;
+use rooibos_dom::{KeyEventProps, KeyHandler};
 
 use crate::{
-    AppInfo, CommandBarContext, CommandCompleter, once, provide_command_context,
-    use_command_context,
+    once, provide_command_context, use_command_context, AppInfo, CommandBarContext,
+    CommandCompleter,
 };
 
 pub struct KeyMapper<T>
@@ -91,8 +90,8 @@ where
         }
     }
 
-    fn read(&mut self, key_event: KeyEvent, data: EventData, handle: EventHandle) {
-        let crossterm_event: Result<crossterm::event::KeyEvent, _> = key_event.try_into();
+    fn read(&mut self, props: KeyEventProps) {
+        let crossterm_event: Result<crossterm::event::KeyEvent, _> = props.event.try_into();
         let Ok(crossterm_event) = crossterm_event else {
             return;
         };
@@ -110,7 +109,7 @@ where
                 Action::Macro(macro_action) => {
                     if let MacroAction::Run(name, _) = &macro_action {
                         if let Some(handler) = self.mappings.get_mut(name) {
-                            handler.handle(key_event, data, handle.clone());
+                            handler.handle(props.clone());
                             continue;
                         }
                     }
@@ -124,26 +123,6 @@ where
                 }
                 _ => {}
             }
-            // match action {
-            //     Action::NoOp => todo!(),
-            //     Action::Editor(_) => todo!(),
-            //     Action::Macro(_) => todo!(),
-            //     Action::Jump(_, _, _) => todo!(),
-            //     Action::Repeat(_) => todo!(),
-            //     Action::Scroll(_) => todo!(),
-            //     Action::KeywordLookup => todo!(),
-            //     Action::RedrawScreen => todo!(),
-            //     Action::ShowInfoMessage(_) => todo!(),
-            //     Action::Suspend => todo!(),
-            //     Action::Search(_, _) => todo!(),
-            //     Action::Command(_) => todo!(),
-            //     Action::CommandBar(_) => todo!(),
-            //     Action::Prompt(_) => todo!(),
-            //     Action::Tab(_) => todo!(),
-            //     Action::Window(_) => todo!(),
-            //     Action::Application(_) => todo!(),
-            //     _ => todo!(),
-            // }
         }
     }
 }
@@ -152,7 +131,7 @@ impl<T> KeyHandler for KeyInputHandler<T>
 where
     T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
 {
-    fn handle(&mut self, event: KeyEvent, data: EventData, handle: EventHandle) {
-        self.read(event, data, handle)
+    fn handle(&mut self, props: KeyEventProps) {
+        self.read(props)
     }
 }

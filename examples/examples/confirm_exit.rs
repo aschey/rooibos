@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::{KeyCode, KeyEvent, focus_id, text};
+use rooibos::dom::{KeyCode, KeyEventProps, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
@@ -86,8 +86,8 @@ fn popup(
             Paragraph::new("Are you sure you want to exit? [yN]").block(Block::bordered())
         )
         .id(popup_id)
-        .on_key_down(move |key_event: KeyEvent, _, _| {
-            if key_event.code == KeyCode::Char('y') {
+        .on_key_down(move |props: KeyEventProps| {
+            if props.event.code == KeyCode::Char('y') {
                 on_confirm();
             } else {
                 on_cancel();

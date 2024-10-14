@@ -1,15 +1,5 @@
 #![doc = include_str!("../../../README.md")]
 
-// fn app() {
-//   let handler = handle_command(Command::DoTheThing, do_the_thing);
-//
-//   let bindings = [
-//     bind("C-x", "do the thing", do_the_thing).show(false),
-//     bind_cmd("C-x", "do the thing", handler)
-//   ];
-//   button().on_key_down(bindings)
-// }
-
 pub mod reactive {
     pub use rooibos_reactive::*;
 }
@@ -40,6 +30,11 @@ pub mod router {
     pub use rooibos_router::*;
 }
 
+#[cfg(feature = "keybind")]
+pub mod keybind {
+    pub use rooibos_keybind::*;
+}
+
 pub mod tester {
     pub use rooibos_tester::*;
 }
@@ -54,5 +49,6 @@ pub mod xterm_js {
     #[cfg(target_arch = "wasm32")]
     pub use rooibos_xterm_js::*;
 }
+
 pub use ratatui as tui;
 pub use rooibos_reactive_macros::*;

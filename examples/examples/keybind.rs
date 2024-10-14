@@ -1,23 +1,19 @@
 use std::process::ExitCode;
 
-use modalkit::actions::Action;
-use modalkit::editing::application::ApplicationAction;
-use modalkit::editing::context::EditContext;
-use modalkit::key::TerminalKey;
-use modalkit::keybindings::SequenceStatus;
 use rooibos::dom::{line, span};
+use rooibos::keybind::{
+    extract, handle_command, AppInfo, CommandBar, CommandCompleter, CommandGenerator,
+    CommandHandler, KeyInputHandler, KeyMapper,
+};
+use rooibos::keybind::{key, Commands};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, col, mount, wgt};
+use rooibos::reactive::layout::chars;
+use rooibos::reactive::{col, mount, wgt, Render, UpdateLayoutProps};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos_keybind::{
-    AppInfo, CommandBar, CommandCompleter, CommandGenerator, CommandHandler, KeyInputHandler,
-    KeyMapper, extract, handle_command,
-};
-use rooibos_keybind_macros::{Commands, key};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -44,8 +40,8 @@ fn app() -> impl Render {
     bindings.map_action(&key!(<C-Up>), AppAction::Count(Direction::Up));
     bindings.map_action(&key!(<C-Down>), AppAction::Count(Direction::Down));
 
-    bindings.map_handler(&key!(<Up>), move |_, _, _| increase_count());
-    bindings.map_handler(&key!(<Down>), move |_, _, _| decrease_count());
+    bindings.map_handler(&key!(<Up>), move |_| increase_count());
+    bindings.map_handler(&key!(<Down>), move |_| decrease_count());
 
     let key_handler = KeyInputHandler::new(bindings);
 
@@ -60,8 +56,9 @@ fn app() -> impl Render {
     col![
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(key_handler)
-            .on_click(move |_, _, _| increase_count()),
-        CommandBar::<AppAction>::new().render()
+            .on_click(move |_, _, _| increase_count())
+            .grow(1.),
+        CommandBar::<AppAction>::new().height(chars(1.)).render()
     ]
 }
 

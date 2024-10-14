@@ -6,7 +6,7 @@ use portable_pty::{MasterPty, NativePtySystem, PtySize, PtySystem, SlavePty};
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
-use rooibos_dom::Event;
+use rooibos_dom::{Event, KeyEventProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update};
@@ -123,8 +123,9 @@ impl Terminal {
                 term.render(rect, frame.buffer_mut());
             }
         })
-        .on_key_down(move |key, _, _| {
-            tx.try_send(Event::Key(key).to_escape_sequence()).unwrap();
+        .on_key_down(move |props: KeyEventProps| {
+            tx.try_send(Event::Key(props.event).to_escape_sequence())
+                .unwrap();
         })
         .on_size_change(move |rect| {
             master
