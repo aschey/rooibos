@@ -22,7 +22,7 @@ pub fn key(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
 }
 
 #[manyhow(proc_macro_derive(Commands))]
-pub fn derive_commands(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Result {
+pub fn derive_commands(input: DeriveInput) -> manyhow::Result {
     let ident = input.ident;
     Ok(quote! {
         impl From<#ident> for rooibos::keybind::Action<AppInfo<#ident>> {

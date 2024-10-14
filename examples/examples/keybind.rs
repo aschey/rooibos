@@ -1,15 +1,15 @@
 use std::process::ExitCode;
 
+use clap::Parser;
 use rooibos::dom::{line, span};
 use rooibos::keybind::{
-    extract, handle_command, AppInfo, CommandBar, CommandCompleter, CommandGenerator,
-    CommandHandler, KeyInputHandler, KeyMapper,
+    AppInfo, CommandBar, CommandCompleter, CommandGenerator, CommandHandler, Commands,
+    KeyInputHandler, extract, handle_command, key, map_action, map_handler,
 };
-use rooibos::keybind::{key, Commands};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::layout::chars;
-use rooibos::reactive::{col, mount, wgt, Render, UpdateLayoutProps};
+use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -36,21 +36,15 @@ fn app() -> impl Render {
     let increase_count = move || set_count.update(|c| *c += 1);
     let decrease_count = move || set_count.update(|c| *c -= 1);
 
-    let mut bindings = KeyMapper::new();
-    bindings.map_action(&key!(<C-Up>), AppAction::Count(Direction::Up));
-    bindings.map_action(&key!(<C-Down>), AppAction::Count(Direction::Down));
+    let key_handler = KeyInputHandler::new([
+        map_action(key!(<C-Up>), AppAction::Count { val: 1 }),
+        map_action(key!(<C-Down>), AppAction::Count { val: -1 }),
+        map_handler(key!(<Up>), move |_| increase_count()),
+        map_handler(key!(<Down>), move |_| decrease_count()),
+    ]);
 
-    bindings.map_handler(&key!(<Up>), move |_| increase_count());
-    bindings.map_handler(&key!(<Down>), move |_| decrease_count());
-
-    let key_handler = KeyInputHandler::new(bindings);
-
-    handle_command(extract!(dir, AppAction::Count(dir)), move |dir| {
-        if dir == Direction::Up {
-            increase_count()
-        } else {
-            decrease_count()
-        }
+    handle_command(extract!(val, AppAction::Count { val }), move |val| {
+        set_count.update(|c| *c += val);
     });
 
     col![
@@ -64,12 +58,8 @@ fn app() -> impl Render {
 
 #[derive(clap::Parser, Commands, Clone, Debug, PartialEq, Eq)]
 pub enum AppAction {
-    #[command(subcommand)]
-    Count(Direction),
-}
-
-#[derive(clap::Subcommand, Clone, Debug, PartialEq, Eq)]
-pub enum Direction {
-    Up,
-    Down,
+    Count {
+        #[arg(allow_hyphen_values(true))]
+        val: i32,
+    },
 }

@@ -3,16 +3,16 @@ use std::collections::HashMap;
 use modalkit::actions::{Action, MacroAction};
 use modalkit::editing::application::ApplicationAction;
 use modalkit::editing::key::KeyManager;
-use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::env::vim::VimMode;
+use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::BindingMachine;
 use modalkit::prelude::{Count, RepeatType};
 use rooibos_dom::{KeyEventProps, KeyHandler};
 
 use crate::{
-    once, provide_command_context, use_command_context, AppInfo, CommandBarContext,
-    CommandCompleter,
+    AppInfo, CommandBarContext, CommandCompleter, once, provide_command_context,
+    use_command_context,
 };
 
 pub struct KeyMapper<T>
@@ -32,6 +32,20 @@ where
     }
 }
 
+impl<T, KM> From<KM> for KeyMapper<T>
+where
+    T: CommandCompleter + ApplicationAction,
+    KM: IntoIterator<Item = KeyMap<T>>,
+{
+    fn from(value: KM) -> Self {
+        let mut mapper = KeyMapper::new();
+        for val in value.into_iter() {
+            mapper.map(val);
+        }
+        mapper
+    }
+}
+
 impl<T> KeyMapper<T>
 where
     T: CommandCompleter + ApplicationAction,
@@ -42,6 +56,18 @@ where
             mappings: Default::default(),
         }
     }
+
+    fn map(&mut self, map: KeyMap<T>) {
+        match map {
+            KeyMap::Action(key, action) => {
+                self.map_action(&key, action);
+            }
+            KeyMap::Handler(key, handler) => {
+                self.map_handler_inner(&key, handler);
+            }
+        }
+    }
+
     pub fn map_action(&mut self, key: &TerminalKey, action: T) {
         self.bindings.add_mapping(
             VimMode::Normal,
@@ -54,6 +80,10 @@ where
     where
         H: KeyHandler + 'static,
     {
+        self.map_handler_inner(key, Box::new(handler))
+    }
+
+    fn map_handler_inner(&mut self, key: &TerminalKey, handler: Box<dyn KeyHandler>) {
         let macro_key = format!("__internal:{key}");
         self.bindings.add_mapping(
             VimMode::Normal,
@@ -63,8 +93,24 @@ where
                 Count::Contextual,
             ))]),
         );
-        self.mappings.insert(macro_key, Box::new(handler));
+        self.mappings.insert(macro_key, handler);
     }
+}
+
+pub enum KeyMap<T> {
+    Action(TerminalKey, T),
+    Handler(TerminalKey, Box<dyn KeyHandler>),
+}
+
+pub fn map_action<T>(key: TerminalKey, action: T) -> KeyMap<T> {
+    KeyMap::Action(key, action)
+}
+
+pub fn map_handler<T, H>(key: TerminalKey, handler: H) -> KeyMap<T>
+where
+    H: KeyHandler + 'static,
+{
+    KeyMap::Handler(key, Box::new(handler))
 }
 
 pub struct KeyInputHandler<T>
@@ -80,7 +126,11 @@ impl<T> KeyInputHandler<T>
 where
     T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
 {
-    pub fn new(mapper: KeyMapper<T>) -> Self {
+    pub fn new<K>(mapper: K) -> Self
+    where
+        K: Into<KeyMapper<T>>,
+    {
+        let mapper = mapper.into();
         provide_command_context::<T>();
 
         Self {
