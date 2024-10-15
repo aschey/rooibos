@@ -8,7 +8,7 @@ use tracing::{error, warn};
 use wasm_compat::sync::Mutex;
 
 use crate::debounce::Debouncer;
-use crate::{EventFilter, IsQuitEvent, RuntimeCommand, has_external_signal_stream};
+use crate::{EventFilter, InputMode, IsQuitEvent, RuntimeCommand, has_external_signal_stream};
 
 pub(crate) struct InputHandler {
     pub(crate) term_parser_rx: broadcast::Receiver<Event>,
@@ -61,13 +61,22 @@ impl InputHandler {
             return false;
         };
 
-        let Some(next_event) = self.event_filter.lock_mut()(next_event) else {
+        let editing = self.editing.load(Ordering::SeqCst);
+
+        let Some(next_event) = self.event_filter.lock_mut()(
+            next_event,
+            if editing {
+                InputMode::Insert
+            } else {
+                InputMode::Normal
+            },
+        ) else {
             return true;
         };
 
         match next_event {
             event @ Event::Key(key_event) => {
-                self.handle_key_event(event, key_event);
+                self.handle_key_event(event, key_event, editing);
             }
 
             mouse_event @ Event::Mouse(MouseEvent {
@@ -94,8 +103,7 @@ impl InputHandler {
         true
     }
 
-    fn handle_key_event(&self, event: Event, key_event: KeyEvent) {
-        let editing = self.editing.load(Ordering::SeqCst);
+    fn handle_key_event(&self, event: Event, key_event: KeyEvent, editing: bool) {
         let has_modifiers = key_event.modifiers != KeyModifiers::empty();
         // If we're in editing mode, we should always pass through any normal input events (keys
         // with no modifiers) otherwise, it would be impossible to type certain letters

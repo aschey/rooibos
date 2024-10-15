@@ -2,8 +2,8 @@ use std::process::ExitCode;
 
 use rooibos::dom::{line, span};
 use rooibos::keybind::{
-    AppInfo, CommandBar, CommandCompleter, CommandFilter, CommandGenerator, CommandHandler,
-    Commands, KeyInputHandler, extract, handle_command, key, map_action, map_handler,
+    CommandBar, CommandFilter, CommandHandler, Commands, KeyInputHandler, extract, handle_command,
+    map_action, map_handler, parse,
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -35,11 +35,11 @@ fn app() -> impl Render {
     let increase_count = move || set_count.update(|c| *c += 1);
     let decrease_count = move || set_count.update(|c| *c -= 1);
 
-    let key_handler = KeyInputHandler::new([
-        map_action(key!(<C-Up>), AppAction::Count { val: 1 }),
-        map_action(key!(<C-Down>), AppAction::Count { val: -1 }),
-        map_handler(key!(<Up>), move |_| increase_count()),
-        map_handler(key!(<Down>), move |_| decrease_count()),
+    let key_handler = KeyInputHandler::<AppAction>::new([
+        map_action(parse("<C-Up>"), AppAction::Count { val: 1 }),
+        map_action(parse("<C-Down>"), AppAction::Count { val: -1 }),
+        map_handler(parse("<Up>"), move |_| increase_count()),
+        map_handler(parse("<Down>"), move |_| decrease_count()),
     ]);
 
     handle_command(extract!(val, AppAction::Count { val }), move |val| {

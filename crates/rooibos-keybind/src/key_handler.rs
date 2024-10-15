@@ -4,10 +4,11 @@ use std::sync::Arc;
 use modalkit::actions::{Action, MacroAction};
 use modalkit::editing::application::ApplicationAction;
 use modalkit::editing::key::KeyManager;
+use modalkit::env::CommonKeyClass;
 use modalkit::env::vim::VimMode;
 use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::key::TerminalKey;
-use modalkit::keybindings::BindingMachine;
+use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
 use rooibos_dom::{KeyEventProps, KeyHandler};
 use rooibos_reactive::graph::computed::Memo;
@@ -18,8 +19,7 @@ use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
 use wasm_compat::sync::Mutex;
 
 use crate::{
-    AppInfo, CommandBarContext, CommandCompleter, once, provide_command_context,
-    use_command_context,
+    AppInfo, CommandBarContext, CommandCompleter, provide_command_context, use_command_context,
 };
 
 #[derive(Clone)]
@@ -49,7 +49,7 @@ where
     T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
 {
     bindings: Signal<KeyMapHolder<T>>,
-    set_key_maps: WriteSignal<HashMap<TerminalKey, InternalKeyMap<T>>>,
+    set_key_maps: WriteSignal<HashMap<String, InternalKeyMap<T>>>,
 }
 
 impl<T> Default for KeyMapper<T>
@@ -81,7 +81,7 @@ where
     T: CommandCompleter + ApplicationAction + Send + Sync,
 {
     pub fn new() -> Self {
-        let (key_maps, set_key_maps) = signal(HashMap::<TerminalKey, InternalKeyMap<T>>::new());
+        let (key_maps, set_key_maps) = signal(HashMap::<String, InternalKeyMap<T>>::new());
         let bindings = Memo::new(move |_| {
             let mut ism = VimMachine::empty();
             let mut mappings = HashMap::default();
@@ -91,16 +91,16 @@ where
                         InternalKeyMap::Action(key, action) => {
                             ism.add_mapping(
                                 VimMode::Normal,
-                                &[once(key)],
+                                key,
                                 &InputStep::<AppInfo<T>>::new()
                                     .actions(vec![Action::Application(action.clone())]),
                             );
                         }
                         InternalKeyMap::Handler(key, handler) => {
-                            let macro_key = format!("__internal:{key}");
+                            let macro_key = format!("__internal:{key:?}");
                             ism.add_mapping(
                                 VimMode::Normal,
-                                &[once(key)],
+                                key,
                                 &InputStep::<AppInfo<T>>::new().actions(vec![Action::Macro(
                                     MacroAction::Run(macro_key.clone(), Count::Contextual),
                                 )]),
@@ -134,37 +134,37 @@ where
 
     pub fn map_action<S>(&mut self, key: S, action: T)
     where
-        S: Into<MaybeSignal<TerminalKey>>,
+        S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
     {
         let key = key.into();
         let mut action = Some(action);
         let set_key_maps = self.set_key_maps;
         Effect::new(move |prev| {
             let new_key = key.get();
-
+            let new_key_str = format!("{new_key:?}");
             if let Some(prev) = prev {
                 set_key_maps.update(|m| {
                     let map = m.remove(&prev).unwrap();
                     let InternalKeyMap::Action(_, action) = map else {
                         unreachable!();
                     };
-                    m.insert(new_key, InternalKeyMap::Action(new_key, action));
+                    m.insert(new_key_str.clone(), InternalKeyMap::Action(new_key, action));
                 });
             } else {
                 set_key_maps.update(|m| {
                     m.insert(
-                        new_key,
+                        new_key_str.clone(),
                         InternalKeyMap::Action(new_key, action.take().unwrap()),
                     );
                 });
             }
-            new_key
+            new_key_str
         });
     }
 
     pub fn map_handler<S, H>(&mut self, key: S, handler: H)
     where
-        S: Into<MaybeSignal<TerminalKey>>,
+        S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
         H: KeyHandler + Send + Sync + 'static,
     {
         let handler = Arc::new(Mutex::new(
@@ -175,13 +175,14 @@ where
 
     fn map_handler_inner(
         &mut self,
-        key: MaybeSignal<TerminalKey>,
+        key: MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
         handler: Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
     ) {
         let set_key_maps = self.set_key_maps;
         let mut handler = Some(handler);
         Effect::new(move |prev| {
             let new_key = key.get();
+            let new_key_str = format!("{new_key:?}");
 
             if let Some(prev) = prev {
                 set_key_maps.update(|m| {
@@ -189,44 +190,53 @@ where
                     let InternalKeyMap::Handler(_, handler) = map else {
                         unreachable!();
                     };
-                    m.insert(new_key, InternalKeyMap::Handler(new_key, handler));
+                    m.insert(
+                        new_key_str.clone(),
+                        InternalKeyMap::Handler(new_key, handler),
+                    );
                 });
             } else {
                 set_key_maps.update(|m| {
                     m.insert(
-                        new_key,
+                        new_key_str.clone(),
                         InternalKeyMap::Handler(new_key, handler.take().unwrap()),
                     );
                 });
             }
-            new_key
+            new_key_str
         });
     }
 }
 
 pub enum KeyMap<T> {
-    Action(MaybeSignal<TerminalKey>, T),
+    Action(
+        MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
+        T,
+    ),
     Handler(
-        MaybeSignal<TerminalKey>,
+        MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
         Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
     ),
 }
 
 enum InternalKeyMap<T> {
-    Action(TerminalKey, T),
-    Handler(TerminalKey, Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>),
+    Action(Vec<EdgePathPart<TerminalKey, CommonKeyClass>>, T),
+    Handler(
+        Vec<EdgePathPart<TerminalKey, CommonKeyClass>>,
+        Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
+    ),
 }
 
 pub fn map_action<S, T>(key: S, action: T) -> KeyMap<T>
 where
-    S: Into<MaybeSignal<TerminalKey>>,
+    S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
 {
     KeyMap::Action(key.into(), action)
 }
 
 pub fn map_handler<S, T, H>(key: S, handler: H) -> KeyMap<T>
 where
-    S: Into<MaybeSignal<TerminalKey>>,
+    S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
     H: KeyHandler + Send + Sync + 'static,
 {
     KeyMap::Handler(key.into(), Arc::new(Mutex::new(Box::new(handler))))

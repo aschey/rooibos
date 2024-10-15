@@ -30,6 +30,7 @@ use modalkit::prelude::{
 };
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, use_context};
 use rooibos_reactive::graph::traits::WriteValue;
+use rooibos_runtime::InputMode;
 use terminput::Event;
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
@@ -49,7 +50,7 @@ where
     T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
 {
     fn handle_commands(self, mut handler: CommandHandler<T>) -> Self {
-        self.event_filter(move |event| handler.event_filter(event))
+        self.event_filter(move |event, input_mode| handler.event_filter(event, input_mode))
     }
 }
 
@@ -184,6 +185,13 @@ where
 
     pub fn store(&self) -> StoredValue<Store<AppInfo<T>>> {
         self.store
+    }
+
+    pub fn dispatch(&self, command: T) {
+        let mut handlers = self.command_handlers.lock_mut();
+        for handler in handlers.values_mut() {
+            handler.handler.lock_mut()(&command);
+        }
     }
 }
 
@@ -364,7 +372,11 @@ where
         self.action_stack = acts;
     }
 
-    pub fn event_filter(&mut self, event: Event) -> Option<Event> {
+    pub fn event_filter(&mut self, event: Event, mode: InputMode) -> Option<Event> {
+        if mode == InputMode::Insert {
+            return Some(event);
+        }
+
         let Event::Key(key_event) = event else {
             return Some(event);
         };

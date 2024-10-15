@@ -1,3 +1,4 @@
+use rooibos::keybind::{CommandFilter, extract, handle_command, use_command_context};
 mod client;
 mod server;
 
@@ -9,6 +10,7 @@ use rooibos::components::{
     Button, Input, InputRef, Notification, Notifications, Notifier, Show, provide_notifications,
 };
 use rooibos::dom::{WidgetState, focus_id, line, span, text};
+use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
@@ -24,8 +26,8 @@ use rooibos::reactive::{
     Errors, NodeId, Render, RenderAny, UpdateLayoutProps, after_render, col, derive_signal, height,
     margin, margin_left, margin_top, mount, padding_left, row, transition, wgt, width,
 };
-use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
@@ -35,14 +37,30 @@ use taffy::{AlignItems, JustifyContent, Position};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
+#[derive(clap::Parser, Commands, Clone, Debug, PartialEq, Eq)]
+
+enum Command {
+    Add { val: String },
+    Edit { id: u32 },
+    Delete { id: u32 },
+}
+
 #[rooibos::main(flavor = "current_thread")]
 async fn main() -> Result {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
         .await
         .unwrap();
 
+    let mut cmd_handler = CommandHandler::<Command>::new();
+    cmd_handler.generate_commands();
+
     mount(|| app(Duration::from_secs(3)));
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+
+    let runtime = Runtime::initialize_with(
+        RuntimeSettings::default().handle_commands(cmd_handler),
+        CrosstermBackend::stdout(),
+    );
+
     tokio::spawn(run_server(listener));
     runtime.run().await
 }
@@ -59,9 +77,18 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     let editing_id = RwSignal::new(None);
 
+    handle_command(extract!(id, Command::Edit { id }), move |id| {
+        editing_id.set(Some(id));
+    });
+
     let add_todo = Action::new(move |text: &String| add_todo(text.clone()));
     let update_todo = Action::new(move |(id, text): &(u32, String)| update_todo(*id, text.clone()));
     let delete_todo = Action::new(move |id: &u32| delete_todo(*id));
+
+    handle_command(extract!(id, Command::Delete { id }), move |id| {
+        delete_todo.dispatch(id);
+    });
+
     provide_context(TodoContext {
         add_todo,
         update_todo,
@@ -84,6 +111,7 @@ fn app(notification_timeout: Duration) -> impl Render {
             props(height!(100.%), block(Block::bordered().title("Todos"))),
             col![todos_body(editing_id, notification_timeout)]
         ],
+        CommandBar::<Command>::new().height(chars(1.)).render(),
         saving_popup(),
         Notifications::new()
             .max_layout_width(todos_max_width)
@@ -93,7 +121,12 @@ fn app(notification_timeout: Duration) -> impl Render {
 
 fn add_todo_input() -> impl Render {
     let TodoContext { add_todo, .. } = use_context::<TodoContext>().unwrap();
+    let command_context = use_command_context::<Command>();
     let input_ref = Input::get_ref();
+
+    handle_command(extract!(val, Command::Add { val }), move |val| {
+        add_todo.dispatch(val);
+    });
 
     row![
         props(grow(1.), padding_left!(1.)),
@@ -111,8 +144,8 @@ fn add_todo_input() -> impl Render {
                     .into()
             })
             .on_submit(move |val| {
-                add_todo.dispatch(val);
                 input_ref.delete_line();
+                command_context.dispatch(Command::Add { val });
             })
             .height(chars(3.))
             .min_width(chars(12.))
@@ -233,6 +266,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
 
     row![
         props(height!(3.)),
+        col![props(margin!(1.), width!(3.)), format!("{id}.")],
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()

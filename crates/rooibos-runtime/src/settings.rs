@@ -6,8 +6,14 @@ use ratatui::Viewport;
 use rooibos_dom::{Event, KeyCode, KeyEvent, KeyModifiers};
 use wasm_compat::sync::Mutex;
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum InputMode {
+    Normal,
+    Insert,
+}
+
 pub type IsQuitEvent = dyn Fn(KeyEvent) -> bool + Send + Sync;
-pub type EventFilter = dyn FnMut(Event) -> Option<Event> + Send + Sync;
+pub type EventFilter = dyn FnMut(Event, InputMode) -> Option<Event> + Send + Sync;
 
 #[derive(Educe)]
 #[educe(Debug)]
@@ -39,7 +45,7 @@ impl Default for RuntimeSettings {
                 let q = key.code == KeyCode::Char('q') && key.modifiers == KeyModifiers::empty();
                 ctrl_c || q
             }),
-            event_filter: Arc::new(Mutex::new(Box::new(Some))),
+            event_filter: Arc::new(Mutex::new(Box::new(|event, _| Some(event)))),
         }
     }
 }
@@ -85,7 +91,7 @@ impl RuntimeSettings {
 
     pub fn event_filter<F>(mut self, f: F) -> Self
     where
-        F: FnMut(Event) -> Option<Event> + Send + Sync + 'static,
+        F: FnMut(Event, InputMode) -> Option<Event> + Send + Sync + 'static,
     {
         self.event_filter = Arc::new(Mutex::new(Box::new(f)));
         self

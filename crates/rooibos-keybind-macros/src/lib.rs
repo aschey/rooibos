@@ -1,31 +1,29 @@
-use manyhow::{Emitter, ErrorMessage, manyhow};
-use modalkit::key::TerminalKey;
-use proc_macro2::TokenStream;
+use manyhow::manyhow;
 use quote::quote;
 use syn::DeriveInput;
 
-#[manyhow]
-#[proc_macro]
-pub fn key(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
-    let tokens = tokens.to_string();
-    let token_chars = tokens.chars();
-
-    let str_tokens = token_chars.as_str();
-    if let Err(e) = str_tokens.parse::<TerminalKey>() {
-        emitter.emit(ErrorMessage::call_site(format!(
-            "Invalid key combination {str_tokens}: {e:?}"
-        )));
-    }
-    Ok(quote! {
-        #str_tokens.parse::<rooibos::keybind::TerminalKey>().expect("already validated")
-    })
-}
+// #[manyhow]
+// #[proc_macro]
+// pub fn key(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
+//     let tokens = tokens.to_string();
+//     let token_chars = tokens.chars();
+//
+//     let str_tokens = token_chars.as_str();
+//     if let Err(e) = modalkit::env::keyparse::parse(str_tokens) {
+//         emitter.emit(ErrorMessage::call_site(format!(
+//             "Invalid key combination {str_tokens}: {e:?}"
+//         )));
+//     }
+//     Ok(quote! {
+//         rooibos::keybind::keyparse::parse(#str_tokens).expect("already validated").1
+//     })
+// }
 
 #[manyhow(proc_macro_derive(Commands))]
 pub fn derive_commands(input: DeriveInput) -> manyhow::Result {
     let ident = input.ident;
     Ok(quote! {
-        impl From<#ident> for rooibos::keybind::Action<AppInfo<#ident>> {
+        impl From<#ident> for rooibos::keybind::Action<rooibos::keybind::AppInfo<#ident>> {
             fn from(value: #ident) -> Self {
                 rooibos::keybind::Action::Application(value)
             }
@@ -58,13 +56,13 @@ pub fn derive_commands(input: DeriveInput) -> manyhow::Result {
             }
         }
 
-        impl CommandGenerator<#ident> for #ident {
-            fn generate_commands(command_handler: &mut CommandHandler<#ident>) {
+        impl rooibos::keybind::CommandGenerator<#ident> for #ident {
+            fn generate_commands(command_handler: &mut rooibos::keybind::CommandHandler<#ident>) {
                 rooibos::keybind::generate_commands(command_handler)
             }
         }
 
-        impl CommandCompleter for #ident {
+        impl rooibos::keybind::CommandCompleter for #ident {
             fn complete(text: &str, cursor_position: usize) -> Vec<String> {
                 rooibos::keybind::complete::<#ident>(text, cursor_position)
             }
