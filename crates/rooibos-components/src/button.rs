@@ -9,10 +9,36 @@ use ratatui::widgets::{Block, BorderType};
 use rooibos_dom::{
     KeyCode, KeyEventProps, NodeId, WidgetState, delay, supports_keyboard_enhancement,
 };
+use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
-use rooibos_reactive::graph::traits::{Get, Set};
+use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, derive_signal, wgt};
+use tokio::sync::broadcast;
+use tokio::task::spawn_local;
+
+#[derive(Clone, Copy)]
+pub struct ButtonRef {
+    tx: StoredValue<broadcast::Sender<()>>,
+}
+
+impl Default for ButtonRef {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ButtonRef {
+    pub fn new() -> Self {
+        let (tx, _) = broadcast::channel(32);
+        Self {
+            tx: StoredValue::new(tx),
+        }
+    }
+    pub fn click(&self) {
+        self.tx.with_value(|tx| tx.send(()).unwrap());
+    }
+}
 
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
@@ -21,6 +47,7 @@ pub struct Button {
     focused_border_color: MaybeSignal<Color>,
     active_border_color: MaybeSignal<Color>,
     enabled: MaybeSignal<bool>,
+    element_ref: Option<ButtonRef>,
     id: Option<NodeId>,
     class: Option<String>,
 }
@@ -51,6 +78,7 @@ impl Button {
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
             enabled: true.into(),
+            element_ref: None,
             id: None,
             class: None,
         }
@@ -73,6 +101,11 @@ impl Button {
 
     pub fn enabled(mut self, enabled: impl Into<MaybeSignal<bool>>) -> Self {
         self.enabled = enabled.into();
+        self
+    }
+
+    pub fn element_ref(mut self, button_ref: ButtonRef) -> Self {
+        self.element_ref = Some(button_ref);
         self
     }
 
@@ -116,6 +149,7 @@ impl Button {
             focused_border_color,
             active_border_color,
             enabled,
+            element_ref,
             id,
             class,
         } = self;
@@ -150,6 +184,17 @@ impl Button {
             }
             on_click.borrow_mut()()
         };
+
+        if let Some(element_ref) = element_ref {
+            let tx = element_ref.tx.get_value();
+            let mut rx = tx.subscribe();
+            let on_enter = on_enter.clone();
+            spawn_local(async move {
+                while let Ok(()) = rx.recv().await {
+                    on_enter();
+                }
+            });
+        }
 
         let key_up = move |props: KeyEventProps| {
             if !supports_keyboard_enhancement() {

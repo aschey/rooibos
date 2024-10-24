@@ -257,6 +257,8 @@ impl TestHarness {
         loop {
             let mut last_tick_result = None;
             tokio::select! {
+                biased;
+
                 tick_result = self.runtime.tick() => {
                     let tick_result = tick_result.unwrap();
                     last_tick_result = Some(tick_result.clone());

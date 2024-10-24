@@ -93,6 +93,12 @@ pub trait CommandCompleter {
     fn complete(text: &str, cursor_position: usize) -> Vec<String>;
 }
 
+impl CommandCompleter for () {
+    fn complete(_text: &str, _cursor_position: usize) -> Vec<String> {
+        Vec::new()
+    }
+}
+
 impl<T> ApplicationInfo for AppInfo<T>
 where
     T: ApplicationAction + CommandCompleter,

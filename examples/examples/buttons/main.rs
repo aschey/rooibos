@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
-use rooibos::components::Button;
-use rooibos::dom::text;
+use rooibos::components::{Button, ButtonRef};
+use rooibos::dom::{focus_id, text};
+use rooibos::keybind::{KeyInputHandler, KeyMap};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -36,19 +37,36 @@ fn app() -> impl Render {
             *b += adjustment;
         });
     };
+    let bigger = "bigger";
+    let smaller = "smaller";
+    let bigger_ref = ButtonRef::new();
+    let smaller_ref = ButtonRef::new();
+
+    let handler = KeyInputHandler::<()>::new([
+        KeyMap::handler("+", move |_| {
+            focus_id(bigger);
+            bigger_ref.click();
+        }),
+        KeyMap::handler("-", move |_| {
+            focus_id(smaller);
+            smaller_ref.click();
+        }),
+    ]);
 
     row![
         props(padding!(1.)),
         col![
             props(width!(20.), padding_right!(2.)),
             button(
-                "bigger".bold(),
+                bigger.bold(),
                 derive_signal!(block_height.get() < MAX_SIZE),
+                bigger_ref,
                 move || adjust_size(1.)
             ),
             button(
-                "smaller".bold(),
+                smaller.bold(),
                 derive_signal!(block_height.get() > MIN_SIZE),
+                smaller_ref,
                 move || adjust_size(-1.)
             )
         ],
@@ -62,16 +80,24 @@ fn app() -> impl Render {
                 })
         )
     ]
+    .on_key_down(handler)
 }
 
-fn button<F>(title: Span<'static>, enabled: Signal<bool>, on_click: F) -> impl Render
+fn button<F>(
+    title: Span<'static>,
+    enabled: Signal<bool>,
+    button_ref: ButtonRef,
+    on_click: F,
+) -> impl Render
 where
     F: Fn() + Clone + 'static,
 {
     row![
         props(height!(3.)),
         Button::new()
+            .id(title.to_string())
             .enabled(enabled)
+            .element_ref(button_ref)
             .on_click(on_click)
             .render(text!(title))
     ]

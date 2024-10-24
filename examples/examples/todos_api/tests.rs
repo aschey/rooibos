@@ -1,12 +1,13 @@
 use std::time::Duration;
 
 use rooibos::dom::{DomNodeRepr, KeyCode, Role, root};
-use rooibos::reactive::mount;
+use rooibos::keybind::{CommandFilter, CommandHandler};
+use rooibos::reactive::{mount, tick};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
-use crate::app;
 use crate::server::run_server;
+use crate::{Command, app};
 
 macro_rules! assert_snapshot {
     ($name:literal, $terminal:expr) => {
@@ -18,16 +19,22 @@ macro_rules! assert_snapshot {
     };
 }
 
-#[rooibos::test]
+#[rooibos::test(flavor = "current_thread")]
 async fn test_todos() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
         .await
         .unwrap();
 
+    let mut cmd_handler = CommandHandler::<Command>::new();
+    cmd_handler.generate_commands();
+
     tokio::spawn(run_server(listener));
     mount(|| app(Duration::from_millis(500)));
+    tick().await;
     let mut harness = TestHarness::new_with_settings(
-        RuntimeSettings::default().enable_signal_handler(false),
+        RuntimeSettings::default()
+            .handle_commands(cmd_handler)
+            .enable_signal_handler(false),
         50,
         10,
     );

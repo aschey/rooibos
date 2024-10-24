@@ -6,6 +6,19 @@ use ratatui::layout::Rect;
 use super::{BlurEvent, FocusEvent};
 use crate::{ClickEvent, EventData, EventHandle, KeyEventProps};
 
+pub trait IntoKeyHandler {
+    fn into_key_handler(self) -> impl KeyHandler;
+}
+
+impl<T> IntoKeyHandler for T
+where
+    T: KeyHandler,
+{
+    fn into_key_handler(self) -> impl KeyHandler {
+        self
+    }
+}
+
 pub trait KeyHandler {
     fn handle(&mut self, props: KeyEventProps);
 }
@@ -51,17 +64,17 @@ pub struct EventHandlers {
 impl EventHandlers {
     pub fn on_key_down<H>(mut self, handler: H) -> Self
     where
-        H: KeyHandler + 'static,
+        H: IntoKeyHandler + 'static,
     {
-        self.on_key_down = Some(Rc::new(RefCell::new(handler)));
+        self.on_key_down = Some(Rc::new(RefCell::new(handler.into_key_handler())));
         self
     }
 
     pub fn on_key_up<H>(mut self, handler: H) -> Self
     where
-        H: KeyHandler + 'static,
+        H: IntoKeyHandler + 'static,
     {
-        self.on_key_up = Some(Rc::new(RefCell::new(handler)));
+        self.on_key_up = Some(Rc::new(RefCell::new(handler.into_key_handler())));
         self
     }
 

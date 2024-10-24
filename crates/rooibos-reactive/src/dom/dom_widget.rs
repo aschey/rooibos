@@ -4,8 +4,8 @@ use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    AsDomNode, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, KeyHandler,
-    NodeId,
+    AsDomNode, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, IntoKeyHandler,
+    KeyHandler, NodeId,
 };
 use tachys::prelude::*;
 
@@ -126,15 +126,20 @@ where
         }
     }
 
-    pub fn on_key_down<H>(mut self, mut handler: H) -> Self
+    pub fn on_key_down<H>(mut self, handler: H) -> Self
     where
-        H: KeyHandler + 'static,
+        H: IntoKeyHandler + 'static,
     {
-        self.inner.0 = self.inner.0.on_key_down(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props)
-        });
+        let mut handler = handler.into_key_handler();
+        self.inner.0 = self
+            .inner
+            .0
+            .on_key_down(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props)
+            })
+            .focusable(true);
 
         self
     }
@@ -152,15 +157,20 @@ where
         self
     }
 
-    pub fn on_key_up<H>(mut self, mut handler: H) -> Self
+    pub fn on_key_up<H>(mut self, handler: H) -> Self
     where
-        H: KeyHandler + 'static,
+        H: IntoKeyHandler + 'static,
     {
-        self.inner.0 = self.inner.0.on_key_up(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props);
-        });
+        let mut handler = handler.into_key_handler();
+        self.inner.0 = self
+            .inner
+            .0
+            .on_key_up(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props);
+            })
+            .focusable(true);
         self
     }
 
@@ -168,11 +178,15 @@ where
     where
         F: FnMut(FocusEvent, EventData) + 'static,
     {
-        self.inner.0 = self.inner.0.on_focus(move |event, data| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_focus(move |event, data| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data);
+            })
+            .focusable(true);
         self
     }
 
@@ -180,11 +194,15 @@ where
     where
         F: FnMut(BlurEvent, EventData) + 'static,
     {
-        self.inner.0 = self.inner.0.on_blur(move |event, data| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_blur(move |event, data| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data);
+            })
+            .focusable(true);
         self
     }
 
@@ -192,11 +210,15 @@ where
     where
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
-        self.inner.0 = self.inner.0.on_click(move |event, data, handle| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data, handle);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_click(move |event, data, handle| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data, handle);
+            })
+            .focusable(true);
         self
     }
 
@@ -204,11 +226,15 @@ where
     where
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
-        self.inner.0 = self.inner.0.on_right_click(move |event, data, handle| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data, handle);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_right_click(move |event, data, handle| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data, handle);
+            })
+            .focusable(true);
         self
     }
 
@@ -216,11 +242,15 @@ where
     where
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
-        self.inner.0 = self.inner.0.on_middle_click(move |event, data, handle| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data, handle);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_middle_click(move |event, data, handle| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data, handle);
+            })
+            .focusable(true);
         self
     }
 

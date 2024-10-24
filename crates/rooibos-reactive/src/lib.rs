@@ -18,6 +18,7 @@ use std::panic::{set_hook, take_hook};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+use any_spawner::Executor;
 pub use dom::*;
 pub use error_boundary::*;
 pub use for_loop::*;
@@ -120,4 +121,8 @@ pub fn is_editing() -> bool {
 
 pub fn editing() -> Arc<AtomicBool> {
     EDITING.with(|e| e.deref().clone())
+}
+
+pub async fn tick() {
+    Executor::tick().await;
 }

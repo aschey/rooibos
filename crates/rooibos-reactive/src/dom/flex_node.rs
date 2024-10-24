@@ -1,7 +1,9 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{AsDomNode, BlurEvent, EventData, FocusEvent, NodeId};
+use rooibos_dom::{
+    AsDomNode, BlurEvent, EventData, FocusEvent, IntoKeyHandler, KeyHandler, NodeId,
+};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
@@ -19,6 +21,7 @@ use super::layout::{
     padding_y, position, show, shrink, width, wrap,
 };
 use super::{DomNode, RenderAny, RooibosDom};
+use crate::layout::Focusable;
 
 #[derive(Debug)]
 pub struct FlexNode<C, P> {
@@ -36,6 +39,22 @@ where
             inner: self.inner,
             children: self.children.next_tuple(child),
             properties: self.properties,
+        }
+    }
+}
+
+impl<C, P> FlexNode<C, P>
+where
+    P: NextTuple,
+{
+    pub fn focusable<S>(self, focusable: S) -> FlexNode<C, P::Output<Focusable>>
+    where
+        S: Into<MaybeSignal<bool>>,
+    {
+        FlexNode {
+            inner: self.inner,
+            children: self.children,
+            properties: self.properties.next_tuple(Focusable(focusable.into())),
         }
     }
 }
@@ -75,6 +94,33 @@ impl<C, P> FlexNode<C, P> {
         self
     }
 
+    pub fn on_key_down<H>(mut self, handler: H) -> Self
+    where
+        H: IntoKeyHandler + 'static,
+    {
+        let mut handler = handler.into_key_handler();
+        self.inner.0 = self.inner.0.on_key_down(move |props| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler.handle(props)
+        });
+
+        self
+    }
+
+    pub fn on_key_up<H>(mut self, handler: H) -> Self
+    where
+        H: IntoKeyHandler + 'static,
+    {
+        let mut handler = handler.into_key_handler();
+        self.inner.0 = self.inner.0.on_key_up(move |props| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler.handle(props);
+        });
+        self
+    }
+
     pub fn on_size_change<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(Rect) + 'static,
@@ -96,6 +142,7 @@ impl<C, P> FlexNode<C, P> {
 impl FlexProperty for Block {}
 impl FlexProperty for ZIndex {}
 impl FlexProperty for Clear {}
+impl FlexProperty for Focusable {}
 
 impl<C, P> FlexNode<C, P>
 where

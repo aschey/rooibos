@@ -13,8 +13,8 @@ Buffer {
         "│                                                │",
         "│                                                │",
         "│                                                │",
-        "│                                                │",
         "└────────────────────────────────────────────────┘",
+        "                                                  ",
     ],
     styles: [
         x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,

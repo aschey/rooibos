@@ -169,6 +169,7 @@ impl Counters {
                         }
                     }
                 })
+                .focusable(true)
                 .id(id.clone())
                 .on_focus({
                     let send = send.clone();
@@ -275,6 +276,7 @@ impl Counter {
                 move |_, _, _| send(TaskMessage::Decrement)
             })
             .id(id.clone())
+            .focusable(true)
             .on_focus({
                 let send = send.clone();
                 move |_, _| send(TaskMessage::Focus)

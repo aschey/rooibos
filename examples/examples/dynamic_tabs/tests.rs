@@ -1,4 +1,4 @@
-use rooibos::reactive::mount;
+use rooibos::reactive::{mount, tick};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
@@ -14,9 +14,10 @@ macro_rules! assert_snapshot {
     };
 }
 
-#[rooibos::test]
+#[rooibos::test(flavor = "current_thread")]
 async fn test_tabs() {
     mount(app);
+    tick().await;
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         40,

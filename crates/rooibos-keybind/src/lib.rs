@@ -14,6 +14,6 @@ pub use modalkit::keybindings::SequenceStatus;
 use modalkit::keybindings::{EdgeEvent, EdgeRepeat};
 pub use rooibos_keybind_macros::*;
 
-pub fn parse(input: &str) -> Vec<(EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyClass>)> {
+fn parse(input: &str) -> Vec<(EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyClass>)> {
     modalkit::env::keyparse::parse(input).unwrap().1
 }

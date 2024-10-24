@@ -15,7 +15,7 @@ use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
 use crate::{
     BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers, FocusEvent,
-    KeyHandler, MatchBehavior, Role, dispatch_event, next_node_id, reset_mouse_position,
+    IntoKeyHandler, MatchBehavior, Role, dispatch_event, next_node_id, reset_mouse_position,
     tree_is_accessible, with_nodes, with_nodes_mut,
 };
 
@@ -525,19 +525,17 @@ impl DomNode {
 
     pub fn on_key_down<H>(self, handler: H) -> Self
     where
-        H: KeyHandler + 'static,
+        H: IntoKeyHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_key_down(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
         self
     }
 
     pub fn on_key_up<H>(self, handler: H) -> Self
     where
-        H: KeyHandler + 'static,
+        H: IntoKeyHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_key_up(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
         self
     }
 
@@ -546,7 +544,6 @@ impl DomNode {
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_click(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
         self
     }
 
@@ -555,7 +552,6 @@ impl DomNode {
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_right_click(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
         self
     }
 
@@ -564,7 +560,6 @@ impl DomNode {
         F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_middle_click(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
         self
     }
 
@@ -581,7 +576,6 @@ impl DomNode {
         F: FnMut(FocusEvent, EventData) + 'static,
     {
         self.update_event_handlers(|h| h.on_focus(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
 
         self
     }
@@ -591,7 +585,6 @@ impl DomNode {
         F: FnMut(BlurEvent, EventData) + 'static,
     {
         self.update_event_handlers(|h| h.on_blur(handler));
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, true));
 
         self
     }
@@ -645,6 +638,11 @@ impl DomNode {
         with_nodes_mut(|n| {
             n.set_class(self.key, class);
         });
+        self
+    }
+
+    pub fn focusable(self, focusable: bool) -> Self {
+        with_nodes_mut(|nodes| nodes.set_focusable(self.key, focusable));
         self
     }
 

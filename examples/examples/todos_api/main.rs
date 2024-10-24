@@ -176,10 +176,8 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
         move || {
             if let Some(update_value) = update_todo.value().get() {
                 let notification = match update_value {
-                    Ok(()) => Notification::new(text!("", "  Todo updated", "")),
-                    Err(e) => {
-                        Notification::new(text!("", "  Failed to update todo", e.to_string()))
-                    }
+                    Ok(()) => Notification::new("Todo updated"),
+                    Err(e) => Notification::new(text!("Failed to update todo", e.to_string())),
                 };
                 notifier.notify(notification.timeout(notification_timeout));
             }
@@ -189,8 +187,8 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     Effect::new(move || {
         if let Some(update_value) = delete_todo.value().get() {
             let notification = match update_value {
-                Ok(()) => Notification::new(text!("", "  Todo deleted", "")),
-                Err(e) => Notification::new(text!("", "  Failed to delete todo", e.to_string())),
+                Ok(()) => Notification::new("Todo deleted"),
+                Err(e) => Notification::new(text!("Failed to delete todo", e.to_string())),
             };
             notifier.notify(notification.timeout(notification_timeout));
         }

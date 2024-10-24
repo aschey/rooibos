@@ -10,7 +10,8 @@ use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
-use rooibos_dom::{KeyEventProps, KeyHandler};
+use rooibos_dom::{IntoKeyHandler, KeyEventProps, KeyHandler};
+use rooibos_reactive::derive_signal;
 use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::{WriteSignal, signal};
@@ -19,7 +20,8 @@ use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
 use wasm_compat::sync::Mutex;
 
 use crate::{
-    AppInfo, CommandBarContext, CommandCompleter, provide_command_context, use_command_context,
+    AppInfo, CommandBarContext, CommandCompleter, parse, provide_command_context,
+    use_command_context,
 };
 
 #[derive(Clone)]
@@ -124,7 +126,7 @@ where
     fn map(&mut self, map: KeyMap<T>) {
         match map {
             KeyMap::Action(key, action) => {
-                self.map_action(key, action);
+                self.map_action_inner(key, action);
             }
             KeyMap::Handler(key, handler) => {
                 self.map_handler_inner(key, handler);
@@ -134,9 +136,18 @@ where
 
     pub fn map_action<S>(&mut self, key: S, action: T)
     where
-        S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
+        S: Into<MaybeSignal<String>>,
     {
         let key = key.into();
+        let key = derive_signal!(parse(&key.get()));
+        self.map_action_inner(key, action)
+    }
+
+    fn map_action_inner(
+        &mut self,
+        key: Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
+        action: T,
+    ) {
         let mut action = Some(action);
         let set_key_maps = self.set_key_maps;
         Effect::new(move |prev| {
@@ -164,18 +175,21 @@ where
 
     pub fn map_handler<S, H>(&mut self, key: S, handler: H)
     where
-        S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
+        S: Into<MaybeSignal<String>>,
         H: KeyHandler + Send + Sync + 'static,
     {
         let handler = Arc::new(Mutex::new(
             Box::new(handler) as Box<dyn KeyHandler + Send + Sync>
         ));
-        self.map_handler_inner(key.into(), handler);
+        let key = key.into();
+        let key = derive_signal!(parse(&key.get()));
+
+        self.map_handler_inner(key, handler);
     }
 
     fn map_handler_inner(
         &mut self,
-        key: MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
+        key: Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
         handler: Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
     ) {
         let set_key_maps = self.set_key_maps;
@@ -209,14 +223,48 @@ where
 }
 
 pub enum KeyMap<T> {
-    Action(
-        MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
-        T,
-    ),
+    Action(Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>, T),
     Handler(
-        MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
+        Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
         Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
     ),
+}
+
+impl<T> KeyMap<T>
+where
+    T: ApplicationAction + CommandCompleter + Send + Sync,
+{
+    pub fn into_handler(self) -> KeyInputHandler<T> {
+        KeyInputHandler::new([self])
+    }
+
+    pub fn action<S>(key: S, action: T) -> Self
+    where
+        S: Into<MaybeSignal<String>>,
+    {
+        let key = key.into();
+        let key = derive_signal!(parse(&key.get()));
+        Self::Action(key, action)
+    }
+
+    pub fn handler<S, H>(key: S, handler: H) -> KeyMap<T>
+    where
+        S: Into<MaybeSignal<String>>,
+        H: KeyHandler + Send + Sync + 'static,
+    {
+        let key = key.into();
+        let key = derive_signal!(parse(&key.get()));
+        KeyMap::Handler(key, Arc::new(Mutex::new(Box::new(handler))))
+    }
+}
+
+impl<T> IntoKeyHandler for KeyMap<T>
+where
+    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+{
+    fn into_key_handler(self) -> impl KeyHandler {
+        KeyInputHandler::new([self])
+    }
 }
 
 enum InternalKeyMap<T> {
@@ -227,19 +275,12 @@ enum InternalKeyMap<T> {
     ),
 }
 
-pub fn map_action<S, T>(key: S, action: T) -> KeyMap<T>
+pub fn map_handler<S, H>(key: S, handler: H) -> KeyMap<()>
 where
-    S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
-{
-    KeyMap::Action(key.into(), action)
-}
-
-pub fn map_handler<S, T, H>(key: S, handler: H) -> KeyMap<T>
-where
-    S: Into<MaybeSignal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>>,
+    S: Into<MaybeSignal<String>>,
     H: KeyHandler + Send + Sync + 'static,
 {
-    KeyMap::Handler(key.into(), Arc::new(Mutex::new(Box::new(handler))))
+    KeyMap::handler(key, handler)
 }
 
 pub struct KeyInputHandler<T>
@@ -248,6 +289,16 @@ where
 {
     manager: Signal<KeyMapHolder<T>>,
     command_context: CommandBarContext<T>,
+}
+
+impl<K, T> From<K> for KeyInputHandler<T>
+where
+    K: Into<KeyMapper<T>>,
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+{
+    fn from(value: K) -> Self {
+        KeyInputHandler::new(value)
+    }
 }
 
 impl<T> KeyInputHandler<T>

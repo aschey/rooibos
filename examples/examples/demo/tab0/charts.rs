@@ -33,6 +33,7 @@ pub(crate) fn charts(enhanced_graphics: bool, chart_min_height: Signal<Dimension
         col![row![task_list(), logs()], demo_bar_chart(enhanced_graphics)],
         col![props(show(show_chart)), demo_chart(enhanced_graphics)]
     ]
+    .focusable(true)
 }
 
 #[derive(Clone)]
