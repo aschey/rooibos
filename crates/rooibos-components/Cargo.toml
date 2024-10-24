@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638" }
-either_of = { git = "https://github.com/leptos-rs/leptos", rev = "9d1be64e4d1d460c3a9ebd096c90955df8fbe638" }
+next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "7b8cd90a6ef113495d0efc5fb8676bd0694a7705" }
+either_of = { git = "https://github.com/leptos-rs/leptos", rev = "7b8cd90a6ef113495d0efc5fb8676bd0694a7705" }
 tui-textarea = { version = "0.6", default-features = false, optional = true }
 crossterm = { version = "0.28.1", optional = true }
 rooibos-dom = { path = "../rooibos-dom" }
