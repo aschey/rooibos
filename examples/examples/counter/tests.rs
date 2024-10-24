@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use rooibos::dom::KeyCode;
 use rooibos::reactive::{mount, tick};
 use rooibos::runtime::RuntimeSettings;
