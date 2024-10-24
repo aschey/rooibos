@@ -17,8 +17,7 @@ educe = "0.6"
 ratatui = { version = "0.28", default-features = false }
 tokio = { version = "1", default-features = false, features = ["sync"] }
 tracing = "0.1"
-# TODO: set this back to the published version after the next release
-ratatui-image = { git = "https://github.com/benjajaja/ratatui-image", rev = "e630e680a186fc0c44c43be0e6966889094e525e", optional = true }
+ratatui-image = { version = "2", optional = true }
 image = { version = "0.25", optional = true }
 throbber-widgets-tui = { version = "0.7.0", optional = true }
 tokio-util = "0.7"
