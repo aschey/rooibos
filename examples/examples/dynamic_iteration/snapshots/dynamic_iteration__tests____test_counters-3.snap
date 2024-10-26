@@ -9,11 +9,11 @@ Buffer {
         " ╭────────────────────────────────────╮ ",
         " │             Add Counter            │ ",
         " ╰────────────────────────────────────╯ ",
-        " ┌────────────────────────────────────┐ ",
-        " │ 0. count: 1                        │ ",
-        " └────────────────────────────────────┘ ",
+        "                                        ",
+        "   0. count: 1                          ",
         "                                        ",
         "                                        ",
+        "   1. count: 0                          ",
         "                                        ",
         "                                        ",
         "                                        ",
@@ -39,5 +39,8 @@ Buffer {
         x: 6, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
         x: 13, y: 5, fg: Cyan, bg: Reset, underline: Reset, modifier: NONE,
         x: 14, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 6, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
+        x: 13, y: 8, fg: Cyan, bg: Reset, underline: Reset, modifier: NONE,
+        x: 14, y: 8, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
     ]
 }

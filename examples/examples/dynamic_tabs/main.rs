@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEventProps, line, span, text};
+use rooibos::dom::{line, span, text};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::layout::chars;
@@ -47,30 +48,20 @@ fn app() -> impl Render {
         }
     };
 
-    let on_key_down = move |props: KeyEventProps| {
+    let add_tab = move || {
+        tabs.update(|t| {
+            let num = next_tab.get();
+            t.push(
+                Tab::new(line!("Tab", span!(num)), format!("tab{num}"), move || {
+                    format!(" tab{num}")
+                })
+                .decorator(line!("✕".red())),
+            );
+            next_tab.update(|t| *t += 1);
+        });
         let tabs = tabs.get();
-
-        match props.event.code {
-            KeyCode::Left => {
-                if let Some(prev) = tabs.prev_item(&focused.get()) {
-                    focused.set(prev.get_value().to_string());
-                }
-            }
-            KeyCode::Right => {
-                if let Some(next) = tabs.next_item(&focused.get()) {
-                    focused.set(next.get_value().to_string());
-                }
-            }
-            KeyCode::Char('d') => {
-                let focused = focused.get();
-                let (i, tab) = tabs
-                    .iter()
-                    .enumerate()
-                    .find(|(_, t)| t.get_value() == focused)
-                    .unwrap();
-                remove_tab(i, tab.get_value());
-            }
-            _ => {}
+        if tabs.len() == 1 {
+            focused.set(tabs[0].get_value().to_string());
         }
     };
 
@@ -91,26 +82,42 @@ fn app() -> impl Render {
                 tabs_block.set(Block::bordered().title("Demo"));
             })
             .on_decorator_click(remove_tab)
-            .on_key_down(on_key_down)
+            .on_key_down(
+                [
+                    map_handler("<Left>", move |_| {
+                        let tabs = tabs.get();
+                        if let Some(prev) = tabs.prev_item(&focused.get()) {
+                            focused.set(prev.get_value().to_string());
+                        }
+                    }),
+                    map_handler("<Right>", move |_| {
+                        let tabs = tabs.get();
+                        if let Some(next) = tabs.next_item(&focused.get()) {
+                            focused.set(next.get_value().to_string());
+                        }
+                    }),
+                    map_handler("a", move |_| {
+                        add_tab();
+                    }),
+                    map_handler("d", move |_| {
+                        let tabs = tabs.get();
+                        let focused = focused.get();
+                        let (i, tab) = tabs
+                            .iter()
+                            .enumerate()
+                            .find(|(_, t)| t.get_value() == focused)
+                            .unwrap();
+                        remove_tab(i, tab.get_value());
+                    })
+                ]
+                .bind()
+            )
             .render(focused, tabs),
         Button::new()
             .width(chars(5.))
             .height(chars(3.))
             .on_click(move || {
-                tabs.update(|t| {
-                    let num = next_tab.get();
-                    t.push(
-                        Tab::new(line!("Tab", span!(num)), format!("tab{num}"), move || {
-                            format!(" tab{num}")
-                        })
-                        .decorator(line!("✕".red())),
-                    );
-                    next_tab.update(|t| *t += 1);
-                });
-                let tabs = tabs.get();
-                if tabs.len() == 1 {
-                    focused.set(tabs[0].get_value().to_string());
-                }
+                add_tab();
             })
             .render(text!("+".green()))
     ]

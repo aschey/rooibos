@@ -1,4 +1,4 @@
-use rooibos::dom::{Role, root};
+use rooibos::dom::{KeyCode, Role, root};
 use rooibos::reactive::{mount, tick};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
@@ -38,27 +38,47 @@ async fn test_counters() {
         .unwrap();
     assert_snapshot!(harness.terminal());
 
-    harness.get_by_text(&root_layout, "+1").click();
+    harness.send_key(KeyCode::Tab);
+
+    let text_node = harness.get_by_text(&root_layout, "count: 0");
+
+    harness
+        .wait_for(|_, _| text_node.is_focused())
+        .await
+        .unwrap();
+
+    harness.send_key(KeyCode::Char('+'));
 
     harness
         .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
         .await
         .unwrap();
 
+    assert_snapshot!(harness.terminal());
+
     add_button.click();
 
     harness
-        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "+1").len() == 2)
+        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "count").len() == 2)
         .await
         .unwrap();
     assert_snapshot!(harness.terminal());
 
-    harness.find_all_by_text(&root_layout, "x")[1].click();
+    harness.send_key(KeyCode::Tab);
 
     harness
-        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "+1").len() == 1)
+        .wait_for(|_, _| text_node.is_focused())
         .await
         .unwrap();
+
+    harness.send_key(KeyCode::Char('d'));
+
+    harness
+        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "count").len() == 1)
+        .await
+        .unwrap();
+
+    assert_snapshot!(harness.terminal());
 
     harness.exit().await;
 }

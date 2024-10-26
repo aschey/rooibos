@@ -74,11 +74,15 @@ impl<C, P> FlexNode<C, P> {
     where
         F: FnMut(FocusEvent, EventData) + 'static,
     {
-        self.inner.0 = self.inner.0.on_focus(move |event, data| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_focus(move |event, data| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data);
+            })
+            .focusable(true);
         self
     }
 
@@ -86,11 +90,15 @@ impl<C, P> FlexNode<C, P> {
     where
         F: FnMut(BlurEvent, EventData) + 'static,
     {
-        self.inner.0 = self.inner.0.on_blur(move |event, data| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler(event, data);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_blur(move |event, data| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data);
+            })
+            .focusable(true);
         self
     }
 

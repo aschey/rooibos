@@ -1,21 +1,22 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::{KeyCode, line, span, text};
-use rooibos::reactive::graph::effect::Effect;
+use rooibos::dom::{line, span, text};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::signal;
-use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
+use rooibos::reactive::graph::traits::{Get, GetUntracked, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::layout::{chars, height};
+use rooibos::reactive::layout::{block, chars, height};
 use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, for_each, height, margin, max_width, mount, padding,
+    Render, col, for_each, height, max_width, mount, padding,
     padding_left, row, wgt, width,
 };
+use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, use_keypress};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::widgets::Paragraph;
+use rooibos::tui::symbols::border;
+use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -24,39 +25,6 @@ async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
     runtime.run().await
-}
-
-fn counter(
-    row_height: Signal<taffy::Dimension>,
-    on_remove: impl Fn() + Clone + 'static,
-) -> impl Render {
-    let (count, set_count) = signal(0);
-
-    let update_count = move |change: i32| set_count.update(|c| *c += change);
-    let increase = move || update_count(1);
-    let decrease = move || update_count(-1);
-
-    row![
-        props(height(row_height), padding_left!(1.)),
-        Button::new()
-            .width(chars(6.))
-            .on_click(decrease)
-            .render(text!("-1")),
-        Button::new()
-            .width(chars(6.))
-            .on_click(increase)
-            .render(text!("+1")),
-        Button::new()
-            .width(chars(5.))
-            .on_click(on_remove)
-            .render(text!("x".red())),
-        wgt!(
-            props(width!(10.), margin!(1.)),
-            Paragraph::new(line!("count: ".bold(), span!(count.get()).cyan()))
-        )
-        .on_click(move |_, _, _| increase())
-        .on_right_click(move |_, _, _| decrease())
-    ]
 }
 
 fn app() -> impl Render {
@@ -72,15 +40,6 @@ fn app() -> impl Render {
         set_next_id.update(|n| *n += 1);
     };
 
-    let term_signal = use_keypress();
-    Effect::new(move || {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Char('a') {
-                add_counter();
-            }
-        }
-    });
-
     col![
         props(max_width!(50.), padding!(1.)),
         row![
@@ -92,10 +51,52 @@ fn app() -> impl Render {
         for_each(
             move || ids.get(),
             |k| *k,
-            move |i| counter(chars(3.), move || remove_id(i))
+            move |i| counter(i, chars(3.), move || remove_id(i))
         )
     ]
+    .on_key_down(map_handler("a", move |_| add_counter()))
     .id("root")
+}
+
+fn counter(
+    id: i32,
+    row_height: Signal<taffy::Dimension>,
+    on_remove: impl Fn() + Clone + Send + Sync + 'static,
+) -> impl Render {
+    let (count, set_count) = signal(0);
+    let (border_block, set_block) = signal(Block::bordered().border_set(border::EMPTY));
+
+    let update_count = move |change: i32| set_count.update(|c| *c += change);
+    let increase = move || update_count(1);
+    let decrease = move || update_count(-1);
+
+    row![
+        props(height(row_height), padding_left!(1.), block(border_block)),
+        wgt!(
+            props(width!(15.)),
+            Paragraph::new(line!(
+                format!("{id}. "),
+                "count: ".bold(),
+                span!(count.get()).cyan()
+            ))
+        )
+        .on_click(move |_, _, _| increase())
+        .on_right_click(move |_, _, _| decrease())
+        .on_key_down(
+            [
+                map_handler("+", move |_| increase()),
+                map_handler("-", move |_| decrease()),
+                map_handler("d", move |_| on_remove())
+            ]
+            .bind()
+        )
+        .on_focus(move |_, _| {
+            set_block.set(Block::bordered());
+        })
+        .on_blur(move |_, _| {
+            set_block.set(Block::bordered().border_set(border::EMPTY));
+        })
+    ]
 }
 
 #[cfg(test)]

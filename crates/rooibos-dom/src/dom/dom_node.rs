@@ -268,6 +268,15 @@ impl DomNodeRepr {
             }
         });
     }
+
+    pub fn is_focused(&self) -> bool {
+        with_nodes(|nodes| {
+            let found_node = nodes
+                .iter_nodes()
+                .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
+            nodes.focused_key() == found_node
+        })
+    }
 }
 
 #[derive(Educe)]

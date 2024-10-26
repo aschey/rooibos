@@ -165,38 +165,46 @@ fn dispatch_key_event(key_event: KeyEvent) {
     {
         toggle_print_dom();
     } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
-        match key_event.kind {
-            KeyEventKind::Press | KeyEventKind::Repeat => {
-                bubble_event(
-                    key,
-                    |handlers| handlers.on_key_down.clone(),
-                    |event, rect, handle| {
-                        event.borrow_mut().handle(KeyEventProps {
-                            event: key_event,
-                            data: EventData { rect },
-                            handle,
-                        });
-                    },
-                );
-            }
-            KeyEventKind::Release => {
-                bubble_event(
-                    key,
-                    |handlers| handlers.on_key_up.clone(),
-                    |event, rect, handle| {
-                        event.borrow_mut().handle(KeyEventProps {
-                            event: key_event,
-                            data: EventData { rect },
-                            handle,
-                        });
-                    },
-                );
+        bubble_key_event(key, key_event);
+    } else {
+        // No focused node, send the event to the root nodes instead
+        let roots = with_nodes(|nodes| nodes.roots_desc());
+        for root in roots {
+            if bubble_key_event(root.get_key(), key_event) {
+                return;
             }
         }
     }
 }
 
-fn bubble_event<GE, EF, E>(key: DomNodeKey, get_event: GE, event_fn: EF)
+fn bubble_key_event(key: DomNodeKey, key_event: KeyEvent) -> bool {
+    match key_event.kind {
+        KeyEventKind::Press | KeyEventKind::Repeat => bubble_event(
+            key,
+            |handlers| handlers.on_key_down.clone(),
+            |event, rect, handle| {
+                event.borrow_mut().handle(KeyEventProps {
+                    event: key_event,
+                    data: EventData { rect },
+                    handle,
+                });
+            },
+        ),
+        KeyEventKind::Release => bubble_event(
+            key,
+            |handlers| handlers.on_key_up.clone(),
+            |event, rect, handle| {
+                event.borrow_mut().handle(KeyEventProps {
+                    event: key_event,
+                    data: EventData { rect },
+                    handle,
+                });
+            },
+        ),
+    }
+}
+
+fn bubble_event<GE, EF, E>(key: DomNodeKey, get_event: GE, event_fn: EF) -> bool
 where
     GE: Fn(&EventHandlers) -> Option<E>,
     EF: Fn(&mut E, Rect, EventHandle),
@@ -207,16 +215,20 @@ where
             get_event(&nodes[key].event_handlers),
         )
     });
+    let mut handled = false;
     if let Some(mut event) = event {
+        handled = true;
         let handle = EventHandle::default();
         event_fn(&mut event, rect, handle.clone());
         if handle.get_stop_propagation() {
-            return;
+            return handled;
         }
     }
     if let Some(parent) = with_nodes(|nodes| nodes[key].parent) {
-        bubble_event(parent, get_event, event_fn)
+        let child_handled = bubble_event(parent, get_event, event_fn);
+        handled = handled || child_handled;
     }
+    handled
 }
 
 fn hit_test(position: Position) -> Vec<DomNodeKey> {

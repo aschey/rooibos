@@ -1,7 +1,10 @@
-use rooibos::dom::{line, span};
+use rooibos::dom::{focus_id, line, span};
+use rooibos::keybind::map_handler;
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::Update;
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{height, pct};
-use rooibos::reactive::{Render, col, wgt};
+use rooibos::reactive::{NodeId, Render, after_render, col, wgt};
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
 use taffy::Dimension;
@@ -13,11 +16,20 @@ mod charts;
 mod gauges;
 
 pub(crate) fn tab0() -> impl Render {
+    let (show_chart, set_show_chart) = signal(true);
+    let id = NodeId::new_auto();
+    after_render(move || focus_id(id));
+
     col![
         gauges(true, pct(30.)),
-        charts(true, pct(50.)),
+        charts(true, pct(50.), show_chart),
         footer(pct(20.))
     ]
+    .focusable(true)
+    .id(id)
+    .on_key_down(map_handler("t", move |_| {
+        set_show_chart.update(|s| *s = !*s);
+    }))
 }
 
 fn footer(footer_height: Signal<Dimension>) -> impl Render {

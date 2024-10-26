@@ -2,7 +2,7 @@ use rooibos::dom::{Chart, Dataset, KeyCode, line, span};
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
-use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::signal::{ReadSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{height, show};
@@ -16,24 +16,16 @@ use taffy::Dimension;
 use crate::Tick;
 use crate::random::RandomData;
 
-pub(crate) fn charts(enhanced_graphics: bool, chart_min_height: Signal<Dimension>) -> impl Render {
-    let show_chart = RwSignal::new(true);
-
-    let term_signal = use_keypress();
-    Effect::new(move || {
-        if let Some(term_signal) = term_signal.get() {
-            if term_signal.code == KeyCode::Char('t') {
-                show_chart.update(|s| *s = !*s);
-            }
-        }
-    });
-
+pub(crate) fn charts(
+    enhanced_graphics: bool,
+    chart_min_height: Signal<Dimension>,
+    show_chart: ReadSignal<bool>,
+) -> impl Render {
     row![
         props(height(chart_min_height)),
         col![row![task_list(), logs()], demo_bar_chart(enhanced_graphics)],
         col![props(show(show_chart)), demo_chart(enhanced_graphics)]
     ]
-    .focusable(true)
 }
 
 #[derive(Clone)]

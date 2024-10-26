@@ -301,6 +301,23 @@ where
     }
 }
 
+pub trait Bind<T> {
+    type Target: IntoKeyHandler;
+    fn bind(self) -> Self::Target;
+}
+
+impl<K, T> Bind<T> for K
+where
+    K: Into<KeyMapper<T>>,
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+{
+    type Target = KeyInputHandler<T>;
+
+    fn bind(self) -> Self::Target {
+        KeyInputHandler::new(self)
+    }
+}
+
 impl<T> KeyInputHandler<T>
 where
     T: CommandCompleter + ApplicationAction + Send + Sync + 'static,

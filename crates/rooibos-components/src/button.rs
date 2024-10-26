@@ -191,7 +191,9 @@ impl Button {
             let on_enter = on_enter.clone();
             spawn_local(async move {
                 while let Ok(()) = rx.recv().await {
-                    on_enter();
+                    if enabled.get() {
+                        on_enter();
+                    }
                 }
             });
         }

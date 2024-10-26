@@ -2,13 +2,12 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use rooibos::components::Image;
-use rooibos::dom::KeyCode;
-use rooibos::reactive::graph::effect::Effect;
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::RwSignal;
-use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
+use rooibos::reactive::graph::traits::{GetUntracked, Update};
 use rooibos::reactive::{Render, col, height, mount, padding, padding_top, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, use_keypress};
+use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -22,28 +21,8 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     let image_length = RwSignal::new(10.);
-
-    let keypress = use_keypress();
-
     let image_url = RwSignal::new(PathBuf::from("./examples/assets/cat.jpg"));
 
-    Effect::new(move || {
-        if let Some(key) = keypress.get() {
-            if key.code == KeyCode::Down && image_length.get_untracked() > 5. {
-                image_length.update(|l| *l -= 1.);
-            } else if key.code == KeyCode::Up && image_length.get_untracked() < 20. {
-                image_length.update(|l| *l += 1.);
-            } else if key.code == KeyCode::Char('t') {
-                image_url.update(|i| {
-                    if i.to_string_lossy() == "./examples/assets/cat.jpg" {
-                        *i = PathBuf::from("./examples/assets/cat2.jpg")
-                    } else {
-                        *i = PathBuf::from("./examples/assets/cat.jpg")
-                    }
-                });
-            }
-        }
-    });
     col![
         props(padding!(1.)),
         wgt!(
@@ -59,4 +38,28 @@ fn app() -> impl Render {
             Image::from_url(image_url).render()
         ]
     ]
+    .on_key_down(
+        [
+            map_handler("<Down>", move |_| {
+                if image_length.get_untracked() > 5. {
+                    image_length.update(|l| *l -= 1.);
+                }
+            }),
+            map_handler("<Up>", move |_| {
+                if image_length.get_untracked() < 20. {
+                    image_length.update(|l| *l += 1.);
+                }
+            }),
+            map_handler("t", move |_| {
+                image_url.update(|i| {
+                    if i.to_string_lossy() == "./examples/assets/cat.jpg" {
+                        *i = PathBuf::from("./examples/assets/cat2.jpg")
+                    } else {
+                        *i = PathBuf::from("./examples/assets/cat.jpg")
+                    }
+                });
+            }),
+        ]
+        .bind(),
+    )
 }

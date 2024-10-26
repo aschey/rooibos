@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
 use rooibos::dom::{focus_id, text};
-use rooibos::keybind::{KeyInputHandler, KeyMap};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -42,17 +42,6 @@ fn app() -> impl Render {
     let bigger_ref = ButtonRef::new();
     let smaller_ref = ButtonRef::new();
 
-    let handler = KeyInputHandler::<()>::new([
-        KeyMap::handler("+", move |_| {
-            focus_id(bigger);
-            bigger_ref.click();
-        }),
-        KeyMap::handler("-", move |_| {
-            focus_id(smaller);
-            smaller_ref.click();
-        }),
-    ]);
-
     row![
         props(padding!(1.)),
         col![
@@ -80,7 +69,19 @@ fn app() -> impl Render {
                 })
         )
     ]
-    .on_key_down(handler)
+    .on_key_down(
+        [
+            map_handler("+", move |_| {
+                focus_id(bigger);
+                bigger_ref.click();
+            }),
+            map_handler("-", move |_| {
+                focus_id(smaller);
+                smaller_ref.click();
+            }),
+        ]
+        .bind(),
+    )
 }
 
 fn button<F>(

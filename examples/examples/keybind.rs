@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::dom::{line, span};
 use rooibos::keybind::{
-    CommandBar, CommandFilter, CommandHandler, Commands, KeyInputHandler, KeyMap, extract,
+    Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyMap, extract,
     handle_command,
 };
 use rooibos::reactive::graph::signal::signal;
@@ -35,12 +35,12 @@ fn app() -> impl Render {
     let increase_count = move || set_count.update(|c| *c += 1);
     let decrease_count = move || set_count.update(|c| *c -= 1);
 
-    let key_handler = KeyInputHandler::new([
+    let key_handlers = [
         KeyMap::action("<C-Up>", AppAction::Count { val: 1 }),
         KeyMap::action("<C-Down>", AppAction::Count { val: -1 }),
         KeyMap::handler("<Up>", move |_| increase_count()),
         KeyMap::handler("<Down>", move |_| decrease_count()),
-    ]);
+    ];
 
     handle_command(extract!(val, AppAction::Count { val }), move |val| {
         set_count.update(|c| *c += val);
@@ -48,7 +48,7 @@ fn app() -> impl Render {
 
     col![
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-            .on_key_down(key_handler)
+            .on_key_down(key_handlers.bind())
             .on_click(move |_, _, _| increase_count())
             .grow(1.),
         CommandBar::<AppAction>::new().height(chars(1.)).render()

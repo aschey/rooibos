@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEventProps, line, span};
+use rooibos::dom::{line, span};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -30,15 +31,6 @@ fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
     let increase = move || update_count(1);
     let decrease = move || update_count(-1);
 
-    let key_down = move |props: KeyEventProps| {
-        if props.event.code == KeyCode::Up {
-            increase();
-        }
-        if props.event.code == KeyCode::Down {
-            decrease();
-        }
-    };
-
     wgt![
         props(height(row_height)),
         Paragraph::new(line!("count: ".bold().reset(), span!(count.get()).cyan()))
@@ -46,7 +38,17 @@ fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
     ]
     .on_focus(move |_, _| set_block.set(Block::bordered().blue()))
     .on_blur(move |_, _| set_block.set(Block::bordered().border_set(border::EMPTY)))
-    .on_key_down(key_down)
+    .on_key_down(
+        [
+            map_handler("<Up>", move |_| {
+                increase();
+            }),
+            map_handler("<Down>", move |_| {
+                decrease();
+            }),
+        ]
+        .bind(),
+    )
     .on_click(move |_, _, _| increase())
     .on_right_click(move |_, _, _| decrease())
 }

@@ -2,12 +2,13 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEventProps, line};
+use rooibos::dom::line;
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::owner::provide_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{chars, pct};
-use rooibos::reactive::{Render, mount};
+use rooibos::reactive::{Render, col, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -68,29 +69,30 @@ fn header_tabs() -> impl Render {
         Tab::new(tab_header(TAB2), TAB2.to_string(), tab2),
     ]));
 
-    let on_key_down = move |props: KeyEventProps| {
-        let tabs = tabs.get();
-        match props.event.code {
-            KeyCode::Left => {
+    col![
+        TabView::new()
+            .header_height(chars(3.))
+            .body_height(pct(100.))
+            .block(Block::bordered().title("Demo"))
+            .highlight_style(Style::new().yellow())
+            .on_title_click(move |_, tab| focused.set(tab.to_string()))
+            .render(focused, tabs)
+    ]
+    .on_key_down(
+        [
+            map_handler("<Left>", move |_| {
+                let tabs = tabs.get();
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
                     focused.set(prev.get_value().to_string());
                 }
-            }
-            KeyCode::Right => {
+            }),
+            map_handler("<Right>", move |_| {
+                let tabs = tabs.get();
                 if let Some(next) = tabs.next_item(&focused.get()) {
                     focused.set(next.get_value().to_string());
                 }
-            }
-            _ => {}
-        }
-    };
-
-    TabView::new()
-        .header_height(chars(3.))
-        .body_height(pct(100.))
-        .block(Block::bordered().title("Demo"))
-        .highlight_style(Style::new().yellow())
-        .on_key_down(on_key_down)
-        .on_title_click(move |_, tab| focused.set(tab.to_string()))
-        .render(focused, tabs)
+            }),
+        ]
+        .bind(),
+    )
 }

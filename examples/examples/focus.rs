@@ -1,13 +1,13 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, clear_focus, focus_next, focus_prev, line};
-use rooibos::reactive::graph::effect::Effect;
+use rooibos::dom::{clear_focus, focus_next, focus_prev, line};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{
     Render, col, derive_signal, height, max_width, mount, padding, row, use_focus, wgt,
 };
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, use_keypress};
+use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Paragraph};
@@ -22,24 +22,6 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    let term_signal = use_keypress();
-    Effect::new(move || {
-        if let Some(term_signal) = term_signal.get() {
-            match term_signal.code {
-                KeyCode::Up => {
-                    focus_prev();
-                }
-                KeyCode::Down => {
-                    focus_next();
-                }
-                KeyCode::Esc => {
-                    clear_focus();
-                }
-                _ => {}
-            }
-        }
-    });
-
     row![
         props(padding!(1.)),
         col![
@@ -53,6 +35,20 @@ fn app() -> impl Render {
             focus_block("item 4")
         ]
     ]
+    .on_key_down(
+        [
+            map_handler("<Up>", move |_| {
+                focus_prev();
+            }),
+            map_handler("<Down>", move |_| {
+                focus_next();
+            }),
+            map_handler("<Esc>", move |_| {
+                clear_focus();
+            }),
+        ]
+        .bind(),
+    )
 }
 
 fn focus_block(title: &'static str) -> impl Render {

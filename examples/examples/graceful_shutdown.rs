@@ -4,7 +4,7 @@ use std::time::Duration;
 use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
 use rooibos::dom::{line, span};
-use rooibos::reactive::graph::signal::{RwSignal, signal};
+use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{Render, col, mount, padding, wgt};
 use rooibos::runtime::error::RuntimeError;
@@ -23,7 +23,7 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     let (elapsed, set_elapsed) = signal(0);
-    let cancelled = RwSignal::new(false);
+    let (cancelled, set_cancelled) = signal(false);
     spawn_service(
         ("timer_service", move |context: ServiceContext| async move {
             let start = wasm_compat::now();
@@ -34,7 +34,7 @@ fn app() -> impl Render {
             {
                 set_elapsed.set(((wasm_compat::now() - start) / 1000.0) as u32);
             }
-            cancelled.set(true);
+            set_cancelled.set(true);
             wasm_compat::sleep(Duration::from_millis(500)).await;
 
             Ok(())
