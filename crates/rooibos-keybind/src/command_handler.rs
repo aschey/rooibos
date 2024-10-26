@@ -151,26 +151,17 @@ where
     }
 }
 
+type CommandHandlerActionFn<T> = dyn Fn(CommandHandlerAction<T>, &EditContext) -> Vec<(Action<AppInfo<T>>, EditContext)>
+    + Send
+    + Sync;
+
 #[derive(Clone)]
 pub struct CommandBarContext<T>
 where
     T: ApplicationAction + CommandCompleter,
 {
     store: StoredValue<Store<AppInfo<T>>>,
-    action_handlers: Arc<
-        RwLock<
-            Vec<
-                Box<
-                    dyn Fn(
-                            CommandHandlerAction<T>,
-                            &EditContext,
-                        ) -> Vec<(Action<AppInfo<T>>, EditContext)>
-                        + Send
-                        + Sync,
-                >,
-            >,
-        >,
-    >,
+    action_handlers: Arc<RwLock<Vec<Box<CommandHandlerActionFn<T>>>>>,
     pub(crate) command_handlers: Arc<Mutex<HashMap<usize, CommandHandlerFn<T>>>>,
 }
 
@@ -544,9 +535,11 @@ fn char_index_to_offset(s: &str, char_index: usize) -> usize {
     s[..s.char_indices().map(|(i, _)| i).nth(char_index).unwrap()].width_cjk()
 }
 
+type HandlerFn<T> = dyn FnMut(&T) + Send + Sync;
+
 #[derive(Clone)]
 pub struct CommandHandlerFn<T> {
-    pub(crate) handler: Arc<Mutex<Box<dyn FnMut(&T) + Send + Sync>>>,
+    pub(crate) handler: Arc<Mutex<Box<HandlerFn<T>>>>,
 }
 
 static HANDLER_ID: UsizeCell = UsizeCell::new(0);

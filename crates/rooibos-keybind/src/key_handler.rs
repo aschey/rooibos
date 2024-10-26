@@ -24,12 +24,14 @@ use crate::{
     use_command_context,
 };
 
+type AppInfoManager<T> = KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>;
+
 #[derive(Clone)]
 struct KeyMapHolder<T>
 where
     T: CommandCompleter + ApplicationAction + Send + Sync,
 {
-    bindings: Arc<Mutex<KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>>>,
+    bindings: Arc<Mutex<AppInfoManager<T>>>,
     mappings: HashMap<String, Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>>,
 }
 
