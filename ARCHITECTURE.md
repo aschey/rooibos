@@ -82,6 +82,8 @@ An example of running an application without the runtime layer is shown
   Rooibos with different terminal backends
 - [**`rooibos-components`**](./crates/rooibos-components) - High-level reactive
   UI components
+- [**`rooibos-keybind`**](./crates/rooibos-keybind) - Keybinding and command bar
+  utilities
 - [**`rooibos-runtime`**](./crates/rooibos-runtime) - Application runtime for
   managing the event loop
 - [**`rooibos-tester`**](./crates/rooibos-tester) - Harness for testing

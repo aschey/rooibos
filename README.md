@@ -34,7 +34,8 @@ The example above can be written using the following code:
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span, KeyCode, KeyEvent};
+use rooibos::dom::{line, span};
+use rooibos::keybind::map_handler;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{mount, wgt, Render};
@@ -56,15 +57,10 @@ fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
     let update_count = move || set_count.update(|c| *c += 1);
-
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            update_count();
-        }
-    };
+    let key_handler = map_handler("<Enter>", move |_| update_count());
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-        .on_key_down(key_down)
+        .on_key_down(key_handler)
         .on_click(move |_, _, _| update_count())
 }
 ```
@@ -95,6 +91,7 @@ anytime they are updated.
 use std::process::ExitCode;
 
 use rooibos::dom::{line, span, KeyCode, KeyEvent};
+use rooibos::keybind::map_handler;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, derive_signal, mount, wgt, Render};
@@ -116,20 +113,14 @@ fn app() -> impl Render {
     let (count, set_count) = signal(0);
     // Will automatically update anytime `count` is updated.
     let doubled_count = derive_signal!(count.get() * 2);
-
     let update_count = move || set_count.update(|c| *c += 1);
+    let key_handler = map_handler("<Enter>", move |_| update_count());
 
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            // Signals implement `Copy` and can be moved into closures without cloning.
-            update_count();
-        }
-    };
     col![
         // Reading a signal inside a widget will cause the widget to re-render
         // when the signal updates.
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-            .on_key_down(key_down)
+            .on_key_down(key_handler)
             .on_click(move |_, _, _| update_count()),
         wgt!(format!("doubled count: {}", doubled_count.get()))
     ]
@@ -203,7 +194,7 @@ any thread or async task.
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span, KeyCode, KeyEvent};
+use rooibos::dom::{line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{mount, wgt, Render};
@@ -246,7 +237,8 @@ We provide a first-party package for testing your apps and components at a high
 level. The API is inspired by [Testing Library](https://testing-library.com/).
 
 ```rust
-use rooibos::dom::{span, KeyCode, KeyEvent};
+use rooibos::dom::{span, KeyCode};
+use rooibos::keybind::map_handler;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{mount, wgt, Render};
@@ -261,17 +253,13 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_down = move |key_event: KeyEvent, _, _| {
-        if key_event.code == KeyCode::Enter {
-            update_count();
-        }
-    };
+    let key_handler = map_handler("<Enter>", move |_| update_count());
 
     wgt!(rooibos::dom::line!(
         "count: ".bold(),
         span!(count.get()).cyan()
     ))
-    .on_key_down(key_down)
+    .on_key_down(key_handler)
     .on_click(move |_, _, _| update_count())
 }
 
