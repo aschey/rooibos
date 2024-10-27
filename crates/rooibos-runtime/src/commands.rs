@@ -130,16 +130,16 @@ where
     ))))
 }
 
-pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
-    with_state(|s| s.context.spawn(service))
-}
-
 #[cfg(feature = "clipboard")]
 pub fn set_clipboard<T: Display>(
     title: T,
     kind: rooibos_terminal::ClipboardKind,
 ) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
     send_command(TerminalCommand::SetClipboard(title.to_string(), kind))
+}
+
+pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
+    with_state(|s| s.context.spawn(service))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
