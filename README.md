@@ -15,7 +15,7 @@
 > This project is currently in a pre-alpha state and should not be used for
 > anything beyond experimentation yet. There's a high level todo list for the
 > initial release
-> [here](https://github.com/aschey/rooibos/issues?q=is%3Aissue+is%3Aopen+label%3AMVP).
+> [here](https://github.com/aschey/rooibos/issues?q=is%3Aissue+is%3Aopen+label%3Aalpha).
 
 ## Intro
 
