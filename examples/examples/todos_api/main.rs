@@ -1,4 +1,6 @@
-use rooibos::keybind::{CommandFilter, extract, handle_command, use_command_context};
+use rooibos::keybind::{
+    Bind, CommandFilter, KeybindContext, extract, handle_command, map_handler, use_command_context,
+};
 mod client;
 mod server;
 
@@ -77,14 +79,16 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     let editing_id = RwSignal::new(None);
 
-    handle_command(extract!(id, Command::Edit { id }), move |id| {
-        editing_id.set(Some(id));
-    });
-
     let add_todo = Action::new(move |text: &String| add_todo(text.clone()));
     let update_todo = Action::new(move |(id, text): &(u32, String)| update_todo(*id, text.clone()));
     let delete_todo = Action::new(move |id: &u32| delete_todo(*id));
 
+    handle_command(extract!(val, Command::Add { val }), move |val| {
+        add_todo.dispatch(val);
+    });
+    handle_command(extract!(id, Command::Edit { id }), move |id| {
+        editing_id.set(Some(id));
+    });
     handle_command(extract!(id, Command::Delete { id }), move |id| {
         delete_todo.dispatch(id);
     });
@@ -95,6 +99,8 @@ fn app(notification_timeout: Duration) -> impl Render {
         delete_todo,
     });
 
+    let command_context = use_command_context();
+    let input_id = NodeId::new_auto();
     let todos_max_width = chars(200.);
 
     col![
@@ -105,7 +111,7 @@ fn app(notification_timeout: Duration) -> impl Render {
                 props(width!(12.), margin_top!(1.), margin_left!(1.)),
                 "Add a Todo"
             ),
-            add_todo_input()
+            add_todo_input(input_id)
         ],
         row![
             props(height!(100.%), block(Block::bordered().title("Todos"))),
@@ -117,16 +123,27 @@ fn app(notification_timeout: Duration) -> impl Render {
             .max_layout_width(todos_max_width)
             .render()
     ]
+    .on_key_down(
+        [
+            map_handler("a", move |_, _| {
+                focus_id(input_id);
+            }),
+            map_handler("{dec+}e", move |_, context: KeybindContext| {
+                let id = context.keys[0].get_numeric();
+                command_context.dispatch(Command::Edit { id });
+            }),
+            map_handler("{dec+}d", move |_, context: KeybindContext| {
+                let id = context.keys[0].get_numeric();
+                command_context.dispatch(Command::Delete { id });
+            }),
+        ]
+        .bind(),
+    )
 }
 
-fn add_todo_input() -> impl Render {
-    let TodoContext { add_todo, .. } = use_context::<TodoContext>().unwrap();
+fn add_todo_input(id: NodeId) -> impl Render {
     let command_context = use_command_context::<Command>();
     let input_ref = Input::get_ref();
-
-    handle_command(extract!(val, Command::Add { val }), move |val| {
-        add_todo.dispatch(val);
-    });
 
     row![
         props(grow(1.), padding_left!(1.)),
@@ -150,6 +167,7 @@ fn add_todo_input() -> impl Render {
             .height(chars(3.))
             .min_width(chars(12.))
             .max_width(chars(100.))
+            .id(id)
             .render(input_ref),
         Button::new()
             .width(chars(10.))

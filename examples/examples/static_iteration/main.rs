@@ -40,10 +40,10 @@ fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
     .on_blur(move |_, _| set_block.set(Block::bordered().border_set(border::EMPTY)))
     .on_key_down(
         [
-            map_handler("<Up>", move |_| {
+            map_handler("<Up>", move |_, _| {
                 increase();
             }),
-            map_handler("<Down>", move |_| {
+            map_handler("<Down>", move |_, _| {
                 decrease();
             }),
         ]

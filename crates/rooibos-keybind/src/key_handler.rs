@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use modalkit::actions::{Action, MacroAction};
 use modalkit::editing::application::ApplicationAction;
+use modalkit::editing::context::MatchedKey;
 use modalkit::editing::key::KeyManager;
 use modalkit::env::CommonKeyClass;
 use modalkit::env::vim::VimMode;
@@ -32,7 +33,7 @@ where
     T: CommandCompleter + ApplicationAction + Send + Sync,
 {
     bindings: Arc<Mutex<AppInfoManager<T>>>,
-    mappings: HashMap<String, Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>>,
+    mappings: HashMap<String, Arc<Mutex<Box<dyn KeybindHandler + Send + Sync>>>>,
 }
 
 impl<T> PartialEq for KeyMapHolder<T>
@@ -178,10 +179,10 @@ where
     pub fn map_handler<S, H>(&mut self, key: S, handler: H)
     where
         S: Into<MaybeSignal<String>>,
-        H: KeyHandler + Send + Sync + 'static,
+        H: KeybindHandler + Send + Sync + 'static,
     {
         let handler = Arc::new(Mutex::new(
-            Box::new(handler) as Box<dyn KeyHandler + Send + Sync>
+            Box::new(handler) as Box<dyn KeybindHandler + Send + Sync>
         ));
         let key = key.into();
         let key = derive_signal!(parse(&key.get()));
@@ -192,7 +193,7 @@ where
     fn map_handler_inner(
         &mut self,
         key: Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
-        handler: Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
+        handler: Arc<Mutex<Box<dyn KeybindHandler + Send + Sync>>>,
     ) {
         let set_key_maps = self.set_key_maps;
         let mut handler = Some(handler);
@@ -224,11 +225,35 @@ where
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct KeybindContext {
+    pub keys: Vec<MatchedKey>,
+}
+
+pub trait KeybindHandler {
+    fn handle(&mut self, props: KeyEventProps, context: KeybindContext);
+}
+
+impl<F> KeybindHandler for F
+where
+    F: Fn(KeyEventProps, KeybindContext),
+{
+    fn handle(&mut self, props: KeyEventProps, context: KeybindContext) {
+        self(props, context)
+    }
+}
+
+impl KeybindHandler for Box<dyn KeybindHandler> {
+    fn handle(&mut self, props: KeyEventProps, context: KeybindContext) {
+        (**self).handle(props, context)
+    }
+}
+
 pub enum KeyMap<T> {
     Action(Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>, T),
     Handler(
         Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
-        Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
+        Arc<Mutex<Box<dyn KeybindHandler + Send + Sync>>>,
     ),
 }
 
@@ -252,7 +277,7 @@ where
     pub fn handler<S, H>(key: S, handler: H) -> KeyMap<T>
     where
         S: Into<MaybeSignal<String>>,
-        H: KeyHandler + Send + Sync + 'static,
+        H: KeybindHandler + Send + Sync + 'static,
     {
         let key = key.into();
         let key = derive_signal!(parse(&key.get()));
@@ -273,14 +298,14 @@ enum InternalKeyMap<T> {
     Action(Vec<EdgePathPart<TerminalKey, CommonKeyClass>>, T),
     Handler(
         Vec<EdgePathPart<TerminalKey, CommonKeyClass>>,
-        Arc<Mutex<Box<dyn KeyHandler + Send + Sync>>>,
+        Arc<Mutex<Box<dyn KeybindHandler + Send + Sync>>>,
     ),
 }
 
 pub fn map_handler<S, H>(key: S, handler: H) -> KeyMap<()>
 where
     S: Into<MaybeSignal<String>>,
-    H: KeyHandler + Send + Sync + 'static,
+    H: KeybindHandler + Send + Sync + 'static,
 {
     KeyMap::handler(key, handler)
 }
@@ -351,7 +376,7 @@ where
         while let Some((action, context)) = manager.pop() {
             match action {
                 Action::Application(app_action) => {
-                    let mut handlers = self.command_context.command_handlers.lock_mut();
+                    let mut handlers = self.command_context.command_handlers.write_value();
                     for handler in handlers.values_mut() {
                         handler.handler.lock_mut()(&app_action);
                     }
@@ -359,7 +384,10 @@ where
                 Action::Macro(macro_action) => {
                     if let MacroAction::Run(name, _) = &macro_action {
                         if let Some(handler) = mappings.get_mut(name) {
-                            handler.lock_mut().handle(props.clone());
+                            let keys = context.get_matched_keys().to_vec();
+                            handler
+                                .lock_mut()
+                                .handle(props.clone(), KeybindContext { keys });
                             continue;
                         }
                     }

@@ -272,8 +272,14 @@ impl Input {
             });
         });
 
-        let key_down = move |props: KeyEventProps| {
-            if props.event.code == KeyCode::Enter && props.event.modifiers.is_empty() {
+        let key_down = move |mut props: KeyEventProps| {
+            let has_modifiers = !props.event.modifiers.is_empty();
+            if !has_modifiers {
+                // If the input widget is focused and there's no modifiers, we should consume the
+                // input to prevent it from triggering any keybindings on a parent
+                props.handle.stop_propagation();
+            }
+            if props.event.code == KeyCode::Enter && !has_modifiers {
                 let line = text_area.with(|t| t.lines()[0].clone());
                 submit_tx.send(line).unwrap();
                 return;

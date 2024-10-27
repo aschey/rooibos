@@ -27,7 +27,7 @@ pub(crate) fn tab0() -> impl Render {
     ]
     .focusable(true)
     .id(id)
-    .on_key_down(map_handler("t", move |_| {
+    .on_key_down(map_handler("t", move |_, _| {
         set_show_chart.update(|s| *s = !*s);
     }))
 }

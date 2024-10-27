@@ -84,22 +84,22 @@ fn app() -> impl Render {
             .on_decorator_click(remove_tab)
             .on_key_down(
                 [
-                    map_handler("<Left>", move |_| {
+                    map_handler("<Left>", move |_, _| {
                         let tabs = tabs.get();
                         if let Some(prev) = tabs.prev_item(&focused.get()) {
                             focused.set(prev.get_value().to_string());
                         }
                     }),
-                    map_handler("<Right>", move |_| {
+                    map_handler("<Right>", move |_, _| {
                         let tabs = tabs.get();
                         if let Some(next) = tabs.next_item(&focused.get()) {
                             focused.set(next.get_value().to_string());
                         }
                     }),
-                    map_handler("a", move |_| {
+                    map_handler("a", move |_, _| {
                         add_tab();
                     }),
-                    map_handler("d", move |_| {
+                    map_handler("d", move |_, _| {
                         let tabs = tabs.get();
                         let focused = focused.get();
                         let (i, tab) = tabs

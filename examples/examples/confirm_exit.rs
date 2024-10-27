@@ -89,10 +89,10 @@ fn popup(
         .id(popup_id)
         .on_key_down(
             [
-                map_handler("y", move |_| {
+                map_handler("y", move |_, _| {
                     on_confirm();
                 }),
-                map_handler("{any}", move |_| {
+                map_handler("{any}", move |_, _| {
                     on_cancel();
                 })
             ]

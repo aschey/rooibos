@@ -28,7 +28,7 @@ where
     F: FnMut(KeyEventProps),
 {
     fn handle(&mut self, props: KeyEventProps) {
-        (self)(props)
+        self(props)
     }
 }
 

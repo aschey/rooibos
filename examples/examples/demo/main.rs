@@ -80,13 +80,13 @@ fn header_tabs() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("<Left>", move |_| {
+            map_handler("<Left>", move |_, _| {
                 let tabs = tabs.get();
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
                     focused.set(prev.get_value().to_string());
                 }
             }),
-            map_handler("<Right>", move |_| {
+            map_handler("<Right>", move |_, _| {
                 let tabs = tabs.get();
                 if let Some(next) = tabs.next_item(&focused.get()) {
                     focused.set(next.get_value().to_string());

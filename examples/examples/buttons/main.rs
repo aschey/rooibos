@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
 use rooibos::dom::{focus_id, text};
-use rooibos::keybind::{Bind, map_handler};
+use rooibos::keybind::{Bind, KeybindContext, map_handler};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -35,6 +35,7 @@ fn app() -> impl Render {
     let adjust_size = move |adjustment: f32| {
         set_block_height.update(|b| {
             *b += adjustment;
+            *b = b.clamp(MIN_SIZE, MAX_SIZE);
         });
     };
     let bigger = "bigger";
@@ -71,13 +72,21 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("+", move |_| {
+            map_handler("+", move |_, _| {
                 focus_id(bigger);
                 bigger_ref.click();
             }),
-            map_handler("-", move |_| {
+            map_handler("-", move |_, _| {
                 focus_id(smaller);
                 smaller_ref.click();
+            }),
+            map_handler("{dec}+", move |_, context: KeybindContext| {
+                focus_id(bigger);
+                adjust_size(context.keys[0].get_numeric() as f32);
+            }),
+            map_handler("{dec+}-", move |_, context: KeybindContext| {
+                focus_id(smaller);
+                adjust_size(-1.0 * context.keys[0].get_numeric() as f32);
             }),
         ]
         .bind(),

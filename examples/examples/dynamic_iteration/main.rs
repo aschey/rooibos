@@ -8,8 +8,7 @@ use rooibos::reactive::graph::traits::{Get, GetUntracked, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::layout::{block, chars, height};
 use rooibos::reactive::{
-    Render, col, for_each, height, max_width, mount, padding,
-    padding_left, row, wgt, width,
+    Render, col, for_each, height, max_width, mount, padding, padding_left, row, wgt, width,
 };
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -54,7 +53,7 @@ fn app() -> impl Render {
             move |i| counter(i, chars(3.), move || remove_id(i))
         )
     ]
-    .on_key_down(map_handler("a", move |_| add_counter()))
+    .on_key_down(map_handler("a", move |_, _| add_counter()))
     .id("root")
 }
 
@@ -84,9 +83,9 @@ fn counter(
         .on_right_click(move |_, _, _| decrease())
         .on_key_down(
             [
-                map_handler("+", move |_| increase()),
-                map_handler("-", move |_| decrease()),
-                map_handler("d", move |_| on_remove())
+                map_handler("+", move |_, _| increase()),
+                map_handler("-", move |_, _| decrease()),
+                map_handler("d", move |_, _| on_remove())
             ]
             .bind()
         )

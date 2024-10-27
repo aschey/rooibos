@@ -6,8 +6,8 @@ use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked, Update};
 use rooibos::reactive::{Render, col, height, mount, padding, padding_top, wgt, width};
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -40,17 +40,17 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("<Down>", move |_| {
+            map_handler("<Down>", move |_, _| {
                 if image_length.get_untracked() > 5. {
                     image_length.update(|l| *l -= 1.);
                 }
             }),
-            map_handler("<Up>", move |_| {
+            map_handler("<Up>", move |_, _| {
                 if image_length.get_untracked() < 20. {
                     image_length.update(|l| *l += 1.);
                 }
             }),
-            map_handler("t", move |_| {
+            map_handler("t", move |_, _| {
                 image_url.update(|i| {
                     if i.to_string_lossy() == "./examples/assets/cat.jpg" {
                         *i = PathBuf::from("./examples/assets/cat2.jpg")

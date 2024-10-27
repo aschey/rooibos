@@ -37,13 +37,13 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("<Up>", move |_| {
+            map_handler("<Up>", move |_, _| {
                 focus_prev();
             }),
-            map_handler("<Down>", move |_| {
+            map_handler("<Down>", move |_, _| {
                 focus_next();
             }),
-            map_handler("<Esc>", move |_| {
+            map_handler("<Esc>", move |_, _| {
                 clear_focus();
             }),
         ]

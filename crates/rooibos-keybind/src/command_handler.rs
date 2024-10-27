@@ -4,6 +4,7 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use clap::Parser;
+use educe::Educe;
 use modalkit::actions::{
     Action, CommandAction, CommandBarAction, Commandable, EditAction, EditorAction, PromptAction,
 };
@@ -29,12 +30,12 @@ use modalkit::prelude::{
     MoveDir1D, MoveType, RepeatType, Specifier,
 };
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, use_context};
-use rooibos_reactive::graph::traits::WriteValue;
+use rooibos_reactive::graph::traits::{ReadValue, WriteValue};
 use rooibos_runtime::InputMode;
 use terminput::Event;
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
-use wasm_compat::sync::{Mutex, RwLock};
+use wasm_compat::sync::Mutex;
 
 #[cfg(feature = "runtime")]
 pub trait CommandFilter<T>
@@ -155,19 +156,20 @@ type CommandHandlerActionFn<T> = dyn Fn(CommandHandlerAction<T>, &EditContext) -
     + Send
     + Sync;
 
-#[derive(Clone)]
+#[derive(Educe)]
+#[educe(Clone, Copy)]
 pub struct CommandBarContext<T>
 where
     T: ApplicationAction + CommandCompleter,
 {
     store: StoredValue<Store<AppInfo<T>>>,
-    action_handlers: Arc<RwLock<Vec<Box<CommandHandlerActionFn<T>>>>>,
-    pub(crate) command_handlers: Arc<Mutex<HashMap<usize, CommandHandlerFn<T>>>>,
+    action_handlers: StoredValue<Vec<Box<CommandHandlerActionFn<T>>>>,
+    pub(crate) command_handlers: StoredValue<HashMap<usize, CommandHandlerFn<T>>>,
 }
 
 impl<T> CommandBarContext<T>
 where
-    T: ApplicationAction + CommandCompleter,
+    T: ApplicationAction + CommandCompleter + 'static,
 {
     pub fn on_command_bar_action<F>(&self, f: F)
     where
@@ -176,7 +178,7 @@ where
             + Sync
             + 'static,
     {
-        let mut handlers = self.action_handlers.write();
+        let mut handlers = self.action_handlers.write_value();
         handlers.push(Box::new(f))
     }
 
@@ -185,7 +187,7 @@ where
     }
 
     pub fn dispatch(&self, command: T) {
-        let mut handlers = self.command_handlers.lock_mut();
+        let mut handlers = self.command_handlers.write_value();
         for handler in handlers.values_mut() {
             handler.handler.lock_mut()(&command);
         }
@@ -206,8 +208,8 @@ where
     if use_context::<CommandBarContext<T>>().is_none() {
         provide_context(CommandBarContext {
             store: StoredValue::new(Store::<AppInfo<T>>::new(AppStore {})),
-            action_handlers: Arc::new(RwLock::new(Vec::new())),
-            command_handlers: Arc::new(Mutex::new(HashMap::new())),
+            action_handlers: StoredValue::new(Vec::new()),
+            command_handlers: StoredValue::new(HashMap::new()),
         });
     }
 }
@@ -390,7 +392,7 @@ where
 
             match action {
                 Action::CommandBar(command_bar_action) => {
-                    let handlers = self.context.action_handlers.read();
+                    let handlers = self.context.action_handlers.read_value();
                     for handler in handlers.iter() {
                         let actions = (handler)(
                             CommandHandlerAction::CommandBar(command_bar_action.clone()),
@@ -412,7 +414,7 @@ where
                     new_actions.push(actions);
                 }
                 Action::Editor(editor_action) if self.command_focused => {
-                    let handlers = self.context.action_handlers.read();
+                    let handlers = self.context.action_handlers.read_value();
                     for handler in handlers.iter() {
                         let actions = (handler)(
                             CommandHandlerAction::Editor(editor_action.clone()),
@@ -423,7 +425,7 @@ where
                     handled = true;
                 }
                 Action::Prompt(prompt_action) if self.command_focused => {
-                    let handlers = self.context.action_handlers.read();
+                    let handlers = self.context.action_handlers.read_value();
                     for handler in handlers.iter() {
                         let actions = (handler)(
                             CommandHandlerAction::Prompt(prompt_action.clone()),
@@ -434,7 +436,7 @@ where
                     handled = true;
                 }
                 Action::Application(app_action) => {
-                    let mut handlers = self.context.command_handlers.lock_mut();
+                    let mut handlers = self.context.command_handlers.write_value();
                     for handler in handlers.values_mut() {
                         handler.handler.lock_mut()(&app_action);
                     }
@@ -559,10 +561,13 @@ where
     };
     let context = use_command_context::<T>();
     let id = HANDLER_ID.add(1);
-    context.command_handlers.lock_mut().insert(id, handler_fn);
+    context
+        .command_handlers
+        .write_value()
+        .insert(id, handler_fn);
 
     on_cleanup(move || {
-        context.command_handlers.lock_mut().remove(&id);
+        context.command_handlers.write_value().remove(&id);
     });
 }
 

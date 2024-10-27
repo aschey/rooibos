@@ -23,7 +23,7 @@ fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
     let update_count = move || set_count.update(|c| *c += 1);
-    let key_handler = map_handler("<Enter>", move |_| update_count());
+    let key_handler = map_handler("<Enter>", move |_, _| update_count());
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_handler)
