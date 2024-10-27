@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEventProps, line, text};
+use rooibos::dom::{line, text};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::layout::chars;
@@ -56,23 +57,7 @@ fn tabs() -> impl Render {
         Tab::new(line!("Tab3"), Tabs::TAB3, move || "tab3"),
     ]);
 
-    let on_key_down = {
-        let tabs = tabs.clone();
-        move |props: KeyEventProps| match props.event.code {
-            KeyCode::Left => {
-                if let Some(prev) = tabs.prev_item(&current_route.get()) {
-                    router.push(Tabs::new(prev.get_value()));
-                }
-            }
-            KeyCode::Right => {
-                if let Some(next) = tabs.next_item(&current_route.get()) {
-                    router.push(Tabs::new(next.get_value()));
-                }
-            }
-            _ => {}
-        }
-    };
-
+   
     row![
         TabView::new()
             .header_height(chars(3.))
@@ -83,7 +68,27 @@ fn tabs() -> impl Render {
                 count.update(|c| *c += 1);
                 router.push(Tabs::new(tab));
             })
-            .on_key_down(on_key_down)
+            .on_key_down(
+                [
+                    map_handler("<Left>", {
+                        let tabs = tabs.clone();
+                        move |_, _| {
+                            if let Some(prev) = tabs.prev_item(&current_route.get()) {
+                                router.push(Tabs::new(prev.get_value()));
+                            }
+                        }
+                    }),
+                    map_handler("<Right>", {
+                        let tabs = tabs.clone();
+                        move |_, _| {
+                            if let Some(next) = tabs.next_item(&current_route.get()) {
+                                router.push(Tabs::new(next.get_value()));
+                            }
+                        }
+                    })
+                ]
+                .bind()
+            )
             .render(current_route, tabs),
         Button::new()
             .width(chars(14.))

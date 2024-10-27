@@ -1,6 +1,7 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyCode, KeyEventProps, focus_next, line, render_terminal, span};
+use rooibos::dom::{focus_next, line, render_terminal, span};
+use rooibos::keybind::map_handler;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{Render, mount, wgt};
@@ -55,11 +56,10 @@ async fn main() -> Result {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
-    let key_down = move |props: KeyEventProps| {
-        if props.event.code == KeyCode::Enter {
+    wgt!(line!("count: ".bold(), span!(count.get()).cyan())).on_key_down(map_handler(
+        "<Enter>",
+        move |_, _| {
             set_count.update(|c| *c += 1);
-        }
-    };
-
-    wgt!(line!("count: ".bold(), span!(count.get()).cyan())).on_key_down(key_down)
+        },
+    ))
 }

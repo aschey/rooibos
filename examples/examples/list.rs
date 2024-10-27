@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::{KeyCode, KeyEventProps};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{Render, mount};
@@ -28,27 +28,27 @@ fn app() -> impl Render {
         ListItem::new("Item 3"),
     ]));
 
-    let on_key_down = move |props: KeyEventProps| {
-        let selected_idx = selected.get().unwrap();
-        match props.event.code {
-            KeyCode::Down => {
-                items.with(|i| {
-                    selected.set(i.next_index(selected_idx));
-                });
-            }
-            KeyCode::Up => {
-                items.with(|i| {
-                    selected.set(i.prev_index(selected_idx));
-                });
-            }
-            _ => {}
-        }
-    };
     ListView::new()
         .on_item_click(move |i, _| {
             selected.set(Some(i));
         })
-        .on_key_down(on_key_down)
+        .on_key_down(
+            [
+                map_handler("<Down>", move |_, _| {
+                    let selected_idx = selected.get().unwrap();
+                    items.with(|i| {
+                        selected.set(i.next_index(selected_idx));
+                    });
+                }),
+                map_handler("<Up>", move |_, _| {
+                    let selected_idx = selected.get().unwrap();
+                    items.with(|i| {
+                        selected.set(i.prev_index(selected_idx));
+                    })
+                }),
+            ]
+            .bind(),
+        )
         .highlight_style(Style::new().green())
         .render(selected, items)
 }

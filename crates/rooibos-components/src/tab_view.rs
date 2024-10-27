@@ -2,9 +2,7 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use rooibos_dom::{
-    BlurEvent, ClickEvent, EventData, FocusEvent, KeyHandler, line, span,
-};
+use rooibos_dom::{BlurEvent, ClickEvent, EventData, FocusEvent, KeyHandler, line, span};
 use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::div::taffy::Dimension;
 use rooibos_reactive::graph::traits::{Get, With};

@@ -6,8 +6,8 @@ use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{
     Render, col, derive_signal, height, max_width, mount, padding, row, use_focus, wgt,
 };
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::{Block, Paragraph};

@@ -2,6 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::dom::{KeyCode, KeyEventProps, line};
+use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::layout::{block, chars};
@@ -31,23 +32,6 @@ fn app() -> impl Render {
         Tab::new(line!("Tab3"), "tab3", move || "tab3"),
     ]));
 
-    let on_key_down = move |props: KeyEventProps| {
-        let tabs = tabs.get();
-        match props.event.code {
-            KeyCode::Left => {
-                if let Some(prev) = tabs.prev_item(&focused.get()) {
-                    focused.set(prev.get_value().to_string());
-                }
-            }
-            KeyCode::Right => {
-                if let Some(next) = tabs.next_item(&focused.get()) {
-                    focused.set(next.get_value().to_string());
-                }
-            }
-            _ => {}
-        }
-    };
-
     col![
         props(max_width!(50.), max_height!(20.), block(Block::bordered())),
         TabView::new()
@@ -64,7 +48,23 @@ fn app() -> impl Render {
             .on_blur(move |_, _| {
                 tab_block.set(Block::bordered().title("Demo"));
             })
-            .on_key_down(on_key_down)
+            .on_key_down(
+                [
+                    map_handler("<Left>", move |_, _| {
+                        let tabs = tabs.get();
+                        if let Some(prev) = tabs.prev_item(&focused.get()) {
+                            focused.set(prev.get_value().to_string());
+                        }
+                    }),
+                    map_handler("<Right>", move |_, _| {
+                        let tabs = tabs.get();
+                        if let Some(next) = tabs.next_item(&focused.get()) {
+                            focused.set(next.get_value().to_string());
+                        }
+                    })
+                ]
+                .bind()
+            )
             .render(focused, tabs),
     ]
 }

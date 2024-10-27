@@ -10,7 +10,7 @@ use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
-use tokio::sync::watch;
+use tokio::sync::{mpsc, watch};
 use tokio_stream::wrappers::WatchStream;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -40,7 +40,7 @@ impl SshHandler for SshApp {
         &self,
         _client_id: u32,
         handle: ArcHandle,
-        event_rx: tokio::sync::mpsc::Receiver<rooibos::dom::Event>,
+        event_rx: mpsc::Receiver<rooibos::dom::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();

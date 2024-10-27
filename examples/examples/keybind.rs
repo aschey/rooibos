@@ -34,20 +34,21 @@ fn app() -> impl Render {
     let increase_count = move || set_count.update(|c| *c += 1);
     let decrease_count = move || set_count.update(|c| *c -= 1);
 
-    let key_handlers = [
-        KeyMap::action("<C-Up>", AppAction::Count { val: 1 }),
-        KeyMap::action("<C-Down>", AppAction::Count { val: -1 }),
-        KeyMap::handler("<Up>", move |_, _| increase_count()),
-        KeyMap::handler("<Down>", move |_, _| decrease_count()),
-    ];
-
     handle_command(extract!(val, AppAction::Count { val }), move |val| {
         set_count.update(|c| *c += val);
     });
 
     col![
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-            .on_key_down(key_handlers.bind())
+            .on_key_down(
+                [
+                    KeyMap::action("<C-Up>", AppAction::Count { val: 1 }),
+                    KeyMap::action("<C-Down>", AppAction::Count { val: -1 }),
+                    KeyMap::handler("<Up>", move |_, _| increase_count()),
+                    KeyMap::handler("<Down>", move |_, _| decrease_count()),
+                ]
+                .bind()
+            )
             .on_click(move |_, _, _| increase_count())
             .grow(1.),
         CommandBar::<AppAction>::new().height(chars(1.)).render()
