@@ -49,7 +49,7 @@ fn app() -> impl Render {
                 ]
                 .bind()
             )
-            .on_click(move |_, _, _| increase_count())
+            .on_click(move |_| increase_count())
             .grow(1.),
         CommandBar::<AppAction>::new().height(chars(1.)).render()
     ]

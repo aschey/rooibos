@@ -5,7 +5,7 @@ use terminput::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 
-use super::EventData;
+use super::{ClickEvent, ClickEventProps, EventData};
 use crate::{
     ClickEventFn, DomNodeKey, EventHandle, EventHandlers, KeyEventProps, MatchBehavior, NodeType,
     focus_next, focus_prev, set_pending_resize, toggle_print_dom, trigger_window_focus_changed,
@@ -297,15 +297,15 @@ where
                     if let Some(on_click) = get_event(&nodes[key].event_handlers) {
                         let handle = EventHandle::default();
                         let rect = nodes[key].rect.borrow();
-                        on_click.borrow_mut()(
-                            crate::ClickEvent {
+                        on_click.borrow_mut().handle(ClickEventProps {
+                            event: ClickEvent {
                                 column: mouse_event.column,
                                 row: mouse_event.row,
                                 modifiers: mouse_event.modifiers,
                             },
-                            EventData { rect: *rect },
-                            handle.clone(),
-                        );
+                            data: EventData { rect: *rect },
+                            handle: handle.clone(),
+                        });
                         if !stop_propagation {
                             stop_propagation = handle.get_stop_propagation();
                         }

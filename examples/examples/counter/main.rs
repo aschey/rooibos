@@ -27,7 +27,7 @@ fn app() -> impl Render {
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_handler)
-        .on_click(move |_, _, _| update_count())
+        .on_click(move |_| update_count())
 }
 
 #[cfg(test)]

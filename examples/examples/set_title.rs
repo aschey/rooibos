@@ -37,5 +37,5 @@ fn app() -> impl Render {
         .on_key_down(map_handler("<Enter>", move |_, _| {
             update_count();
         }))
-        .on_click(move |_, _, _| update_count())
+        .on_click(move |_| update_count())
 }

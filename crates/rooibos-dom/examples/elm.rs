@@ -269,11 +269,11 @@ impl Counter {
             })
             .on_click({
                 let send = send.clone();
-                move |_, _, _| send(TaskMessage::Increment)
+                move |_| send(TaskMessage::Increment)
             })
             .on_right_click({
                 let send = send.clone();
-                move |_, _, _| send(TaskMessage::Decrement)
+                move |_| send(TaskMessage::Decrement)
             })
             .id(id.clone())
             .focusable(true)

@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use futures_cancel::FutureExt;
 use rooibos::dom::{
-    Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver,
-    focus_next, line, render_terminal, set_pixel_size, set_supports_keyboard_enhancement, span,
+    Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver, focus_next, line,
+    render_terminal, set_pixel_size, set_supports_keyboard_enhancement, span,
 };
 use rooibos::keybind::map_handler;
 use rooibos::reactive::graph::signal::signal;
@@ -98,5 +98,5 @@ fn app() -> impl Render {
         .on_key_down(map_handler("<Enter>", move |_, _| {
             update_count();
         }))
-        .on_click(move |_, _, _| update_count())
+        .on_click(move |_| update_count())
 }

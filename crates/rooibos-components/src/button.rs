@@ -239,7 +239,7 @@ impl Button {
         .on_mouse_leave(move |_, _| border_type.set(BorderType::Rounded))
         .on_click({
             let on_enter = on_enter.clone();
-            move |_, _, _| on_enter()
+            move |_| on_enter()
         })
         .on_focus(move |_, _| focused.set(true))
         .on_blur(move |_, _| focused.set(false))

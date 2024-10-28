@@ -2,7 +2,9 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use rooibos_dom::{BlurEvent, ClickEvent, EventData, FocusEvent, KeyHandler, line, span};
+use rooibos_dom::{
+    BlurEvent, ClickEvent, ClickEventProps, EventData, FocusEvent, KeyHandler, line, span,
+};
 use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::div::taffy::Dimension;
 use rooibos_reactive::graph::traits::{Get, With};
@@ -336,9 +338,9 @@ impl TabView {
             }
         });
 
-        let on_click = move |mouse_event: ClickEvent, event_data: EventData, _| {
-            let start_col = event_data.rect.x;
-            let col_offset = mouse_event.column - start_col;
+        let on_click = move |props: ClickEventProps| {
+            let start_col = props.data.rect.x;
+            let col_offset = props.event.column - start_col;
 
             let divider_width = divider_width.get() as u16;
             let mut total_len = 1u16;

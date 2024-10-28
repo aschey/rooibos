@@ -41,7 +41,7 @@ pub struct FocusEvent {
     pub previous_target: Option<NodeId>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ClickEvent {
     pub column: u16,
     pub row: u16,
@@ -51,6 +51,13 @@ pub struct ClickEvent {
 #[derive(Clone, Debug)]
 pub struct KeyEventProps {
     pub event: KeyEvent,
+    pub data: EventData,
+    pub handle: EventHandle,
+}
+
+#[derive(Clone, Debug)]
+pub struct ClickEventProps {
+    pub event: ClickEvent,
     pub data: EventData,
     pub handle: EventHandle,
 }

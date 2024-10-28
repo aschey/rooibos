@@ -4,8 +4,8 @@ use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    AsDomNode, BlurEvent, ClickEvent, EventData, EventHandle, FocusEvent, IntoKeyHandler,
-    KeyHandler, NodeId,
+    AsDomNode, BlurEvent, ClickEvent, ClickHandler, EventData, EventHandle, FocusEvent,
+    IntoClickHandler, IntoKeyHandler, KeyHandler, NodeId,
 };
 use tachys::prelude::*;
 
@@ -206,49 +206,52 @@ where
         self
     }
 
-    pub fn on_click<F>(mut self, mut handler: F) -> Self
+    pub fn on_click<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
+        let mut handler = handler.into_click_handler();
         self.inner.0 = self
             .inner
             .0
-            .on_click(move |event, data, handle| {
+            .on_click(move |props| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data, handle);
+                handler.handle(props);
             })
             .focusable(true);
         self
     }
 
-    pub fn on_right_click<F>(mut self, mut handler: F) -> Self
+    pub fn on_right_click<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
+        let mut handler = handler.into_click_handler();
         self.inner.0 = self
             .inner
             .0
-            .on_right_click(move |event, data, handle| {
+            .on_right_click(move |props| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data, handle);
+                handler.handle(props);
             })
             .focusable(true);
         self
     }
 
-    pub fn on_middle_click<F>(mut self, mut handler: F) -> Self
+    pub fn on_middle_click<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
+        let mut handler = handler.into_click_handler();
         self.inner.0 = self
             .inner
             .0
-            .on_middle_click(move |event, data, handle| {
+            .on_middle_click(move |props| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data, handle);
+                handler.handle(props);
             })
             .focusable(true);
         self

@@ -15,8 +15,8 @@ use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
 use crate::{
     BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers, FocusEvent,
-    IntoKeyHandler, MatchBehavior, Role, dispatch_event, next_node_id, reset_mouse_position,
-    tree_is_accessible, with_nodes, with_nodes_mut,
+    IntoClickHandler, IntoKeyHandler, MatchBehavior, Role, dispatch_event, next_node_id,
+    reset_mouse_position, tree_is_accessible, with_nodes, with_nodes_mut,
 };
 
 pub trait AsDomNode {
@@ -548,25 +548,25 @@ impl DomNode {
         self
     }
 
-    pub fn on_click<F>(self, handler: F) -> Self
+    pub fn on_click<H>(self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_click(handler));
         self
     }
 
-    pub fn on_right_click<F>(self, handler: F) -> Self
+    pub fn on_right_click<H>(self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_right_click(handler));
         self
     }
 
-    pub fn on_middle_click<F>(self, handler: F) -> Self
+    pub fn on_middle_click<H>(self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_middle_click(handler));
         self

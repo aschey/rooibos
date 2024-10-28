@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use ratatui::layout::Rect;
 
-use super::{BlurEvent, FocusEvent};
+use super::{BlurEvent, ClickEventProps, FocusEvent};
 use crate::{ClickEvent, EventData, EventHandle, KeyEventProps};
 
 pub trait IntoKeyHandler {
@@ -38,8 +38,40 @@ impl KeyHandler for Box<dyn KeyHandler> {
     }
 }
 
+pub trait IntoClickHandler {
+    fn into_click_handler(self) -> impl ClickHandler;
+}
+
+impl<T> IntoClickHandler for T
+where
+    T: ClickHandler,
+{
+    fn into_click_handler(self) -> impl ClickHandler {
+        self
+    }
+}
+
+pub trait ClickHandler {
+    fn handle(&mut self, props: ClickEventProps);
+}
+
+impl<F> ClickHandler for F
+where
+    F: FnMut(ClickEventProps),
+{
+    fn handle(&mut self, props: ClickEventProps) {
+        self(props)
+    }
+}
+
+impl ClickHandler for Box<dyn ClickHandler> {
+    fn handle(&mut self, props: ClickEventProps) {
+        (**self).handle(props)
+    }
+}
+
 pub(crate) type KeyEventFn = Rc<RefCell<dyn KeyHandler>>;
-pub(crate) type ClickEventFn = Rc<RefCell<dyn FnMut(ClickEvent, EventData, EventHandle)>>;
+pub(crate) type ClickEventFn = Rc<RefCell<dyn ClickHandler>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData, EventHandle)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData, EventHandle)>>;
@@ -102,27 +134,27 @@ impl EventHandlers {
         self
     }
 
-    pub fn on_click<F>(mut self, handler: F) -> Self
+    pub fn on_click<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
-        self.on_click = Some(Rc::new(RefCell::new(handler)));
+        self.on_click = Some(Rc::new(RefCell::new(handler.into_click_handler())));
         self
     }
 
-    pub fn on_right_click<F>(mut self, handler: F) -> Self
+    pub fn on_right_click<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
-        self.on_right_click = Some(Rc::new(RefCell::new(handler)));
+        self.on_right_click = Some(Rc::new(RefCell::new(handler.into_click_handler())));
         self
     }
 
-    pub fn on_middle_click<F>(mut self, handler: F) -> Self
+    pub fn on_middle_click<H>(mut self, handler: H) -> Self
     where
-        F: FnMut(ClickEvent, EventData, EventHandle) + 'static,
+        H: IntoClickHandler + 'static,
     {
-        self.on_middle_click = Some(Rc::new(RefCell::new(handler)));
+        self.on_middle_click = Some(Rc::new(RefCell::new(handler.into_click_handler())));
         self
     }
 

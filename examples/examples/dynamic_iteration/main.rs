@@ -79,8 +79,8 @@ fn counter(
                 span!(count.get()).cyan()
             ))
         )
-        .on_click(move |_, _, _| increase())
-        .on_right_click(move |_, _, _| decrease())
+        .on_click(move |_| increase())
+        .on_right_click(move |_| decrease())
         .on_key_down(
             [
                 map_handler("+", move |_, _| increase()),

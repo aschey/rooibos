@@ -49,8 +49,8 @@ fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
         ]
         .bind(),
     )
-    .on_click(move |_, _, _| increase())
-    .on_right_click(move |_, _, _| decrease())
+    .on_click(move |_| increase())
+    .on_right_click(move |_| decrease())
 }
 
 const NUM_COUNTERS: usize = 5;

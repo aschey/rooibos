@@ -1,6 +1,6 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
-use rooibos_dom::{BlurEvent, EventData, FocusEvent, KeyHandler};
+use rooibos_dom::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, wgt};
@@ -166,10 +166,10 @@ impl<T> ListView<T> {
                 list
             })
         }
-        .on_click(move |mouse_event, event_data, _| {
+        .on_click(move |props: ClickEventProps| {
             let clicked_item = items.with(|items| {
-                let start_row = event_data.rect.y;
-                let row_offset = mouse_event.row - start_row;
+                let start_row = props.data.rect.y;
+                let row_offset = props.event.row - start_row;
                 let mut total_height = 0u16;
                 for (i, item) in items.iter().enumerate() {
                     let item_height = item.clone().into().height() as u16;
