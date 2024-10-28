@@ -4,7 +4,7 @@ use std::rc::Rc;
 use ratatui::layout::Rect;
 
 use super::{BlurEvent, ClickEventProps, FocusEvent};
-use crate::{ClickEvent, EventData, EventHandle, KeyEventProps};
+use crate::{EventData, EventHandle, KeyEventProps};
 
 pub trait IntoKeyHandler {
     fn into_key_handler(self) -> impl KeyHandler;

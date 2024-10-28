@@ -4,7 +4,7 @@ use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
 use rooibos_dom::{
-    AsDomNode, BlurEvent, ClickEvent, ClickHandler, EventData, EventHandle, FocusEvent,
+    AsDomNode, BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent,
     IntoClickHandler, IntoKeyHandler, KeyHandler, NodeId,
 };
 use tachys::prelude::*;

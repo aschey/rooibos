@@ -3,7 +3,7 @@ use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
 use rooibos_dom::{
-    BlurEvent, ClickEvent, ClickEventProps, EventData, FocusEvent, KeyHandler, line, span,
+    BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler, line, span,
 };
 use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::div::taffy::Dimension;

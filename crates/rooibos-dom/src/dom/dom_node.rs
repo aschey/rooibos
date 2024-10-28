@@ -14,7 +14,7 @@ use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
 use crate::{
-    BlurEvent, ClickEvent, DomWidgetNode, EventData, EventHandle, EventHandlers, FocusEvent,
+    BlurEvent, DomWidgetNode, EventData, EventHandle, EventHandlers, FocusEvent,
     IntoClickHandler, IntoKeyHandler, MatchBehavior, Role, dispatch_event, next_node_id,
     reset_mouse_position, tree_is_accessible, with_nodes, with_nodes_mut,
 };
