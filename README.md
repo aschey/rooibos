@@ -61,7 +61,7 @@ fn app() -> impl Render {
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_handler)
-        .on_click(move |_, _, _| update_count())
+        .on_click(move |_| update_count())
 }
 ```
 
@@ -121,7 +121,7 @@ fn app() -> impl Render {
         // when the signal updates.
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(key_handler)
-            .on_click(move |_, _, _| update_count()),
+            .on_click(move |_| update_count()),
         wgt!(format!("doubled count: {}", doubled_count.get()))
     ]
 }
@@ -260,7 +260,7 @@ fn app() -> impl Render {
         span!(count.get()).cyan()
     ))
     .on_key_down(key_handler)
-    .on_click(move |_, _, _| update_count())
+    .on_click(move |_| update_count())
 }
 
 macro_rules! assert_snapshot {
