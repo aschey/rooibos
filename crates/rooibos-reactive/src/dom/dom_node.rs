@@ -10,7 +10,7 @@ use tachys::renderer::Renderer;
 use tachys::view::{Mountable, Render};
 
 use super::{RooibosDom, with_nodes};
-use crate::DomWidgetNode;
+use crate::dom::DomWidgetNode;
 
 #[derive(Clone, Copy)]
 pub struct NodeId(pub(crate) StoredValue<rooibos_dom::NodeId>);

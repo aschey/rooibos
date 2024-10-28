@@ -1,12 +1,13 @@
-use rooibos::dom::{Chart, Dataset, KeyCode, line, span};
+use rooibos::reactive::dom::layout::{height, show};
+use rooibos::reactive::dom::widgets::{Chart, Dataset};
+use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::layout::{height, show};
-use rooibos::reactive::{Render, col, row, wgt};
+use rooibos::reactive::{KeyCode, col, row, wgt};
 use rooibos::runtime::use_keypress;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;

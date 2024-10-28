@@ -14,9 +14,8 @@ use taffy::{
 };
 
 use super::{dom_node, refresh_dom};
-use crate::{
-    AsDomNode, BlurEvent, DomNode, EventData, EventHandlers, FocusEvent, NodeProperties, NodeType,
-};
+use crate::events::{BlurEvent, EventData, EventHandlers, FocusEvent};
+use crate::{AsDomNode, DomNode, NodeProperties, NodeType};
 
 new_key_type! { pub struct DomNodeKey; }
 

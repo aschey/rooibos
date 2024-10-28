@@ -18,6 +18,7 @@ tachys = { git = "https://github.com/aschey/leptos", rev = "068cab4d47425d9258c0
 throw_error = { git = "https://github.com/leptos-rs/leptos", rev = "7b8cd90a6ef113495d0efc5fb8676bd0694a7705" }
 next_tuple = { git = "https://github.com/leptos-rs/leptos", rev = "7b8cd90a6ef113495d0efc5fb8676bd0694a7705" }
 reactive_stores = { git = "https://github.com/leptos-rs/leptos", rev = "7b8cd90a6ef113495d0efc5fb8676bd0694a7705" }
+terminput = { git = "https://github.com/aschey/terminput", rev = "f07cb891c397c1ab092f0f1d09c085eb52c42e8d" }
 rooibos-dom = { path = "../rooibos-dom" }
 ratatui = { version = "0.28", features = ["unstable"] }
 slotmap = "1"

@@ -1,5 +1,5 @@
-use rooibos::dom::{KeyCode, root};
-use rooibos::reactive::mount;
+use rooibos::reactive::KeyCode;
+use rooibos::reactive::dom::{mount, root};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::TestHarness;
 

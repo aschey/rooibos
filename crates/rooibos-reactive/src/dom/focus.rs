@@ -5,7 +5,8 @@ use reactive_graph::traits::{Get, SetValue, Update as _};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::with_nodes_mut;
 
-use crate::{NodeId, derive_signal};
+use crate::derive_signal;
+use crate::dom::NodeId;
 
 thread_local! {
     static FOCUS_SIGNAL: LazyCell<ReadSignal<Option<NodeId>>> = LazyCell::new(|| {

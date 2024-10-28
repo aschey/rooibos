@@ -3,11 +3,11 @@ use std::io::{IsTerminal, Stderr, stdout};
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::dom::text;
 use rooibos::keybind::{Bind, map_handler};
+use rooibos::reactive::dom::{Render, mount, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{Render, col, height, mount, wgt};
+use rooibos::reactive::{col, height, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;

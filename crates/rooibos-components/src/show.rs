@@ -1,6 +1,6 @@
 use either_of::Either;
+use rooibos_reactive::dom::{IntoView, TypedChildrenMut, ViewFn};
 use rooibos_reactive::graph::traits::Get;
-use rooibos_reactive::{IntoView, TypedChildrenMut, ViewFn};
 
 pub struct Show {
     fallback: ViewFn,

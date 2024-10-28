@@ -1,16 +1,15 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::{focus_id, line, text};
-use rooibos::reactive::flex_node::FlexProperty;
+use rooibos::reactive::dom::flex_node::FlexProperty;
+use rooibos::reactive::dom::layout::{align_items, block, chars, justify_content, show};
+use rooibos::reactive::dom::{
+    NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, mount, text,
+};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get as _, Set};
-use rooibos::reactive::layout::{align_items, block, chars, justify_content, show};
-use rooibos::reactive::{
-    NodeId, Render, UpdateLayoutProps, after_render, col, height, margin_left, max_height,
-    max_width, mount, wgt, width,
-};
+use rooibos::reactive::{col, height, margin_left, max_height, max_width, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

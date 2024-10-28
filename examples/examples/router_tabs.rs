@@ -1,12 +1,12 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{line, text};
 use rooibos::keybind::{Bind, map_handler};
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, row};
+use rooibos::reactive::{col, row};
 use rooibos::router::{Route, RouteFromStatic, Router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -57,7 +57,6 @@ fn tabs() -> impl Render {
         Tab::new(line!("Tab3"), Tabs::TAB3, move || "tab3"),
     ]);
 
-   
     row![
         TabView::new()
             .header_height(chars(3.))

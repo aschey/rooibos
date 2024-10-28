@@ -12,9 +12,10 @@ use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
+use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::{
-    AsDomNode, DomNode, DomWidgetNode, KeyEventProps, NodeId, dispatch_event, focus_next, mount,
-    render_terminal, with_nodes, with_nodes_mut,
+    AsDomNode, DomNode, DomWidgetNode, NodeId, focus_next, mount, render_terminal, with_nodes,
+    with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};

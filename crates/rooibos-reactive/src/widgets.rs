@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
 
-use crate::DomWidget;
+use crate::dom::DomWidget;
 
 #[macro_export]
 macro_rules! wgt {

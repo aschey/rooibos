@@ -6,7 +6,7 @@ use reactive_graph::traits::Set;
 use tachys::reactive_graph::OwnedView;
 use tachys::view::keyed::keyed;
 
-use crate::IntoView;
+use crate::dom::IntoView;
 
 pub fn for_each<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
 where

@@ -1,11 +1,11 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::{line, span};
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, derive_signal, mount};
+use rooibos::reactive::{col, derive_signal};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
@@ -35,7 +35,7 @@ impl SshHandler for SshApp {
         &self,
         _client_id: u32,
         handle: ArcHandle,
-        event_rx: tokio::sync::mpsc::Receiver<rooibos::dom::Event>,
+        event_rx: tokio::sync::mpsc::Receiver<rooibos::reactive::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         mount(app);

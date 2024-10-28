@@ -2,14 +2,15 @@ use std::error::Error;
 use std::sync::Arc;
 
 use futures_cancel::FutureExt;
-use rooibos::dom::{
-    Event, KeyCode, KeyEvent, KeyModifiers, dispatch_event, dom_update_receiver, focus_next, line,
-    render_terminal, set_pixel_size, set_supports_keyboard_enhancement, span,
-};
 use rooibos::keybind::map_handler;
+use rooibos::reactive::dom::events::dispatch_event;
+use rooibos::reactive::dom::{
+    Render, dom_update_receiver, focus_next, line, mount, render_terminal, set_pixel_size,
+    set_supports_keyboard_enhancement, span,
+};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, mount, wgt};
+use rooibos::reactive::{Event, KeyCode, KeyEvent, KeyModifiers, wgt};
 use rooibos::terminal::Backend;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::backend::Backend as _;

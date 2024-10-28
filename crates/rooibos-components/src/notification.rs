@@ -4,13 +4,14 @@ use std::time::Duration;
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType, Paragraph};
-use rooibos_reactive::div::taffy::{self, AlignItems};
+use rooibos_reactive::dom::Render;
+use rooibos_reactive::dom::div::taffy::{self, AlignItems};
+use rooibos_reactive::dom::layout::{align_items, chars, clear, height, max_width, width, z_index};
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::layout::{align_items, chars, clear, height, max_width, width, z_index};
-use rooibos_reactive::{Render, col, derive_signal, for_each, height, wgt, width};
+use rooibos_reactive::{col, derive_signal, for_each, height, wgt, width};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 

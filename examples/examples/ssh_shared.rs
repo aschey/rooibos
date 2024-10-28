@@ -1,11 +1,11 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::{line, span};
+use rooibos::reactive::derive_signal;
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span};
 use rooibos::reactive::graph::signal::ReadSignal;
 use rooibos::reactive::graph::traits::{FromStream, Get};
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, derive_signal, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
@@ -40,7 +40,7 @@ impl SshHandler for SshApp {
         &self,
         _client_id: u32,
         handle: ArcHandle,
-        event_rx: mpsc::Receiver<rooibos::dom::Event>,
+        event_rx: mpsc::Receiver<rooibos::reactive::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();

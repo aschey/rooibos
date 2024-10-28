@@ -2,16 +2,15 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
-use rooibos_dom::{
-    BlurEvent, EventData, FocusEvent, KeyCode, KeyEvent, KeyEventProps, NodeId, WidgetState,
-    set_editing,
-};
+use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
+use rooibos_dom::{KeyCode, KeyEvent, NodeId, WidgetState, set_editing};
+use rooibos_reactive::derive_signal;
+use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, Track, Update, UpdateUntracked, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
-use rooibos_reactive::{DomWidget, LayoutProps, Render, UpdateLayoutProps, derive_signal};
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
 use wasm_compat::futures::spawn_local;

@@ -10,7 +10,7 @@ use tachys::view::any_view::AnyView;
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
 use tachys::view::{Mountable, Render};
 
-use crate::{IntoView, RenderAny, RooibosDom, ViewFnOnce};
+use crate::dom::{IntoView, RenderAny, RooibosDom, ViewFnOnce};
 
 #[macro_export]
 macro_rules! suspense {

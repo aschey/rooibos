@@ -7,8 +7,8 @@ use std::rc::Rc;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 
-use crate::widgets::WidgetRole;
-use crate::{Role, next_node_id, refresh_dom};
+use crate::widgets::{Role, WidgetRole};
+use crate::{next_node_id, refresh_dom};
 
 pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Frame)>;
 

@@ -1,4 +1,5 @@
-use rooibos::reactive::{mount, tick};
+use rooibos::reactive::dom::mount;
+use rooibos::reactive::tick;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 

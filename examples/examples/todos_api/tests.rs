@@ -1,8 +1,9 @@
 use std::time::Duration;
 
-use rooibos::dom::{DomNodeRepr, KeyCode, Role, root};
 use rooibos::keybind::{CommandFilter, CommandHandler};
-use rooibos::reactive::{mount, tick};
+use rooibos::reactive::dom::widgets::Role;
+use rooibos::reactive::dom::{DomNodeRepr, mount, root};
+use rooibos::reactive::{KeyCode, tick};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 

@@ -8,9 +8,9 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::prelude::StatefulWidget;
 use rooibos_dom::{focus_id, focus_prev};
+use rooibos_reactive::dom::{DomWidget, LayoutProps, NodeId, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Set, Update, WriteValue};
-use rooibos_reactive::{DomWidget, LayoutProps, NodeId, Render, UpdateLayoutProps};
 
 use crate::{CommandCompleter, CommandHandlerAction, use_command_context};
 

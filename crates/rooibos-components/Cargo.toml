@@ -30,11 +30,15 @@ vt100 = { version = "0.15", optional = true }
 portable-pty = { version = "0.8", optional = true }
 
 [features]
-crossterm = ["dep:crossterm", "tui-textarea?/crossterm"]
-termion = ["tui-textarea?/termion"]
-termwiz = ["tui-textarea?/termwiz"]
+crossterm = [
+  "dep:crossterm",
+  "tui-textarea?/crossterm",
+  "rooibos-dom/crossterm",
+]
+termion = ["tui-textarea?/termion", "rooibos-dom/termion"]
+termwiz = ["tui-textarea?/termwiz", "rooibos-dom/termwiz"]
 input-search = ["tui-textarea/search"]
 terminal-widget = ["tui-term", "vt100", "portable-pty"]
 image = ["dep:image", "dep:ratatui-image"]
-input = ["dep:tui-textarea"]
+input = ["dep:tui-textarea", "rooibos-dom/input"]
 spinner = ["throbber-widgets-tui", "getrandom"]

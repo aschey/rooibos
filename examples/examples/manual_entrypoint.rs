@@ -1,10 +1,10 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span};
 use rooibos::keybind::map_handler;
+use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, execute_with_owner, mount, run_with_executor, wgt};
+use rooibos::reactive::{execute_with_owner, run_with_executor, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

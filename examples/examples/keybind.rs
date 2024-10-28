@@ -1,13 +1,13 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span};
 use rooibos::keybind::{
     Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyMap, extract, handle_command,
 };
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;

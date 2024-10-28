@@ -11,7 +11,7 @@ use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
-use rooibos_dom::{IntoKeyHandler, KeyEventProps, KeyHandler};
+use rooibos_dom::events::{IntoKeyHandler, KeyEventProps, KeyHandler};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;

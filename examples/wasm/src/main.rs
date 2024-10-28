@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::reactive::mount;
+use rooibos::reactive::dom::mount;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

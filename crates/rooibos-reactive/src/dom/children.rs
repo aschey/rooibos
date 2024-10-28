@@ -4,7 +4,7 @@ use std::sync::Arc;
 use tachys::view::any_view::{AnyView, IntoAny};
 use tachys::view::fragment::{Fragment, IntoFragment};
 
-use crate::{IntoView, RenderAny, RooibosDom, View};
+use crate::dom::{IntoView, RenderAny, RooibosDom, View};
 
 /// The most common type for the `children` property on components,
 /// which can only be called once.

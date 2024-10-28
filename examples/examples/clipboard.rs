@@ -3,12 +3,10 @@ use std::process::ExitCode;
 use rooibos::components::{
     Button, Input, Notification, Notifications, Notifier, provide_notifications,
 };
-use rooibos::dom::{line, text};
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, text};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{
-    Render, UpdateLayoutProps, col, height, margin, mount, padding, row, wgt, width,
-};
+use rooibos::reactive::{col, height, margin, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_clipboard};
 use rooibos::terminal::ClipboardKind;

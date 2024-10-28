@@ -1,7 +1,7 @@
 mod dom;
-mod events;
+pub mod events;
 mod macros;
-mod widgets;
+pub mod widgets;
 
 use std::cell::{LazyCell, OnceCell};
 use std::future::Future;
@@ -11,12 +11,10 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 pub use dom::*;
-pub use events::*;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
 pub use terminput::*;
-pub use widgets::*;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum WidgetState {

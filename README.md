@@ -34,11 +34,11 @@ The example above can be written using the following code:
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span};
 use rooibos::keybind::map_handler;
+use rooibos::reactive::dom::{line, mount, span, Render};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{mount, wgt, Render};
+use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -90,11 +90,11 @@ anytime they are updated.
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span, KeyCode, KeyEvent};
 use rooibos::keybind::map_handler;
+use rooibos::reactive::dom::{line, mount, span, Render};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{col, derive_signal, mount, wgt, Render};
+use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -140,11 +140,9 @@ Layout properties can be added using the special `props()` keyword.
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::text;
+use rooibos::reactive::dom::{mount, text, Render};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{
-    col, derive_signal, height, mount, padding, padding_right, row, wgt, width, Render,
-};
+use rooibos::reactive::{col, derive_signal, height, padding, padding_right, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -194,10 +192,10 @@ any thread or async task.
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::dom::{line, span};
+use rooibos::reactive::dom::{line, mount, span, Render};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{mount, wgt, Render};
+use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -237,11 +235,12 @@ We provide a first-party package for testing your apps and components at a high
 level. The API is inspired by [Testing Library](https://testing-library.com/).
 
 ```rust
-use rooibos::dom::{span, KeyCode};
 use rooibos::keybind::map_handler;
+use rooibos::reactive::dom::{mount, span, Render};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{mount, wgt, Render};
+use rooibos::reactive::wgt;
+use rooibos::reactive::KeyCode;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -255,7 +254,7 @@ fn app() -> impl Render {
 
     let key_handler = map_handler("<Enter>", move |_, _| update_count());
 
-    wgt!(rooibos::dom::line!(
+    wgt!(rooibos::reactive::dom::line!(
         "count: ".bold(),
         span!(count.get()).cyan()
     ))

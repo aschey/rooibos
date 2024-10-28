@@ -3,9 +3,10 @@ use std::process::ExitCode;
 
 use rooibos::components::Image;
 use rooibos::keybind::{Bind, map_handler};
+use rooibos::reactive::dom::{Render, mount};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked, Update};
-use rooibos::reactive::{Render, col, height, mount, padding, padding_top, wgt, width};
+use rooibos::reactive::{col, height, padding, padding_top, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

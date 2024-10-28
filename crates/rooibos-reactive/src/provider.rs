@@ -1,7 +1,7 @@
 use reactive_graph::owner::{Owner, provide_context};
 use tachys::reactive_graph::OwnedView;
 
-use crate::RenderAny;
+use crate::dom::RenderAny;
 
 pub fn provider<T, F, R>(value: T, children: F) -> impl RenderAny
 where

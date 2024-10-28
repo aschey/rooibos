@@ -1,9 +1,9 @@
 use std::error::Error;
 use std::io::stdout;
 
-use rooibos::dom::render_single_frame;
-use rooibos::reactive::layout::block;
-use rooibos::reactive::{Render, col, mount, wgt, width};
+use rooibos::reactive::dom::layout::block;
+use rooibos::reactive::dom::{Render, mount, render_single_frame};
+use rooibos::reactive::{col, wgt, width};
 use rooibos::tui::Viewport;
 use rooibos::tui::backend::CrosstermBackend;
 use rooibos::tui::style::Stylize;

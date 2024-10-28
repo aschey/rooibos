@@ -1,9 +1,8 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{
-    AsDomNode, BlurEvent, EventData, FocusEvent, IntoKeyHandler, KeyHandler, NodeId,
-};
+use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, IntoKeyHandler, KeyHandler};
+use rooibos_dom::{AsDomNode, NodeId};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
@@ -21,7 +20,7 @@ use super::layout::{
     padding_y, position, show, shrink, width, wrap,
 };
 use super::{DomNode, RenderAny, RooibosDom};
-use crate::layout::Focusable;
+use crate::dom::layout::Focusable;
 
 #[derive(Debug)]
 pub struct FlexNode<C, P> {
@@ -335,35 +334,35 @@ where
 #[macro_export]
 macro_rules! row {
     () => (
-        $crate::flex_node::row((), ())
+        $crate::dom::flex_node::row((), ())
     );
     (props($($properties:expr),+ $(,)?)) => (
-        $crate::flex_node::row(($($properties),+), ())
+        $crate::dom::flex_node::row(($($properties),+), ())
     );
     (props($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
-        $crate::flex_node::row(($($properties),+), ($($children),+))
+        $crate::dom::flex_node::row(($($properties),+), ($($children),+))
     );
     (props($($properties:expr),+ $(,)?), $children:expr) => (
-        $crate::flex_node::row(($($properties),+), ($children,))
+        $crate::dom::flex_node::row(($($properties),+), ($children,))
     );
     ($($children:expr),+ $(,)?) => (
-        $crate::flex_node::row((), ($($children),+))
+        $crate::dom::flex_node::row((), ($($children),+))
     );
 }
 
 #[macro_export]
 macro_rules! col {
     () => (
-        $crate::flex_node::col((), ())
+        $crate::dom::flex_node::col((), ())
     );
     (props($($properties:expr),+ $(,)?)) => (
-        $crate::flex_node::col(($($properties),+), ())
+        $crate::dom::flex_node::col(($($properties),+), ())
     );
     (props($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
-        $crate::flex_node::col(($($properties),+), ($($children),+))
+        $crate::dom::flex_node::col(($($properties),+), ($($children),+))
     );
     ($($children:expr),+ $(,)?) => (
-        $crate::flex_node::col((), ($($children),+))
+        $crate::dom::flex_node::col((), ($($children),+))
     );
 }
 

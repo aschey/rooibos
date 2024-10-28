@@ -1,6 +1,6 @@
 use tachys::view::Render;
 
-use crate::{RenderAny, RooibosDom};
+use crate::dom::{RenderAny, RooibosDom};
 
 pub struct View<T>(T)
 where

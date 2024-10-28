@@ -2,15 +2,15 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use rooibos_dom::{
-    BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler, line, span,
-};
+use rooibos_dom::events::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
+use rooibos_dom::{line, span};
 use rooibos_reactive::any_view::IntoAny as _;
-use rooibos_reactive::div::taffy::Dimension;
+use rooibos_reactive::dom::div::taffy::Dimension;
+use rooibos_reactive::dom::layout::{height, pct};
+use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
-use rooibos_reactive::layout::{height, pct};
-use rooibos_reactive::{ChildrenFn, IntoChildrenFn, Render, col, derive_signal, max_height, wgt};
+use rooibos_reactive::{col, derive_signal, max_height, wgt};
 
 use crate::Keyed;
 use crate::wrapping_list::KeyedWrappingList;
@@ -393,7 +393,7 @@ impl TabView {
         };
 
         col![
-            props(rooibos_reactive::layout::width(width)),
+            props(rooibos_reactive::dom::layout::width(width)),
             wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())

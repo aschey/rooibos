@@ -1,10 +1,11 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{KeyEvent, KeyEventProps};
+use rooibos::reactive::KeyEvent;
+use rooibos::reactive::dom::events::KeyEventProps;
+use rooibos::reactive::dom::{DomWidget, Render, mount};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::MaybeSignal;
-use rooibos::reactive::{DomWidget, Render, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

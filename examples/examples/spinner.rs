@@ -2,10 +2,9 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use rooibos::components::spinner::{Spinner, SpinnerDisplay};
-use rooibos::dom::span;
+use rooibos::reactive::dom::{Render, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Set;
-use rooibos::reactive::{Render, mount};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::{sleep, spawn_local};
 use rooibos::runtime::{Runtime, exit};

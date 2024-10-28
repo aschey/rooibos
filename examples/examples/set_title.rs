@@ -2,10 +2,11 @@ use std::io::Stdout;
 use std::process::ExitCode;
 
 use rooibos::keybind::map_handler;
+use rooibos::reactive::dom::{Render, mount};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Render, mount, wgt};
+use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_title};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};

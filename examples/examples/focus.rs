@@ -1,11 +1,9 @@
 use std::process::ExitCode;
 
-use rooibos::dom::{clear_focus, focus_next, focus_prev, line};
 use rooibos::keybind::{Bind, map_handler};
+use rooibos::reactive::dom::{Render, clear_focus, focus_next, focus_prev, line, mount, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{
-    Render, col, derive_signal, height, max_width, mount, padding, row, use_focus, wgt,
-};
+use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

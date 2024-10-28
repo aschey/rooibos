@@ -11,7 +11,7 @@ use tachys::reactive_graph::OwnedView;
 use tachys::view::{Mountable, Render};
 use throw_error::{Error, ErrorHook, ErrorId};
 
-use crate::{DomNode, IntoView, RenderAny, RooibosDom};
+use crate::dom::{DomNode, IntoView, RenderAny, RooibosDom};
 
 pub fn error_boundary<FalFn, Fal, F, R>(children: F, fallback: FalFn) -> impl IntoView
 where

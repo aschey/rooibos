@@ -1,4 +1,4 @@
-mod dom;
+pub mod dom;
 mod error_boundary;
 mod for_loop;
 mod macros;
@@ -19,7 +19,6 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use any_spawner::Executor;
-pub use dom::*;
 pub use error_boundary::*;
 pub use for_loop::*;
 pub use provider::*;
@@ -30,6 +29,7 @@ use reactive_graph::owner::Owner;
 pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use tachys::view::any_view;
+pub use terminput::*;
 pub use throw_error::*;
 #[doc(hidden)]
 #[cfg(not(target_arch = "wasm32"))]

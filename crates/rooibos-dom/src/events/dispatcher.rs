@@ -5,11 +5,12 @@ use terminput::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
 };
 
-use super::{ClickEvent, ClickEventProps, EventData};
+use super::{
+    ClickEvent, ClickEventFn, ClickEventProps, EventData, EventHandle, EventHandlers, KeyEventProps,
+};
 use crate::{
-    ClickEventFn, DomNodeKey, EventHandle, EventHandlers, KeyEventProps, MatchBehavior, NodeType,
-    focus_next, focus_prev, set_pending_resize, toggle_print_dom, trigger_window_focus_changed,
-    with_nodes, with_nodes_mut,
+    DomNodeKey, MatchBehavior, NodeType, focus_next, focus_prev, set_pending_resize,
+    toggle_print_dom, trigger_window_focus_changed, with_nodes, with_nodes_mut,
 };
 
 thread_local! {

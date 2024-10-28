@@ -6,14 +6,14 @@ use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols;
 use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType};
-use rooibos_dom::{
-    KeyCode, KeyEventProps, NodeId, WidgetState, delay, supports_keyboard_enhancement,
-};
+use rooibos_dom::events::KeyEventProps;
+use rooibos_dom::{KeyCode, NodeId, WidgetState, delay, supports_keyboard_enhancement};
+use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, derive_signal, wgt};
+use rooibos_reactive::{derive_signal, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
 
@@ -209,7 +209,7 @@ impl Button {
 
         let children = children.into();
         let mut button = wgt![
-            rooibos_dom::Button::new(children.get())
+            rooibos_dom::widgets::Button::new(children.get())
                 .block(if enabled.get() {
                     Block::bordered()
                         .bg(Color::Reset)

@@ -2,7 +2,8 @@ use std::fs::File;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use rooibos::reactive::{Render, mount, wgt};
+use rooibos::reactive::dom::{Render, mount};
+use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::spawn_local;
 use rooibos::runtime::{Runtime, wasm_compat};
@@ -40,7 +41,7 @@ fn app() -> impl Render {
         }
     });
 
-    wgt!(rooibos::dom::line!(
+    wgt!(rooibos::reactive::dom::line!(
         "run ",
         "tail -f debug.log".bold().cyan(),
         " to see the output"

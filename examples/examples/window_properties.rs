@@ -1,8 +1,9 @@
 use std::process::ExitCode;
 
+use rooibos::reactive::dom::{Render, mount, use_window_focus, use_window_size};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{Render, col, mount, row, use_window_focus, use_window_size, wgt};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

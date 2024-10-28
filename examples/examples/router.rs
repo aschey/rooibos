@@ -1,10 +1,10 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::text;
+use rooibos::reactive::dom::layout::{align_items, block, chars};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::layout::{align_items, block, chars};
-use rooibos::reactive::{Render, UpdateLayoutProps, col, height, mount, row, wgt, width};
+use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::router::{Route, RouteFromStatic, Router, provide_router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;

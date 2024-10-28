@@ -5,11 +5,11 @@ use std::time::Duration;
 
 use rooibos::components::Show;
 use rooibos::components::spinner::Spinner;
-use rooibos::dom::line;
+use rooibos::reactive::dom::{Render, after_render, line, mount};
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
-use rooibos::reactive::{Render, after_render, col, derive_signal, mount, padding_left, wgt};
+use rooibos::reactive::{col, derive_signal, padding_left, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};

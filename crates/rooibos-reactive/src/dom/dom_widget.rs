@@ -3,10 +3,11 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
-use rooibos_dom::{
-    AsDomNode, BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent,
-    IntoClickHandler, IntoKeyHandler, KeyHandler, NodeId,
+use rooibos_dom::events::{
+    BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
+    KeyHandler,
 };
+use rooibos_dom::{AsDomNode, NodeId};
 use tachys::prelude::*;
 
 use super::dom_node::DomNode;
@@ -21,7 +22,7 @@ use super::layout::{
     min_width, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
     padding_y, position, shrink, width,
 };
-use crate::RooibosDom;
+use crate::dom::RooibosDom;
 
 #[derive(Clone)]
 pub struct DomWidget<P> {

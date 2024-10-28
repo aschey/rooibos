@@ -1,10 +1,10 @@
 use std::process::ExitCode;
 
 use rooibos::components::Input;
-use rooibos::dom::{WidgetState, line};
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, WidgetState, line, mount};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, mount, padding, wgt};
+use rooibos::reactive::{col, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

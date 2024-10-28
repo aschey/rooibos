@@ -1,9 +1,9 @@
 use rooibos::components::Button;
-use rooibos::dom::{line, span};
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, col, derive_signal};
+use rooibos::reactive::{col, derive_signal};
 
 #[cfg(target_arch = "wasm32")]
 #[rooibos::wasm_bindgen(start)]
@@ -11,7 +11,7 @@ async fn start() -> Result<(), wasm_bindgen::JsError> {
     use rooibos::runtime::{Runtime, RuntimeSettings};
     use rooibos::xterm_js::WasmBackend;
 
-    rooibos::reactive::mount(app);
+    rooibos::reactive::dom::mount(app);
     let runtime = Runtime::initialize(WasmBackend::default());
     runtime
         .run()

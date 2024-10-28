@@ -13,9 +13,10 @@ use ratatui::backend::Backend as TuiBackend;
 use ratatui::layout::{Position, Size};
 use ratatui::widgets::{Paragraph, Widget};
 use ratatui::{Terminal, Viewport};
+use rooibos_dom::events::dispatch_event;
 use rooibos_dom::{
-    DomUpdateReceiver, Event, dispatch_event, dom_update_receiver, focus_next, render_terminal,
-    set_pixel_size, unmount,
+    DomUpdateReceiver, Event, dom_update_receiver, focus_next, render_terminal, set_pixel_size,
+    unmount,
 };
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;

@@ -1,9 +1,10 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
-use rooibos_dom::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
+use rooibos_dom::events::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
+use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{LayoutProps, Render, UpdateLayoutProps, wgt};
+use rooibos_reactive::wgt;
 
 use crate::WrappingList;
 

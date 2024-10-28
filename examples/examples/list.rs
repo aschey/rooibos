@@ -2,9 +2,9 @@ use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::keybind::{Bind, map_handler};
+use rooibos::reactive::dom::{Render, mount};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{Render, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

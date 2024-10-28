@@ -1,14 +1,12 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
-use rooibos::dom::{focus_id, text};
 use rooibos::keybind::{Bind, KeybindContext, map_handler};
+use rooibos::reactive::dom::{Render, focus_id, mount, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{
-    Render, col, derive_signal, height, mount, padding, padding_right, row, wgt, width,
-};
+use rooibos::reactive::{col, derive_signal, height, padding, padding_right, row, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

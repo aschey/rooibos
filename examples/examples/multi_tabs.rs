@@ -1,12 +1,13 @@
 use std::process::ExitCode;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::dom::{KeyCode, KeyEventProps, line};
 use rooibos::keybind::{Bind, map_handler};
+use rooibos::reactive::dom::events::KeyEventProps;
+use rooibos::reactive::dom::layout::{block, chars};
+use rooibos::reactive::dom::{Render, line, mount};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::layout::{block, chars};
-use rooibos::reactive::{Render, col, max_height, max_width, mount, row};
+use rooibos::reactive::{KeyCode, col, max_height, max_width, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

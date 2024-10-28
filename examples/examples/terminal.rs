@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{self, CommandBuilder};
-use rooibos::reactive::{Render, mount};
+use rooibos::reactive::dom::{Render, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

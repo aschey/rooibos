@@ -11,11 +11,11 @@ use ratatui_image::protocol::StatefulProtocol;
 use ratatui_image::thread::{ThreadImage, ThreadProtocol};
 use ratatui_image::{CropOptions, FilterType, Resize};
 use rooibos_dom::pixel_size;
+use rooibos_reactive::dom::{DomWidget, Render};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{DomWidget, Render};
 
 #[derive(Clone)]
 pub enum ResizeMode {

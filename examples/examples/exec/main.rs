@@ -2,9 +2,8 @@ use std::env;
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::dom::text;
-use rooibos::reactive::layout::chars;
-use rooibos::reactive::{Render, UpdateLayoutProps, mount};
+use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, exec};
 use rooibos::terminal::crossterm::CrosstermBackend;

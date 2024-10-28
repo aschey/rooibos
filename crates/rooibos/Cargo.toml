@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-runtime = { path = "../rooibos-runtime", optional = true }
 rooibos-reactive-macros = { path = "../rooibos-reactive-macros" }
@@ -25,19 +24,16 @@ insta = "1.40.0"
 [features]
 nightly = ["rooibos-reactive/nightly"]
 crossterm = [
-  "rooibos-dom/crossterm",
   "rooibos-runtime/crossterm",
   "rooibos-components/crossterm",
   "rooibos-terminal/crossterm",
 ]
 termion = [
-  "rooibos-dom/termion",
   "rooibos-runtime/termion",
   "rooibos-components/termion",
   "rooibos-terminal/termion",
 ]
 termwiz = [
-  "rooibos-dom/termwiz",
   "rooibos-runtime/termwiz",
   "rooibos-components/termwiz",
   "rooibos-terminal/termwiz",
@@ -50,7 +46,7 @@ ssh = ["rooibos-ssh"]
 router = ["rooibos-router"]
 input-search = ["rooibos-components/input-search"]
 terminal-widget = ["rooibos-components/terminal-widget"]
-input = ["rooibos-components/input", "rooibos-dom/input"]
+input = ["rooibos-components/input"]
 image = ["rooibos-components/image"]
 clipboard = [
   "rooibos-runtime/clipboard",
