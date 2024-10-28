@@ -15,7 +15,7 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
-#[rooibos::main(flavor = "current_thread")]
+#[rooibos::main]
 async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());

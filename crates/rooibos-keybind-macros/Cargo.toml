@@ -8,7 +8,6 @@ proc-macro = true
 
 [dependencies]
 manyhow = "0.11.4"
-modalkit = { git = "https://github.com/aschey/modalkit", rev = "395d5cd610d866c25c07e14de64153212606d80d" }
 proc-macro2 = "1.0.87"
 quote = "1.0.37"
 syn = { version = "2.0.79", features = ["full"] }

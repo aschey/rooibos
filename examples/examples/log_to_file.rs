@@ -12,7 +12,7 @@ use tracing::{Level, info};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
-#[rooibos::main(flavor = "current_thread")]
+#[rooibos::main]
 async fn main() -> Result {
     if let Ok(file) = File::options().write(true).open("./example.log") {
         // Truncate the output from the last run, but don't remove it.

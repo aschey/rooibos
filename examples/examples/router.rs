@@ -28,7 +28,7 @@ struct BlogPost {
     id: usize,
 }
 
-#[rooibos::main(flavor = "current_thread")]
+#[rooibos::main]
 async fn main() -> Result {
     mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());

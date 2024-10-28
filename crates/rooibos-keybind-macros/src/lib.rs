@@ -2,23 +2,6 @@ use manyhow::manyhow;
 use quote::quote;
 use syn::DeriveInput;
 
-// #[manyhow]
-// #[proc_macro]
-// pub fn key(tokens: TokenStream, emitter: &mut Emitter) -> manyhow::Result {
-//     let tokens = tokens.to_string();
-//     let token_chars = tokens.chars();
-//
-//     let str_tokens = token_chars.as_str();
-//     if let Err(e) = modalkit::env::keyparse::parse(str_tokens) {
-//         emitter.emit(ErrorMessage::call_site(format!(
-//             "Invalid key combination {str_tokens}: {e:?}"
-//         )));
-//     }
-//     Ok(quote! {
-//         rooibos::keybind::keyparse::parse(#str_tokens).expect("already validated").1
-//     })
-// }
-
 #[manyhow(proc_macro_derive(Commands))]
 pub fn derive_commands(input: DeriveInput) -> manyhow::Result {
     let ident = input.ident;

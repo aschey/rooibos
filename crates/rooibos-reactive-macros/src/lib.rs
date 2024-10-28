@@ -2,7 +2,8 @@ use manyhow::{Emitter, ErrorMessage, manyhow};
 use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility};
+use syn::parse::Parser;
+use syn::{FnArg, Ident, ItemFn, Pat, PatType, Visibility, parse_quote};
 
 #[manyhow]
 #[proc_macro_attribute]
@@ -26,8 +27,21 @@ pub fn test(attrs: TokenStream, tokens: TokenStream, emitter: &mut Emitter) -> m
     create_main(attrs, tokens, false, true, emitter)
 }
 
+fn parse_runtime_flavor_attr(attrs: TokenStream) -> manyhow::Result {
+    let mut args_parsed =
+        syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated.parse2(attrs)?;
+    let flavor = args_parsed.iter().find(|a| a.path().is_ident("flavor"));
+    // Tokio defaults to using the multi-threaded runtime, which makes sense for server-side
+    // applications.
+    // However, for UIs, a single thread is usually sufficient.
+    if flavor.is_none() {
+        args_parsed.push(parse_quote!(flavor = "current_thread"));
+    }
+    Ok(quote!(#args_parsed))
+}
+
 fn create_main(
-    attrs: TokenStream,
+    mut attrs: TokenStream,
     tokens: TokenStream,
     is_wasm: bool,
     is_test: bool,
@@ -37,6 +51,7 @@ fn create_main(
     let mut func_copy = func.clone();
     if !is_wasm {
         func.sig.asyncness = None;
+        attrs = parse_runtime_flavor_attr(attrs)?;
     }
     let vis = func_copy.vis.clone();
     func_copy.vis = Visibility::Inherited;

@@ -19,7 +19,7 @@ macro_rules! assert_snapshot {
     };
 }
 
-#[rooibos::test(flavor = "current_thread")]
+#[rooibos::test]
 async fn test_todos() {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
         .await

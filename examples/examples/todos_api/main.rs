@@ -47,7 +47,7 @@ enum Command {
     Delete { id: u32 },
 }
 
-#[rooibos::main(flavor = "current_thread")]
+#[rooibos::main]
 async fn main() -> Result {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
         .await

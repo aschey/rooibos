@@ -16,7 +16,7 @@ use rooibos::tui::widgets::ListItem;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
-#[rooibos::main(flavor = "current_thread")]
+#[rooibos::main]
 async fn main() -> Result {
     if stdout().is_terminal() {
         return Err("Try redirecting the output. Ex: out=$(cargo run --example=redirect_output)")?;

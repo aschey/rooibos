@@ -15,7 +15,7 @@ use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
-#[rooibos::main(flavor = "current_thread")]
+#[rooibos::main]
 async fn main() -> Result {
     let mut cmd_handler = CommandHandler::<AppAction>::new();
     cmd_handler.generate_commands();
