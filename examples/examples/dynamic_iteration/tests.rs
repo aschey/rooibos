@@ -1,6 +1,6 @@
-use rooibos::reactive::dom::root;
 use rooibos::reactive::dom::widgets::Role;
-use rooibos::reactive::{KeyCode, dom::mount, tick};
+use rooibos::reactive::dom::{mount, root};
+use rooibos::reactive::{KeyCode, tick};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
