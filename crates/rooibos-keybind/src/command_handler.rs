@@ -17,14 +17,13 @@ use modalkit::editing::cursor::Cursor;
 use modalkit::editing::key::KeyManager;
 use modalkit::editing::rope::EditRope;
 use modalkit::editing::store::Store;
-use modalkit::env::CommonKeyClass;
 use modalkit::env::vim::VimMode;
 use modalkit::env::vim::command::{
     CommandContext, CommandDescription, VimCommand, VimCommandMachine,
 };
 use modalkit::env::vim::keybindings::InputStep;
 use modalkit::key::TerminalKey;
-use modalkit::keybindings::{BindingMachine, EdgeEvent, EdgeRepeat, ModalMachine};
+use modalkit::keybindings::{BindingMachine, ModalMachine};
 use modalkit::prelude::{
     CommandType, CompletionDisplay, CompletionSelection, CompletionType, Count, EditTarget,
     MoveDir1D, MoveType, RepeatType, Specifier,
@@ -36,6 +35,8 @@ use terminput::Event;
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
 use wasm_compat::sync::Mutex;
+
+use crate::parse;
 
 #[cfg(feature = "runtime")]
 pub trait CommandFilter<T>
@@ -126,10 +127,6 @@ where
     ) -> Vec<String> {
         T::complete(&text.to_string(), cursor.x)
     }
-}
-
-pub fn once(key: &TerminalKey) -> (EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyClass>) {
-    (EdgeRepeat::Once, EdgeEvent::Key(*key))
 }
 
 pub struct CommandHandler<T>
@@ -237,20 +234,20 @@ where
     pub fn new() -> Self {
         provide_command_context::<T>();
         let mut ism = ModalMachine::<TerminalKey, InputStep<AppInfo<T>>>::empty();
-        let colon = ":".parse::<TerminalKey>().unwrap();
-        let esc = "<Esc>".parse::<TerminalKey>().unwrap();
-        let enter = "<Enter>".parse::<TerminalKey>().unwrap();
-        let up = "<Up>".parse::<TerminalKey>().unwrap();
-        let down = "<Down>".parse::<TerminalKey>().unwrap();
-        let left = "<Left>".parse::<TerminalKey>().unwrap();
-        let right = "<Right>".parse::<TerminalKey>().unwrap();
-        let tab = "<Tab>".parse::<TerminalKey>().unwrap();
-        let shift_tab = "<S-Tab>".parse::<TerminalKey>().unwrap();
-        let backspace = "<BS>".parse::<TerminalKey>().unwrap();
+        let colon = parse(":");
+        let esc = parse("<Esc>");
+        let enter = parse("<Enter>");
+        let up = parse("<Up>");
+        let down = parse("<Down>");
+        let left = parse("<Left>");
+        let right = parse("<Right>");
+        let tab = parse("<Tab>");
+        let shift_tab = parse("<S-Tab>");
+        let backspace = parse("<BS>");
 
         ism.add_mapping(
             VimMode::Normal,
-            &[once(&colon)],
+            &colon,
             &InputStep::<AppInfo<T>>::new()
                 .actions(vec![Action::CommandBar(CommandBarAction::Focus(
                     ":".into(),
@@ -262,21 +259,21 @@ where
 
         ism.add_mapping(
             VimMode::Command,
-            &[once(&esc)],
+            &esc,
             &InputStep::<AppInfo<T>>::new()
                 .actions(vec![Action::CommandBar(CommandBarAction::Unfocus)])
                 .goto(VimMode::Normal),
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&enter)],
+            &enter,
             &InputStep::<AppInfo<T>>::new()
                 .actions(vec![Action::Prompt(PromptAction::Submit)])
                 .goto(VimMode::Normal),
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&up)],
+            &up,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Prompt(PromptAction::Recall(
                 MoveDir1D::Previous,
                 Count::Contextual,
@@ -285,7 +282,7 @@ where
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&down)],
+            &down,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Prompt(PromptAction::Recall(
                 MoveDir1D::Next,
                 Count::Contextual,
@@ -294,7 +291,7 @@ where
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&left)],
+            &left,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Edit(
                 Specifier::Contextual,
                 EditTarget::Motion(
@@ -305,7 +302,7 @@ where
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&right)],
+            &right,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Edit(
                 Specifier::Contextual,
                 EditTarget::Motion(MoveType::Column(MoveDir1D::Next, true), Count::Contextual),
@@ -313,7 +310,7 @@ where
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&backspace)],
+            &backspace,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Edit(
                 Specifier::Exact(EditAction::Delete),
                 EditTarget::Motion(
@@ -325,7 +322,7 @@ where
 
         ism.add_mapping(
             VimMode::Command,
-            &[once(&tab)],
+            &tab,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Complete(
                 CompletionType::Auto,
                 CompletionSelection::List(MoveDir1D::Next),
@@ -334,7 +331,7 @@ where
         );
         ism.add_mapping(
             VimMode::Command,
-            &[once(&shift_tab)],
+            &shift_tab,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Complete(
                 CompletionType::Auto,
                 CompletionSelection::List(MoveDir1D::Previous),
