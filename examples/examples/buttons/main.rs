@@ -60,7 +60,7 @@ fn app() -> impl Render {
         ],
         wgt!(
             props(width!(block_width), height!(block_height)),
-            Paragraph::new(format!("{} x {}", block_width.get(), block_height.get()))
+            text!(format!("{} x {}", block_width.get(), block_height.get()))
                 .centered()
                 .bg({
                     let height = block_height.get() as f64;

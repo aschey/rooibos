@@ -6,7 +6,9 @@ use ratatui::text::Text;
 use ratatui::widgets::{Block, BorderType, Paragraph};
 use rooibos_reactive::dom::Render;
 use rooibos_reactive::dom::div::taffy::{self, AlignItems};
-use rooibos_reactive::dom::layout::{align_items, chars, clear, height, max_width, width, z_index};
+use rooibos_reactive::dom::layout::{
+    align_items, block, chars, clear, height, max_width, width, z_index,
+};
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
@@ -166,7 +168,14 @@ impl Notifications {
                 align_items(AlignItems::End),
             ),
             col![
-                props(width(chars(content_width)),),
+                props(
+                    width(chars(content_width)),
+                    block(
+                        Block::bordered()
+                            .border_type(BorderType::Rounded)
+                            .border_style(Style::new().blue())
+                    )
+                ),
                 for_each(
                     move || notifications.get(),
                     |n| n.id,
@@ -178,11 +187,7 @@ impl Notifications {
                                 height(chars(content_height + 2.)),
                                 clear(true)
                             ),
-                            Paragraph::new(n.content.clone()).block(
-                                Block::bordered()
-                                    .border_type(BorderType::Rounded)
-                                    .border_style(Style::new().blue())
-                            )
+                            n.content.clone()
                         )
                     }
                 )

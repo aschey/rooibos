@@ -10,7 +10,7 @@ use ratatui_image::picker::Picker;
 use ratatui_image::protocol::StatefulProtocol;
 use ratatui_image::thread::{ThreadImage, ThreadProtocol};
 use ratatui_image::{CropOptions, FilterType, Resize};
-use rooibos_dom::pixel_size;
+use rooibos_dom::{MeasureNode, RenderNode, pixel_size};
 use rooibos_reactive::dom::{DomWidget, Render};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::RwSignal;
@@ -117,20 +117,44 @@ impl Image {
             }
         });
 
-        DomWidget::new::<ThreadImage, _, _>(move || {
+        DomWidget::new::<ThreadImage, _>(move || {
             async_state.track();
-            let resize_mode = resize_mode.get();
-            move |rect: Rect, frame: &mut Frame| {
-                let image = ThreadImage::default().resize(match resize_mode.clone() {
-                    ResizeMode::Crop(options) => Resize::Crop(options),
-                    ResizeMode::Fit(filter_type) => Resize::Fit(filter_type),
-                });
-                async_state.update_untracked(|s| {
-                    if let Some(s) = s {
-                        image.render(rect, frame.buffer_mut(), s)
-                    }
-                });
+            RenderImage {
+                async_state,
+                resize_mode: resize_mode.get(),
             }
         })
+    }
+}
+
+struct RenderImage {
+    async_state: RwSignal<Option<ThreadProtocol>>,
+    resize_mode: ResizeMode,
+}
+
+impl RenderNode for RenderImage {
+    fn render(&mut self, rect: Rect, frame: &mut Frame) {
+        let image = ThreadImage::default().resize(match self.resize_mode.clone() {
+            ResizeMode::Crop(options) => Resize::Crop(options),
+            ResizeMode::Fit(filter_type) => Resize::Fit(filter_type),
+        });
+        self.async_state.update_untracked(|s| {
+            if let Some(s) = s {
+                image.render(rect, frame.buffer_mut(), s)
+            }
+        });
+    }
+}
+
+impl MeasureNode for RenderImage {
+    fn measure(
+        &self,
+        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        available_space: rooibos_reactive::dom::div::taffy::Size<
+            rooibos_reactive::dom::div::taffy::AvailableSpace,
+        >,
+        style: &rooibos_reactive::dom::div::taffy::Style,
+    ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        rooibos_reactive::dom::div::taffy::Size::zero()
     }
 }

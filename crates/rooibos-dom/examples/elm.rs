@@ -240,7 +240,7 @@ impl Counter {
         let model = self.clone();
         let id: NodeId = format!("counter{}", self.id).into();
 
-        let widget = DomWidgetNode::new::<Paragraph, _, _>(move || {
+        let widget = DomWidgetNode::new::<Paragraph, _>(move || {
             let mut paragraph = Paragraph::new(format!("count: {}", model.count));
             if model.focused {
                 paragraph = paragraph.block(Block::bordered());

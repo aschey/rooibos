@@ -4,7 +4,10 @@ use ratatui::style::{Style, Styled};
 use ratatui::text::Text;
 use ratatui::widgets::{Block, Paragraph, Widget, WidgetRef};
 
+use crate::MeasureNode;
+
 pub struct Button<'a> {
+    text: Text<'a>,
     inner: Paragraph<'a>,
 }
 
@@ -13,7 +16,9 @@ impl<'a> Button<'a> {
     where
         T: Into<Text<'a>>,
     {
+        let text = text.into();
         Self {
+            text: text.clone(),
             inner: Paragraph::new(text).centered(),
         }
     }
@@ -67,5 +72,16 @@ impl<'a> WidgetRef for Button<'a> {
 impl<'a> Widget for Button<'a> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_ref(area, buf);
+    }
+}
+
+impl MeasureNode for Button<'_> {
+    fn measure(
+        &self,
+        known_dimensions: taffy::Size<Option<f32>>,
+        available_space: taffy::Size<taffy::AvailableSpace>,
+        style: &taffy::Style,
+    ) -> taffy::Size<f32> {
+        self.text.measure(known_dimensions, available_space, style)
     }
 }

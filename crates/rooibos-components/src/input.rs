@@ -3,8 +3,9 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
 use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
-use rooibos_dom::{KeyCode, KeyEvent, NodeId, WidgetState, set_editing};
+use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, NodeId, RenderNode, WidgetState, set_editing};
 use rooibos_reactive::derive_signal;
+use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
@@ -300,11 +301,9 @@ impl Input {
             });
         };
 
-        let mut widget = DomWidget::new::<TextArea, _, _>(move || {
+        let mut widget = DomWidget::new::<TextArea, _>(move || {
             text_area.track();
-            move |area: Rect, frame: &mut Frame| {
-                text_area.with(|t| t.render(area, frame.buffer_mut()));
-            }
+            RenderInput { text_area }
         })
         .layout_props(layout_props)
         .on_key_down(key_down)
@@ -324,5 +323,28 @@ impl Input {
             widget = widget.id(id);
         }
         widget
+    }
+}
+
+struct RenderInput {
+    text_area: RwSignal<TextArea<'static>>,
+}
+
+impl RenderNode for RenderInput {
+    fn render(&mut self, area: Rect, frame: &mut Frame) {
+        self.text_area.with(|t| t.render(area, frame.buffer_mut()));
+    }
+}
+
+impl MeasureNode for RenderInput {
+    fn measure(
+        &self,
+        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        available_space: rooibos_reactive::dom::div::taffy::Size<
+            rooibos_reactive::dom::div::taffy::AvailableSpace,
+        >,
+        style: &rooibos_reactive::dom::div::taffy::Style,
+    ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        Size::zero()
     }
 }

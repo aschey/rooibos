@@ -23,6 +23,8 @@ taffy = "0.6.0"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 thiserror = "1"
+textwrap = "0.16.1"
+unicode-width = "0.2.0"
 
 [dev-dependencies]
 tokio = { version = "1.40", features = ["rt", "macros", "sync"] }

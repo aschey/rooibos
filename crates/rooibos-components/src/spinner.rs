@@ -1,9 +1,13 @@
 use std::time::Duration;
 
+use derive_more::derive::{Deref, DerefMut};
 use futures_cancel::FutureExt as _;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};
+use ratatui::widgets::StatefulWidget;
+use rooibos_dom::MeasureNode;
 use rooibos_reactive::dom::Render;
+use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::on_cleanup;
@@ -171,6 +175,34 @@ impl Spinner {
     pub fn render(self) -> impl Render {
         let state = self.create_state();
         let create_spinner = self.create_spinner_fn();
-        wgt!(state.get(), create_spinner())
+        wgt!(state.get(), SpinnerWidget(create_spinner()))
+    }
+}
+
+#[derive(Clone)]
+struct SpinnerWidget<'a>(Throbber<'a>);
+
+impl MeasureNode for SpinnerWidget<'_> {
+    fn measure(
+        &self,
+        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        available_space: rooibos_reactive::dom::div::taffy::Size<
+            rooibos_reactive::dom::div::taffy::AvailableSpace,
+        >,
+        style: &rooibos_reactive::dom::div::taffy::Style,
+    ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        Size::zero()
+    }
+}
+
+impl StatefulWidget for SpinnerWidget<'_> {
+    type State = ThrobberState;
+    fn render(
+        self,
+        area: ratatui::prelude::Rect,
+        buf: &mut ratatui::prelude::Buffer,
+        state: &mut Self::State,
+    ) {
+        self.0.render(area, buf, state)
     }
 }

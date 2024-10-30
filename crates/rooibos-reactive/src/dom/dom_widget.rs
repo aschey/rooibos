@@ -1,5 +1,4 @@
 use next_tuple::NextTuple;
-use ratatui::Frame;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::MaybeSignal;
@@ -7,7 +6,7 @@ use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
     KeyHandler,
 };
-use rooibos_dom::{AsDomNode, NodeId};
+use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
 
 use super::dom_node::DomNode;
@@ -58,10 +57,12 @@ impl Render<RooibosDom> for DomWidgetNode {
 }
 
 impl DomWidget<()> {
-    pub fn new<T: 'static, F1: Fn() -> F2 + 'static, F2: FnMut(Rect, &mut Frame) + 'static>(
-        f: F1,
-    ) -> Self {
-        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _, _>(f);
+    pub fn new<T, R>(render_node: R) -> Self
+    where
+        T: 'static,
+        R: BuildNodeRenderer + 'static,
+    {
+        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _>(render_node);
         let inner = DomNode(rooibos_dom::DomNode::widget(dom_widget_node));
         Self {
             inner,
@@ -71,15 +72,12 @@ impl DomWidget<()> {
 }
 
 impl<P> DomWidget<P> {
-    pub fn new_with_properties<
+    pub fn new_with_properties<T, R>(props: P, render_node: R) -> Self
+    where
         T: 'static,
-        F1: Fn() -> F2 + 'static,
-        F2: FnMut(Rect, &mut Frame) + 'static,
-    >(
-        props: P,
-        f: F1,
-    ) -> Self {
-        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _, _>(f);
+        R: BuildNodeRenderer + 'static,
+    {
+        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _>(render_node);
         let inner = DomNode(rooibos_dom::DomNode::widget(dom_widget_node));
         Self {
             inner,

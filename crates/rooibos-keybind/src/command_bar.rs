@@ -7,12 +7,13 @@ use modalkit_ratatui::cmdbar::CommandBarState;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::prelude::StatefulWidget;
-use rooibos_dom::{focus_id, focus_prev};
+use rooibos_dom::{MeasureNode, RenderNode, focus_id, focus_prev};
+use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, NodeId, Render, UpdateLayoutProps};
-use rooibos_reactive::graph::signal::signal;
+use rooibos_reactive::graph::signal::{ReadSignal, signal};
 use rooibos_reactive::graph::traits::{Get, Set, Update, WriteValue};
 
-use crate::{CommandCompleter, CommandHandlerAction, use_command_context};
+use crate::{AppInfo, CommandCompleter, CommandHandlerAction, use_command_context};
 
 pub struct CommandBar<T> {
     _phantom: PhantomData<T>,
@@ -92,21 +93,53 @@ where
                 updates
             }
         });
-        DomWidget::new::<CommandBar<T>, _, _>(move || {
-            let mut state = state.get();
-            let command_bar = modalkit_ratatui::cmdbar::CommandBar::new().focus(focused.get());
-
-            move |rect: Rect, frame: &mut Frame| {
-                command_bar
-                    .clone()
-                    .render(rect, frame.buffer_mut(), &mut state);
-                if let Some((cx, cy)) = state.get_term_cursor() {
-                    frame.set_cursor_position((cx, cy));
-                }
-            }
+        DomWidget::new::<CommandBar<T>, _>(move || RenderCommandBar {
+            state: state.get(),
+            command_bar: modalkit_ratatui::cmdbar::CommandBar::new().focus(focused.get()),
         })
         .layout_props(self.props)
         .id(id)
         .focusable(true)
+    }
+}
+
+struct RenderCommandBar<T>
+where
+    T: CommandCompleter + ApplicationAction,
+{
+    state: CommandBarState<AppInfo<T>>,
+    command_bar: modalkit_ratatui::cmdbar::CommandBar<'static, AppInfo<T>>,
+}
+
+impl<T> RenderNode for RenderCommandBar<T>
+where
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+{
+    fn render(&mut self, rect: Rect, frame: &mut Frame) {
+        self.command_bar
+            .clone()
+            .render(rect, frame.buffer_mut(), &mut self.state);
+        if let Some((cx, cy)) = self.state.get_term_cursor() {
+            frame.set_cursor_position((cx, cy));
+        }
+    }
+}
+
+impl<T> MeasureNode for RenderCommandBar<T>
+where
+    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+{
+    fn measure(
+        &self,
+        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        available_space: rooibos_reactive::dom::div::taffy::Size<
+            rooibos_reactive::dom::div::taffy::AvailableSpace,
+        >,
+        style: &rooibos_reactive::dom::div::taffy::Style,
+    ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        Size {
+            width: 0.0,
+            height: 1.0,
+        }
     }
 }

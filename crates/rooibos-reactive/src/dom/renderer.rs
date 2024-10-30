@@ -1,3 +1,4 @@
+use ratatui::text;
 use ratatui::widgets::WidgetRef;
 use rooibos_dom::{AsDomNode, clear_children, text, unmount_child};
 use tachys::prelude::Renderer;
@@ -6,7 +7,7 @@ use tachys::view::Render as _;
 use tracing::info;
 
 use super::DomNode;
-use crate::wgt;
+use crate::{RenderWidget, RenderWidgetRef, wgt};
 
 pub trait RenderAny: tachys::view::Render<RooibosDom> {}
 
@@ -55,10 +56,9 @@ impl Renderer for RooibosDom {
 
     fn set_text(node: &Self::Text, text: &str) {
         let text = text.to_string();
-        node.replace_widget(rooibos_dom::DomWidgetNode::new::<String, _, _>(move || {
-            let text = text.clone();
-            move |rect, frame| {
-                text.render_ref(rect, frame.buffer_mut());
+        node.replace_widget(rooibos_dom::DomWidgetNode::new::<String, _>(move || {
+            RenderWidgetRef {
+                widget: text.clone(),
             }
         }));
         node.clone().build();

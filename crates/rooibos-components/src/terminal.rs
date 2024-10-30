@@ -6,8 +6,9 @@ use portable_pty::{MasterPty, NativePtySystem, PtySize, PtySystem, SlavePty};
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
-use rooibos_dom::Event;
 use rooibos_dom::events::KeyEventProps;
+use rooibos_dom::{Event, MeasureNode, RenderNode};
+use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, Render};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
@@ -16,7 +17,7 @@ use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 use tokio::sync::mpsc;
 use tokio::task::spawn_blocking;
 use tui_term::widget::PseudoTerminal;
-use vt100::Screen;
+use vt100::{Parser, Screen};
 
 #[derive(Clone, Copy)]
 pub struct TerminalRef {
@@ -111,18 +112,9 @@ impl Terminal {
             }
         });
 
-        DomWidget::new::<PseudoTerminal<Screen>, _, _>(move || {
-            let parser = parser.get();
-            let block = block.as_ref().map(|b| b.get());
-            move |rect: Rect, frame: &mut Frame| {
-                let parser = parser.lock().unwrap();
-
-                let mut term = PseudoTerminal::new(parser.screen());
-                if let Some(block) = block.clone() {
-                    term = term.block(block);
-                }
-                term.render(rect, frame.buffer_mut());
-            }
+        DomWidget::new::<PseudoTerminal<Screen>, _>(move || RenderTerminal {
+            parser: parser.get(),
+            block: block.as_ref().map(|b| b.get()),
         })
         .on_key_down(move |props: KeyEventProps| {
             tx.try_send(Event::Key(props.event).to_escape_sequence())
@@ -144,5 +136,35 @@ impl Terminal {
                 p.lock().unwrap().set_size(rect.height, rect.width);
             })
         })
+    }
+}
+
+struct RenderTerminal {
+    parser: Arc<Mutex<Parser>>,
+    block: Option<Block<'static>>,
+}
+
+impl RenderNode for RenderTerminal {
+    fn render(&mut self, rect: Rect, frame: &mut Frame) {
+        let parser = self.parser.lock().unwrap();
+
+        let mut term = PseudoTerminal::new(parser.screen());
+        if let Some(block) = self.block.clone() {
+            term = term.block(block);
+        }
+        term.render(rect, frame.buffer_mut());
+    }
+}
+
+impl MeasureNode for RenderTerminal {
+    fn measure(
+        &self,
+        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        available_space: rooibos_reactive::dom::div::taffy::Size<
+            rooibos_reactive::dom::div::taffy::AvailableSpace,
+        >,
+        style: &rooibos_reactive::dom::div::taffy::Style,
+    ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        Size::zero()
     }
 }
