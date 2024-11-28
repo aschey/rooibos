@@ -36,7 +36,7 @@ use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
 use wasm_compat::sync::Mutex;
 
-use crate::parse;
+use crate::{keys, parse};
 
 #[cfg(feature = "runtime")]
 pub trait CommandFilter<T>
@@ -235,15 +235,15 @@ where
         provide_command_context::<T>();
         let mut ism = ModalMachine::<TerminalKey, InputStep<AppInfo<T>>>::empty();
         let colon = parse(":");
-        let esc = parse("<Esc>");
-        let enter = parse("<Enter>");
-        let up = parse("<Up>");
-        let down = parse("<Down>");
-        let left = parse("<Left>");
-        let right = parse("<Right>");
-        let tab = parse("<Tab>");
-        let shift_tab = parse("<S-Tab>");
-        let backspace = parse("<BS>");
+        let esc = parse(keys::ESC);
+        let enter = parse(keys::ENTER);
+        let up = parse(keys::UP);
+        let down = parse(keys::DOWN);
+        let left = parse(keys::LEFT);
+        let right = parse(keys::RIGHT);
+        let tab = parse(keys::TAB);
+        let shift_tab = parse(keys::combine([keys::SHIFT, keys::TAB]));
+        let backspace = parse(keys::BACKSPACE);
 
         ism.add_mapping(
             VimMode::Normal,

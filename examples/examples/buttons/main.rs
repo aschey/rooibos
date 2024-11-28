@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
-use rooibos::keybind::{Bind, KeybindContext, map_handler};
+use rooibos::keybind::{Bind, KeybindContext, keys, map_handler};
 use rooibos::reactive::dom::{Render, focus_id, mount, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -77,14 +77,22 @@ fn app() -> impl Render {
                 focus_id(smaller);
                 smaller_ref.click();
             }),
-            map_handler("{dec}+", move |_, context: KeybindContext| {
-                focus_id(bigger);
-                adjust_size(context.keys[0].get_numeric() as f32);
-            }),
-            map_handler("{dec+}-", move |_, context: KeybindContext| {
-                focus_id(smaller);
-                adjust_size(-1.0 * context.keys[0].get_numeric() as f32);
-            }),
+            //"{dec+}+"
+            map_handler(
+                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('+')]),
+                move |_, context: KeybindContext| {
+                    focus_id(bigger);
+                    adjust_size(context.keys[0].get_numeric() as f32);
+                },
+            ),
+            //"{dec+}-"
+            map_handler(
+                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('-')]),
+                move |_, context: KeybindContext| {
+                    focus_id(smaller);
+                    adjust_size(-1.0 * context.keys[0].get_numeric() as f32);
+                },
+            ),
         ]
         .bind(),
     )

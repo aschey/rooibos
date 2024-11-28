@@ -1,8 +1,10 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::keybind::{Bind, map_handler};
-use rooibos::reactive::dom::layout::{align_items, chars, justify_content, position, show};
+use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::reactive::dom::layout::{
+    Borders, align_items, borders, chars, justify_content, position, show,
+};
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, mount, text,
 };
@@ -13,7 +15,6 @@ use rooibos::reactive::{col, height, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::widgets::{Block, Paragraph};
 use taffy::{AlignItems, JustifyContent, Position};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -83,8 +84,8 @@ fn popup(
             justify_content(JustifyContent::Center),
         ),
         wgt!(
-            props(height!(3.), width!(40.)),
-            Paragraph::new("Are you sure you want to exit? [yN]").block(Block::bordered())
+            props(borders(Borders::all()), height!(3.), width!(40.)),
+            "Are you sure you want to exit? [yN]"
         )
         .id(popup_id)
         .on_key_down(
@@ -92,7 +93,7 @@ fn popup(
                 map_handler("y", move |_, _| {
                     on_confirm();
                 }),
-                map_handler("{any}", move |_, _| {
+                map_handler(keys::ANY, move |_, _| {
                     on_cancel();
                 })
             ]

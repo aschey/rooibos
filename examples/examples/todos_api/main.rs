@@ -1,5 +1,6 @@
 use rooibos::keybind::{
-    Bind, CommandFilter, KeybindContext, extract, handle_command, map_handler, use_command_context,
+    Bind, CommandFilter, KeybindContext, extract, handle_command, keys, map_handler,
+    use_command_context,
 };
 mod client;
 mod server;
@@ -14,7 +15,7 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    align_items, block, chars, clear, grow, justify_content, max_width, position, show,
+    align_items, chars, clear, grow, justify_content, max_width, position, show,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, WidgetState, after_render, focus_id, line, mount,
@@ -131,14 +132,22 @@ fn app(notification_timeout: Duration) -> impl Render {
             map_handler("a", move |_, _| {
                 focus_id(input_id);
             }),
-            map_handler("{dec+}e", move |_, context: KeybindContext| {
-                let id = context.keys[0].get_numeric();
-                command_context.dispatch(Command::Edit { id });
-            }),
-            map_handler("{dec+}d", move |_, context: KeybindContext| {
-                let id = context.keys[0].get_numeric();
-                command_context.dispatch(Command::Delete { id });
-            }),
+            // {dec+}e
+            map_handler(
+                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('e')]),
+                move |_, context: KeybindContext| {
+                    let id = context.keys[0].get_numeric();
+                    command_context.dispatch(Command::Edit { id });
+                },
+            ),
+            // {dec+}d
+            map_handler(
+                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('d')]),
+                move |_, context: KeybindContext| {
+                    let id = context.keys[0].get_numeric();
+                    command_context.dispatch(Command::Delete { id });
+                },
+            ),
         ]
         .bind(),
     )

@@ -2,6 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::keybind::{
     Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyMap, extract, handle_command,
+    keys,
 };
 use rooibos::reactive::dom::layout::chars;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span};
@@ -42,10 +43,14 @@ fn app() -> impl Render {
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(
                 [
-                    KeyMap::action("<C-Up>", AppAction::Count { val: 1 }),
-                    KeyMap::action("<C-Down>", AppAction::Count { val: -1 }),
-                    KeyMap::handler("<Up>", move |_, _| increase_count()),
-                    KeyMap::handler("<Down>", move |_, _| decrease_count()),
+                    KeyMap::action(keys::combine([keys::CTRL, keys::UP]), AppAction::Count {
+                        val: 1
+                    }),
+                    KeyMap::action(keys::combine([keys::CTRL, keys::DOWN]), AppAction::Count {
+                        val: -1
+                    }),
+                    KeyMap::handler(keys::UP, move |_, _| increase_count()),
+                    KeyMap::handler(keys::DOWN, move |_, _| decrease_count()),
                 ]
                 .bind()
             )

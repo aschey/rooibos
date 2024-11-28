@@ -1,6 +1,9 @@
 mod command_bar;
 mod command_handler;
 mod key_handler;
+pub mod keys;
+
+use std::fmt;
 
 pub use command_bar::*;
 pub use command_handler::*;
@@ -14,6 +17,11 @@ pub use modalkit::keybindings::SequenceStatus;
 use modalkit::keybindings::{EdgeEvent, EdgeRepeat};
 pub use rooibos_keybind_macros::*;
 
-fn parse(input: &str) -> Vec<(EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyClass>)> {
-    modalkit::env::keyparse::parse(input).unwrap().1
+fn parse<S>(input: S) -> Vec<(EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyClass>)>
+where
+    S: fmt::Display,
+{
+    modalkit::env::keyparse::parse(&input.to_string())
+        .unwrap()
+        .1
 }

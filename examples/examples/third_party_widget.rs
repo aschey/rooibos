@@ -67,7 +67,7 @@ fn app() -> impl Render {
         _ => {}
     };
 
-    DomWidget::new::<Tree<&str>, _, _>(move || {
+    DomWidget::new::<Tree<&str>, _>(move || {
         let tree = tree.get();
         state.track();
         move |rect: Rect, frame: &mut Frame| {

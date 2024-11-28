@@ -142,7 +142,7 @@ where
         S: Into<MaybeSignal<String>>,
     {
         let key = key.into();
-        let key = derive_signal!(parse(&key.get()));
+        let key = derive_signal!(parse(key.get()));
         self.map_action_inner(key, action)
     }
 
@@ -185,7 +185,7 @@ where
             Box::new(handler) as Box<dyn KeybindHandler + Send + Sync>
         ));
         let key = key.into();
-        let key = derive_signal!(parse(&key.get()));
+        let key = derive_signal!(parse(key.get()));
 
         self.map_handler_inner(key, handler);
     }
@@ -270,7 +270,7 @@ where
         S: Into<MaybeSignal<String>>,
     {
         let key = key.into();
-        let key = derive_signal!(parse(&key.get()));
+        let key = derive_signal!(parse(key.get()));
         Self::Action(key, action)
     }
 
@@ -280,7 +280,7 @@ where
         H: KeybindHandler + Send + Sync + 'static,
     {
         let key = key.into();
-        let key = derive_signal!(parse(&key.get()));
+        let key = derive_signal!(parse(key.get()));
         KeyMap::Handler(key, Arc::new(Mutex::new(Box::new(handler))))
     }
 }
