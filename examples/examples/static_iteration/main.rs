@@ -33,8 +33,7 @@ fn counter(row_height: Signal<taffy::Dimension>) -> impl Render {
 
     wgt![
         props(height(row_height)),
-        Paragraph::new(line!("count: ".bold().reset(), span!(count.get()).cyan()))
-            .block(block.get())
+        line!("count: ".bold().reset(), span!(count.get()).cyan()).block(block.get())
     ]
     .on_focus(move |_, _| set_block.set(Block::bordered().blue()))
     .on_blur(move |_, _| set_block.set(Block::bordered().border_set(border::EMPTY)))

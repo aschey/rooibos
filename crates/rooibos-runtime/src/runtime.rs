@@ -391,7 +391,9 @@ where
         self.cancel_input_reader().await;
 
         restore_terminal()?;
-        terminal.clear().await;
+        // enter alt screen to prevent flickering before the new command is shown
+        terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t))?;
+
         let mut child = command.lock().expect("lock poisoned").spawn()?;
 
         let child_stdout = child.stdout.take();
