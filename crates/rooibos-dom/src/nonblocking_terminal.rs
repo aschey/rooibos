@@ -8,6 +8,7 @@ use ratatui::text::Text;
 use ratatui::widgets::{Paragraph, Widget as _};
 use ratatui::{Frame, Terminal};
 use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 use wasm_compat::sync::RwLock;
 
 pub(crate) struct BidiChannel<S, R> {
@@ -50,6 +51,7 @@ where
 {
     terminal: Arc<RwLock<ratatui::Terminal<B>>>,
     requester: BidiChannel<TermRequest<B>, TermResponse>,
+    handle: JoinHandle<()>,
 }
 
 impl<B> NonblockingTerminal<B>
@@ -60,7 +62,7 @@ where
         let terminal = Arc::new(RwLock::new(terminal));
         let (requester, mut handle) = channel::<TermRequest<B>, TermResponse>(1);
 
-        tokio::task::spawn_blocking({
+        let handle = tokio::task::spawn_blocking({
             let terminal = terminal.clone();
             move || {
                 while let Some(req) = handle.rx.blocking_recv() {
@@ -128,6 +130,7 @@ where
         Self {
             terminal,
             requester,
+            handle,
         }
     }
 
@@ -204,6 +207,11 @@ where
         F: FnMut(&mut Terminal<B>) -> R,
     {
         f(&mut self.terminal.write())
+    }
+
+    pub async fn join(self) {
+        drop(self.requester);
+        self.handle.await.unwrap();
     }
 }
 

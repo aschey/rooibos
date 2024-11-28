@@ -1,19 +1,16 @@
 use std::error::Error;
-use std::io::{self, Write};
+use std::io;
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use ::wasm_compat::sync::RwLock;
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
 use ratatui::Viewport;
-use ratatui::backend::{Backend as TuiBackend, WindowSize};
 use ratatui::layout::{Position, Size};
-use ratatui::widgets::{Paragraph, Widget};
 use rooibos_dom::events::dispatch_event;
 use rooibos_dom::{
     DomUpdateReceiver, Event, NonblockingTerminal, dom_update_receiver, focus_next,
@@ -22,7 +19,7 @@ use rooibos_dom::{
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
@@ -245,6 +242,7 @@ where
                     self.draw(&mut terminal).await;
                 }
                 TickResult::Restart => {
+                    terminal.join().await;
                     terminal = self
                         .setup_terminal()
                         .await
@@ -368,15 +366,7 @@ where
         Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    async fn handle_exec(
-        &mut self,
-        command: Arc<std::sync::Mutex<tokio::process::Command>>,
-        terminal: &mut NonblockingTerminal<B::TuiBackend>,
-        on_finish: Arc<std::sync::Mutex<Option<Box<crate::OnFinishFn>>>>,
-    ) -> Result<(), crate::error::ExecError> {
-        use crate::error::ExecError;
-
+    async fn cancel_input_reader(&mut self) {
         if let Some(input_task_id) = self.input_task_id.take() {
             let input_service = self
                 .service_context
@@ -388,6 +378,17 @@ where
                 .await
                 .inspect_err(|e| error!("input reader failed: {e:?}"));
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn handle_exec(
+        &mut self,
+        command: Arc<std::sync::Mutex<tokio::process::Command>>,
+        terminal: &mut NonblockingTerminal<B::TuiBackend>,
+        on_finish: Arc<std::sync::Mutex<Option<Box<crate::OnFinishFn>>>>,
+    ) -> Result<(), crate::error::ExecError> {
+        use crate::error::ExecError;
+        self.cancel_input_reader().await;
 
         restore_terminal()?;
         terminal.clear().await;
@@ -429,6 +430,7 @@ where
             command = self.runtime_command_rx.recv() => {
                 match command {
                     Ok(RuntimeCommand::Suspend) => {
+                        self.cancel_input_reader().await;
                         restore_terminal()?;
                         #[cfg(unix)]
                         signal_hook::low_level::emulate_default_handler(async_signal::Signal::Tstp as i32)
