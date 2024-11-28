@@ -535,6 +535,10 @@ impl DomNode {
         with_nodes_mut(|n| n.update_event_handlers(self.key, update));
     }
 
+    pub fn force_recompute_layout(&self) {
+        with_nodes_mut(|n| n.force_recompute_layout(self.key));
+    }
+
     pub fn on_key_down<H>(self, handler: H) -> Self
     where
         H: IntoKeyHandler + 'static,

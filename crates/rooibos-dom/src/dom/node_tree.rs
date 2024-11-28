@@ -8,10 +8,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use ratatui::layout::Rect;
 use ratatui::widgets::Block;
 use slotmap::{SlotMap, new_key_type};
-use taffy::{
-    AvailableSpace, Dimension, Display, FlexDirection, NodeId, Point, Position, Size, Style,
-    TaffyTree,
-};
+use taffy::{AvailableSpace, Dimension, NodeId, Point, Size, Style, TaffyTree};
 
 use super::{MeasureNode, dom_node, refresh_dom};
 use crate::events::{BlurEvent, EventData, EventHandlers, FocusEvent};
@@ -86,23 +83,11 @@ pub(crate) struct TreeValue {
     layout_id: NodeId,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct Context {
     offset: Point<f32>,
-    //width_auto: bool,
-    //height_auto: bool,
-    key: DomNodeKey,
-}
 
-impl Default for Context {
-    fn default() -> Self {
-        Self {
-            offset: Default::default(),
-            //   width_auto: true,
-            //  height_auto: true,
-            key: DomNodeKey::default(),
-        }
-    }
+    key: DomNodeKey,
 }
 
 static ROOT_ID: AtomicU32 = AtomicU32::new(1);
@@ -180,7 +165,7 @@ impl NodeTree {
         }
     }
 
-    pub fn recompute_layout(&mut self, rect: Rect) {
+    pub fn recompute_full_layout(&mut self, rect: Rect) {
         let root_keys: Vec<_> = self
             .roots
             .values()
@@ -213,6 +198,12 @@ impl NodeTree {
                 y: rect.y as f32,
             });
         }
+    }
+
+    pub fn force_recompute_layout(&mut self, key: DomNodeKey) {
+        self.layout_tree
+            .mark_dirty(self.dom_nodes[key].layout_id)
+            .unwrap();
     }
 
     pub fn set_root(&mut self, z_index: i32, root: impl AsDomNode + 'static) {

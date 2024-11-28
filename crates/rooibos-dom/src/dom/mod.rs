@@ -186,7 +186,7 @@ pub fn render_dom(frame: &mut Frame) {
         print_dom().render_ref(buf.area, buf);
     } else {
         with_nodes_mut(|nodes| {
-            nodes.recompute_layout(buf.area);
+            nodes.recompute_full_layout(buf.area);
             nodes.clear_focusables();
         });
 

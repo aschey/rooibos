@@ -6,11 +6,13 @@ use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
 use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, NodeId, RenderNode, WidgetState, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
-use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
+use rooibos_reactive::dom::{DomWidget, DomWidgetRef, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
 use rooibos_reactive::graph::signal::RwSignal;
-use rooibos_reactive::graph::traits::{Get, GetValue, Set, Track, Update, UpdateUntracked, With};
+use rooibos_reactive::graph::traits::{
+    Get, GetUntracked, GetValue, Set, Track, Update, UpdateUntracked, With, WithValue,
+};
 use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
@@ -20,6 +22,7 @@ use wasm_compat::futures::spawn_local;
 pub struct InputRef {
     text_area: RwSignal<TextArea<'static>>,
     submit_tx: StoredValue<broadcast::Sender<String>>,
+    widget_ref: StoredValue<DomWidgetRef>,
 }
 
 impl InputRef {
@@ -30,6 +33,10 @@ impl InputRef {
 }
 
 impl InputRef {
+    fn update(&self) {
+        self.widget_ref.with_value(|r| r.force_recompute_layout());
+    }
+
     pub fn submit(&self) {
         self.submit_tx
             .get_value()
@@ -60,6 +67,7 @@ impl InputRef {
     }
 
     pub fn paste(&self) -> bool {
+        self.update();
         self.text_area.try_update(|t| t.paste()).unwrap()
     }
 
@@ -68,18 +76,21 @@ impl InputRef {
     }
 
     pub fn delete_line_by_head(&self) -> bool {
+        self.update();
         self.text_area
             .try_update(|t| t.delete_line_by_head())
             .unwrap()
     }
 
     pub fn delete_line_by_end(&self) -> bool {
+        self.update();
         self.text_area
             .try_update(|t| t.delete_line_by_end())
             .unwrap()
     }
 
     pub fn delete_line(&self) -> bool {
+        self.update();
         self.text_area
             .try_update(|t| {
                 t.move_cursor(CursorMove::End);
@@ -164,13 +175,13 @@ impl UpdateLayoutProps for Input {
 }
 
 impl Input {
-    pub fn block(
-        mut self,
-        block: impl Fn(WidgetState) -> Option<Block<'static>> + Send + Sync + 'static,
-    ) -> Self {
-        self.block = Box::new(block);
-        self
-    }
+    // pub fn block(
+    //     mut self,
+    //     block: impl Fn(WidgetState) -> Option<Block<'static>> + Send + Sync + 'static,
+    // ) -> Self {
+    //     self.block = Box::new(block);
+    //     self
+    // }
 
     pub fn placeholder_text(mut self, placeholder_text: impl Into<MaybeSignal<String>>) -> Self {
         self.placeholder_text = placeholder_text.into();
@@ -207,6 +218,7 @@ impl Input {
         InputRef {
             text_area: RwSignal::new(TextArea::default()),
             submit_tx: StoredValue::new(submit_tx),
+            widget_ref: StoredValue::new(DomWidget::get_ref()),
         }
     }
 
@@ -228,6 +240,7 @@ impl Input {
 
         let text_area = input_ref.text_area;
         let submit_tx = input_ref.submit_tx.get_value();
+        let mut widget_ref = input_ref.widget_ref.get_value();
         let mut submit_rx = submit_tx.subscribe();
 
         on_cleanup(|| {
@@ -240,10 +253,10 @@ impl Input {
         });
 
         let widget_state = RwSignal::new(WidgetState::Default);
-        let block = derive_signal!({
-            let state = widget_state.get();
-            return block(state);
-        });
+        // let block = derive_signal!({
+        //     let state = widget_state.get();
+        //     return block(state);
+        // });
 
         spawn_local(async move {
             while let Ok(line) = submit_rx.recv().await {
@@ -266,39 +279,48 @@ impl Input {
 
                 t.set_placeholder_text(placeholder_text.get());
                 t.set_placeholder_style(placeholder_style.get());
-                if let Some(block) = block.get() {
-                    t.set_block(block)
-                }
+                // if let Some(block) = block.get() {
+                //     t.set_block(block)
+                // }
             });
         });
 
-        let key_down = move |mut props: KeyEventProps| {
-            let has_modifiers = !props.event.modifiers.is_empty();
-            if !has_modifiers {
-                // If the input widget is focused and there's no modifiers, we should consume the
-                // input to prevent it from triggering any keybindings on a parent
-                props.handle.stop_propagation();
-            }
-            if props.event.code == KeyCode::Enter && !has_modifiers {
-                let line = text_area.with(|t| t.lines()[0].clone());
-                submit_tx.send(line).unwrap();
-                return;
-            }
-
-            text_area.update(|t| {
-                #[cfg(feature = "crossterm")]
-                if let Ok(event) =
-                    <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
-                {
-                    t.input(event);
+        let key_down = {
+            let widget_ref = widget_ref.clone();
+            move |mut props: KeyEventProps| {
+                let has_modifiers = !props.event.modifiers.is_empty();
+                if !has_modifiers {
+                    // If the input widget is focused and there's no modifiers, we should consume
+                    // the input to prevent it from triggering any keybindings
+                    // on a parent
+                    props.handle.stop_propagation();
                 }
-            });
+                if props.event.code == KeyCode::Enter && !has_modifiers {
+                    let line = text_area.with(|t| t.lines()[0].clone());
+                    submit_tx.send(line).unwrap();
+                    return;
+                }
+
+                text_area.update(|t| {
+                    #[cfg(feature = "crossterm")]
+                    if let Ok(event) =
+                        <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
+                    {
+                        t.input(event);
+                        widget_ref.force_recompute_layout();
+                    }
+                });
+            }
         };
 
-        let paste = move |text: String, _, _| {
-            text_area.update(|t| {
-                t.insert_str(text);
-            });
+        let paste = {
+            let widget_ref = widget_ref.clone();
+            move |text: String, _, _| {
+                text_area.update(|t| {
+                    t.insert_str(text);
+                    widget_ref.force_recompute_layout();
+                });
+            }
         };
 
         let mut widget = DomWidget::new::<TextArea, _>(move || {
@@ -322,6 +344,7 @@ impl Input {
         if let Some(id) = id {
             widget = widget.id(id);
         }
+        widget.set_ref(&mut widget_ref);
         widget
     }
 }
@@ -345,6 +368,18 @@ impl MeasureNode for RenderInput {
         >,
         style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
-        Size::zero()
+        let text = self.text_area.get_untracked();
+        let lines = text.lines();
+        let max_len = lines
+            .iter()
+            .map(|l| l.measure(known_dimensions, available_space, style).width)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.);
+
+        Size {
+            // +1 for cursor
+            width: (text.placeholder_text().len() as f32).max(max_len) + 1.,
+            height: lines.len() as f32,
+        }
     }
 }

@@ -1,3 +1,7 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::sync::Arc;
+
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
@@ -6,8 +10,9 @@ use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
     KeyHandler,
 };
-use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
+use rooibos_dom::{AsDomNode, BuildNodeRenderer, DomNodeKey, NodeId};
 use tachys::prelude::*;
+use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
@@ -20,6 +25,17 @@ use super::layout::{
     padding_right, padding_top, padding_x, padding_y, position, shrink, width,
 };
 use crate::dom::RooibosDom;
+
+#[derive(Clone, Debug)]
+pub struct DomWidgetRef {
+    inner: Arc<RwLock<DomNode>>,
+}
+
+impl DomWidgetRef {
+    pub fn force_recompute_layout(&self) {
+        self.inner.read().force_recompute_layout();
+    }
+}
 
 #[derive(Clone)]
 pub struct DomWidget<P> {
@@ -68,6 +84,12 @@ impl DomWidget<()> {
             properties: (),
         }
     }
+
+    pub fn get_ref() -> DomWidgetRef {
+        DomWidgetRef {
+            inner: Arc::new(RwLock::new(DomNode::default())),
+        }
+    }
 }
 
 impl<P> DomWidget<P> {
@@ -97,6 +119,10 @@ impl<P> DomWidget<P> {
     pub fn z_index(mut self, z_index: i32) -> Self {
         self.inner.0 = self.inner.0.z_index(z_index);
         self
+    }
+
+    pub fn set_ref(&self, widget_ref: &mut DomWidgetRef) {
+        *widget_ref.inner.write() = self.inner.clone();
     }
 }
 
