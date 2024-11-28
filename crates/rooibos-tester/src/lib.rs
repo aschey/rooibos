@@ -6,7 +6,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use rooibos_dom::{
     DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
-    NodeTypeRepr, focus_next, render_terminal,
+    NodeTypeRepr, NonblockingTerminal, focus_next, render_terminal,
 };
 #[cfg(feature = "runtime")]
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
@@ -66,7 +66,7 @@ impl TerminalView for Buffer {
 pub struct TestHarness {
     #[cfg(feature = "runtime")]
     runtime: Runtime<TestBackend>,
-    terminal: Terminal<ratatui::backend::TestBackend>,
+    terminal: NonblockingTerminal<ratatui::backend::TestBackend>,
     event_tx: broadcast::Sender<Event>,
 }
 
@@ -77,14 +77,18 @@ impl TestHarness {
     }
 
     #[cfg(feature = "runtime")]
-    pub fn new_with_settings(runtime_settings: RuntimeSettings, width: u16, height: u16) -> Self {
+    pub async fn new_with_settings(
+        runtime_settings: RuntimeSettings,
+        width: u16,
+        height: u16,
+    ) -> Self {
         use rooibos_dom::render_terminal;
 
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
         let mut runtime = Runtime::initialize_with(runtime_settings, backend);
-        let mut terminal = runtime.setup_terminal().unwrap();
-        render_terminal(&mut terminal).unwrap();
+        let mut terminal = runtime.setup_terminal().await.unwrap();
+        render_terminal(&mut terminal).await.unwrap();
         focus_next();
 
         Self {
@@ -94,14 +98,14 @@ impl TestHarness {
         }
     }
 
-    pub fn from_terminal(
-        mut terminal: Terminal<ratatui::backend::TestBackend>,
+    pub async fn from_terminal(
+        mut terminal: NonblockingTerminal<ratatui::backend::TestBackend>,
         width: u16,
         height: u16,
     ) -> Self {
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
-        render_terminal(&mut terminal).unwrap();
+        render_terminal(&mut terminal).await.unwrap();
         focus_next();
 
         Self {
@@ -112,12 +116,13 @@ impl TestHarness {
         }
     }
 
-    pub fn terminal(&self) -> &Terminal<ratatui::backend::TestBackend> {
+    pub fn terminal(&self) -> &NonblockingTerminal<ratatui::backend::TestBackend> {
         &self.terminal
     }
 
-    pub fn buffer(&self) -> &Buffer {
-        self.terminal.backend().buffer()
+    pub fn buffer(&self) -> Buffer {
+        self.terminal
+            .with_terminal_mut(|t| t.backend().buffer().clone())
     }
 
     #[cfg(feature = "runtime")]
@@ -264,11 +269,11 @@ impl TestHarness {
                     last_tick_result = Some(tick_result.clone());
                     match tick_result {
                         TickResult::Redraw => {
-                            render_terminal(&mut self.terminal).unwrap();
+                            render_terminal(&mut self.terminal).await.unwrap();
                         }
                         TickResult::Restart => {
-                            self.terminal = self.runtime.setup_terminal().unwrap();
-                            render_terminal(&mut self.terminal).unwrap();
+                            self.terminal = self.runtime.setup_terminal().await.unwrap();
+                            render_terminal(&mut self.terminal).await.unwrap();
                         }
                         TickResult::Exit(_) => {
                             panic!("application exited");

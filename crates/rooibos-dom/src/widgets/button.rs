@@ -8,7 +8,6 @@ use crate::MeasureNode;
 
 pub struct Button<'a> {
     text: Text<'a>,
-    inner: Paragraph<'a>,
 }
 
 impl<'a> Button<'a> {
@@ -16,25 +15,11 @@ impl<'a> Button<'a> {
     where
         T: Into<Text<'a>>,
     {
-        let text = text.into();
-        Self {
-            text: text.clone(),
-            inner: Paragraph::new(text).centered(),
-        }
-    }
-
-    pub fn block(mut self, block: Block<'a>) -> Self {
-        self.inner = self.inner.block(block);
-        self
-    }
-
-    pub fn style<S: Into<Style>>(mut self, style: S) -> Self {
-        self.inner = self.inner.style(style);
-        self
+        Self { text: text.into() }
     }
 
     pub fn alignment(mut self, alignment: Alignment) -> Self {
-        self.inner = self.inner.alignment(alignment);
+        self.text = self.text.alignment(alignment);
         self
     }
 
@@ -51,21 +36,9 @@ impl<'a> Button<'a> {
     }
 }
 
-impl<'a> Styled for Button<'a> {
-    type Item = Self;
-
-    fn style(&self) -> Style {
-        Styled::style(&self.inner)
-    }
-
-    fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
-        self.style(style)
-    }
-}
-
 impl<'a> WidgetRef for Button<'a> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        self.inner.render_ref(area, buf);
+        self.text.render_ref(area, buf);
     }
 }
 

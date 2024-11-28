@@ -12,7 +12,6 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;
-use rooibos::tui::widgets::Paragraph;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -100,15 +99,13 @@ fn button<F>(
 where
     F: Fn() + Clone + 'static,
 {
-    row![
-        props(height!(3.)),
-        Button::new()
-            .id(title.to_string())
-            .enabled(enabled)
-            .element_ref(button_ref)
-            .on_click(on_click)
-            .render(text!(title))
-    ]
+    Button::new()
+        .id(title.to_string())
+        .centered()
+        .enabled(enabled)
+        .element_ref(button_ref)
+        .on_click(on_click)
+        .render(text!(title))
 }
 
 #[cfg(test)]

@@ -11,15 +11,13 @@ use tachys::prelude::*;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, Basis, Border, BorderBottom, BorderLeft, BorderRight, BorderTop,
-    BorderX, BorderY, Clear, Enabled, Focusable, Grow, Height, Margin, MarginBottom, MarginLeft,
-    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
-    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
-    Shrink, UpdateLayout, Width, align_self, aspect_ratio, basis, border, border_bottom,
-    border_left, border_right, border_top, border_x, border_y, grow, height, margin, margin_bottom,
-    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
-    min_width, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
-    padding_y, position, shrink, width,
+    AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
+    PaddingY, Position, Property, Shrink, UpdateLayout, Width, align_self, aspect_ratio, basis,
+    grow, height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y,
+    max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, position, shrink, width,
 };
 use crate::dom::RooibosDom;
 
@@ -35,6 +33,7 @@ impl WidgetProperty for () {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
+impl WidgetProperty for BorderProp {}
 
 pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
 
@@ -423,14 +422,6 @@ pub struct LayoutProps {
     pub padding_y: PaddingY,
     pub padding: Padding,
 
-    pub border_left: BorderLeft,
-    pub border_right: BorderRight,
-    pub border_top: BorderTop,
-    pub border_bottom: BorderBottom,
-    pub border_x: BorderX,
-    pub border_y: BorderY,
-    pub border: Border,
-
     pub grow: Grow,
     pub shrink: Shrink,
     pub basis: Basis,
@@ -470,14 +461,6 @@ impl UpdateLayout for LayoutProps {
             padding_x,
             padding_y,
             padding,
-
-            border_left,
-            border_right,
-            border_top,
-            border_bottom,
-            border_x,
-            border_y,
-            border,
         } = self;
         width.update_layout(original_display, style);
         height.update_layout(original_display, style);
@@ -507,14 +490,6 @@ impl UpdateLayout for LayoutProps {
         padding_x.update_layout(original_display, style);
         padding_y.update_layout(original_display, style);
         padding.update_layout(original_display, style);
-
-        border_left.update_layout(original_display, style);
-        border_right.update_layout(original_display, style);
-        border_top.update_layout(original_display, style);
-        border_bottom.update_layout(original_display, style);
-        border_x.update_layout(original_display, style);
-        border_y.update_layout(original_display, style);
-        border.update_layout(original_display, style);
     }
 }
 
@@ -561,14 +536,6 @@ where
     update_props!(padding_x, taffy::LengthPercentage);
     update_props!(padding_y, taffy::LengthPercentage);
     update_props!(padding, taffy::LengthPercentage);
-
-    update_props!(border_left, taffy::LengthPercentage);
-    update_props!(border_right, taffy::LengthPercentage);
-    update_props!(border_top, taffy::LengthPercentage);
-    update_props!(border_bottom, taffy::LengthPercentage);
-    update_props!(border_x, taffy::LengthPercentage);
-    update_props!(border_y, taffy::LengthPercentage);
-    update_props!(border, taffy::LengthPercentage);
 
     update_props!(grow, f32);
     update_props!(shrink, f32);
@@ -647,14 +614,6 @@ widget_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
 widget_prop!(PaddingX, padding_x, taffy::LengthPercentage);
 widget_prop!(PaddingY, padding_y, taffy::LengthPercentage);
 widget_prop!(Padding, padding, taffy::LengthPercentage);
-
-widget_prop!(BorderLeft, border_left, taffy::LengthPercentage);
-widget_prop!(BorderRight, border_right, taffy::LengthPercentage);
-widget_prop!(BorderTop, border_top, taffy::LengthPercentage);
-widget_prop!(BorderBottom, border_bottom, taffy::LengthPercentage);
-widget_prop!(BorderX, border_x, taffy::LengthPercentage);
-widget_prop!(BorderY, border_y, taffy::LengthPercentage);
-widget_prop!(Border, border, taffy::LengthPercentage);
 
 widget_prop!(Grow, grow, f32);
 widget_prop!(Shrink, shrink, f32);

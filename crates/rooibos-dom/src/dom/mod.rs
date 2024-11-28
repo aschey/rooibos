@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::io::{self, Write};
+use std::sync::LazyLock;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::thread::{self, Thread};
 
 pub use dom_node::*;
 pub use dom_widget::*;
@@ -9,7 +11,10 @@ use ratatui::backend::Backend;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use ratatui::{CompletedFrame, Frame, Terminal};
-use tokio::sync::watch;
+use tokio::sync::{oneshot, watch};
+use tokio::task::{LocalEnterGuard, LocalSet};
+
+use crate::NonblockingTerminal;
 
 mod dom_node;
 mod dom_widget;
@@ -193,19 +198,31 @@ pub fn render_dom(frame: &mut Frame) {
     }
 }
 
-pub fn render_terminal<B>(terminal: &mut Terminal<B>) -> Result<CompletedFrame, io::Error>
+pub async fn render_terminal<B>(terminal: &mut NonblockingTerminal<B>) -> Result<(), io::Error>
 where
-    B: Backend,
+    B: Backend + Send + Sync + 'static,
 {
-    terminal.draw(render_dom)
+    draw(terminal, render_dom).await
 }
 
-pub fn render_single_frame<B>(terminal: &mut Terminal<B>) -> Result<(), io::Error>
+async fn draw<B, F>(terminal: &mut NonblockingTerminal<B>, render_callback: F) -> io::Result<()>
 where
-    B: Backend + Write,
+    B: Backend + Send + Sync + 'static,
+    F: FnOnce(&mut Frame),
 {
-    render_terminal(terminal)?;
-    terminal.backend_mut().write_all(b"\n")?;
+    terminal.auto_resize().await;
+    terminal.with_frame_mut(render_callback);
+    terminal.draw().await;
+
+    Ok(())
+}
+
+pub async fn render_single_frame<B>(terminal: &mut NonblockingTerminal<B>) -> Result<(), io::Error>
+where
+    B: Backend + Send + Sync + io::Write + 'static,
+{
+    render_terminal(terminal).await?;
+    terminal.write(b"\n".into()).await;
     Ok(())
 }
 

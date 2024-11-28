@@ -1,6 +1,7 @@
 mod dom;
 pub mod events;
 mod macros;
+mod nonblocking_terminal;
 pub mod widgets;
 
 use std::cell::{LazyCell, OnceCell};
@@ -11,6 +12,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 pub use dom::*;
+pub use nonblocking_terminal::*;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;

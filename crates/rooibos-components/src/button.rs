@@ -2,12 +2,13 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::time::Duration;
 
+use ratatui::layout::Alignment;
 use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols;
 use ratatui::text::Text;
-use ratatui::widgets::{Block, BorderType};
 use rooibos_dom::events::KeyEventProps;
 use rooibos_dom::{KeyCode, NodeId, WidgetState, delay, supports_keyboard_enhancement};
+use rooibos_reactive::dom::layout::{BorderType, Borders, borders};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
@@ -48,6 +49,7 @@ pub struct Button {
     active_border_color: MaybeSignal<Color>,
     enabled: MaybeSignal<bool>,
     element_ref: Option<ButtonRef>,
+    text_alignment: MaybeSignal<Alignment>,
     id: Option<NodeId>,
     class: Option<String>,
 }
@@ -78,6 +80,7 @@ impl Button {
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
             enabled: true.into(),
+            text_alignment: Alignment::Left.into(),
             element_ref: None,
             id: None,
             class: None,
@@ -130,6 +133,23 @@ impl Button {
         self
     }
 
+    pub fn text_alignment(mut self, alignment: impl Into<MaybeSignal<Alignment>>) -> Self {
+        self.text_alignment = alignment.into();
+        self
+    }
+
+    pub fn left_aligned(self) -> Self {
+        self.text_alignment(Alignment::Left)
+    }
+
+    pub fn right_aligned(self) -> Self {
+        self.text_alignment(Alignment::Right)
+    }
+
+    pub fn centered(self) -> Self {
+        self.text_alignment(Alignment::Center)
+    }
+
     pub fn on_click<C>(mut self, on_click: C) -> Self
     where
         C: FnMut() + Clone + 'static,
@@ -150,11 +170,12 @@ impl Button {
             active_border_color,
             enabled,
             element_ref,
+            text_alignment,
             id,
             class,
         } = self;
 
-        let border_type = RwSignal::new(BorderType::Rounded);
+        let border_type = RwSignal::new(BorderType::Round);
         let focused = RwSignal::new(false);
         let active = RwSignal::new(false);
 
@@ -207,36 +228,38 @@ impl Button {
             }
         };
 
-        let children = children.into();
+        let button_borders = derive_signal!(if enabled.get() {
+            Borders::all()
+                .outer()
+                .border_type(border_type.get())
+                .fg(current_border_color.get())
+        } else {
+            Borders::all().inner().fg(Color::DarkGray)
+        });
+
+        let children: MaybeSignal<Text> = children.into();
         let mut button = wgt![
-            rooibos_dom::widgets::Button::new(children.get())
-                .block(if enabled.get() {
-                    Block::bordered()
-                        .bg(Color::Reset)
-                        .border_type(border_type.get())
-                        .border_style(Style::default().fg(current_border_color.get()))
-                } else {
-                    Block::bordered()
-                        .bg(Color::Reset)
-                        .border_set(symbols::border::QUADRANT_INSIDE)
-                        .fg(Color::DarkGray)
-                })
-                .fg(if enabled.get() {
-                    Color::Reset
-                } else {
-                    Color::Gray
-                })
-                .bg(if enabled.get() {
-                    Color::Reset
-                } else {
-                    Color::DarkGray
-                })
-                .centered()
+            props(borders(button_borders)),
+            rooibos_dom::widgets::Button::new(
+                children
+                    .get()
+                    .fg(if enabled.get() {
+                        Color::Reset
+                    } else {
+                        Color::Gray
+                    })
+                    .bg(if enabled.get() {
+                        Color::Reset
+                    } else {
+                        Color::DarkGray
+                    })
+            )
+            .alignment(text_alignment.get())
         ]
         .enabled(enabled)
         .layout_props(layout_props)
         .on_mouse_enter(move |_, _| border_type.set(BorderType::Double))
-        .on_mouse_leave(move |_, _| border_type.set(BorderType::Rounded))
+        .on_mouse_leave(move |_, _| border_type.set(BorderType::Round))
         .on_click({
             let on_enter = on_enter.clone();
             move |_| on_enter()

@@ -321,14 +321,14 @@ impl NodeProperties {
         } = props;
 
         let prev_rect = *self.rect.borrow();
-        let mut rect = dom_nodes.rect(key);
+        let mut outer = dom_nodes.rect(key);
 
         if self.focusable {
             dom_nodes.add_focusable(key);
         }
 
         if self.clear {
-            Clear.render(rect, frame.buffer_mut());
+            Clear.render(outer, frame.buffer_mut());
         }
 
         // If the widget dimension == the window dimension, there's probably no explicit
@@ -337,21 +337,20 @@ impl NodeProperties {
 
         // If we're using an inline viewport, the (x,y) of the top left corner may be
         // greater than zero, so we need to account for that too.
-        if rect.width == window.width {
-            rect.width = normalize_rect(rect.width, rect.x, window.x);
+        if outer.width == window.width {
+            outer.width = normalize_rect(outer.width, outer.x, window.x);
         }
-        if rect.height == window.height {
-            rect.height = normalize_rect(rect.height, rect.y, window.y);
+        if outer.height == window.height {
+            outer.height = normalize_rect(outer.height, outer.y, window.y);
         }
         // prevent panic if the calculated rect overflows the window area
-        let rect = rect.clamp(window);
+        let outer = outer.clamp(window);
 
+        if let Some(block) = &self.block {
+            block.render_ref(outer, frame.buffer_mut());
+        };
         match &self.node_type {
             NodeType::Layout => {
-                if let Some(block) = &self.block {
-                    block.render_ref(rect, frame.buffer_mut());
-                };
-
                 self.children.iter().for_each(|key| {
                     dom_nodes[*key].render(RenderProps {
                         frame,
@@ -362,14 +361,15 @@ impl NodeProperties {
                 });
             }
             NodeType::Widget(widget) => {
-                widget.render(rect, frame);
+                let inner = dom_nodes.compute_inner(key, outer);
+                widget.render(inner, frame);
             }
             NodeType::Placeholder => {}
         }
-        *self.rect.borrow_mut() = rect;
-        if rect != prev_rect {
+        *self.rect.borrow_mut() = outer;
+        if outer != prev_rect {
             if let Some(on_size_change) = &dom_nodes[key].event_handlers.on_size_change {
-                on_size_change.borrow_mut()(rect);
+                on_size_change.borrow_mut()(outer);
             }
         }
     }

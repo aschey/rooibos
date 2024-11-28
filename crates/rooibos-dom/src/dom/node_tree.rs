@@ -370,12 +370,30 @@ impl NodeTree {
             .layout_tree
             .get_node_context(self.dom_nodes[key].layout_id)
             .unwrap();
-        computed_to_rect(
-            self.layout_tree
-                .layout(self.dom_nodes[key].layout_id)
-                .unwrap(),
-            context,
-        )
+        let computed = self
+            .layout_tree
+            .layout(self.dom_nodes[key].layout_id)
+            .unwrap();
+
+        Rect {
+            x: context.offset.x as u16,
+            y: context.offset.y as u16,
+            width: computed.size.width as u16,
+            height: computed.size.height as u16,
+        }
+    }
+
+    pub(crate) fn compute_inner(&self, key: DomNodeKey, outer: Rect) -> Rect {
+        let computed = self
+            .layout_tree
+            .layout(self.dom_nodes[key].layout_id)
+            .unwrap();
+        Rect {
+            x: outer.x + (computed.border.left) as u16,
+            y: outer.y + (computed.border.top) as u16,
+            width: outer.width - (computed.border.left + computed.border.right) as u16,
+            height: outer.height - (computed.border.top + computed.border.bottom) as u16,
+        }
     }
 
     pub(crate) fn style(&self, key: DomNodeKey) -> taffy::Style {
@@ -793,15 +811,6 @@ impl NodeTree {
         if let Some(prev) = prev {
             self.set_focused(Some(prev));
         }
-    }
-}
-
-fn computed_to_rect(computed: &taffy::Layout, context: &Context) -> Rect {
-    Rect {
-        x: context.offset.x as u16,
-        y: context.offset.y as u16,
-        width: computed.size.width as u16,
-        height: computed.size.height as u16,
     }
 }
 

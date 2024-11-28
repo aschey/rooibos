@@ -3,11 +3,10 @@ use std::time::Duration;
 
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
-use ratatui::widgets::{Block, BorderType, Paragraph};
 use rooibos_reactive::dom::Render;
 use rooibos_reactive::dom::div::taffy::{self, AlignItems};
 use rooibos_reactive::dom::layout::{
-    align_items, block, chars, clear, height, max_width, width, z_index,
+    BorderType, Borders, align_items, borders, chars, clear, height, max_width, width, z_index,
 };
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
@@ -170,11 +169,7 @@ impl Notifications {
             col![
                 props(
                     width(chars(content_width)),
-                    block(
-                        Block::bordered()
-                            .border_type(BorderType::Rounded)
-                            .border_style(Style::new().blue())
-                    )
+                    borders(Borders::all().round().blue())
                 ),
                 for_each(
                     move || notifications.get(),

@@ -1,22 +1,23 @@
 use std::error::Error;
-use std::io;
+use std::io::{self, Write};
 use std::process::ExitCode;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use ::wasm_compat::sync::RwLock;
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
-use ratatui::backend::Backend as TuiBackend;
+use ratatui::Viewport;
+use ratatui::backend::{Backend as TuiBackend, WindowSize};
 use ratatui::layout::{Position, Size};
 use ratatui::widgets::{Paragraph, Widget};
-use ratatui::{Terminal, Viewport};
 use rooibos_dom::events::dispatch_event;
 use rooibos_dom::{
-    DomUpdateReceiver, Event, dom_update_receiver, focus_next, render_terminal, set_pixel_size,
-    unmount,
+    DomUpdateReceiver, Event, NonblockingTerminal, dom_update_receiver, focus_next,
+    render_terminal, set_pixel_size, unmount,
 };
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
@@ -65,7 +66,11 @@ pub enum TickResult {
     Exit(Result<ExitCode, Arc<Box<dyn Error + Send + Sync>>>),
 }
 
-impl<B: Backend + 'static> Runtime<B> {
+impl<B> Runtime<B>
+where
+    B: Backend + 'static,
+    B::TuiBackend: Send + Sync + 'static,
+{
     pub fn initialize(backend: B) -> Self {
         Self::initialize_with(RuntimeSettings::default(), backend)
     }
@@ -125,15 +130,16 @@ impl<B: Backend + 'static> Runtime<B> {
         }
     }
 
-    pub fn setup_terminal(&mut self) -> io::Result<Terminal<B::TuiBackend>> {
+    pub async fn setup_terminal(&mut self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
         let tui_backend = self.backend.create_tui_backend()?;
         let mut terminal =
             ratatui::Terminal::with_options(tui_backend, ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
             })?;
         self.backend.setup_terminal(&mut terminal)?;
+        let mut terminal = NonblockingTerminal::new(terminal);
 
-        let window_size = terminal.backend_mut().window_size().ok();
+        let window_size = terminal.window_size().await.ok();
         let _ = set_pixel_size(window_size.map(|s| Size {
             width: s.pixels.width / s.columns_rows.width,
             height: s.pixels.height / s.columns_rows.height,
@@ -225,19 +231,25 @@ impl<B: Backend + 'static> Runtime<B> {
     }
 
     pub async fn run(mut self) -> Result<ExitCode, RuntimeError> {
-        let mut terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
-        self.draw(&mut terminal);
+        let mut terminal = self
+            .setup_terminal()
+            .await
+            .map_err(RuntimeError::SetupFailure)?;
+        self.draw(&mut terminal).await;
         focus_next();
 
         loop {
             let tick_result = self.tick().await?;
             match tick_result {
                 TickResult::Redraw => {
-                    self.draw(&mut terminal);
+                    self.draw(&mut terminal).await;
                 }
                 TickResult::Restart => {
-                    terminal = self.setup_terminal().map_err(RuntimeError::SetupFailure)?;
-                    self.draw(&mut terminal);
+                    terminal = self
+                        .setup_terminal()
+                        .await
+                        .map_err(RuntimeError::SetupFailure)?;
+                    self.draw(&mut terminal).await;
                 }
                 TickResult::Exit(Ok(code)) => {
                     if self.should_exit().await {
@@ -266,22 +278,24 @@ impl<B: Backend + 'static> Runtime<B> {
 
     pub async fn handle_exit(
         mut self,
-        terminal: &mut Terminal<B::TuiBackend>,
+        terminal: &mut NonblockingTerminal<B::TuiBackend>,
     ) -> Result<(), RuntimeError> {
         if self.show_final_output() {
-            let y = terminal.current_buffer_mut().area.y;
+            let y = terminal.area().y;
             let height = match self.settings.viewport {
-                Viewport::Fullscreen => terminal.size()?.height,
+                Viewport::Fullscreen => terminal.size().await?.height,
                 Viewport::Inline(size) => size,
                 Viewport::Fixed(rect) => rect.height,
             };
             // Move the cursor so we can add a new line at the very bottom
-            terminal.set_cursor_position(Position {
-                x: 0,
-                y: y + height,
-            })?;
+            terminal
+                .set_cursor_position(Position {
+                    x: 0,
+                    y: y + height,
+                })
+                .await;
         } else {
-            terminal.clear()?;
+            terminal.clear().await;
         }
 
         let services_cancel =
@@ -302,7 +316,7 @@ impl<B: Backend + 'static> Runtime<B> {
                 }
                 tick_result = self.tick() => {
                     if let TickResult::Redraw = tick_result? {
-                        self.draw(terminal);
+                        self.draw(terminal).await;
                     }
                 }
             }
@@ -312,31 +326,30 @@ impl<B: Backend + 'static> Runtime<B> {
     pub async fn handle_terminal_command(
         &mut self,
         command: TerminalCommand,
-        terminal: &mut Terminal<B::TuiBackend>,
+        terminal: &mut NonblockingTerminal<B::TuiBackend>,
     ) -> Result<(), RuntimeError> {
         match command {
             TerminalCommand::InsertBefore { height, text } => {
-                terminal.insert_before(height, |buf| {
-                    Paragraph::new(text).render(buf.area, buf);
-                })?;
+                terminal.insert_before(height, text).await;
             }
             TerminalCommand::EnterAltScreen => {
-                self.backend.enter_alt_screen(terminal)?;
-                terminal.clear()?;
+                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t))?;
+                terminal.clear().await;
             }
             TerminalCommand::LeaveAltScreen => {
-                self.backend.leave_alt_screen(terminal)?;
-                terminal.clear()?;
+                terminal.with_terminal_mut(|t| self.backend.leave_alt_screen(t))?;
+                terminal.clear().await;
             }
             TerminalCommand::SetTitle(title) => {
-                self.backend.set_title(terminal, title)?;
+                terminal.with_terminal_mut(|t| self.backend.set_title(t, title.clone()))?;
             }
             TerminalCommand::Poll => {
-                self.backend.poll_input(terminal, &self.term_parser_tx)?;
+                terminal.with_terminal_mut(|t| self.backend.poll_input(t, &self.term_parser_tx))?;
             }
             #[cfg(feature = "clipboard")]
             TerminalCommand::SetClipboard(content, kind) => {
-                self.backend.set_clipboard(terminal, content, kind)?;
+                terminal
+                    .with_terminal_mut(|t| self.backend.set_clipboard(t, content.clone(), kind))?;
             }
             TerminalCommand::Custom(f) => {
                 let mut terminal_fn = f.lock().expect("lock poisoned");
@@ -344,14 +357,14 @@ impl<B: Backend + 'static> Runtime<B> {
                     .as_any_mut()
                     .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
                     .expect("invalid downcast");
-                terminal_fn(terminal);
+                terminal.with_terminal_mut(|t| terminal_fn(t));
             }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
                 self.handle_exec(command, terminal, on_finish).await?;
             }
         };
-        self.draw(terminal);
+        self.draw(terminal).await;
         Ok(())
     }
 
@@ -359,7 +372,7 @@ impl<B: Backend + 'static> Runtime<B> {
     async fn handle_exec(
         &mut self,
         command: Arc<std::sync::Mutex<tokio::process::Command>>,
-        terminal: &mut Terminal<B::TuiBackend>,
+        terminal: &mut NonblockingTerminal<B::TuiBackend>,
         on_finish: Arc<std::sync::Mutex<Option<Box<crate::OnFinishFn>>>>,
     ) -> Result<(), crate::error::ExecError> {
         use crate::error::ExecError;
@@ -377,7 +390,7 @@ impl<B: Backend + 'static> Runtime<B> {
         }
 
         restore_terminal()?;
-        terminal.clear()?;
+        terminal.clear().await;
         let mut child = command.lock().expect("lock poisoned").spawn()?;
 
         let child_stdout = child.stdout.take();
@@ -407,8 +420,8 @@ impl<B: Backend + 'static> Runtime<B> {
         Ok(())
     }
 
-    fn draw(&self, terminal: &mut Terminal<B::TuiBackend>) {
-        render_terminal(terminal).expect("draw failed");
+    async fn draw(&self, terminal: &mut NonblockingTerminal<B::TuiBackend>) {
+        render_terminal(terminal).await.expect("draw failed");
     }
 
     pub async fn tick(&mut self) -> Result<TickResult, RuntimeError> {

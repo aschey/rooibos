@@ -6,14 +6,12 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AspectRatio, Block, Border, BorderBottom, BorderLeft, BorderRight, BorderTop, BorderX, BorderY,
-    Clear, Height, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY,
-    MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight,
-    PaddingTop, PaddingX, PaddingY, Position, Property, Show, Width, ZIndex, aspect_ratio, border,
-    border_bottom, border_left, border_right, border_top, border_x, border_y, height, margin,
-    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
-    max_width, min_height, min_width, padding, padding_bottom, padding_left, padding_right,
-    padding_top, padding_x, padding_y, position, show, width,
+    AspectRatio, BorderProp, Clear, Height, Margin, MarginBottom, MarginLeft, MarginRight,
+    MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
+    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Width,
+    ZIndex, aspect_ratio, height, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, show, width,
 };
 use super::{DomNode, RenderAny, RooibosDom};
 
@@ -55,7 +53,7 @@ pub fn div<C, P>(props: P, children: C) -> Div<C, P> {
 pub trait DivProperty: Property {}
 
 impl DivProperty for () {}
-impl DivProperty for Block {}
+impl DivProperty for BorderProp {}
 impl DivProperty for ZIndex {}
 impl DivProperty for Clear {}
 
@@ -105,14 +103,6 @@ div_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
 div_prop!(PaddingX, padding_x, taffy::LengthPercentage);
 div_prop!(PaddingY, padding_y, taffy::LengthPercentage);
 div_prop!(Padding, padding, taffy::LengthPercentage);
-
-div_prop!(BorderLeft, border_left, taffy::LengthPercentage);
-div_prop!(BorderRight, border_right, taffy::LengthPercentage);
-div_prop!(BorderTop, border_top, taffy::LengthPercentage);
-div_prop!(BorderBottom, border_bottom, taffy::LengthPercentage);
-div_prop!(BorderX, border_x, taffy::LengthPercentage);
-div_prop!(BorderY, border_y, taffy::LengthPercentage);
-div_prop!(Border, border, taffy::LengthPercentage);
 
 div_prop!(Show, show, bool);
 

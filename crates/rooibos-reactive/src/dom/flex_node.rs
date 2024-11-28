@@ -8,16 +8,15 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, Block, Border, BorderBottom,
-    BorderLeft, BorderRight, BorderTop, BorderX, BorderY, Clear, Gap, Grow, Height, JustifyContent,
-    Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight,
-    MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
-    PaddingX, PaddingY, Position, Property, Show, Shrink, Width, Wrap, ZIndex, align_content,
-    align_items, align_self, aspect_ratio, basis, border, border_bottom, border_left, border_right,
-    border_top, border_x, border_y, gap, grow, height, justify_content, margin, margin_bottom,
-    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
-    min_width, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
-    padding_y, position, show, shrink, width, wrap,
+    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Borders, Clear, Gap, Grow,
+    Height, JustifyContent, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX,
+    MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft,
+    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Shrink, Width, Wrap,
+    ZIndex, align_content, align_items, align_self, aspect_ratio, basis, borders, gap, grow,
+    height, justify_content, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, show, shrink, width,
+    wrap,
 };
 use super::{DomNode, RenderAny, RooibosDom};
 use crate::dom::layout::Focusable;
@@ -146,26 +145,9 @@ impl<C, P> FlexNode<C, P> {
     }
 }
 
-impl FlexProperty for Block {}
 impl FlexProperty for ZIndex {}
 impl FlexProperty for Clear {}
 impl FlexProperty for Focusable {}
-
-impl<C, P> FlexNode<C, P>
-where
-    P: NextTuple,
-{
-    pub fn block<S>(self, block: S) -> FlexNode<C, P::Output<Block>>
-    where
-        S: Into<MaybeSignal<ratatui::widgets::Block<'static>>>,
-    {
-        FlexNode {
-            inner: self.inner,
-            children: self.children,
-            properties: self.properties.next_tuple(Block(block.into())),
-        }
-    }
-}
 
 pub fn row<C, P>(props: P, children: C) -> FlexNode<C, P> {
     FlexNode {
@@ -234,13 +216,7 @@ flex_prop!(PaddingX, padding_x, taffy::LengthPercentage);
 flex_prop!(PaddingY, padding_y, taffy::LengthPercentage);
 flex_prop!(Padding, padding, taffy::LengthPercentage);
 
-flex_prop!(BorderLeft, border_left, taffy::LengthPercentage);
-flex_prop!(BorderRight, border_right, taffy::LengthPercentage);
-flex_prop!(BorderTop, border_top, taffy::LengthPercentage);
-flex_prop!(BorderBottom, border_bottom, taffy::LengthPercentage);
-flex_prop!(BorderX, border_x, taffy::LengthPercentage);
-flex_prop!(BorderY, border_y, taffy::LengthPercentage);
-flex_prop!(Border, border, taffy::LengthPercentage);
+flex_prop!(BorderProp, borders, Borders);
 
 flex_prop!(Show, show, bool);
 

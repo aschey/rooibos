@@ -103,6 +103,20 @@ impl MeasureNode for String {
     }
 }
 
+impl MeasureNode for &str {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        style: &Style,
+    ) -> Size<f32> {
+        Size {
+            width: self.width_cjk() as f32,
+            height: 1.0,
+        }
+    }
+}
+
 impl MeasureNode for Span<'_> {
     fn measure(
         &self,
