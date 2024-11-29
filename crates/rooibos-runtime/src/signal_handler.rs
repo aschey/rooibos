@@ -9,6 +9,11 @@ use tracing::error;
 
 use crate::RuntimeCommand;
 
+pub mod signal {
+    pub use proc_exit::Code;
+    pub use proc_exit::bash::{SIGINT, SIGQUIT, SIGTERM};
+}
+
 pub(crate) struct SignalHandler {
     pub(crate) runtime_command_tx: broadcast::Sender<RuntimeCommand>,
     pub(crate) enable_internal_handler: bool,
@@ -58,9 +63,9 @@ impl SignalHandler {
             }
             signal => {
                 let code = match signal {
-                    Signal::Term => proc_exit::bash::SIGTERM,
-                    Signal::Quit => proc_exit::bash::SIGQUIT,
-                    Signal::Int => proc_exit::bash::SIGINT,
+                    Signal::Term => signal::SIGTERM,
+                    Signal::Quit => signal::SIGQUIT,
+                    Signal::Int => signal::SIGINT,
                     _ => unreachable!(),
                 };
                 let _ = self

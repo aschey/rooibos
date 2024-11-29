@@ -24,8 +24,9 @@ use tracing::{error, info, warn};
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
 use crate::input_handler::InputHandler;
+use crate::signal_handler::signal;
 use crate::{
-    ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed, restore_terminal,
+    ExitPayload, ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed, restore_terminal,
     set_panic_hook, wasm_compat, with_state, with_state_mut,
 };
 
@@ -60,7 +61,7 @@ pub enum TickResult {
     Redraw,
     Restart,
     Command(TerminalCommand),
-    Exit(Result<ExitCode, Arc<Box<dyn Error + Send + Sync>>>),
+    Exit(Result<ExitPayload, Arc<Box<dyn Error + Send + Sync>>>),
 }
 
 impl<B> Runtime<B>
@@ -249,11 +250,11 @@ where
                         .map_err(RuntimeError::SetupFailure)?;
                     self.draw(&mut terminal).await;
                 }
-                TickResult::Exit(Ok(code)) => {
-                    if self.should_exit().await {
+                TickResult::Exit(Ok(payload)) => {
+                    if self.should_exit(payload.clone()).await {
                         self.handle_exit(&mut terminal).await?;
                         restore_terminal()?;
-                        return Ok(code);
+                        return Ok(payload.exit_code());
                     }
                 }
                 TickResult::Exit(Err(e)) => {
@@ -269,8 +270,8 @@ where
         }
     }
 
-    pub async fn should_exit(&self) -> bool {
-        let exit_result = with_state_mut(|s| (s.before_exit.lock())());
+    pub async fn should_exit(&self, payload: ExitPayload) -> bool {
+        let exit_result = with_state_mut(|s| (s.before_exit.lock())(payload));
         exit_result.await == ExitResult::Exit
     }
 
@@ -449,11 +450,11 @@ where
                         Ok(TickResult::Restart)
                     }
                     Ok(RuntimeCommand::Terminate(res))  => {
-                        Ok(TickResult::Exit(res.map(|r| r.as_exit_code().unwrap_or(ExitCode::FAILURE))))
+                        Ok(TickResult::Exit(res.map(ExitPayload::from_signal)))
                     }
                     Err(e) => {
                         error!("error receiving runtime command: {e:?}");
-                        Ok(TickResult::Exit(Ok(ExitCode::FAILURE)))
+                        Ok(TickResult::Exit(Ok(ExitPayload::from_exit_code(ExitCode::FAILURE))))
                     }
                 }
             }

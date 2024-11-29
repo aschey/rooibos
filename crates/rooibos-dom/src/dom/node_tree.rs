@@ -1,9 +1,9 @@
 use std::cell::RefCell;
-use std::cmp;
 use std::collections::BTreeMap;
 use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::{cmp, mem};
 
 use ratatui::layout::Rect;
 use ratatui::widgets::Block;
@@ -504,6 +504,11 @@ impl NodeTree {
                 .unwrap();
             //self.update_sizes(parent_node.layout_id);
         }
+        let parent_node = &self.dom_nodes[parent_key];
+        // If the parent is disabled, the child should also be disabled
+        if !parent_node.inner.enabled() {
+            self.set_parent_enabled(false, child_key);
+        }
         self.set_unmounted(child_key, false);
         refresh_dom();
     }
@@ -541,51 +546,18 @@ impl NodeTree {
     }
 
     pub(crate) fn replace_node(&mut self, old_key: DomNodeKey, new_key: DomNodeKey) {
-        // This is annoyingly verbose, but we use destructuring here to ensure we account for
-        // any new properties that get added to DomNodeInner
-        let NodeProperties {
-            node_type,
-            name,
-            children: _children,
-            parent: _parent,
-            id,
-            class,
-            focusable,
-            event_handlers,
-            rect,
-            original_display,
-            block,
-            clear,
-            enabled,
-            z_index: _z_index,
-            unmounted: _unmounted,
-        } = &self.dom_nodes[old_key].inner;
         // let layout_id = self.dom_nodes[old_key].layout_id;
-        let name = name.clone();
-        let node_type = node_type.clone();
-        let focusable = *focusable;
-        let id = id.clone();
-        let class = class.clone();
-        let event_handlers = event_handlers.clone();
-        let rect = rect.clone();
-        let original_display = *original_display;
-        let block = block.clone();
-        let clear = *clear;
-        let enabled = *enabled;
 
-        let new = &mut self.dom_nodes[new_key].inner;
+        let mut new_key_vals = mem::take(&mut self.dom_nodes[new_key].inner);
+        new_key_vals.replace_with(&self.dom_nodes[old_key].inner);
+        self.dom_nodes[new_key].inner = new_key_vals;
+        if let Some(parent) = self.dom_nodes[new_key].inner.parent {
+            let parent_enabled = self.dom_nodes[parent].inner.enabled();
+            self.dom_nodes[new_key]
+                .inner
+                .set_parent_enabled(parent_enabled);
+        }
 
-        new.name = name;
-        new.node_type = node_type;
-        new.focusable = focusable;
-        new.id = id;
-        new.class = class;
-        new.event_handlers = event_handlers;
-        new.rect = rect;
-        new.original_display = original_display;
-        new.block = block;
-        new.clear = clear;
-        new.enabled = enabled;
         // self.dom_nodes[new_key].layout_id = layout_id;
         refresh_dom();
     }
@@ -601,12 +573,28 @@ impl NodeTree {
     }
 
     pub fn set_enabled(&mut self, key: DomNodeKey, enabled: bool) {
-        self.dom_nodes[key].inner.enabled = enabled;
+        self.dom_nodes[key].inner.set_enabled(enabled);
+
         if !enabled {
             self.unset_state(&key);
         }
+        let children = self.dom_nodes[key].inner.children.clone();
+        for child in children {
+            self.set_parent_enabled(enabled, child);
+        }
 
         refresh_dom();
+    }
+
+    fn set_parent_enabled(&mut self, enabled: bool, node: DomNodeKey) {
+        if !enabled {
+            self.unset_state(&node);
+        }
+        self.dom_nodes[node].inner.set_parent_enabled(enabled);
+        let children = self.dom_nodes[node].inner.children.clone();
+        for child in children {
+            self.set_parent_enabled(enabled, child);
+        }
     }
 
     pub(crate) fn unset_state(&mut self, key: &DomNodeKey) {
@@ -658,7 +646,7 @@ impl NodeTree {
     }
 
     pub(crate) fn add_focusable(&self, key: DomNodeKey) {
-        if !self.dom_nodes[key].inner.enabled {
+        if !self.dom_nodes[key].inner.enabled() {
             return;
         }
 

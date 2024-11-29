@@ -1,3 +1,13 @@
+mod commands;
+mod debounce;
+pub mod error;
+mod input_handler;
+mod runtime;
+mod settings;
+#[cfg(not(target_arch = "wasm32"))]
+mod signal_handler;
+mod state;
+
 use std::panic::{set_hook, take_hook};
 
 pub use background_service::ServiceContext;
@@ -10,18 +20,9 @@ use rooibos_reactive::graph::traits::IsDisposed as _;
 use rooibos_reactive::graph::traits::Set as _;
 pub use runtime::*;
 pub use settings::*;
+pub use signal_handler::*;
 pub use state::*;
 pub use tokio_util::sync::CancellationToken;
-
-mod commands;
-mod debounce;
-pub mod error;
-mod input_handler;
-mod runtime;
-mod settings;
-#[cfg(not(target_arch = "wasm32"))]
-mod signal_handler;
-mod state;
 
 pub mod wasm_compat {
     pub use ::wasm_compat::cell::*;

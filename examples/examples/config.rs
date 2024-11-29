@@ -4,6 +4,7 @@ use rooibos::config::watch_config::backend::schematic::AppConfig;
 use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
+use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, mount, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, margin, max_width, padding, wgt};
@@ -11,7 +12,6 @@ use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::widgets::{Block, Padding, Paragraph};
 use schematic::Format;
 
 #[derive(Config, PartialEq, Eq, Clone, Debug)]
@@ -47,10 +47,9 @@ fn app() -> impl Render {
                 .bold()
                 .cyan()
         ),
-        wgt!(
-            props(max_width!(150.)),
-            Paragraph::new(format!("{:?}", config.get().map(|c| c.new)))
-                .block(Block::bordered().padding(Padding::uniform(1)))
-        )
+        col![
+            props(padding!(1.), max_width!(150.), borders(Borders::all())),
+            wgt!(format!("{:?}", config.get().map(|c| c.new)))
+        ]
     ]
 }

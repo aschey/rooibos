@@ -16,7 +16,7 @@ use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
-use crate::{ExitResult, RuntimeCommand, with_all_state, with_state};
+use crate::{ExitPayload, ExitResult, RuntimeCommand, with_all_state, with_state};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
@@ -181,12 +181,12 @@ pub fn spawn_blocking_service_on<
 
 pub fn before_exit<F, Fut>(f: F)
 where
-    F: Fn() -> Fut + Send + Sync + 'static,
+    F: Fn(ExitPayload) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ExitResult> + Send + 'static,
 {
     with_state(|s| {
-        *s.before_exit.lock_mut() = Box::new(move || {
-            let out = f();
+        *s.before_exit.lock_mut() = Box::new(move |payload| {
+            let out = f(payload);
             Box::pin(out)
         })
     });

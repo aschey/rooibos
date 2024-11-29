@@ -300,7 +300,9 @@ pub struct NodeProperties {
     pub(crate) block: Option<Block<'static>>,
     pub(crate) clear: bool,
     #[educe(Default = true)]
-    pub(crate) enabled: bool,
+    enabled: bool,
+    #[educe(Default = true)]
+    parent_enabled: bool,
     pub(crate) unmounted: Arc<AtomicBool>,
 }
 
@@ -312,6 +314,19 @@ struct RenderProps<'a, 'b> {
 }
 
 impl NodeProperties {
+    pub(crate) fn enabled(&self) -> bool {
+        // If a node is disabled, all children should also be disabled
+        self.enabled && self.parent_enabled
+    }
+
+    pub(crate) fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
+    }
+
+    pub(crate) fn set_parent_enabled(&mut self, enabled: bool) {
+        self.parent_enabled = enabled;
+    }
+
     fn render(&self, props: RenderProps) {
         let RenderProps {
             frame,
@@ -372,6 +387,53 @@ impl NodeProperties {
                 on_size_change.borrow_mut()(outer);
             }
         }
+    }
+
+    pub(crate) fn replace_with(&mut self, new: &NodeProperties) {
+        // This is annoyingly verbose, but we use destructuring here to ensure we account for
+        // any new properties that get added to DomNodeInner
+        let NodeProperties {
+            node_type,
+            name,
+            children: _children,
+            parent: _parent,
+            id,
+            class,
+            focusable,
+            event_handlers,
+            rect,
+            original_display,
+            block,
+            clear,
+            enabled,
+            z_index: _z_index,
+            unmounted: _unmounted,
+            parent_enabled: _parent_enabled,
+        } = new;
+
+        let name = name.clone();
+        let node_type = node_type.clone();
+        let focusable = *focusable;
+        let id = id.clone();
+        let class = class.clone();
+        let event_handlers = event_handlers.clone();
+        let rect = rect.clone();
+        let original_display = *original_display;
+        let block = block.clone();
+        let clear = *clear;
+        let enabled = *enabled;
+
+        self.name = name;
+        self.node_type = node_type;
+        self.focusable = focusable;
+        self.id = id;
+        self.class = class;
+        self.event_handlers = event_handlers;
+        self.rect = rect;
+        self.original_display = original_display;
+        self.block = block;
+        self.clear = clear;
+        self.enabled = enabled;
     }
 }
 

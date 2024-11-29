@@ -11,9 +11,9 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, wgt, width};
+use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
+use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, signal};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use taffy::{AlignItems, JustifyContent, Position};
 
@@ -30,8 +30,9 @@ fn app() -> impl Render {
     let (show_popup, set_show_popup) = signal(false);
     let (quit_confirmed, set_quit_confirmed) = signal(false);
 
-    before_exit(move || async move {
-        if quit_confirmed.get() {
+    before_exit(move |payload| async move {
+        // We should always exit when we receive a termination signal
+        if payload.signal().is_some() || quit_confirmed.get() {
             return ExitResult::Exit;
         }
         set_show_popup.set(true);
@@ -39,13 +40,13 @@ fn app() -> impl Render {
     });
 
     col![
-        Button::new()
-            .height(chars(3.))
-            .width(chars(8.))
-            .on_click(move || {
-                exit();
-            })
-            .render(text!("exit")),
+        row![
+            Button::new()
+                .on_click(move || {
+                    exit();
+                })
+                .render(text!("exit")),
+        ],
         popup(
             show_popup,
             move || {
@@ -84,7 +85,7 @@ fn popup(
             justify_content(JustifyContent::Center),
         ),
         wgt!(
-            props(borders(Borders::all()), height!(3.), width!(40.)),
+            props(borders(Borders::all())),
             "Are you sure you want to exit? [yN]"
         )
         .id(popup_id)

@@ -93,7 +93,7 @@ impl EventDispatcher {
         for root in roots {
             let found = root.get_key().traverse(
                 |key, inner| {
-                    if !inner.enabled {
+                    if !inner.enabled() {
                         return None;
                     }
 
@@ -210,6 +210,10 @@ where
     GE: Fn(&EventHandlers) -> Option<E>,
     EF: Fn(&mut E, Rect, EventHandle),
 {
+    let enabled = with_nodes(|nodes| nodes[key].enabled());
+    if !enabled {
+        return false;
+    }
     let (rect, event) = with_nodes(|nodes| {
         (
             *nodes[key].rect.borrow(),
@@ -239,7 +243,7 @@ fn hit_test(position: Position) -> Vec<DomNodeKey> {
             |key, inner| {
                 // Only widgets are actually drawn on the screen, layout types or placeholders
                 // can't have click events
-                if !inner.enabled || !matches!(inner.node_type, NodeType::Widget(_)) {
+                if !inner.enabled() || !matches!(inner.node_type, NodeType::Widget(_)) {
                     return None;
                 }
 

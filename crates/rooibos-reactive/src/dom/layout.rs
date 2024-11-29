@@ -70,13 +70,30 @@ pub fn length_percentage_auto_chars(
 
 pub struct Show(MaybeSignal<bool>);
 
-impl UpdateLayout for Show {
-    fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style) {
-        style.display = if self.0.get() {
-            original_display
-        } else {
-            Display::None
-        }
+impl Property for Show {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.get_key();
+        RenderEffect::new(move |_| {
+            with_nodes_mut(|nodes| {
+                let original_display = *nodes.original_display(key);
+                let enabled = self.0.get();
+                nodes.set_enabled(key, enabled);
+                nodes.update_layout(key, |s| {
+                    s.display = if enabled {
+                        original_display
+                    } else {
+                        Display::None
+                    }
+                })
+            });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
     }
 }
 

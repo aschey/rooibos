@@ -2,17 +2,50 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
+use std::process::ExitCode;
 
 use background_service::{Manager, ServiceContext};
 use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
 
+use crate::signal_handler::signal;
 use crate::{RuntimeCommand, TerminalCommand, wasm_compat};
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
 type ExitResultFuture = dyn Future<Output = ExitResult> + Send;
+
+#[derive(Debug, Clone)]
+pub struct ExitPayload {
+    signal: Option<signal::Code>,
+    exit_code: ExitCode,
+}
+
+impl ExitPayload {
+    pub(crate) fn from_signal(signal: signal::Code) -> Self {
+        let exit_code = signal.as_exit_code().unwrap_or(ExitCode::FAILURE);
+        Self {
+            signal: Some(signal),
+            exit_code,
+        }
+    }
+
+    pub(crate) fn from_exit_code(exit_code: ExitCode) -> Self {
+        Self {
+            signal: None,
+            exit_code,
+        }
+    }
+
+    pub fn signal(&self) -> Option<signal::Code> {
+        self.signal
+    }
+
+    pub fn exit_code(&self) -> ExitCode {
+        self.exit_code
+    }
+}
 
 pub(crate) struct RuntimeState {
     pub(crate) term_tx: broadcast::Sender<rooibos_dom::Event>,
@@ -21,7 +54,8 @@ pub(crate) struct RuntimeState {
     pub(crate) service_manager: Option<Manager>,
     pub(crate) context: ServiceContext,
     pub(crate) restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
-    pub(crate) before_exit: wasm_compat::Mutex<Box<dyn Fn() -> Pin<Box<ExitResultFuture>> + Send>>,
+    pub(crate) before_exit:
+        wasm_compat::Mutex<Box<dyn Fn(ExitPayload) -> Pin<Box<ExitResultFuture>> + Send>>,
 }
 
 impl RuntimeState {
@@ -39,7 +73,7 @@ impl RuntimeState {
             term_command_tx,
             runtime_command_tx,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
-            before_exit: wasm_compat::Mutex::new(Box::new(move || {
+            before_exit: wasm_compat::Mutex::new(Box::new(move |_payload| {
                 Box::pin(async move { ExitResult::Exit })
             })),
             context: service_manager.get_context(),
