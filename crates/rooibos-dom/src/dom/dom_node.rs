@@ -292,7 +292,7 @@ pub struct NodeProperties {
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) class: Option<String>,
-    pub(crate) focusable: bool,
+    focusable: bool,
     #[educe(Debug(ignore))]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: Rc<RefCell<Rect>>,
@@ -321,6 +321,14 @@ impl NodeProperties {
 
     pub(crate) fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
+    }
+
+    pub(crate) fn focusable(&self) -> bool {
+        self.focusable && self.enabled()
+    }
+
+    pub(crate) fn set_focusable(&mut self, focusable: bool) {
+        self.focusable = focusable;
     }
 
     pub(crate) fn set_parent_enabled(&mut self, enabled: bool) {
@@ -376,6 +384,7 @@ impl NodeProperties {
                 });
             }
             NodeType::Widget(widget) => {
+                widget.recompute_done();
                 let inner = dom_nodes.compute_inner(key, outer);
                 widget.render(inner, frame);
             }

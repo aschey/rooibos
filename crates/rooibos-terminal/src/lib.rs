@@ -57,6 +57,8 @@ pub trait Backend: Send + Sync {
 
     fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
 
+    fn window_size(&self) -> io::Result<ratatui::backend::WindowSize>;
+
     fn set_title<T: Display>(
         &self,
         terminal: &mut Terminal<Self::TuiBackend>,

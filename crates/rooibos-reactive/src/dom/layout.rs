@@ -3,6 +3,7 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols::{block, border};
 use ratatui::text::{Line, Text};
 use ratatui::widgets::block::{Title, title};
+use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::signal::{ArcRwSignal, RwSignal};
 use reactive_graph::traits::{Get, Update};
@@ -432,9 +433,10 @@ impl Property for Enabled {
 
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
+        let enabled = Memo::new(move |_| self.0.get());
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
-                nodes.set_enabled(key, self.0.get());
+                nodes.set_enabled(key, enabled.get());
             });
         })
     }

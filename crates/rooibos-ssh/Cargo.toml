@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.28.1" }
-russh-keys = "0.45"
-russh = "0.45"
+russh-keys = "0.46"
+russh = "0.46"
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-terminal = { path = "../rooibos-terminal" }
 rooibos-dom = { path = "../rooibos-dom" }

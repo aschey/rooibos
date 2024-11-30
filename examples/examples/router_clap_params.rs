@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use clap::{Args, Parser, Subcommand};
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::{align_items, block, chars};
+use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, row, wgt, width};
@@ -56,9 +56,9 @@ fn main() -> Result {
 
 #[rooibos::main]
 async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
-    mount(|| app(initial_route));
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(|| app(initial_route))
+        .await
 }
 
 fn app(initial_route: impl ToRoute + 'static) -> impl Render {
@@ -66,7 +66,7 @@ fn app(initial_route: impl ToRoute + 'static) -> impl Render {
     col![
         props(align_items(AlignItems::Center), width!(30.),),
         col![
-            props(height!(10.), block(Block::bordered())),
+            props(height!(10.), borders(Borders::all())),
             Router::new()
                 .routes([
                     Route::new::<Home>(home),

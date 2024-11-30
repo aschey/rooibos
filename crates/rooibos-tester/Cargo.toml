@@ -9,8 +9,8 @@ rooibos-runtime = { path = "../rooibos-runtime", optional = true }
 rooibos-terminal = { path = "../rooibos-terminal" }
 tokio = { version = "1.38.1", default-features = false, features = ["time"] }
 rooibos-dom = { path = "../rooibos-dom" }
-# rooibos-reactive = { path = "../rooibos-reactive" }
-unicode-width = "0.1.13"
+rooibos-reactive = { path = "../rooibos-reactive" }
+unicode-width = "0.2.0"
 
 [features]
 default = ["runtime"]

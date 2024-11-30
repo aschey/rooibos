@@ -22,7 +22,6 @@ use wasm_compat::futures::spawn_local;
 pub struct InputRef {
     text_area: RwSignal<TextArea<'static>>,
     submit_tx: StoredValue<broadcast::Sender<String>>,
-    widget_ref: StoredValue<DomWidgetRef>,
 }
 
 impl InputRef {
@@ -33,10 +32,6 @@ impl InputRef {
 }
 
 impl InputRef {
-    fn update(&self) {
-        self.widget_ref.with_value(|r| r.force_recompute_layout());
-    }
-
     pub fn submit(&self) {
         self.submit_tx
             .get_value()
@@ -67,7 +62,6 @@ impl InputRef {
     }
 
     pub fn paste(&self) -> bool {
-        self.update();
         self.text_area.try_update(|t| t.paste()).unwrap()
     }
 
@@ -76,21 +70,18 @@ impl InputRef {
     }
 
     pub fn delete_line_by_head(&self) -> bool {
-        self.update();
         self.text_area
             .try_update(|t| t.delete_line_by_head())
             .unwrap()
     }
 
     pub fn delete_line_by_end(&self) -> bool {
-        self.update();
         self.text_area
             .try_update(|t| t.delete_line_by_end())
             .unwrap()
     }
 
     pub fn delete_line(&self) -> bool {
-        self.update();
         self.text_area
             .try_update(|t| {
                 t.move_cursor(CursorMove::End);
@@ -218,7 +209,6 @@ impl Input {
         InputRef {
             text_area: RwSignal::new(TextArea::default()),
             submit_tx: StoredValue::new(submit_tx),
-            widget_ref: StoredValue::new(DomWidget::get_ref()),
         }
     }
 
@@ -240,7 +230,6 @@ impl Input {
 
         let text_area = input_ref.text_area;
         let submit_tx = input_ref.submit_tx.get_value();
-        let mut widget_ref = input_ref.widget_ref.get_value();
         let mut submit_rx = submit_tx.subscribe();
 
         on_cleanup(|| {
@@ -286,7 +275,6 @@ impl Input {
         });
 
         let key_down = {
-            let widget_ref = widget_ref.clone();
             move |mut props: KeyEventProps| {
                 let has_modifiers = !props.event.modifiers.is_empty();
                 if !has_modifiers {
@@ -307,18 +295,15 @@ impl Input {
                         <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
                     {
                         t.input(event);
-                        widget_ref.force_recompute_layout();
                     }
                 });
             }
         };
 
         let paste = {
-            let widget_ref = widget_ref.clone();
             move |text: String, _, _| {
                 text_area.update(|t| {
                     t.insert_str(text);
-                    widget_ref.force_recompute_layout();
                 });
             }
         };
@@ -344,7 +329,6 @@ impl Input {
         if let Some(id) = id {
             widget = widget.id(id);
         }
-        widget.set_ref(&mut widget_ref);
         widget
     }
 }
@@ -373,6 +357,22 @@ impl MeasureNode for RenderInput {
         let max_len = lines
             .iter()
             .map(|l| l.measure(known_dimensions, available_space, style).width)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.);
+
+        Size {
+            // +1 for cursor
+            width: (text.placeholder_text().len() as f32).max(max_len) + 1.,
+            height: lines.len() as f32,
+        }
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        let text = self.text_area.get_untracked();
+        let lines = text.lines();
+        let max_len = lines
+            .iter()
+            .map(|l| l.estimate_size().width)
             .max_by(|a, b| a.total_cmp(b))
             .unwrap_or(0.);
 

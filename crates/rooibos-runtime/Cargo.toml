@@ -16,7 +16,7 @@ wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef104
 ] }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "14ead7cf98eb9c32962665abb00a06df728992c8" }
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-thiserror = "1.0.63"
+thiserror = "2"
 rooibos-terminal = { path = "../rooibos-terminal" }
 proc-exit = "2.0.2"
 

@@ -15,11 +15,11 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::<Stdout>::new(
+    Runtime::initialize(CrosstermBackend::<Stdout>::new(
         TerminalSettings::default().title("initial title"),
-    ));
-    runtime.run().await
+    ))
+    .run(app)
+    .await
 }
 
 fn app() -> impl Render {

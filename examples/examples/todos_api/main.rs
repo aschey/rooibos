@@ -15,7 +15,7 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    align_items, chars, clear, grow, justify_content, max_width, position, show,
+    Borders, align_items, borders, chars, clear, grow, justify_content, max_width, position, show,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, WidgetState, after_render, focus_id, line, mount,
@@ -56,19 +56,16 @@ async fn main() -> Result {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
         .await
         .unwrap();
-
+    tokio::spawn(run_server(listener));
     let mut cmd_handler = CommandHandler::<Command>::new();
     cmd_handler.generate_commands();
 
-    mount(|| app(Duration::from_secs(3)));
-
-    let runtime = Runtime::initialize_with(
+    Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
         CrosstermBackend::stdout(),
-    );
-
-    tokio::spawn(run_server(listener));
-    runtime.run().await
+    )
+    .run(|| app(Duration::from_secs(3)))
+    .await
 }
 
 #[derive(Clone)]
@@ -118,7 +115,7 @@ fn app(notification_timeout: Duration) -> impl Render {
             add_todo_input(input_id)
         ],
         row![
-            props(height!(100.%), block(Block::bordered().title("Todos"))),
+            props(height!(100.%), borders(Borders::all().title("Todos"))),
             col![todos_body(editing_id, notification_timeout)]
         ],
         CommandBar::<Command>::new().height(chars(1.)).render(),
@@ -162,16 +159,17 @@ fn add_todo_input(id: NodeId) -> impl Render {
         Input::default()
             .placeholder_text("Add a todo")
             .grow(1.)
-            .block(|state| {
-                Block::bordered()
-                    .fg(if state == WidgetState::Focused {
-                        Color::Blue
-                    } else {
-                        Color::default()
-                    })
-                    .title("Input")
-                    .into()
-            })
+            //.borders()
+            // .block(|state| {
+            //     Block::bordered()
+            //         .fg(if state == WidgetState::Focused {
+            //             Color::Blue
+            //         } else {
+            //             Color::default()
+            //         })
+            //         .title("Input")
+            //         .into()
+            // })
             .on_submit(move |val| {
                 input_ref.delete_line();
                 command_context.dispatch(Command::Add { val });
@@ -235,7 +233,7 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
         let error_list =
             move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
 
-        wgt!(Paragraph::new(line!(error_list())))
+        wgt!(line!(error_list()))
     };
 
     transition!(
@@ -278,8 +276,13 @@ fn saving_popup() -> impl RenderAny {
             show(pending)
         ),
         wgt!(
-            props(clear(true), width!(25.), height!(5.)),
-            Paragraph::new("Saving...").block(Block::bordered())
+            props(
+                clear(true),
+                width!(25.),
+                height!(5.),
+                borders(Borders::all())
+            ),
+            line!("Saving...")
         )
     ]
 }
@@ -298,7 +301,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin!(1.)), wgt!(Paragraph::new(text.get()))])
+            .fallback(move || col![props(margin!(1.)), wgt!(text.get())])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })
@@ -359,16 +362,16 @@ fn todo_editor(
     });
 
     Input::default()
-        .block(|state| {
-            Block::bordered()
-                .fg(Color::Blue)
-                .border_set(if state == WidgetState::Focused {
-                    border::PLAIN
-                } else {
-                    border::EMPTY
-                })
-                .into()
-        })
+        // .block(|state| {
+        //     Block::bordered()
+        //         .fg(Color::Blue)
+        //         .border_set(if state == WidgetState::Focused {
+        //             border::PLAIN
+        //         } else {
+        //             border::EMPTY
+        //         })
+        //         .into()
+        // })
         .initial_value(text.get())
         .on_submit(move |value| {
             update_todo.dispatch((id, value));

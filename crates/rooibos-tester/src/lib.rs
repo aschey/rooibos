@@ -8,6 +8,7 @@ use rooibos_dom::{
     DomNodeRepr, Event, KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
     NodeTypeRepr, NonblockingTerminal, focus_next, render_terminal,
 };
+use rooibos_reactive::dom::Render;
 #[cfg(feature = "runtime")]
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
 #[cfg(feature = "runtime")]
@@ -96,6 +97,15 @@ impl TestHarness {
             terminal,
             event_tx,
         }
+    }
+
+    pub fn mount<F, M>(&self, f: F)
+    where
+        F: FnOnce() -> M + 'static,
+        M: Render,
+        <M as Render>::DomState: 'static,
+    {
+        self.runtime.mount(f);
     }
 
     pub async fn from_terminal(

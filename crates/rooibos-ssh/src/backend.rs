@@ -124,6 +124,10 @@ impl Backend for SshBackend {
         self.inner.create_tui_backend()
     }
 
+    fn window_size(&self) -> io::Result<ratatui::backend::WindowSize> {
+        self.inner.window_size()
+    }
+
     fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
         self.inner.setup_terminal(terminal)
     }

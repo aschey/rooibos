@@ -25,10 +25,7 @@ pub(crate) fn channel<S, R>(buffer_size: usize) -> (BidiChannel<S, R>, BidiChann
     })
 }
 
-enum TermRequest<B>
-where
-    B: Backend,
-{
+enum TermRequest {
     WindowSize,
     AutoResize,
     Draw,
@@ -36,7 +33,6 @@ where
     SetCursorPosition(Position),
     Clear,
     InsertText { height: u16, text: Text<'static> },
-    Run(Box<dyn FnMut(&mut Terminal<B>) + Send>),
 }
 
 enum TermResponse {
@@ -50,7 +46,7 @@ where
     B: Backend,
 {
     terminal: Arc<RwLock<ratatui::Terminal<B>>>,
-    requester: BidiChannel<TermRequest<B>, TermResponse>,
+    requester: BidiChannel<TermRequest, TermResponse>,
     handle: JoinHandle<()>,
 }
 
@@ -60,7 +56,7 @@ where
 {
     pub fn new(terminal: ratatui::Terminal<B>) -> Self {
         let terminal = Arc::new(RwLock::new(terminal));
-        let (requester, mut handle) = channel::<TermRequest<B>, TermResponse>(1);
+        let (requester, mut handle) = channel::<TermRequest, TermResponse>(1);
 
         let handle = tokio::task::spawn_blocking({
             let terminal = terminal.clone();
@@ -97,9 +93,6 @@ where
                             ratatui::backend::Backend::flush(terminal.backend_mut()).unwrap();
                             handle.tx.blocking_send(TermResponse::Empty).unwrap();
                         }
-                        TermRequest::Run(mut f) => {
-                            (f)(&mut terminal.write());
-                        }
                         TermRequest::Size => {
                             handle
                                 .tx
@@ -121,6 +114,7 @@ where
                                     Paragraph::new(text).render(buf.area, buf);
                                 })
                                 .unwrap();
+                            handle.tx.blocking_send(TermResponse::Empty).unwrap();
                         }
                     }
                 }
@@ -212,21 +206,5 @@ where
     pub async fn join(self) {
         drop(self.requester);
         self.handle.await.unwrap();
-    }
-}
-
-impl<B> NonblockingTerminal<B>
-where
-    B: Backend + Send + Sync + io::Write + 'static,
-{
-    pub async fn write(&mut self, buf: Vec<u8>) {
-        self.requester
-            .tx
-            .send(TermRequest::Run(Box::new(move |t| {
-                t.backend_mut().write_all(&buf).unwrap();
-            })))
-            .await
-            .unwrap();
-        self.requester.rx.recv().await.unwrap();
     }
 }

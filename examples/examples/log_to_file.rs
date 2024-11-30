@@ -28,9 +28,8 @@ async fn main() -> Result {
         .with_writer(non_blocking_appender);
     subscriber.init();
 
-    mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    runtime.run(app).await
 }
 
 fn app() -> impl Render {

@@ -17,13 +17,13 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_counter() {
-    mount(app);
     tick().await;
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         20,
         10,
     );
+    harness.mount(app);
 
     assert_snapshot!(harness.terminal());
 

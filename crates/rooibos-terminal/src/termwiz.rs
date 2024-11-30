@@ -3,10 +3,12 @@ use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsRawFd;
 use std::time::Duration;
 
+use ratatui::backend::WindowSize;
+use ratatui::layout::Size;
 use termwiz::caps::Capabilities;
 use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
-use termwiz::terminal::{SystemTerminal, Terminal};
+use termwiz::terminal::{ScreenSize, SystemTerminal, Terminal};
 use tokio::sync::broadcast;
 use tracing::warn;
 
@@ -109,6 +111,31 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
         Ok(ratatui::backend::TermwizBackend::with_buffered_terminal(
             terminal,
         ))
+    }
+
+    fn window_size(&self) -> io::Result<WindowSize> {
+        let caps = Capabilities::new_from_env().map_err(into_io_error)?;
+        let mut terminal =
+            SystemTerminal::new_with(caps, &io::stdin(), &(self.settings.get_writer)())
+                .map_err(into_io_error)?;
+        let ScreenSize {
+            cols,
+            rows,
+            xpixel,
+            ypixel,
+        } = terminal
+            .get_screen_size()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        Ok(WindowSize {
+            columns_rows: Size {
+                width: cols as u16,
+                height: rows as u16,
+            },
+            pixels: Size {
+                width: xpixel as u16,
+                height: ypixel as u16,
+            },
+        })
     }
 
     fn setup_terminal(&self, terminal: &mut ratatui::Terminal<Self::TuiBackend>) -> io::Result<()> {

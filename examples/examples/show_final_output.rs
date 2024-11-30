@@ -16,19 +16,19 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize_with(
+    Runtime::initialize_with(
         RuntimeSettings::default().viewport(Viewport::Inline(1)),
         CrosstermBackend::new(TerminalSettings::<Stdout>::new().alternate_screen(false)),
-    );
-    runtime.run().await
+    )
+    .run(app)
+    .await
 }
 
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
     let is_exiting = RwSignal::new(false);
 
-    before_exit(move || async move {
+    before_exit(move |_| async move {
         if !is_exiting.get() {
             is_exiting.set(true);
             return ExitResult::PreventExit;

@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
 use rooibos::keybind::{Bind, KeybindContext, keys, map_handler};
-use rooibos::reactive::dom::{Render, focus_id, mount, text};
+use rooibos::reactive::dom::{Render, focus_id, mount, text, try_focus_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -17,9 +17,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 const MIN_SIZE: f32 = 3.;
@@ -70,27 +70,31 @@ fn app() -> impl Render {
     .on_key_down(
         [
             map_handler("+", move |_, _| {
-                focus_id(bigger);
-                bigger_ref.click();
+                if try_focus_id(bigger).is_ok() {
+                    bigger_ref.click();
+                }
             }),
             map_handler("-", move |_, _| {
-                focus_id(smaller);
-                smaller_ref.click();
+                if try_focus_id(smaller).is_ok() {
+                    smaller_ref.click();
+                }
             }),
             //"{dec+}+"
             map_handler(
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('+')]),
                 move |_, context: KeybindContext| {
-                    focus_id(bigger);
-                    adjust_size(context.keys[0].get_numeric() as f32);
+                    if try_focus_id(bigger).is_ok() {
+                        adjust_size(context.keys[0].get_numeric() as f32);
+                    }
                 },
             ),
             //"{dec+}-"
             map_handler(
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('-')]),
                 move |_, context: KeybindContext| {
-                    focus_id(smaller);
-                    adjust_size(-1.0 * context.keys[0].get_numeric() as f32);
+                    if try_focus_id(smaller).is_ok() {
+                        adjust_size(-1.0 * context.keys[0].get_numeric() as f32);
+                    }
                 },
             ),
         ]

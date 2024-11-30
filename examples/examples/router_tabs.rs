@@ -18,9 +18,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 #[derive(Route)]

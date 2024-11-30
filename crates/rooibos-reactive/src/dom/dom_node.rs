@@ -152,11 +152,13 @@ impl Render<RooibosDom> for DomNode {
     type State = (DomNode, <NodeType as Render<RooibosDom>>::State);
 
     fn build(self) -> Self::State {
-        let state = with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()).build());
+        let node_type = with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()));
+        let state = node_type.build();
         (self, state)
     }
 
     fn rebuild(self, (_node, ref mut node_type_state): &mut Self::State) {
-        with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()).rebuild(node_type_state));
+        let node_type = with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()));
+        node_type.rebuild(node_type_state);
     }
 }

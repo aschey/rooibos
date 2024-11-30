@@ -4,15 +4,16 @@ use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::keybind::{Bind, map_handler};
-use rooibos::reactive::dom::{Render, mount, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{col, height, wgt};
+use rooibos::reactive::{col, height, wgt, width};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
+use taffy::Dimension;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
@@ -22,14 +23,15 @@ async fn main() -> Result {
         return Err("Try redirecting the output. Ex: out=$(cargo run --example=redirect_output)")?;
     }
 
-    mount(app);
-    let runtime = Runtime::initialize_with(
+    let res = Runtime::initialize_with(
         RuntimeSettings::default()
             .viewport(Viewport::Inline(6))
             .show_final_output(false),
         CrosstermBackend::new(TerminalSettings::<Stderr>::new().alternate_screen(false)),
-    );
-    Ok(runtime.run().await?)
+    )
+    .run(app)
+    .await?;
+    Ok(res)
 }
 
 fn app() -> impl Render {
@@ -42,6 +44,7 @@ fn app() -> impl Render {
     col![
         wgt!(props(height!(2.)), text!("Select an item".bold())),
         ListView::new()
+            .height(Dimension::Length(3.))
             .on_item_click(move |i, _| {
                 selected.set(Some(i));
             })

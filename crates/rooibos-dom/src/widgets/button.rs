@@ -57,4 +57,8 @@ impl MeasureNode for Button<'_> {
     ) -> taffy::Size<f32> {
         self.text.measure(known_dimensions, available_space, style)
     }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        self.text.estimate_size()
+    }
 }

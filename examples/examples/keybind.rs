@@ -21,12 +21,11 @@ async fn main() -> Result {
     let mut cmd_handler = CommandHandler::<AppAction>::new();
     cmd_handler.generate_commands();
 
-    mount(app);
     let runtime = Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
         CrosstermBackend::stdout(),
     );
-    runtime.run().await
+    runtime.run(app).await
 }
 
 fn app() -> impl Render {

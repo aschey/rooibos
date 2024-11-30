@@ -13,6 +13,8 @@ use crossterm::terminal::{
 };
 use crossterm::{execute, queue};
 use ratatui::Terminal;
+use ratatui::backend::WindowSize;
+use ratatui::layout::Size;
 use tokio_stream::StreamExt as _;
 
 use super::Backend;
@@ -159,6 +161,22 @@ impl<W: Write> Backend for CrosstermBackend<W> {
     fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let writer = (self.settings.get_writer)();
         Ok(ratatui::backend::CrosstermBackend::new(writer))
+    }
+
+    fn window_size(&self) -> io::Result<WindowSize> {
+        let crossterm::terminal::WindowSize {
+            columns,
+            rows,
+            width,
+            height,
+        } = crossterm::terminal::window_size()?;
+        Ok(WindowSize {
+            columns_rows: Size {
+                width: columns,
+                height: rows,
+            },
+            pixels: Size { width, height },
+        })
     }
 
     fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {

@@ -23,9 +23,8 @@ async fn main() -> Result {
         buffer
     };
 
-    mount(|| app(input));
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    Ok(runtime.run().await?)
+    Ok(runtime.run(|| app(input)).await?)
 }
 
 fn app(text: String) -> impl Render {

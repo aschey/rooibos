@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::{align_items, block, chars};
+use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, row, wgt, width};
@@ -30,9 +30,9 @@ struct BlogPost {
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -40,7 +40,7 @@ fn app() -> impl Render {
     col![
         props(align_items(AlignItems::Center), width!(30.),),
         col![
-            props(height!(10.), block(Block::bordered())),
+            props(height!(10.), borders(Borders::all())),
             Router::new()
                 .routes([
                     Route::new::<Home>(home),

@@ -60,6 +60,10 @@ where
         self.widget
             .measure(known_dimensions, available_space, style)
     }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        self.widget.estimate_size()
+    }
 }
 
 pub(crate) struct RenderWidget<W>
@@ -90,6 +94,10 @@ where
     ) -> taffy::Size<f32> {
         self.widget
             .measure(known_dimensions, available_space, style)
+    }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        self.widget.estimate_size()
     }
 }
 
@@ -124,6 +132,10 @@ where
     ) -> taffy::Size<f32> {
         self.widget
             .measure(known_dimensions, available_space, style)
+    }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        self.widget.estimate_size()
     }
 }
 

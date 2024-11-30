@@ -2,14 +2,16 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::reactive::dom::flex_node::FlexProperty;
-use rooibos::reactive::dom::layout::{align_items, block, chars, justify_content, show};
+use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars, justify_content, show};
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, mount, text,
 };
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get as _, Set};
-use rooibos::reactive::{col, height, margin_left, max_height, max_width, wgt, width};
+use rooibos::reactive::{
+    col, height, margin_left, max_height, max_width, padding, row, wgt, width,
+};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -20,20 +22,19 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    runtime.run(app).await
 }
 
 fn app() -> impl Render {
     let (show_popup, set_show_popup) = signal(false);
     col![
-        props(max_width!(50.), max_height!(20.)),
-        Button::new()
-            .width(chars(14.))
-            .height(chars(3.))
-            .on_click(move || set_show_popup.set(true))
-            .render(text!("open popup")),
+        props(borders(Borders::all()), max_width!(50.), max_height!(20.)),
+        row![
+            Button::new()
+                .on_click(move || set_show_popup.set(true))
+                .render(text!("Open Popup")),
+        ],
         popup(show_popup, move || set_show_popup.set(false))
     ]
 }
@@ -58,16 +59,9 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
             show(show_popup)
         ),
         col![
-            props(
-                max_width!(21.),
-                max_height!(8.),
-                center_items(),
-                block(Block::bordered())
-            ),
-            wgt!(props(margin_left!(1.)), line!("popup text")),
+            props(center_items(), padding!(1.), borders(Borders::all())),
+            wgt!(line!("popup text")),
             Button::new()
-                .height(chars(3.))
-                .width(chars(9.))
                 .on_click(on_close)
                 .id(id)
                 .render(text!("close"))

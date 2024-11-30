@@ -1,6 +1,8 @@
 use std::io;
 
 use ratatui::Terminal;
+use ratatui::backend::WindowSize;
+use ratatui::layout::Size;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt;
 use tokio_stream::wrappers::BroadcastStream;
@@ -45,6 +47,16 @@ impl Backend for TestBackend {
 
     fn supports_keyboard_enhancement(&self) -> bool {
         true
+    }
+
+    fn window_size(&self) -> io::Result<WindowSize> {
+        Ok(WindowSize {
+            columns_rows: Size {
+                width: self.width,
+                height: self.height,
+            },
+            pixels: Size::default(),
+        })
     }
 
     fn set_title<T: std::fmt::Display>(

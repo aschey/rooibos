@@ -13,6 +13,7 @@ use std::time::Duration;
 
 pub use dom::*;
 pub use nonblocking_terminal::*;
+use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
@@ -49,7 +50,11 @@ pub fn supports_keyboard_enhancement() -> bool {
     SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| *s.get().unwrap())
 }
 
-pub fn set_pixel_size(pixel_size: Option<Size>) -> Result<(), Option<Size>> {
+pub fn set_pixel_size(window_size: Option<WindowSize>) -> Result<(), Option<Size>> {
+    let pixel_size = window_size.map(|s| ratatui::layout::Size {
+        width: s.pixels.width / s.columns_rows.width,
+        height: s.pixels.height / s.columns_rows.height,
+    });
     PIXEL_SIZE.with(|p| p.set(pixel_size))
 }
 

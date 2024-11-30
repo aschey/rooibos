@@ -16,6 +16,7 @@ use rooibos_dom::{
     DomUpdateReceiver, Event, NonblockingTerminal, dom_update_receiver, focus_next,
     render_terminal, set_pixel_size, unmount,
 };
+use rooibos_reactive::dom::{Render, mount};
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
@@ -76,6 +77,7 @@ where
     pub fn initialize_with(settings: RuntimeSettings, backend: B) -> Self {
         set_panic_hook();
         let backend = Arc::new(backend);
+
         let (term_parser_tx, _) = broadcast::channel(32);
 
         let (term_command_tx, runtime_command_tx) =
@@ -128,6 +130,16 @@ where
         }
     }
 
+    pub fn mount<F, M>(&self, f: F)
+    where
+        F: FnOnce() -> M + 'static,
+        M: Render,
+        <M as Render>::DomState: 'static,
+    {
+        let window_size = self.backend.window_size().ok();
+        mount(f, window_size);
+    }
+
     pub async fn setup_terminal(&mut self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
         let tui_backend = self.backend.create_tui_backend()?;
         let mut terminal =
@@ -135,13 +147,7 @@ where
                 viewport: self.settings.viewport.clone(),
             })?;
         self.backend.setup_terminal(&mut terminal)?;
-        let mut terminal = NonblockingTerminal::new(terminal);
-
-        let window_size = terminal.window_size().await.ok();
-        let _ = set_pixel_size(window_size.map(|s| Size {
-            width: s.pixels.width / s.columns_rows.width,
-            height: s.pixels.height / s.columns_rows.height,
-        }));
+        let terminal = NonblockingTerminal::new(terminal);
 
         if self.settings.enable_input_reader {
             let term_parser_tx = self.term_parser_tx.clone();
@@ -228,7 +234,13 @@ where
             })
     }
 
-    pub async fn run(mut self) -> Result<ExitCode, RuntimeError> {
+    pub async fn run<F, M>(mut self, f: F) -> Result<ExitCode, RuntimeError>
+    where
+        F: FnOnce() -> M + 'static,
+        M: Render,
+        <M as Render>::DomState: 'static,
+    {
+        self.mount(f);
         let mut terminal = self
             .setup_terminal()
             .await
@@ -402,6 +414,8 @@ where
 
         tokio::select! {
             status = child.wait() => {
+                // prevent flickering
+                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t))?;
                 let status = status?;
                 let on_finish = (*on_finish.lock().expect("lock poisoned")).take().expect("on_finish missing");
                 on_finish(status, child_stdout, child_stderr);

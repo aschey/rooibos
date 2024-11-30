@@ -1,21 +1,23 @@
 use std::cell::LazyCell;
 use std::future::Future;
+use std::io;
 
 pub use children::*;
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use focus::*;
 pub use into_view::*;
+use ratatui::backend::WindowSize;
 use ratatui::layout::Rect;
 use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::Set as _;
 pub use renderer::*;
 pub use rooibos_dom::{
     DomNodeRepr, WidgetState, clear_focus, delay, dom_update_receiver, events, focus_id,
-    focus_next, focus_prev, line, render_single_frame, render_terminal, root, set_pixel_size,
-    set_supports_keyboard_enhancement, span, text, widgets,
+    focus_next, focus_prev, line, render_terminal, root, set_pixel_size,
+    set_supports_keyboard_enhancement, span, text, try_focus_id, widgets,
 };
-use rooibos_dom::{on_window_focus_changed, with_nodes, with_nodes_mut};
+use rooibos_dom::{on_window_focus_changed, render_dom, with_nodes, with_nodes_mut};
 
 mod children;
 pub mod div;
@@ -43,14 +45,33 @@ thread_local! {
     });
 }
 
-pub fn mount<F, M>(f: F)
+pub fn mount<F, M>(f: F, window_size: Option<WindowSize>)
 where
     F: FnOnce() -> M + 'static,
     M: Render,
     <M as Render>::DomState: 'static,
 {
+    let _ = set_pixel_size(window_size);
     let node = f().build();
     rooibos_dom::mount(node);
+}
+
+pub fn render_single_frame<F, M, B>(
+    f: F,
+    terminal: &mut ratatui::Terminal<B>,
+) -> Result<(), io::Error>
+where
+    F: FnOnce() -> M + 'static,
+    M: Render,
+    <M as Render>::DomState: 'static,
+    B: ratatui::backend::Backend + io::Write + 'static,
+{
+    let window_size = terminal.backend_mut().window_size().ok();
+
+    mount(f, window_size);
+    terminal.draw(render_dom)?;
+    terminal.backend_mut().write_all(b"\n")?;
+    Ok(())
 }
 
 pub fn use_window_size() -> ReadSignal<Rect> {

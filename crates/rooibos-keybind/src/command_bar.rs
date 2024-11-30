@@ -142,4 +142,8 @@ where
             height: 1.0,
         }
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
 }

@@ -13,9 +13,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
-    mount(|| app(editor, Vec::new()));
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(|| app(editor, Vec::new()))
+        .await
 }
 
 fn app(editor: String, args: Vec<String>) -> impl Render {

@@ -1,9 +1,10 @@
 use std::process::ExitCode;
 
-use rooibos::keybind::{Bind, map_handler};
+use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, clear_focus, focus_next, focus_prev, line, mount, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt};
+use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -14,9 +15,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -35,13 +36,13 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("<Up>", move |_, _| {
+            map_handler(keys::UP, move |_, _| {
                 focus_prev();
             }),
-            map_handler("<Down>", move |_, _| {
+            map_handler(keys::DOWN, move |_, _| {
                 focus_next();
             }),
-            map_handler("<Esc>", move |_, _| {
+            map_handler(keys::ESC, move |_, _| {
                 clear_focus();
             }),
         ]
@@ -58,12 +59,7 @@ fn focus_block(title: &'static str) -> impl Render {
         line!(title)
     });
 
-    wgt!(
-        props(height!(3.), max_width!(30.)),
-        Paragraph::new(title.get())
-            .centered()
-            .block(Block::bordered())
-    )
-    .id(id)
-    .focusable(true)
+    wgt!(props(borders(Borders::all()), width!(30.)), title.get())
+        .id(id)
+        .focusable(true)
 }

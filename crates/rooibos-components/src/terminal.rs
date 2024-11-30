@@ -167,4 +167,8 @@ impl MeasureNode for RenderTerminal {
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
         Size::zero()
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
 }

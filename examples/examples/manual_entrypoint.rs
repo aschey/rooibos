@@ -19,9 +19,8 @@ fn main() -> Result {
 #[tokio::main(flavor = "current_thread")]
 async fn async_main() -> Result {
     run_with_executor(async {
-        mount(app);
         let runtime = Runtime::initialize(CrosstermBackend::stdout());
-        runtime.run().await
+        runtime.run(app).await
     })
     .await
 }

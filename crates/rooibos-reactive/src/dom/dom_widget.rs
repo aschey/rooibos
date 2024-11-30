@@ -58,9 +58,10 @@ impl Render<RooibosDom> for DomWidgetNode {
 
     fn build(self) -> Self::State {
         RenderEffect::new({
-            let inner = self.0.clone();
+            let mut inner = self.0.clone();
             move |_| {
                 inner.build();
+                inner.estimate_size();
             }
         })
     }
@@ -375,6 +376,7 @@ where
     fn build(self) -> Self::State {
         let inner_state = self.inner.build();
         let prop_state = self.properties.build(&inner_state.0);
+
         DomWidgetState {
             node: inner_state,
             prop_state,

@@ -20,9 +20,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -34,7 +34,7 @@ fn app() -> impl Render {
         let error_list =
             move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
 
-        wgt!(Paragraph::new(line!(error_list())))
+        wgt!(line!(error_list()))
     };
 
     col![

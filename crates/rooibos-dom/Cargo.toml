@@ -22,7 +22,7 @@ wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef104
 taffy = "0.6.2"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
-thiserror = "1"
+thiserror = "2"
 textwrap = "0.16.1"
 unicode-width = "0.2.0"
 

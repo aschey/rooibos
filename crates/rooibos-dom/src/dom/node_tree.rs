@@ -453,6 +453,9 @@ impl NodeTree {
             inner: val,
             layout_id: layout_node,
         });
+        if let NodeType::Widget(widget) = &mut self.dom_nodes[key].inner.node_type {
+            widget.set_key(key);
+        }
         self.layout_tree
             .get_node_context_mut(layout_node)
             .unwrap()
@@ -568,7 +571,7 @@ impl NodeTree {
     }
 
     pub fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
-        self.dom_nodes[node].inner.focusable = focusable;
+        self.dom_nodes[node].inner.set_focusable(focusable);
         refresh_dom();
     }
 

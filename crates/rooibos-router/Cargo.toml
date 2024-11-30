@@ -5,15 +5,12 @@ edition = "2021"
 
 [dependencies]
 matchit = "0.8"
-tachys = { git = "https://github.com/aschey/leptos", rev = "068cab4d47425d9258c0fd5da1d81f82ba0af282", features = [
+tachys = { git = "https://github.com/aschey/leptos", rev = "3ccbc884b2c9f0e7fbf6776389c2a1a75843559b", features = [
   "reactive_graph",
   "tracing",
 ] }
 url = "2"
-reactive_graph = { git = "https://github.com/leptos-rs/leptos", rev = "7b8cd90a6ef113495d0efc5fb8676bd0694a7705", features = [
-  "tracing",
-  "effects",
-] }
+reactive_graph = { version = "0.1.0", features = ["tracing", "effects"] }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-router-macros = { path = "../rooibos-router-macros" }

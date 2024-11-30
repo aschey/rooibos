@@ -17,12 +17,12 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_buttons() {
-    mount(app);
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         25,
         10,
     );
+    harness.mount(app);
     let root_node = root();
     assert_snapshot!(harness.terminal());
     let top_button = harness.find_by_text(&root_node, "bigger").unwrap();

@@ -11,10 +11,11 @@ use ratatui_image::protocol::StatefulProtocol;
 use ratatui_image::thread::{ThreadImage, ThreadProtocol};
 use ratatui_image::{CropOptions, FilterType, Resize};
 use rooibos_dom::{MeasureNode, RenderNode, pixel_size};
+use rooibos_reactive::dom::div::taffy;
 use rooibos_reactive::dom::{DomWidget, Render};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::RwSignal;
-use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked};
+use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
 
 #[derive(Clone)]
@@ -74,20 +75,20 @@ impl Image {
             std::sync::mpsc::channel::<(Box<dyn StatefulProtocol>, Resize, Rect)>();
 
         let async_state = RwSignal::new(None);
+        let fallback_size = Size {
+            width: 8,
+            height: 16,
+        };
+        let mut pixel_size = pixel_size().unwrap_or(fallback_size);
+        if pixel_size == Size::default() {
+            pixel_size = fallback_size;
+        }
         Effect::new(move |prev_picker: Option<Option<Picker>>| {
             let image = image.get();
             if let Some(image) = image {
                 let (mut picker, image) = if let Some(Some(picker)) = prev_picker {
                     (picker, image)
                 } else {
-                    let fallback_size = Size {
-                        width: 8,
-                        height: 16,
-                    };
-                    let mut pixel_size = pixel_size().unwrap_or(fallback_size);
-                    if pixel_size == Size::default() {
-                        pixel_size = fallback_size;
-                    }
                     let mut picker = Picker::new((pixel_size.width, pixel_size.height));
                     picker.guess_protocol();
 
@@ -119,9 +120,16 @@ impl Image {
 
         DomWidget::new::<ThreadImage, _>(move || {
             async_state.track();
+            let image_size = image.with(|i| {
+                i.as_ref().map(|i| taffy::Size {
+                    width: (i.width() / pixel_size.width as u32) as f32,
+                    height: (i.height() / pixel_size.height as u32) as f32,
+                })
+            });
             RenderImage {
                 async_state,
                 resize_mode: resize_mode.get(),
+                size: image_size.unwrap_or_default(),
             }
         })
     }
@@ -130,6 +138,7 @@ impl Image {
 struct RenderImage {
     async_state: RwSignal<Option<ThreadProtocol>>,
     resize_mode: ResizeMode,
+    size: taffy::Size<f32>,
 }
 
 impl RenderNode for RenderImage {
@@ -155,6 +164,19 @@ impl MeasureNode for RenderImage {
         >,
         style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
-        rooibos_reactive::dom::div::taffy::Size::zero()
+        taffy::Size {
+            width: match available_space.width {
+                taffy::AvailableSpace::Definite(s) => s.min(self.size.width),
+                _ => self.size.width,
+            },
+            height: match available_space.height {
+                taffy::AvailableSpace::Definite(s) => s.min(self.size.height),
+                _ => self.size.height,
+            },
+        }
+    }
+
+    fn estimate_size(&self) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        self.size
     }
 }

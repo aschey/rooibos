@@ -17,7 +17,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     let server = AppServer::new(
         SshConfig {
-            keys: vec![KeyPair::generate_ed25519().unwrap()],
+            keys: vec![KeyPair::generate_ed25519()],
             ..Default::default()
         },
         SshApp,
@@ -38,9 +38,10 @@ impl SshHandler for SshApp {
         event_rx: tokio::sync::mpsc::Receiver<rooibos::reactive::Event>,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
-        mount(app);
-        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx));
-        runtime.run().await.unwrap();
+        Runtime::initialize(SshBackend::new(handle, event_rx))
+            .run(app)
+            .await
+            .unwrap();
     }
 }
 

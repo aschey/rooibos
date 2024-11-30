@@ -8,7 +8,7 @@ pub use button::*;
 pub use chart::*;
 use ratatui::widgets::{List, Paragraph, Tabs};
 pub use sparkline::*;
-use taffy::Size;
+use taffy::{AvailableSpace, Size};
 
 use crate::MeasureNode;
 
@@ -49,6 +49,10 @@ impl MeasureNode for Tabs<'_> {
     ) -> taffy::Size<f32> {
         Size::zero()
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
 }
 
 impl MeasureNode for List<'_> {
@@ -58,6 +62,10 @@ impl MeasureNode for List<'_> {
         available_space: Size<taffy::AvailableSpace>,
         style: &taffy::Style,
     ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
         Size::zero()
     }
 }

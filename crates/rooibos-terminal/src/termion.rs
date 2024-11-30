@@ -2,6 +2,7 @@ use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsFd;
 
 use ratatui::Terminal;
+use ratatui::backend::WindowSize;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
@@ -75,6 +76,13 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
             .into_alternate_screen()?;
         let terminal = MouseTerminal::from(terminal);
         Ok(ratatui::backend::TermionBackend::new(terminal))
+    }
+
+    fn window_size(&self) -> io::Result<WindowSize> {
+        Ok(WindowSize {
+            columns_rows: termion::terminal_size()?.into(),
+            pixels: termion::terminal_size_pixels()?.into(),
+        })
     }
 
     fn setup_terminal(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {

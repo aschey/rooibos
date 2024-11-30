@@ -35,9 +35,9 @@ fn main() -> Result {
 
 #[rooibos::main]
 async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
-    mount(|| app(initial_route));
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(|| app(initial_route))
+        .await
 }
 
 fn app(initial_route: impl ToRoute + 'static) -> impl Render {

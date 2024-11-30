@@ -100,7 +100,7 @@ impl EventDispatcher {
                     if inner.rect.borrow().contains(Position {
                         x: mouse_event.column,
                         y: mouse_event.row,
-                    }) && inner.focusable
+                    }) && inner.focusable()
                     {
                         Some(key)
                     } else {
@@ -289,7 +289,7 @@ where
         let mut stop_propagation = false;
         for key in found.into_iter().rev() {
             let continue_iter = with_nodes_mut(|nodes| {
-                if !focus_set && nodes[key].focusable {
+                if !focus_set && nodes[key].focusable() {
                     focus_set = true;
                     if nodes.focused_key() != Some(key) {
                         nodes.set_focused(Some(key));

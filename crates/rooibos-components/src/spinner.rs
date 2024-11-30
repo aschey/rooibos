@@ -12,7 +12,7 @@ use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::on_cleanup;
 use rooibos_reactive::graph::signal::{ReadSignal, signal};
-use rooibos_reactive::graph::traits::{Get as _, Update};
+use rooibos_reactive::graph::traits::{Get as _, GetUntracked, Update};
 use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
 use rooibos_reactive::{derive_signal, wgt};
 pub use throbber_widgets_tui::WhichUse as SpinnerDisplay;
@@ -173,14 +173,51 @@ impl Spinner {
     }
 
     pub fn render(self) -> impl Render {
+        let label = self.label.clone();
+        let spinner_set = self.spinner_set.clone();
         let state = self.create_state();
         let create_spinner = self.create_spinner_fn();
-        wgt!(state.get(), SpinnerWidget(create_spinner()))
+
+        wgt!(state.get(), SpinnerWidget {
+            inner: create_spinner(),
+            label: label.clone(),
+            spinner_set: spinner_set.clone()
+        })
     }
 }
 
 #[derive(Clone)]
-struct SpinnerWidget<'a>(Throbber<'a>);
+struct SpinnerWidget<'a> {
+    inner: Throbber<'a>,
+    label: Option<MaybeSignal<Span<'static>>>,
+    spinner_set: MaybeSignal<throbber_widgets_tui::Set>,
+}
+
+impl SpinnerWidget<'_> {
+    fn spinner_size(&self) -> Size<f32> {
+        let set = self.spinner_set.get_untracked();
+        let w_max = set
+            .symbols
+            .iter()
+            .map(|s| s.estimate_size().width)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.);
+        let h_max = set
+            .symbols
+            .iter()
+            .map(|s| s.estimate_size().height)
+            .max_by(|a, b| a.total_cmp(b))
+            .unwrap_or(0.);
+
+        set.empty
+            .estimate_size()
+            .f32_max(set.full.estimate_size())
+            .f32_max(Size {
+                width: w_max,
+                height: h_max,
+            })
+    }
+}
 
 impl MeasureNode for SpinnerWidget<'_> {
     fn measure(
@@ -191,7 +228,20 @@ impl MeasureNode for SpinnerWidget<'_> {
         >,
         style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
-        Size::zero()
+        self.estimate_size()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        let label_size = self
+            .label
+            .as_ref()
+            .map(|l| l.get().estimate_size())
+            .unwrap_or_default();
+        let spinner_size = self.spinner_size();
+        Size {
+            width: label_size.width + spinner_size.width,
+            height: label_size.height.max(spinner_size.height),
+        }
     }
 }
 
@@ -203,6 +253,6 @@ impl StatefulWidget for SpinnerWidget<'_> {
         buf: &mut ratatui::prelude::Buffer,
         state: &mut Self::State,
     ) {
-        self.0.render(area, buf, state)
+        self.inner.render(area, buf, state)
     }
 }

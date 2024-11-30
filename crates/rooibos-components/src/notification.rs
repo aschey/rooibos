@@ -12,7 +12,7 @@ use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
 use rooibos_reactive::graph::wrappers::read::MaybeSignal;
-use rooibos_reactive::{col, for_each, height, wgt, width};
+use rooibos_reactive::{col, for_each, height, padding_right, padding_top, wgt, width};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 
@@ -162,6 +162,8 @@ impl Notifications {
                 width!(100.%),
                 height!(100.%),
                 max_width(max_layout_width),
+                padding_right!(1.),
+                padding_top!(1.),
                 align_items(AlignItems::End),
             ),
             col![

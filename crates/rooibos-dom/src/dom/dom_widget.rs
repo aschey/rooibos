@@ -9,7 +9,9 @@ use ratatui::layout::Rect;
 use ratatui::text::{Line, Span, Text};
 use taffy::{AvailableSpace, Size, Style};
 use unicode_width::UnicodeWidthStr;
+use wasm_compat::cell::BoolCell;
 
+use super::{DomNodeKey, with_nodes_mut};
 use crate::widgets::{Role, WidgetRole};
 use crate::{next_node_id, refresh_dom};
 
@@ -54,6 +56,8 @@ pub trait MeasureNode {
         available_space: Size<AvailableSpace>,
         style: &Style,
     ) -> Size<f32>;
+
+    fn estimate_size(&self) -> Size<f32>;
 }
 
 impl MeasureNode for Size<f32> {
@@ -63,6 +67,10 @@ impl MeasureNode for Size<f32> {
         _available_space: Size<AvailableSpace>,
         _style: &Style,
     ) -> Size<f32> {
+        *self
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
         *self
     }
 }
@@ -76,6 +84,10 @@ impl MeasureNode for () {
     ) -> Size<f32> {
         Size::zero()
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
 }
 
 impl MeasureNode for Box<dyn MeasureNode> {
@@ -87,6 +99,10 @@ impl MeasureNode for Box<dyn MeasureNode> {
     ) -> Size<f32> {
         (**self).measure(known_dimensions, available_space, style)
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        (**self).estimate_size()
+    }
 }
 
 impl MeasureNode for String {
@@ -96,6 +112,13 @@ impl MeasureNode for String {
         available_space: Size<AvailableSpace>,
         style: &Style,
     ) -> Size<f32> {
+        Size {
+            width: self.width_cjk() as f32,
+            height: 1.0,
+        }
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
         Size {
             width: self.width_cjk() as f32,
             height: 1.0,
@@ -115,6 +138,13 @@ impl MeasureNode for &str {
             height: 1.0,
         }
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size {
+            width: self.width_cjk() as f32,
+            height: 1.0,
+        }
+    }
 }
 
 impl MeasureNode for Span<'_> {
@@ -124,6 +154,13 @@ impl MeasureNode for Span<'_> {
         available_space: Size<AvailableSpace>,
         style: &Style,
     ) -> Size<f32> {
+        Size {
+            width: self.width() as f32,
+            height: 1.0,
+        }
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
         Size {
             width: self.width() as f32,
             height: 1.0,
@@ -143,6 +180,13 @@ impl MeasureNode for Line<'_> {
             height: 1.0,
         }
     }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size {
+            width: self.width() as f32,
+            height: 1.0,
+        }
+    }
 }
 
 impl MeasureNode for Text<'_> {
@@ -152,6 +196,13 @@ impl MeasureNode for Text<'_> {
         available_space: Size<AvailableSpace>,
         style: &Style,
     ) -> Size<f32> {
+        Size {
+            width: self.width() as f32,
+            height: self.height() as f32,
+        }
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
         Size {
             width: self.width() as f32,
             height: self.height() as f32,
@@ -168,8 +219,11 @@ pub struct DomWidgetNode {
     //render_node: Rc<dyn BuildNodeRenderer>,
     //measure_node: Rc<dyn MeasureNode>,
     id: u32,
+    recompute_pending: Rc<BoolCell>,
+    current_size: Size<f32>,
     pub(crate) widget_type: String,
     pub(crate) role: Option<Role>,
+    key: DomNodeKey,
 }
 
 impl PartialEq for DomWidgetNode {
@@ -202,6 +256,8 @@ impl DomWidgetNode {
             role,
             build_render_node: Rc::new(move || Box::new(render_node.build_renderer())),
             widget_fn: Rc::new(RefCell::new(Box::new(()))),
+            recompute_pending: Rc::new(BoolCell::new(false)),
+            current_size: Size::zero(),
             //measure_fn: Rc::new(RefCell::new(Box::new(Size::zero()))),
             //measure_node: Rc::new(()),
             // render_node: Rc::new(()),
@@ -209,7 +265,12 @@ impl DomWidgetNode {
             //measure_fn: Rc::new(move || render_node.get_measure_fn(props))
             //f: Rc::new(move || Box::new(render_node.get_render_fn(render_node.build_props()))),
             widget_type: widget_type.into(),
+            key: DomNodeKey::default(),
         }
+    }
+
+    pub(crate) fn set_key(&mut self, key: DomNodeKey) {
+        self.key = key;
     }
 
     pub(crate) fn render(&self, rect: Rect, frame: &mut Frame) {
@@ -220,6 +281,23 @@ impl DomWidgetNode {
         let props = (self.build_render_node)();
         *self.widget_fn.borrow_mut() = props;
         refresh_dom();
+    }
+
+    pub fn estimate_size(&mut self) {
+        if self.recompute_pending.get() {
+            return;
+        }
+        let size = self.widget_fn.borrow().estimate_size();
+        if size != self.current_size {
+            with_nodes_mut(|n| {
+                n.force_recompute_layout(self.key);
+            });
+            self.recompute_pending.set(true);
+        }
+    }
+
+    pub(crate) fn recompute_done(&self) {
+        self.recompute_pending.set(false);
     }
 }
 
@@ -233,5 +311,9 @@ impl MeasureNode for DomWidgetNode {
         self.widget_fn
             .borrow()
             .measure(known_dimensions, available_space, style)
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        self.widget_fn.borrow().estimate_size()
     }
 }

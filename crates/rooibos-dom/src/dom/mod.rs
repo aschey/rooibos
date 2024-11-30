@@ -14,7 +14,7 @@ use ratatui::{CompletedFrame, Frame, Terminal};
 use tokio::sync::{oneshot, watch};
 use tokio::task::{LocalEnterGuard, LocalSet};
 
-use crate::NonblockingTerminal;
+use crate::{NonblockingTerminal, set_pixel_size};
 
 mod dom_node;
 mod dom_widget;
@@ -217,15 +217,6 @@ where
     Ok(())
 }
 
-pub async fn render_single_frame<B>(terminal: &mut NonblockingTerminal<B>) -> Result<(), io::Error>
-where
-    B: Backend + Send + Sync + io::Write + 'static,
-{
-    render_terminal(terminal).await?;
-    terminal.write(b"\n".into()).await;
-    Ok(())
-}
-
 pub fn focus(id: impl Into<NodeId>) {
     let id = id.into();
     with_nodes_mut(|nodes| {
@@ -254,7 +245,7 @@ pub fn try_focus_id(id: impl Into<NodeId>) -> Result<(), NodeNotFound> {
     let id = id.into();
     with_nodes_mut(|nodes| {
         let found_node = nodes.iter_nodes().find_map(|(key, node)| {
-            if !node.inner.focusable {
+            if !node.inner.focusable() {
                 return None;
             }
             if let Some(current_id) = &node.inner.id {

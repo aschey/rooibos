@@ -20,7 +20,7 @@ async fn main() -> Result {
     let (count_tx, _) = watch::channel(0);
     let server = AppServer::new(
         SshConfig {
-            keys: vec![KeyPair::generate_ed25519().unwrap()],
+            keys: vec![KeyPair::generate_ed25519()],
             ..Default::default()
         },
         SshApp { count_tx },
@@ -44,9 +44,10 @@ impl SshHandler for SshApp {
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();
-        mount(move || app(count_tx));
-        let runtime = Runtime::initialize(SshBackend::new(handle, event_rx));
-        runtime.run().await.unwrap();
+        Runtime::initialize(SshBackend::new(handle, event_rx))
+            .run(|| app(count_tx))
+            .await
+            .unwrap();
     }
 }
 
