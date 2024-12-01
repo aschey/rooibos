@@ -83,14 +83,10 @@ impl TestHarness {
         width: u16,
         height: u16,
     ) -> Self {
-        use rooibos_dom::render_terminal;
-
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
         let mut runtime = Runtime::initialize_with(runtime_settings, backend);
-        let mut terminal = runtime.setup_terminal().await.unwrap();
-        render_terminal(&mut terminal).await.unwrap();
-        focus_next();
+        let terminal = runtime.setup_terminal().await.unwrap();
 
         Self {
             runtime,
@@ -99,13 +95,15 @@ impl TestHarness {
         }
     }
 
-    pub fn mount<F, M>(&self, f: F)
+    pub async fn mount<F, M>(&mut self, f: F)
     where
         F: FnOnce() -> M + 'static,
         M: Render,
         <M as Render>::DomState: 'static,
     {
         self.runtime.mount(f);
+        render_terminal(&mut self.terminal).await.unwrap();
+        focus_next();
     }
 
     pub async fn from_terminal(

@@ -1,6 +1,7 @@
 ---
 source: examples/examples/buttons/tests.rs
-expression: harness.terminal().backend().buffer()
+expression: harness.buffer()
+snapshot_kind: text
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 25, height: 10 },
@@ -10,7 +11,7 @@ Buffer {
         " ║   bigger   ║          ",
         " ╚════════════╝          ",
         " ╭────────────╮          ",
-        " │   smaller  │          ",
+        " │  smaller   │          ",
         " ╰────────────╯          ",
         "                         ",
         "                         ",
@@ -40,8 +41,8 @@ Buffer {
         x: 24, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 1, y: 5, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
         x: 2, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 5, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
-        x: 12, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 4, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
+        x: 11, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 14, y: 5, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
         x: 15, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 17, y: 5, fg: Reset, bg: Rgb(64, 80, 48), underline: Reset, modifier: NONE,

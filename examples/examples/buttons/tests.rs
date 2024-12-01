@@ -1,16 +1,16 @@
-use rooibos::reactive::KeyCode;
 use rooibos::reactive::dom::{mount, root};
+use rooibos::reactive::{KeyCode, tick};
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::TestHarness;
 
 use crate::app;
 
 macro_rules! assert_snapshot {
-    ($terminal:expr) => {
+    ($harness:expr) => {
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($terminal.backend().buffer());
+            insta::assert_debug_snapshot!($harness.buffer());
         });
     };
 }
@@ -21,10 +21,12 @@ async fn test_buttons() {
         RuntimeSettings::default().enable_signal_handler(false),
         25,
         10,
-    );
-    harness.mount(app);
+    )
+    .await;
+    harness.mount(app).await;
+
     let root_node = root();
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
     let top_button = harness.find_by_text(&root_node, "bigger").unwrap();
     let button_rect = top_button.rect();
     harness.send_mouse_move(button_rect.x, button_rect.y);
@@ -33,7 +35,7 @@ async fn test_buttons() {
         .wait_for(|harness, _| harness.find_by_text(&root_node, "╔").is_some())
         .await
         .unwrap();
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     harness.send_key(KeyCode::Enter);
 
@@ -41,7 +43,7 @@ async fn test_buttons() {
         .wait_for(|harness, _| harness.find_by_text(&root_node, "12 x 6").is_some())
         .await
         .unwrap();
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     harness.exit().await;
 }

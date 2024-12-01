@@ -6,12 +6,13 @@ use rooibos::reactive::dom::layout::chars;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{padding, row};
+use rooibos::reactive::{col, padding, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
+use taffy::LengthPercentage;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -113,13 +114,15 @@ fn app() -> impl Render {
                 .bind()
             )
             .render(focused, tabs),
-        Button::new()
-            .width(chars(5.))
-            .height(chars(3.))
-            .on_click(move || {
-                add_tab();
-            })
-            .render(text!("+".green()))
+        col![
+            Button::new()
+                .padding_x(LengthPercentage::Length(1.))
+                .centered()
+                .on_click(move || {
+                    add_tab();
+                })
+                .render(text!("+".green()))
+        ]
     ]
 }
 

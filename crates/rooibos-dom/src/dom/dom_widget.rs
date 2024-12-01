@@ -15,8 +15,6 @@ use super::{DomNodeKey, with_nodes_mut};
 use crate::widgets::{Role, WidgetRole};
 use crate::{next_node_id, refresh_dom};
 
-pub(crate) type DomWidgetFn = Box<dyn FnMut(Rect, &mut Frame)>;
-
 pub trait BuildNodeRenderer {
     fn build_renderer(&self) -> impl RenderNode + MeasureNode + 'static;
 }
@@ -213,11 +211,7 @@ impl MeasureNode for Text<'_> {
 #[derive(Clone)]
 pub struct DomWidgetNode {
     build_render_node: Rc<dyn Fn() -> Box<dyn RenderMeasure>>,
-    //render_node: Rc<dyn RenderNodeBoxed>,
     widget_fn: Rc<RefCell<Box<dyn RenderMeasure>>>,
-    //measure_fn: Rc<RefCell<Box<dyn MeasureNode>>>,
-    //render_node: Rc<dyn BuildNodeRenderer>,
-    //measure_node: Rc<dyn MeasureNode>,
     id: u32,
     recompute_pending: Rc<BoolCell>,
     current_size: Size<f32>,
@@ -283,7 +277,7 @@ impl DomWidgetNode {
         refresh_dom();
     }
 
-    pub fn estimate_size(&mut self) {
+    pub fn estimate_size(&self) {
         if self.recompute_pending.get() {
             return;
         }

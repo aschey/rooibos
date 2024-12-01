@@ -565,8 +565,12 @@ impl NodeTree {
         refresh_dom();
     }
 
-    pub(crate) fn replace_inner(&mut self, node: DomNodeKey, inner: NodeProperties) {
-        self.dom_nodes[node].inner = inner;
+    pub(crate) fn replace_inner(&mut self, key: DomNodeKey, mut inner: NodeProperties) {
+        if let NodeType::Widget(widget) = &mut inner.node_type {
+            widget.set_key(key);
+        }
+        self.dom_nodes[key].inner = inner;
+
         refresh_dom();
     }
 

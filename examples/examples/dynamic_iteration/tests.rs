@@ -18,13 +18,14 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_counters() {
-    mount(app);
-    tick().await;
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         20,
     );
+    harness.mount(app);
+    tick().await;
+
     let root_layout = root().get_by_id("root");
     let add_button = root_layout
         .find_all_by_role(Role::Button)
