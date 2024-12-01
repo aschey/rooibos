@@ -2,7 +2,9 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::reactive::dom::flex_node::FlexProperty;
-use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars, justify_content, show};
+use rooibos::reactive::dom::layout::{
+    Borders, align_items, borders, chars, justify_content, show, z_index,
+};
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, mount, text,
 };
@@ -15,6 +17,7 @@ use rooibos::reactive::{
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::tui::style::Stylize;
 use rooibos::tui::widgets::Block;
 use taffy::{AlignItems, JustifyContent};
 
@@ -29,7 +32,7 @@ async fn main() -> Result {
 fn app() -> impl Render {
     let (show_popup, set_show_popup) = signal(false);
     col![
-        props(borders(Borders::all()), max_width!(50.), max_height!(20.)),
+        props(borders(Borders::all()), bounds()),
         row![
             Button::new()
                 .on_click(move || set_show_popup.set(true))
@@ -52,11 +55,11 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
 
     col![
         props(
-            width!(100.%),
-            height!(100.%),
+            bounds(),
+            z_index(2),
             center_items(),
             justify_content(JustifyContent::Center),
-            show(show_popup)
+            show(show_popup),
         ),
         col![
             props(center_items(), padding!(1.), borders(Borders::all())),
@@ -67,6 +70,15 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
                 .render(text!("close"))
         ]
     ]
+}
+
+fn bounds() -> impl FlexProperty {
+    (
+        width!(100.%),
+        height!(100.%),
+        max_width!(50.),
+        max_height!(20.),
+    )
 }
 
 fn center_items() -> impl FlexProperty {

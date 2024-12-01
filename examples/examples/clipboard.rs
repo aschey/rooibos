@@ -37,19 +37,17 @@ fn app() -> impl Render {
                 .placeholder_text("Enter some text")
                 .render(textarea),
         ],
-        row![
-            Button::new()
-                .on_click(move || {
-                    set_clipboard(text.get(), ClipboardKind::Clipboard).unwrap();
-                    notifier.notify(Notification::new(line!(
-                        "'",
-                        text.get().bold().green(),
-                        "' ",
-                        "copied to clipboard",
-                    )));
-                })
-                .render(text!("Copy to clipboard")),
-        ],
+        Button::new()
+            .on_click(move || {
+                set_clipboard(text.get(), ClipboardKind::Clipboard).unwrap();
+                notifier.notify(Notification::new(line!(
+                    "'",
+                    text.get().bold().green(),
+                    "' ",
+                    "copied to clipboard",
+                )));
+            })
+            .render(text!("Copy to clipboard")),
         Notifications::new().render()
     ]
 }

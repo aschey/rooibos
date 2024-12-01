@@ -207,17 +207,7 @@ impl NodeTree {
     }
 
     pub fn set_root(&mut self, z_index: i32, root: impl AsDomNode + 'static) {
-        let key = root.as_dom_node().get_key();
         self.roots.insert(RootId::new(z_index), Box::new(root));
-        let node = &self.dom_nodes[key];
-        let mut style = self.layout_tree.style(node.layout_id).unwrap().clone();
-        if style.size.width == Dimension::Auto {
-            style.size.width = Dimension::Percent(1.);
-        }
-        if style.size.height == Dimension::Auto {
-            style.size.height = Dimension::Percent(1.);
-        }
-        self.layout_tree.set_style(node.layout_id, style).unwrap();
     }
 
     pub fn on_window_size_change<F>(&mut self, f: F)

@@ -7,7 +7,9 @@ use rooibos::reactive::dom::{Render, line, mount, span, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Set, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, for_each, height, max_width, padding, padding_left, row, wgt, width};
+use rooibos::reactive::{
+    col, for_each, height, margin_x, max_width, padding, padding_left, padding_x, row, wgt, width,
+};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -66,7 +68,7 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> imp
     row![
         props(borders(border_block)),
         wgt!(
-            props(width!(15.)),
+            props(margin_x!(1.)),
             line!(
                 format!("{id}. "),
                 "count: ".bold(),

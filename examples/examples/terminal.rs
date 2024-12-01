@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
 use rooibos::components::{self, CommandBuilder};
-use rooibos::reactive::dom::{Render, mount};
+use rooibos::reactive::dom::layout::pct;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -24,6 +25,8 @@ fn app() -> impl Render {
     term_ref.spawn_command(cmd);
 
     components::Terminal::default()
+        .width(pct(100.))
+        .height(pct(100.))
         .block(Block::bordered().title("Terminal"))
         .render(term_ref)
 }

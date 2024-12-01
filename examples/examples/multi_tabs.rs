@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::events::KeyEventProps;
-use rooibos::reactive::dom::layout::{block, chars};
+use rooibos::reactive::dom::layout::{Borders, borders, chars};
 use rooibos::reactive::dom::{Render, line, mount};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
@@ -34,7 +34,7 @@ fn app() -> impl Render {
     ]));
 
     col![
-        props(max_width!(50.), max_height!(20.), block(Block::bordered())),
+        props(max_width!(50.), max_height!(20.), borders(Borders::all())),
         TabView::new()
             .header_height(chars(3.))
             .block(tab_block)
@@ -97,7 +97,7 @@ fn inner_tabs() -> impl Render {
     };
 
     row![
-        props(block(Block::bordered())),
+        props(borders(Borders::all())),
         TabView::new()
             .header_height(chars(3.))
             .block(tab_block)

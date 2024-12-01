@@ -20,15 +20,13 @@ async fn main() -> Result {
 }
 
 fn app(editor: String, args: Vec<String>) -> impl Render {
-    row![col![
-        Button::new()
-            .on_click(move || {
-                let mut cmd = tokio::process::Command::new(&editor);
-                cmd.args(&args);
-                exec(cmd, |_, _, _| {});
-            })
-            .render(text!("Open Editor"))
-    ]]
+    Button::new()
+        .on_click(move || {
+            let mut cmd = tokio::process::Command::new(&editor);
+            cmd.args(&args);
+            exec(cmd, |_, _, _| {});
+        })
+        .render(text!("Open Editor"))
 }
 
 #[cfg(test)]

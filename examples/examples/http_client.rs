@@ -38,8 +38,9 @@ fn app() -> impl Render {
     };
 
     col![
-        props(max_width!(25.), padding!(1.)),
+        props(padding!(1.)),
         Button::new()
+            .width(chars(12.))
             .on_click(move || {
                 set_id.set(rand::thread_rng().gen_range(1..80));
             })

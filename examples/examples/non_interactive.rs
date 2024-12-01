@@ -23,8 +23,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn app() -> impl Render {
-    row![wgt!(
-        props(borders(Borders::all().cyan())),
-        "hello!".reset()
-    )]
+    wgt!(props(borders(Borders::all().cyan())), "hello!".reset())
 }

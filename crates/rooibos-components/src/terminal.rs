@@ -9,7 +9,7 @@ use ratatui::widgets::{Block, Widget};
 use rooibos_dom::events::KeyEventProps;
 use rooibos_dom::{Event, MeasureNode, RenderNode};
 use rooibos_reactive::dom::div::taffy::Size;
-use rooibos_reactive::dom::{DomWidget, Render};
+use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Update};
@@ -44,6 +44,18 @@ impl TerminalRef {
 #[derive(Default)]
 pub struct Terminal {
     block: Option<MaybeSignal<Block<'static>>>,
+    layout_props: LayoutProps,
+}
+
+impl UpdateLayoutProps for Terminal {
+    fn update_props(mut self, props: LayoutProps) -> Self {
+        self.layout_props = props;
+        self
+    }
+
+    fn layout_props(&self) -> LayoutProps {
+        self.layout_props.clone()
+    }
 }
 
 impl Terminal {
@@ -70,7 +82,10 @@ impl Terminal {
     }
 
     pub fn render(self, terminal_ref: TerminalRef) -> impl Render {
-        let Self { block } = self;
+        let Self {
+            block,
+            layout_props,
+        } = self;
         let border_size = if block.is_some() { 1 } else { 0 };
         let TerminalRef { master, .. } = terminal_ref;
         let parser = RwSignal::new(Arc::new(Mutex::new(vt100::Parser::new(1, 1, 0))));
@@ -116,6 +131,7 @@ impl Terminal {
             parser: parser.get(),
             block: block.as_ref().map(|b| b.get()),
         })
+        .layout_props(layout_props)
         .on_key_down(move |props: KeyEventProps| {
             tx.try_send(Event::Key(props.event).to_escape_sequence())
                 .unwrap();
