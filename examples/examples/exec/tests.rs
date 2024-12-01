@@ -6,31 +6,33 @@ use rooibos::tester::{TerminalView, TestHarness};
 use crate::app;
 
 macro_rules! assert_snapshot {
-    ($terminal:expr) => {
+    ($harness:expr) => {
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($terminal.backend().buffer());
+            insta::assert_debug_snapshot!($harness.buffer());
         });
     };
 }
 
 #[rooibos::test]
 async fn test_exec() {
-    mount(|| {
-        if cfg!(windows) {
-            app("cmd".to_string(), vec!["/C".to_string(), "dir".to_string()])
-        } else {
-            app("ls".to_string(), Vec::new())
-        }
-    });
-    tick().await;
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         10,
-    );
-    assert_snapshot!(harness.terminal());
+    )
+    .await;
+    harness
+        .mount(|| {
+            if cfg!(windows) {
+                app("cmd".to_string(), vec!["/C".to_string(), "dir".to_string()])
+            } else {
+                app("ls".to_string(), Vec::new())
+            }
+        })
+        .await;
+    assert_snapshot!(harness);
 
     harness.send_key(KeyCode::Enter);
 

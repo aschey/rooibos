@@ -2,8 +2,9 @@ use std::env;
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::layout::{chars, shrink};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
+use rooibos::reactive::{col, row};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, exec};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -19,15 +20,15 @@ async fn main() -> Result {
 }
 
 fn app(editor: String, args: Vec<String>) -> impl Render {
-    Button::new()
-        .width(chars(20.))
-        .height(chars(3.))
-        .on_click(move || {
-            let mut cmd = tokio::process::Command::new(&editor);
-            cmd.args(&args);
-            exec(cmd, |_, _, _| {});
-        })
-        .render(text!("Open Editor"))
+    row![col![
+        Button::new()
+            .on_click(move || {
+                let mut cmd = tokio::process::Command::new(&editor);
+                cmd.args(&args);
+                exec(cmd, |_, _, _| {});
+            })
+            .render(text!("Open Editor"))
+    ]]
 }
 
 #[cfg(test)]

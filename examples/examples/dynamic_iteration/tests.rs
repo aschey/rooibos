@@ -7,11 +7,11 @@ use rooibos::tester::{TerminalView, TestHarness};
 use crate::app;
 
 macro_rules! assert_snapshot {
-    ($terminal:expr) => {
+    ($harness:expr) => {
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($terminal.backend().buffer());
+            insta::assert_debug_snapshot!($harness.buffer());
         });
     };
 }
@@ -22,9 +22,9 @@ async fn test_counters() {
         RuntimeSettings::default().enable_signal_handler(false),
         40,
         20,
-    );
-    harness.mount(app);
-    tick().await;
+    )
+    .await;
+    harness.mount(app).await;
 
     let root_layout = root().get_by_id("root");
     let add_button = root_layout
@@ -38,7 +38,7 @@ async fn test_counters() {
         .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 0"))
         .await
         .unwrap();
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     harness.send_key(KeyCode::Tab);
 
@@ -56,7 +56,7 @@ async fn test_counters() {
         .await
         .unwrap();
 
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     add_button.click();
 
@@ -64,7 +64,7 @@ async fn test_counters() {
         .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "count").len() == 2)
         .await
         .unwrap();
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     harness.send_key(KeyCode::Tab);
 
@@ -80,7 +80,7 @@ async fn test_counters() {
         .await
         .unwrap();
 
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     harness.exit().await;
 }

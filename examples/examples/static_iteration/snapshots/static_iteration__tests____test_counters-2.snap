@@ -1,6 +1,7 @@
 ---
 source: examples/examples/static_iteration/tests.rs
-expression: harness.terminal().backend().buffer()
+expression: harness.buffer()
+snapshot_kind: text
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 20, height: 20 },
@@ -33,7 +34,8 @@ Buffer {
         x: 1, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
         x: 2, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 9, y: 2, fg: Cyan, bg: Reset, underline: Reset, modifier: NONE,
-        x: 10, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
+        x: 10, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 18, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
         x: 19, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
         x: 1, y: 3, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
         x: 19, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
