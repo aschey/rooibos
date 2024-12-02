@@ -31,8 +31,8 @@ fn app() -> impl Render {
     let (quit_confirmed, set_quit_confirmed) = signal(false);
 
     before_exit(move |payload| async move {
-        // We should always exit when we receive a termination signal
-        if payload.is_termination_signal() || quit_confirmed.get() {
+        // We should always exit when we have a non-success code
+        if !payload.is_success() || quit_confirmed.get() {
             return ExitResult::Exit;
         }
         set_show_popup.set(true);

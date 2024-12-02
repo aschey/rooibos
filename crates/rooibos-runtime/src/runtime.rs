@@ -269,7 +269,7 @@ where
                         if let Some(e) = payload.error() {
                             return Err(RuntimeError::UserDefined(e.clone()));
                         } else {
-                            return Ok(payload.exit_code());
+                            return Ok(payload.code().as_exit_code().unwrap_or(ExitCode::FAILURE));
                         }
                     }
                 }

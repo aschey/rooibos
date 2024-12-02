@@ -307,7 +307,7 @@ impl TestHarness {
 
     #[cfg(feature = "runtime")]
     pub async fn exit(mut self) {
-        use std::process::ExitCode;
+        use rooibos_runtime::signal;
 
         self.event_tx
             .send(Event::Key(KeyEvent::new(
@@ -323,7 +323,7 @@ impl TestHarness {
                     let tick_result = tick_result.unwrap();
                     if let TickResult::Exit(payload) = tick_result {
                         if self.runtime.should_exit(payload.clone()).await {
-                            assert_eq!(payload.exit_code(), ExitCode::SUCCESS);
+                            assert_eq!(payload.code(), signal::Code::SUCCESS);
                             self.runtime.handle_exit(&mut self.terminal).await.unwrap();
                             return;
                         }

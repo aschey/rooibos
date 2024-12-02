@@ -20,7 +20,7 @@ type ExitResultFuture = dyn Future<Output = ExitResult> + Send;
 
 #[derive(Debug, Clone)]
 pub struct ExitPayload {
-    signal: signal::Code,
+    code: signal::Code,
     error: Option<Arc<Box<dyn Error + Send + Sync>>>,
 }
 
@@ -28,25 +28,25 @@ impl ExitPayload {
     pub(crate) fn from_result(
         result: Result<signal::Code, Arc<Box<dyn Error + Send + Sync>>>,
     ) -> Self {
-        let signal = result.clone().unwrap_or(signal::Code::FAILURE);
+        let code = result.clone().unwrap_or(signal::Code::FAILURE);
 
         Self {
-            signal,
+            code,
             error: result.err(),
         }
     }
 
-    pub fn signal(&self) -> signal::Code {
-        self.signal
+    pub fn code(&self) -> signal::Code {
+        self.code
     }
 
-    pub fn exit_code(&self) -> ExitCode {
-        self.signal.as_exit_code().unwrap_or(ExitCode::FAILURE)
+    pub fn is_success(&self) -> bool {
+        self.code == signal::Code::SUCCESS
     }
 
     pub fn is_termination_signal(&self) -> bool {
         matches!(
-            self.signal,
+            self.code,
             signal::SIGINT | signal::SIGQUIT | signal::SIGTERM
         )
     }
