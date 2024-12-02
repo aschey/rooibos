@@ -322,7 +322,6 @@ impl TestHarness {
                 tick_result = self.runtime.tick() => {
                     let tick_result = tick_result.unwrap();
                     if let TickResult::Exit(payload) = tick_result {
-                        let payload = payload.unwrap();
                         if self.runtime.should_exit(payload.clone()).await {
                             assert_eq!(payload.exit_code(), ExitCode::SUCCESS);
                             self.runtime.handle_exit(&mut self.terminal).await.unwrap();

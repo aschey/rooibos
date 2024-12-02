@@ -41,7 +41,6 @@ pub use widgets::*;
 
 pub fn execute_with_owner<T>(f: impl FnOnce() -> T) -> T {
     let owner = Owner::new();
-    set_panic_hook(owner.clone());
     let res = owner.with(f);
 
     owner.cleanup();
@@ -68,9 +67,10 @@ where
     f.await
 }
 
-fn set_panic_hook(owner: Owner) {
+pub fn install_panic_hook() {
     #[cfg(not(target_arch = "wasm32"))]
     {
+        let owner = Owner::current().unwrap();
         let original_hook = take_hook();
         set_hook(Box::new(move |panic_info| {
             owner.cleanup();
@@ -87,40 +87,6 @@ pub fn init_executor() {
 #[cfg(target_arch = "wasm32")]
 pub fn init_executor() {
     any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
-}
-
-thread_local! {
-    static SUPPORTS_KEYBOARD_ENHANCEMENT: OnceCell<bool> = const { OnceCell::new() };
-    static PIXEL_SIZE: OnceCell<Option<Size>> = const { OnceCell::new() };
-    static EDITING: LazyCell<Arc<AtomicBool>> = const { LazyCell::new(move || Arc::new(AtomicBool::new(false))) };
-}
-
-pub fn set_supports_keyboard_enhancement(supports_keyboard_enhancement: bool) -> Result<(), bool> {
-    SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| s.set(supports_keyboard_enhancement))
-}
-
-pub fn supports_keyboard_enhancement() -> bool {
-    SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| *s.get().unwrap())
-}
-
-pub fn set_pixel_size(pixel_size: Option<Size>) -> Result<(), Option<Size>> {
-    PIXEL_SIZE.with(|p| p.set(pixel_size))
-}
-
-pub fn pixel_size() -> Option<Size> {
-    PIXEL_SIZE.with(|p| *p.get().unwrap())
-}
-
-pub fn set_editing(editing: bool) {
-    EDITING.with(|e| e.store(editing, Ordering::Relaxed));
-}
-
-pub fn is_editing() -> bool {
-    EDITING.with(|e| e.load(Ordering::Relaxed))
-}
-
-pub fn editing() -> Arc<AtomicBool> {
-    EDITING.with(|e| e.deref().clone())
 }
 
 pub async fn tick() {

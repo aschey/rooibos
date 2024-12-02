@@ -16,13 +16,13 @@ use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Margin,
-    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Position, Property, Shrink, UpdateLayout, Width, align_self, aspect_ratio, basis,
-    grow, height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y,
-    max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    AlignSelf, AspectRatio, Basis, BorderProp, Borders, Clear, Enabled, Focusable, Grow, Height,
+    Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight,
+    MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
+    PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width, align_self, aspect_ratio,
+    basis, borders, grow, height, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
 };
 use crate::dom::RooibosDom;
 
@@ -32,9 +32,8 @@ pub struct DomWidgetRef {
 }
 
 impl DomWidgetRef {
-    pub fn force_recompute_layout(&self) {
-        self.inner.read().force_recompute_layout();
-    }
+    // pub fn state(&self) {
+    //     self.inner.read().on_click(handler)   }
 }
 
 #[derive(Clone)]
@@ -49,7 +48,7 @@ impl WidgetProperty for () {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
-impl WidgetProperty for BorderProp {}
+//impl WidgetProperty for BorderProp {}
 
 pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
 
@@ -58,7 +57,7 @@ impl Render<RooibosDom> for DomWidgetNode {
 
     fn build(self) -> Self::State {
         RenderEffect::new({
-            let mut inner = self.0.clone();
+            let inner = self.0.clone();
             move |_| {
                 inner.build();
                 inner.estimate_size();
@@ -425,6 +424,32 @@ where
 
 #[derive(Default, Clone)]
 pub struct LayoutProps {
+    pub borders: BorderProp,
+    pub simple: SimpleLayoutProps,
+}
+
+pub struct LayoutPropsState {
+    borders: <BorderProp as Property>::State,
+    simple: <SimpleLayoutProps as Property>::State,
+}
+
+impl Property for LayoutProps {
+    type State = LayoutPropsState;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let borders = self.borders.build(node);
+        let simple = self.simple.build(node);
+        LayoutPropsState { borders, simple }
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        self.borders.rebuild(node, &mut state.borders);
+        self.simple.rebuild(node, &mut state.simple);
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct SimpleLayoutProps {
     pub width: Width,
     pub height: Height,
     pub min_width: MinWidth,
@@ -458,7 +483,7 @@ pub struct LayoutProps {
 
 impl WidgetProperty for LayoutProps {}
 
-impl UpdateLayout for LayoutProps {
+impl UpdateLayout for SimpleLayoutProps {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style) {
         let Self {
             width,
@@ -569,6 +594,8 @@ where
     update_props!(shrink, f32);
     update_props!(align_self, taffy::AlignSelf);
     update_props!(basis, taffy::Dimension);
+
+    update_props!(borders, Borders);
 }
 
 #[macro_export]
@@ -582,7 +609,7 @@ macro_rules! props {
 }
 
 macro_rules! widget_prop {
-    ($struct_name:ident, $fn:ident, $inner:ty) => {
+    ($struct_name:ident, $fn:ident, $inner:ty, $($path:ident).+) => {
         impl WidgetProperty for $struct_name {}
 
         impl<P> DomWidget<P>
@@ -602,7 +629,7 @@ macro_rules! widget_prop {
 
         impl UpdateLayoutPropsBorrowed for $struct_name {
             fn update_props(self, props: &mut LayoutProps) {
-                props.$fn = self;
+                props.$($path).+ = self;
             }
         }
 
@@ -611,42 +638,104 @@ macro_rules! widget_prop {
             where
                 S: Into<MaybeSignal<$inner>>,
             {
-                self.$fn = $fn(val).0;
+                self.$($path).+ = $fn(val).0;
                 self
             }
         }
     };
 }
 
-widget_prop!(Width, width, taffy::Dimension);
-widget_prop!(Height, height, taffy::Dimension);
-widget_prop!(MinWidth, min_width, taffy::Dimension);
-widget_prop!(MinHeight, min_height, taffy::Dimension);
-widget_prop!(MaxWidth, max_width, taffy::Dimension);
-widget_prop!(MaxHeight, max_height, taffy::Dimension);
-widget_prop!(AspectRatio, aspect_ratio, f32);
-widget_prop!(Position, position, taffy::Position);
+widget_prop!(Width, width, taffy::Dimension, simple.width);
+widget_prop!(Height, height, taffy::Dimension, simple.height);
+widget_prop!(MinWidth, min_width, taffy::Dimension, simple.min_width);
+widget_prop!(MinHeight, min_height, taffy::Dimension, simple.min_height);
+widget_prop!(MaxWidth, max_width, taffy::Dimension, simple.max_width);
+widget_prop!(MaxHeight, max_height, taffy::Dimension, simple.max_height);
+widget_prop!(AspectRatio, aspect_ratio, f32, simple.aspect_ratio);
+widget_prop!(Position, position, taffy::Position, simple.position);
 
-widget_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
-widget_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
-widget_prop!(MarginTop, margin_top, taffy::LengthPercentageAuto);
-widget_prop!(MarginBottom, margin_bottom, taffy::LengthPercentageAuto);
-widget_prop!(MarginX, margin_x, taffy::LengthPercentageAuto);
-widget_prop!(MarginY, margin_y, taffy::LengthPercentageAuto);
-widget_prop!(Margin, margin, taffy::LengthPercentageAuto);
+widget_prop!(
+    MarginLeft,
+    margin_left,
+    taffy::LengthPercentageAuto,
+    simple.margin_left
+);
+widget_prop!(
+    MarginRight,
+    margin_right,
+    taffy::LengthPercentageAuto,
+    simple.margin_right
+);
+widget_prop!(
+    MarginTop,
+    margin_top,
+    taffy::LengthPercentageAuto,
+    simple.margin_top
+);
+widget_prop!(
+    MarginBottom,
+    margin_bottom,
+    taffy::LengthPercentageAuto,
+    simple.margin_bottom
+);
+widget_prop!(
+    MarginX,
+    margin_x,
+    taffy::LengthPercentageAuto,
+    simple.margin_x
+);
+widget_prop!(
+    MarginY,
+    margin_y,
+    taffy::LengthPercentageAuto,
+    simple.margin_y
+);
+widget_prop!(Margin, margin, taffy::LengthPercentageAuto, simple.margin);
 
-widget_prop!(PaddingLeft, padding_left, taffy::LengthPercentage);
-widget_prop!(PaddingRight, padding_right, taffy::LengthPercentage);
-widget_prop!(PaddingTop, padding_top, taffy::LengthPercentage);
-widget_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
-widget_prop!(PaddingX, padding_x, taffy::LengthPercentage);
-widget_prop!(PaddingY, padding_y, taffy::LengthPercentage);
-widget_prop!(Padding, padding, taffy::LengthPercentage);
+widget_prop!(
+    PaddingLeft,
+    padding_left,
+    taffy::LengthPercentage,
+    simple.padding_left
+);
+widget_prop!(
+    PaddingRight,
+    padding_right,
+    taffy::LengthPercentage,
+    simple.padding_right
+);
+widget_prop!(
+    PaddingTop,
+    padding_top,
+    taffy::LengthPercentage,
+    simple.padding_top
+);
+widget_prop!(
+    PaddingBottom,
+    padding_bottom,
+    taffy::LengthPercentage,
+    simple.padding_bottom
+);
+widget_prop!(
+    PaddingX,
+    padding_x,
+    taffy::LengthPercentage,
+    simple.padding_x
+);
+widget_prop!(
+    PaddingY,
+    padding_y,
+    taffy::LengthPercentage,
+    simple.padding_y
+);
+widget_prop!(Padding, padding, taffy::LengthPercentage, simple.padding);
 
-widget_prop!(Grow, grow, f32);
-widget_prop!(Shrink, shrink, f32);
-widget_prop!(AlignSelf, align_self, taffy::AlignSelf);
-widget_prop!(Basis, basis, taffy::Dimension);
+widget_prop!(Grow, grow, f32, simple.grow);
+widget_prop!(Shrink, shrink, f32, simple.shrink);
+widget_prop!(AlignSelf, align_self, taffy::AlignSelf, simple.align_self);
+widget_prop!(Basis, basis, taffy::Dimension, simple.basis);
+
+widget_prop!(BorderProp, borders, Borders, borders);
 
 macro_rules! impl_widget_property_for_tuples {
     ($($ty:ident),* $(,)?) => {

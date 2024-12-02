@@ -62,7 +62,7 @@ pub enum TickResult {
     Redraw,
     Restart,
     Command(TerminalCommand),
-    Exit(Result<ExitPayload, Arc<Box<dyn Error + Send + Sync>>>),
+    Exit(ExitPayload),
 }
 
 impl<B> Runtime<B>
@@ -262,17 +262,16 @@ where
                         .map_err(RuntimeError::SetupFailure)?;
                     self.draw(&mut terminal).await;
                 }
-                TickResult::Exit(Ok(payload)) => {
+                TickResult::Exit(payload) => {
                     if self.should_exit(payload.clone()).await {
                         self.handle_exit(&mut terminal).await?;
                         restore_terminal()?;
-                        return Ok(payload.exit_code());
+                        if let Some(e) = payload.error() {
+                            return Err(RuntimeError::UserDefined(e.clone()));
+                        } else {
+                            return Ok(payload.exit_code());
+                        }
                     }
-                }
-                TickResult::Exit(Err(e)) => {
-                    self.handle_exit(&mut terminal).await?;
-                    restore_terminal()?;
-                    return Err(RuntimeError::UserDefined(e));
                 }
                 TickResult::Command(command) => {
                     self.handle_terminal_command(command, &mut terminal).await?;
@@ -464,11 +463,11 @@ where
                         Ok(TickResult::Restart)
                     }
                     Ok(RuntimeCommand::Terminate(res))  => {
-                        Ok(TickResult::Exit(res.map(ExitPayload::from_signal)))
+                        Ok(TickResult::Exit(ExitPayload::from_result(res)))
                     }
                     Err(e) => {
                         error!("error receiving runtime command: {e:?}");
-                        Ok(TickResult::Exit(Ok(ExitPayload::from_exit_code(ExitCode::FAILURE))))
+                        Ok(TickResult::Exit(ExitPayload::from_result(Ok(signal::Code::FAILURE))))
                     }
                 }
             }

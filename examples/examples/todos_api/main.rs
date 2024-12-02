@@ -29,8 +29,8 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Errors, col, derive_signal, height, margin, margin_left, margin_top, padding_left, row,
-    transition, wgt, width,
+    Errors, col, derive_signal, height, margin, margin_left, margin_top, padding, padding_left,
+    row, transition, wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
@@ -105,11 +105,17 @@ fn app(notification_timeout: Duration) -> impl Render {
     let todos_max_width = chars(200.);
 
     col![
-        props(max_width(todos_max_width)),
+        props(
+            padding!(1.),
+            width!(100.%),
+            height!(100.%),
+            max_width(todos_max_width)
+        ),
         row![
-            props(height!(3.)),
+            props(width!(100.%), align_items(AlignItems::Center)),
+            // props(height!(3.)),
             wgt!(
-                props(width!(12.), margin_top!(1.), margin_left!(1.)),
+                //props(width!(12.), margin_top!(1.), margin_left!(1.)),
                 "Add a Todo"
             ),
             add_todo_input(input_id)
@@ -118,7 +124,7 @@ fn app(notification_timeout: Duration) -> impl Render {
             props(height!(100.%), borders(Borders::all().title("Todos"))),
             col![todos_body(editing_id, notification_timeout)]
         ],
-        CommandBar::<Command>::new().height(chars(1.)).render(),
+        CommandBar::<Command>::new().render(),
         saving_popup(),
         Notifications::new()
             .max_layout_width(todos_max_width)
@@ -155,8 +161,9 @@ fn add_todo_input(id: NodeId) -> impl Render {
     let input_ref = Input::get_ref();
 
     row![
-        props(grow(1.), padding_left!(1.)),
+        props(width!(100.%), padding_left!(1.)),
         Input::default()
+            .borders(Borders::all())
             .placeholder_text("Add a todo")
             .grow(1.)
             //.borders()
@@ -174,13 +181,12 @@ fn add_todo_input(id: NodeId) -> impl Render {
                 input_ref.delete_line();
                 command_context.dispatch(Command::Add { val });
             })
-            .height(chars(3.))
+            //.height(chars(3.))
             .min_width(chars(12.))
             .max_width(chars(100.))
             .id(id)
             .render(input_ref),
         Button::new()
-            .width(chars(10.))
             .on_click(move || {
                 input_ref.submit();
             })

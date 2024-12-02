@@ -275,13 +275,14 @@ impl Borders {
     }
 }
 
-pub struct BorderProp(pub(crate) MaybeSignal<Borders>);
+#[derive(Clone, Default)]
+pub struct BorderProp(pub(crate) Option<MaybeSignal<Borders>>);
 
 pub fn borders<S>(borders: S) -> (BorderProp,)
 where
     S: Into<MaybeSignal<Borders>>,
 {
-    (BorderProp(borders.into()),)
+    (BorderProp(Some(borders.into())),)
 }
 
 impl Property for BorderProp {
@@ -290,7 +291,10 @@ impl Property for BorderProp {
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
         RenderEffect::new(move |_| {
-            let border = self.0.get();
+            let Some(border) = &self.0 else {
+                return;
+            };
+            let border = border.get();
             let mut block = ratatui::widgets::Block::new()
                 .borders(border.borders)
                 .border_set(border.border_type.into())

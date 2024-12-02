@@ -57,6 +57,7 @@ pub fn use_keypress() -> rooibos_reactive::graph::signal::ReadSignal<Option<rooi
 pub fn set_panic_hook() {
     #[cfg(not(target_arch = "wasm32"))]
     {
+        rooibos_reactive::install_panic_hook();
         let original_hook = take_hook();
         set_hook(Box::new(move |panic_info| {
             let _ = restore_terminal();

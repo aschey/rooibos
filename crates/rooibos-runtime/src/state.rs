@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::error::Error;
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
 use std::process::ExitCode;
+use std::sync::Arc;
 
 use background_service::{Manager, ServiceContext};
 use tokio::sync::broadcast;
@@ -18,32 +20,39 @@ type ExitResultFuture = dyn Future<Output = ExitResult> + Send;
 
 #[derive(Debug, Clone)]
 pub struct ExitPayload {
-    signal: Option<signal::Code>,
-    exit_code: ExitCode,
+    signal: signal::Code,
+    error: Option<Arc<Box<dyn Error + Send + Sync>>>,
 }
 
 impl ExitPayload {
-    pub(crate) fn from_signal(signal: signal::Code) -> Self {
-        let exit_code = signal.as_exit_code().unwrap_or(ExitCode::FAILURE);
+    pub(crate) fn from_result(
+        result: Result<signal::Code, Arc<Box<dyn Error + Send + Sync>>>,
+    ) -> Self {
+        let signal = result.clone().unwrap_or(signal::Code::FAILURE);
+
         Self {
-            signal: Some(signal),
-            exit_code,
+            signal,
+            error: result.err(),
         }
     }
 
-    pub(crate) fn from_exit_code(exit_code: ExitCode) -> Self {
-        Self {
-            signal: None,
-            exit_code,
-        }
-    }
-
-    pub fn signal(&self) -> Option<signal::Code> {
+    pub fn signal(&self) -> signal::Code {
         self.signal
     }
 
     pub fn exit_code(&self) -> ExitCode {
-        self.exit_code
+        self.signal.as_exit_code().unwrap_or(ExitCode::FAILURE)
+    }
+
+    pub fn is_termination_signal(&self) -> bool {
+        matches!(
+            self.signal,
+            signal::SIGINT | signal::SIGQUIT | signal::SIGTERM
+        )
+    }
+
+    pub fn error(&self) -> &Option<Arc<Box<dyn Error + Send + Sync>>> {
+        &self.error
     }
 }
 

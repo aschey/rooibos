@@ -11,7 +11,7 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, row, wgt, width};
+use rooibos::reactive::{col, height, max_width, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, signal};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -32,7 +32,7 @@ fn app() -> impl Render {
 
     before_exit(move |payload| async move {
         // We should always exit when we receive a termination signal
-        if payload.signal().is_some() || quit_confirmed.get() {
+        if payload.is_termination_signal() || quit_confirmed.get() {
             return ExitResult::Exit;
         }
         set_show_popup.set(true);
@@ -40,6 +40,13 @@ fn app() -> impl Render {
     });
 
     col![
+        props(
+            padding!(1.),
+            width!(100.%),
+            height!(100.%),
+            max_width!(100.),
+            borders(Borders::all())
+        ),
         row![
             Button::new()
                 .on_click(move || {
@@ -47,6 +54,7 @@ fn app() -> impl Render {
                 })
                 .render(text!("exit")),
         ],
+        // TODO: modal popup
         popup(
             show_popup,
             move || {
