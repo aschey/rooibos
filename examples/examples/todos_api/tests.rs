@@ -11,11 +11,11 @@ use crate::server::run_server;
 use crate::{Command, app};
 
 macro_rules! assert_snapshot {
-    ($name:literal, $terminal:expr) => {
+    ($name:literal, $harness:expr) => {
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($name, $terminal.backend().buffer());
+            insta::assert_debug_snapshot!($name, $harness.buffer());
         });
     };
 }
@@ -30,25 +30,26 @@ async fn test_todos() {
     cmd_handler.generate_commands();
 
     tokio::spawn(run_server(listener));
-    mount(|| app(Duration::from_millis(500)));
-    tick().await;
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default()
             .handle_commands(cmd_handler)
             .enable_signal_handler(false),
         50,
         10,
-    );
+    )
+    .await;
+    harness.mount(|| app(Duration::from_millis(500))).await;
+
     let root_layout = root();
     // Wait for initial data load
     harness
         .wait_for(|harness, _| {
-            harness.find_by_text(&root_layout, "Input").is_some()
+            harness.find_by_text(&root_layout, "Add a todo").is_some()
                 && harness.find_by_text(&root_layout, "No todos").is_some()
         })
         .await
         .unwrap();
-    assert_snapshot!("init", harness.terminal());
+    assert_snapshot!("init", harness);
 
     // Add todo
     let todo_input = root_layout.find_all_by_role(Role::TextInput)[0].clone();
@@ -61,14 +62,14 @@ async fn test_todos() {
         .wait_for(|harness, _| harness.find_by_text(&todos_block, "todo 1").is_some())
         .await
         .unwrap();
-    assert_snapshot!("after_create", harness.terminal());
+    assert_snapshot!("after_create", harness);
 
     update_todo(&mut harness, &todos_block, "1", "todo 11", false).await;
-    assert_snapshot!("keyboard_update", harness.terminal());
+    assert_snapshot!("keyboard_update", harness);
     wait_for_notification(&mut harness, "Todo updated").await;
 
     update_todo(&mut harness, &todos_block, "2", "todo 112", true).await;
-    assert_snapshot!("click_update", harness.terminal());
+    assert_snapshot!("click_update", harness);
     wait_for_notification(&mut harness, "Todo updated").await;
 
     // Delete todo
@@ -78,7 +79,7 @@ async fn test_todos() {
         .await
         .unwrap();
     wait_for_notification(&mut harness, "Todo deleted").await;
-    assert_snapshot!("delete", harness.terminal());
+    assert_snapshot!("delete", harness);
 
     harness.exit().await;
 }

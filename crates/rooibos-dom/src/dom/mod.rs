@@ -217,22 +217,6 @@ where
     Ok(())
 }
 
-pub fn focus(id: impl Into<NodeId>) {
-    let id = id.into();
-    with_nodes_mut(|nodes| {
-        let node = nodes.iter_nodes().find_map(|(k, v)| {
-            if v.inner.id.as_ref() == Some(&id) {
-                Some(k)
-            } else {
-                None
-            }
-        });
-        if let Some(node) = node {
-            nodes.set_focused(Some(node));
-        }
-    });
-}
-
 #[derive(thiserror::Error, Debug)]
 #[error("node not found: {0:?}")]
 pub struct NodeNotFound(pub NodeId);

@@ -1,38 +1,36 @@
 ---
 source: examples/examples/todos_api/tests.rs
-expression: harness.terminal().backend().buffer()
+expression: harness.buffer()
+snapshot_kind: text
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 50, height: 10 },
     content: [
-        "              ┌Input───────────────────┐╭────────╮",
-        " Add a Todo   │ Add a todo             ││ submit │",
-        "              └────────────────────────┘╰────────╯",
-        "┌Todos───────────────────────────────────────────┐",
-        "│No todos                                        │",
-        "│                                                │",
-        "│                                                │",
-        "│                                                │",
-        "└────────────────────────────────────────────────┘",
+        "                                                  ",
+        "            ┌───────────────────────────┐╭──────╮ ",
+        " Add a Todo │ Add a todo                ││submit│ ",
+        "            └───────────────────────────┘╰──────╯ ",
+        " ┌Todos─────────────────────────────────────────┐ ",
+        " │No todos                                      │ ",
+        " │                                              │ ",
+        " └──────────────────────────────────────────────┘ ",
+        "                                                  ",
         "                                                  ",
     ],
     styles: [
         x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 14, y: 0, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 40, y: 0, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 0, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 14, y: 1, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 15, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: REVERSED,
-        x: 16, y: 1, fg: DarkGray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 39, y: 1, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 40, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 41, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 49, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 0, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 14, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 40, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 0, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 1, y: 4, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 9, y: 4, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 41, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 49, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 13, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: REVERSED,
+        x: 14, y: 2, fg: DarkGray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 40, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 41, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 42, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 48, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 49, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 41, y: 3, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 49, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 2, y: 5, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
+        x: 10, y: 5, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
     ]
 }

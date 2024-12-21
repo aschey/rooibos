@@ -1,16 +1,17 @@
 use std::process::ExitCode;
 
 use rooibos::components::Input;
-use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, WidgetState, line, mount};
+use rooibos::reactive::dom::layout::{Borders, borders, chars};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, padding, wgt};
+use rooibos::reactive::{col, derive_signal, max_width, padding, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::Block;
+use taffy::LengthPercentage;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -23,22 +24,23 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     let textarea = Input::get_ref();
-
+    let (id, focused) = use_focus();
     let text = textarea.text();
     col![
-        props(padding!(1.)),
+        props(
+            padding!(1.),
+            width!(100.%),
+            max_width!(100.),
+            borders(derive_signal!(if focused.get() {
+                Borders::all().title("Input").blue()
+            } else {
+                Borders::all().title("Input")
+            }))
+        ),
         Input::default()
-            .block(|state| Block::bordered()
-                .fg(Color::Blue)
-                .border_set(if state == WidgetState::Focused {
-                    border::PLAIN
-                } else {
-                    border::EMPTY
-                })
-                .title("Input")
-                .into())
+            .id(id)
+            .padding_bottom(LengthPercentage::Length(1.))
             .placeholder_text("Enter some text")
-            .height(chars(3.))
             .on_submit(move |_| {
                 textarea.delete_line();
             })

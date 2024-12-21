@@ -33,23 +33,20 @@ thread_local! {
     });
 }
 
-pub fn use_focus() -> (NodeId, impl Get<Value = bool> + Copy) {
+pub fn use_focus() -> (NodeId, Signal<bool>) {
     let id = NodeId::new_auto();
-    use_focus_with_id_inner(id)
+    (id, use_focus_with_id_inner(id))
 }
 
-pub fn use_focus_with_id(id: impl Into<String>) -> (NodeId, impl Get<Value = bool> + Copy) {
-    let id = NodeId::new(id);
-    use_focus_with_id_inner(id)
+pub fn use_focus_with_id(id: impl Into<NodeId>) -> Signal<bool> {
+    use_focus_with_id_inner(id.into())
 }
 
 pub fn use_focused_node() -> ReadSignal<Option<NodeId>> {
     FOCUS_SIGNAL.with(|f| **f)
 }
 
-fn use_focus_with_id_inner(id: NodeId) -> (NodeId, Signal<bool>) {
+fn use_focus_with_id_inner(id: NodeId) -> Signal<bool> {
     let focused_node = use_focused_node();
-    let focused = derive_signal!(focused_node.get().map(|node| node == id).unwrap_or(false));
-
-    (id, focused)
+    derive_signal!(focused_node.get().map(|node| node == id).unwrap_or(false))
 }

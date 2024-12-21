@@ -7,7 +7,7 @@ use ratatui::style::{Color, Style, Stylize};
 use ratatui::symbols;
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
-use rooibos_dom::{KeyCode, NodeId, WidgetState, delay, supports_keyboard_enhancement};
+use rooibos_dom::{KeyCode, NodeId, delay, supports_keyboard_enhancement};
 use rooibos_reactive::dom::layout::{BorderType, Borders, borders};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
@@ -39,6 +39,13 @@ impl ButtonRef {
     pub fn click(&self) {
         self.tx.with_value(|tx| tx.send(()).unwrap());
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum WidgetState {
+    Focused,
+    Active,
+    Default,
 }
 
 pub struct Button {

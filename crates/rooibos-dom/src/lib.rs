@@ -19,13 +19,6 @@ use ratatui::layout::Size;
 pub use ratatui::text as __text;
 pub use terminput::*;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum WidgetState {
-    Focused,
-    Active,
-    Default,
-}
-
 pub fn delay<F>(duration: Duration, f: F)
 where
     F: Future<Output = ()> + 'static,

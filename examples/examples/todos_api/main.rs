@@ -15,11 +15,12 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, clear, grow, justify_content, max_width, position, show,
+    Borders, align_items, borders, chars, clear, grow, justify_content, max_width, pct, position,
+    show,
 };
 use rooibos::reactive::dom::{
-    NodeId, Render, RenderAny, UpdateLayoutProps, WidgetState, after_render, focus_id, line, mount,
-    span, text,
+    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, mount, span, text,
+    use_focus, use_focus_with_id, use_focused_node,
 };
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
@@ -39,7 +40,7 @@ use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::symbols::border;
 use rooibos::tui::widgets::{Block, Paragraph};
 use server::run_server;
-use taffy::{AlignItems, JustifyContent, Position};
+use taffy::{AlignItems, JustifyContent, LengthPercentage, Position};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -113,16 +114,16 @@ fn app(notification_timeout: Duration) -> impl Render {
         ),
         row![
             props(width!(100.%), align_items(AlignItems::Center)),
-            // props(height!(3.)),
-            wgt!(
-                //props(width!(12.), margin_top!(1.), margin_left!(1.)),
-                "Add a Todo"
-            ),
+            wgt!("Add a Todo"),
             add_todo_input(input_id)
         ],
         row![
-            props(height!(100.%), borders(Borders::all().title("Todos"))),
-            col![todos_body(editing_id, notification_timeout)]
+            props(
+                width!(100.%),
+                height!(100.%),
+                borders(Borders::all().title("Todos"))
+            ),
+            todos_body(editing_id, notification_timeout)
         ],
         CommandBar::<Command>::new().render(),
         saving_popup(),
@@ -159,29 +160,22 @@ fn app(notification_timeout: Duration) -> impl Render {
 fn add_todo_input(id: NodeId) -> impl Render {
     let command_context = use_command_context::<Command>();
     let input_ref = Input::get_ref();
+    let focused = use_focus_with_id(id);
 
     row![
         props(width!(100.%), padding_left!(1.)),
         Input::default()
-            .borders(Borders::all())
+            .borders(derive_signal!(if focused.get() {
+                Borders::all().blue()
+            } else {
+                Borders::all()
+            }))
             .placeholder_text("Add a todo")
             .grow(1.)
-            //.borders()
-            // .block(|state| {
-            //     Block::bordered()
-            //         .fg(if state == WidgetState::Focused {
-            //             Color::Blue
-            //         } else {
-            //             Color::default()
-            //         })
-            //         .title("Input")
-            //         .into()
-            // })
             .on_submit(move |val| {
                 input_ref.delete_line();
                 command_context.dispatch(Command::Add { val });
             })
-            //.height(chars(3.))
             .min_width(chars(12.))
             .max_width(chars(100.))
             .id(id)
@@ -245,15 +239,18 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     transition!(
         wgt!(line!(" Loading...".gray())),
         todos.await.map(|todos| {
-            col![if todos.is_empty() {
-                wgt!("No todos".gray()).into_any()
-            } else {
-                todos
-                    .into_iter()
-                    .map(|t| todo_item(t.id, t.text, editing_id))
-                    .collect::<Vec<_>>()
-                    .into_any()
-            }]
+            col![
+                props(width!(100.%)),
+                if todos.is_empty() {
+                    wgt!("No todos".gray()).into_any()
+                } else {
+                    todos
+                        .into_iter()
+                        .map(|t| todo_item(t.id, t.text, editing_id))
+                        .collect::<Vec<_>>()
+                        .into_any()
+                }
+            ]
         }),
         fallback
     )
@@ -302,8 +299,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_ref = Input::get_ref();
 
     row![
-        props(height!(3.)),
-        col![props(margin!(1.), width!(3.)), format!("{id}.")],
+        col![props(margin!(1.)), format!("{id}.")],
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
@@ -328,8 +324,9 @@ fn add_edit_button(
     }));
 
     Button::new()
-        .width(chars(5.))
         .id(add_edit_id)
+        .padding_x(LengthPercentage::Length(1.))
+        .centered()
         .on_click(move || {
             if editing.get() {
                 input_ref.submit();
@@ -344,7 +341,8 @@ fn delete_button(id: u32) -> impl Render {
     let TodoContext { delete_todo, .. } = use_context::<TodoContext>().unwrap();
 
     Button::new()
-        .width(chars(5.))
+        .padding_x(LengthPercentage::Length(1.))
+        .centered()
         .on_click(move || {
             delete_todo.dispatch(id);
         })
@@ -360,7 +358,7 @@ fn todo_editor(
 ) -> impl Render {
     let TodoContext { update_todo, .. } = use_context::<TodoContext>().unwrap();
 
-    let input_id = NodeId::new_auto();
+    let (input_id, focused) = use_focus();
 
     // We can't focus until after rendering since the widget ID won't exist in the tree until then
     after_render(move || {
@@ -368,16 +366,11 @@ fn todo_editor(
     });
 
     Input::default()
-        // .block(|state| {
-        //     Block::bordered()
-        //         .fg(Color::Blue)
-        //         .border_set(if state == WidgetState::Focused {
-        //             border::PLAIN
-        //         } else {
-        //             border::EMPTY
-        //         })
-        //         .into()
-        // })
+        .borders(derive_signal!(if focused.get() {
+            Borders::all().blue()
+        } else {
+            Borders::all().empty()
+        }))
         .initial_value(text.get())
         .on_submit(move |value| {
             update_todo.dispatch((id, value));
@@ -388,6 +381,7 @@ fn todo_editor(
                 editing_id.set(None);
             }
         })
+        .width(pct(100.))
         .grow(1.)
         .max_width(chars(100.))
         .id(input_id)

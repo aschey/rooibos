@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::{align_items, block, chars};
+use rooibos::reactive::dom::layout::{align_items, chars};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
 use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::router::{Route, RouteFrom, Router, ToRoute, provide_router, use_router};

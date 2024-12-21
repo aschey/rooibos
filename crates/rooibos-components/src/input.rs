@@ -3,13 +3,13 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::{Block, Widget};
 use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
-use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, NodeId, RenderNode, WidgetState, set_editing};
+use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, NodeId, RenderNode, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, DomWidgetRef, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
-use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::signal::{RwSignal, signal};
 use rooibos_reactive::graph::traits::{
     Get, GetUntracked, GetValue, Set, Track, Update, UpdateUntracked, With, WithValue,
 };
@@ -123,7 +123,6 @@ impl InputRef {
 pub struct Input {
     layout_props: LayoutProps,
     alignment: MaybeSignal<Alignment>,
-    block: Box<dyn Fn(WidgetState) -> Option<Block<'static>> + Send + Sync>,
     cursor_style: MaybeSignal<Style>,
     style: MaybeSignal<Style>,
     placeholder_style: MaybeSignal<Style>,
@@ -139,7 +138,6 @@ impl Default for Input {
     fn default() -> Self {
         Self {
             alignment: Alignment::Left.into(),
-            block: Box::new(move |_| None),
             layout_props: LayoutProps::default(),
             cursor_style: Style::reset().reversed().into(),
             placeholder_style: Style::default().dark_gray().into(),
@@ -166,14 +164,6 @@ impl UpdateLayoutProps for Input {
 }
 
 impl Input {
-    // pub fn block(
-    //     mut self,
-    //     block: impl Fn(WidgetState) -> Option<Block<'static>> + Send + Sync + 'static,
-    // ) -> Self {
-    //     self.block = Box::new(block);
-    //     self
-    // }
-
     pub fn placeholder_text(mut self, placeholder_text: impl Into<MaybeSignal<String>>) -> Self {
         self.placeholder_text = placeholder_text.into();
         self
@@ -216,7 +206,6 @@ impl Input {
         let Self {
             layout_props,
             alignment,
-            block,
             cursor_style,
             placeholder_style,
             style,
@@ -241,7 +230,7 @@ impl Input {
             t.insert_str(initial_value);
         });
 
-        let widget_state = RwSignal::new(WidgetState::Default);
+        let (focused, set_focused) = signal(false);
         // let block = derive_signal!({
         //     let state = widget_state.get();
         //     return block(state);
@@ -259,7 +248,7 @@ impl Input {
                 t.set_alignment(alignment.get());
                 t.set_style(style.get());
                 t.set_cursor_style(Style::new());
-                if widget_state.get() == WidgetState::Focused {
+                if focused.get() {
                     t.set_cursor_style(cursor_style.get());
                 } else {
                     // hide cursor when not focused
@@ -268,9 +257,6 @@ impl Input {
 
                 t.set_placeholder_text(placeholder_text.get());
                 t.set_placeholder_style(placeholder_style.get());
-                // if let Some(block) = block.get() {
-                //     t.set_block(block)
-                // }
             });
         });
 
@@ -317,13 +303,13 @@ impl Input {
         .on_paste(paste)
         .on_focus(move |focus_event, event_data| {
             set_editing(true);
-            widget_state.set(WidgetState::Focused);
+            set_focused.set(true);
             on_focus(focus_event, event_data);
         })
         .on_blur(move |blur_event, event_data| {
             // Notify DOM that we're editing to suppress any quit sequences that could interfere
             set_editing(false);
-            widget_state.set(WidgetState::Default);
+            set_focused.set(false);
             on_blur(blur_event, event_data);
         });
         if let Some(id) = id {

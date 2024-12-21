@@ -13,9 +13,9 @@ use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::Set as _;
 pub use renderer::*;
 pub use rooibos_dom::{
-    DomNodeRepr, WidgetState, clear_focus, delay, dom_update_receiver, events, focus_id,
-    focus_next, focus_prev, line, render_terminal, root, set_pixel_size,
-    set_supports_keyboard_enhancement, span, text, try_focus_id, widgets,
+    DomNodeRepr, clear_focus, delay, dom_update_receiver, events, focus_id, focus_next, focus_prev,
+    line, render_terminal, root, set_pixel_size, set_supports_keyboard_enhancement, span, text,
+    try_focus_id, widgets,
 };
 use rooibos_dom::{on_window_focus_changed, render_dom, with_nodes, with_nodes_mut};
 
