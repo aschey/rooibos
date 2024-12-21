@@ -1,10 +1,12 @@
+use std::hash::Hash;
 use std::process::ExitCode;
 
 use rooibos::reactive::KeyCode;
 use rooibos::reactive::dom::events::KeyEventProps;
-use rooibos::reactive::dom::{DomWidget, Render, mount};
+use rooibos::reactive::dom::layout::pct;
+use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode, mount};
 use rooibos::reactive::graph::signal::RwSignal;
-use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
+use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked, Write};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -18,9 +20,8 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
     let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    runtime.run(app).await
 }
 
 fn app() -> impl Render {
@@ -70,15 +71,44 @@ fn app() -> impl Render {
     DomWidget::new::<Tree<&str>, _>(move || {
         let tree = tree.get();
         state.track();
-        move |rect: Rect, frame: &mut Frame| {
-            state.update_untracked(|s| {
-                Tree::new(&tree)
-                    .unwrap()
-                    .block(Block::bordered().title("Tree Widget"))
-                    .highlight_style(Style::default().black().on_green().bold())
-                    .render(rect, frame.buffer_mut(), s);
-            })
-        }
+        RenderTree { tree, state }
     })
+    .width(pct(100.))
+    .height(pct(100.))
     .on_key_down(key_down)
+}
+
+struct RenderTree<T> {
+    tree: Vec<TreeItem<'static, T>>,
+    state: RwSignal<TreeState<T>>,
+}
+
+impl<T> RenderNode for RenderTree<T>
+where
+    T: Clone + PartialEq + Eq + Hash + Send + Sync + 'static,
+{
+    fn render(&mut self, area: Rect, frame: &mut Frame) {
+        self.state.update_untracked(|s| {
+            Tree::new(&self.tree)
+                .unwrap()
+                .block(Block::bordered().title("Tree Widget"))
+                .highlight_style(Style::default().black().on_green().bold())
+                .render(area, frame.buffer_mut(), s);
+        })
+    }
+}
+
+impl<T> MeasureNode for RenderTree<T> {
+    fn measure(
+        &self,
+        known_dimensions: taffy::Size<Option<f32>>,
+        available_space: taffy::Size<taffy::AvailableSpace>,
+        style: &taffy::Style,
+    ) -> taffy::Size<f32> {
+        taffy::Size::zero()
+    }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        taffy::Size::zero()
+    }
 }
