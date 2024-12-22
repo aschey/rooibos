@@ -62,8 +62,9 @@ Set FontSize 32
 Set Width 1200
 Set Height 200
 
-Type "cargo run --example=counter"
+Type "cargo run --release --example=counter"
 Enter 
+Sleep 250ms
 
 Enter
 Sleep 250ms

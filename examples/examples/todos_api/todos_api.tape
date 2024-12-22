@@ -65,7 +65,7 @@ Set FontSize 32
 Set Width 1200
 Set Height 600
 
-Type "cargo run --example=todos_api"
+Type "cargo run --release --example=todos_api"
 Enter
 Sleep 500ms
 
