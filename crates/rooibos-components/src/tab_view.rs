@@ -9,7 +9,7 @@ use rooibos_reactive::dom::div::taffy::Dimension;
 use rooibos_reactive::dom::layout::{height, pct};
 use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::traits::{Get, With};
-use rooibos_reactive::graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
+use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
 use rooibos_reactive::{col, derive_signal, height, max_height, wgt};
 
 use crate::Keyed;
@@ -19,15 +19,15 @@ pub type TabList = KeyedWrappingList<Tab>;
 
 #[derive(Clone)]
 pub struct Tab {
-    header: MaybeSignal<Line<'static>>,
-    decorator: Option<MaybeSignal<Line<'static>>>,
+    header: Signal<Line<'static>>,
+    decorator: Option<Signal<Line<'static>>>,
     value: String,
     children: ChildrenFn,
 }
 
 impl Tab {
     pub fn new(
-        header: impl Into<MaybeSignal<Line<'static>>>,
+        header: impl Into<Signal<Line<'static>>>,
         value: impl Into<String>,
         children: impl IntoChildrenFn,
     ) -> Self {
@@ -39,7 +39,7 @@ impl Tab {
         }
     }
 
-    pub fn decorator(mut self, decorator: impl Into<MaybeSignal<Line<'static>>>) -> Self {
+    pub fn decorator(mut self, decorator: impl Into<Signal<Line<'static>>>) -> Self {
         self.decorator = Some(decorator.into());
         self
     }
@@ -65,21 +65,21 @@ type OnChangeFn = dyn FnMut(usize, &str);
 
 pub struct TabView {
     block: MaybeProp<Block<'static>>,
-    highlight_style: MaybeSignal<Style>,
-    decorator_highlight_style: Option<MaybeSignal<Style>>,
-    style: MaybeSignal<Style>,
+    highlight_style: Signal<Style>,
+    decorator_highlight_style: Option<Signal<Style>>,
+    style: Signal<Style>,
     on_title_click: Box<OnChangeFn>,
     on_decorator_click: Option<Box<OnChangeFn>>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     on_key_down: Box<dyn KeyHandler>,
-    fit: MaybeSignal<bool>,
-    divider: MaybeSignal<Span<'static>>,
-    header_height: MaybeSignal<Dimension>,
-    width: MaybeSignal<Dimension>,
-    padding_left: MaybeSignal<Line<'static>>,
-    padding_right: MaybeSignal<Line<'static>>,
-    body_height: MaybeSignal<Dimension>,
+    fit: Signal<bool>,
+    divider: Signal<Span<'static>>,
+    header_height: Signal<Dimension>,
+    width: Signal<Dimension>,
+    padding_left: Signal<Line<'static>>,
+    padding_right: Signal<Line<'static>>,
+    body_height: Signal<Dimension>,
 }
 
 enum ClickAction<'a> {
@@ -102,7 +102,7 @@ impl Default for TabView {
             fit: false.into(),
             divider: span!(symbols::line::VERTICAL).into(),
             header_height: Dimension::Length(1.).into(),
-            width: pct(100.).into(),
+            width: pct(100.),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
             body_height: Dimension::Auto.into(),
@@ -120,45 +120,45 @@ impl TabView {
         self
     }
 
-    pub fn header_height(mut self, header_height: impl Into<MaybeSignal<Dimension>>) -> Self {
+    pub fn header_height(mut self, header_height: impl Into<Signal<Dimension>>) -> Self {
         self.header_height = header_height.into();
         self
     }
 
-    pub fn body_height(mut self, body_height: impl Into<MaybeSignal<Dimension>>) -> Self {
+    pub fn body_height(mut self, body_height: impl Into<Signal<Dimension>>) -> Self {
         self.body_height = body_height.into();
         self
     }
 
-    pub fn width(mut self, width: impl Into<MaybeSignal<Dimension>>) -> Self {
+    pub fn width(mut self, width: impl Into<Signal<Dimension>>) -> Self {
         self.width = width.into();
         self
     }
 
-    pub fn highlight_style(mut self, highlight_style: impl Into<MaybeSignal<Style>>) -> Self {
+    pub fn highlight_style(mut self, highlight_style: impl Into<Signal<Style>>) -> Self {
         self.highlight_style = highlight_style.into();
         self
     }
 
     pub fn decorator_highlight_style(
         mut self,
-        decorator_highlight_style: impl Into<MaybeSignal<Style>>,
+        decorator_highlight_style: impl Into<Signal<Style>>,
     ) -> Self {
         self.decorator_highlight_style = Some(decorator_highlight_style.into());
         self
     }
 
-    pub fn style(mut self, style: impl Into<MaybeSignal<Style>>) -> Self {
+    pub fn style(mut self, style: impl Into<Signal<Style>>) -> Self {
         self.style = style.into();
         self
     }
 
-    pub fn fit(mut self, fit: impl Into<MaybeSignal<bool>>) -> Self {
+    pub fn fit(mut self, fit: impl Into<Signal<bool>>) -> Self {
         self.fit = fit.into();
         self
     }
 
-    pub fn divider(mut self, divider: impl Into<MaybeSignal<Span<'static>>>) -> Self {
+    pub fn divider(mut self, divider: impl Into<Signal<Span<'static>>>) -> Self {
         self.divider = divider.into();
         self
     }
@@ -191,12 +191,12 @@ impl TabView {
         self
     }
 
-    pub fn padding_left(mut self, padding_left: impl Into<MaybeSignal<Line<'static>>>) -> Self {
+    pub fn padding_left(mut self, padding_left: impl Into<Signal<Line<'static>>>) -> Self {
         self.padding_left = padding_left.into();
         self
     }
 
-    pub fn padding_right(mut self, padding_right: impl Into<MaybeSignal<Line<'static>>>) -> Self {
+    pub fn padding_right(mut self, padding_right: impl Into<Signal<Line<'static>>>) -> Self {
         self.padding_right = padding_right.into();
         self
     }
@@ -204,7 +204,7 @@ impl TabView {
     pub fn render(
         self,
         current_tab: impl Into<Signal<String>>,
-        children: impl Into<MaybeSignal<TabList>>,
+        children: impl Into<Signal<TabList>>,
     ) -> impl Render {
         let Self {
             block,
@@ -225,91 +225,73 @@ impl TabView {
             body_height,
         } = self;
 
-        let children: MaybeSignal<TabList> = children.into();
+        let children: Signal<TabList> = children.into();
         let current_tab: Signal<String> = current_tab.into();
 
-        let cur_tab = {
-            let children = children.clone();
-            derive_signal!({
-                current_tab.with(|current_tab| {
-                    children.with(|c| {
-                        c.iter().enumerate().find_map(|(i, c)| {
-                            if &c.value == current_tab {
-                                Some((c.children.clone(), i))
-                            } else {
-                                None
-                            }
-                        })
+        let cur_tab = derive_signal!({
+            current_tab.with(|current_tab| {
+                children.with(|c| {
+                    c.iter().enumerate().find_map(|(i, c)| {
+                        if &c.value == current_tab {
+                            Some((c.children.clone(), i))
+                        } else {
+                            None
+                        }
                     })
                 })
             })
-        };
+        });
 
-        let headers = {
-            let children = children.clone();
-            derive_signal!({
-                let cur_tab = cur_tab.get();
-                let Some((_, cur_tab)) = cur_tab else {
-                    return vec![];
-                };
-                let highlight_style = highlight_style.get();
-                let decorator_highlight_style = decorator_highlight_style.map(|s| s.get());
-                children.with(|c| {
-                    c.iter()
-                        .enumerate()
-                        .map(|(i, t)| {
-                            let mut header = t.header.get();
+        let headers = derive_signal!({
+            let cur_tab = cur_tab.get();
+            let Some((_, cur_tab)) = cur_tab else {
+                return vec![];
+            };
+            let highlight_style = highlight_style.get();
+            let decorator_highlight_style = decorator_highlight_style.map(|s| s.get());
+            children.with(|c| {
+                c.iter()
+                    .enumerate()
+                    .map(|(i, t)| {
+                        let mut header = t.header.get();
 
-                            if let Some(decorator) = &t.decorator {
-                                let mut spans = header.spans;
-                                let mut decorator_spans = decorator.get().spans;
-                                if i == cur_tab {
-                                    spans = spans
+                        if let Some(decorator) = &t.decorator {
+                            let mut spans = header.spans;
+                            let mut decorator_spans = decorator.get().spans;
+                            if i == cur_tab {
+                                spans = spans
+                                    .into_iter()
+                                    .map(|s| s.set_style(highlight_style))
+                                    .collect();
+                                if let Some(decorator_highlight_style) = decorator_highlight_style {
+                                    decorator_spans = decorator_spans
                                         .into_iter()
-                                        .map(|s| s.set_style(highlight_style))
+                                        .map(|s| s.set_style(decorator_highlight_style))
                                         .collect();
-                                    if let Some(decorator_highlight_style) =
-                                        decorator_highlight_style
-                                    {
-                                        decorator_spans = decorator_spans
-                                            .into_iter()
-                                            .map(|s| s.set_style(decorator_highlight_style))
-                                            .collect();
-                                    }
                                 }
-                                line!([spans, vec![span!("  ")], decorator_spans].concat())
-                            } else {
-                                if i == cur_tab {
-                                    let spans: Vec<_> = header
-                                        .spans
-                                        .into_iter()
-                                        .map(|s| s.set_style(highlight_style))
-                                        .collect();
-                                    header = line!(spans);
-                                }
-
-                                header
                             }
-                        })
-                        .collect::<Vec<_>>()
-                })
+                            line!([spans, vec![span!("  ")], decorator_spans].concat())
+                        } else {
+                            if i == cur_tab {
+                                let spans: Vec<_> = header
+                                    .spans
+                                    .into_iter()
+                                    .map(|s| s.set_style(highlight_style))
+                                    .collect();
+                                header = line!(spans);
+                            }
+
+                            header
+                        }
+                    })
+                    .collect::<Vec<_>>()
             })
-        };
+        });
+        let divider_width = derive_signal!(divider.with(|d| d.width()));
 
-        let divider_width = {
-            let divider = divider.clone();
-            derive_signal!(divider.with(|d| d.width()))
-        };
+        let padding_width_left = derive_signal!(padding_left.with(|p| p.width()));
 
-        let padding_width_left = {
-            let padding_left = padding_left.clone();
-            derive_signal!(padding_left.with(|p| p.width()))
-        };
-
-        let padding_width_right = {
-            let padding_right = padding_right.clone();
-            derive_signal!(padding_right.with(|p| p.width()))
-        };
+        let padding_width_right = derive_signal!(padding_right.with(|p| p.width()));
 
         let headers_len = derive_signal!({
             let headers_len = headers.with(|h| h.len());

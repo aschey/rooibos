@@ -13,7 +13,6 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{Event, KeyCode, KeyEvent, KeyModifiers, NonblockingTerminal, wgt};
 use rooibos::terminal::Backend;
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::backend::Backend as _;
 use rooibos::tui::style::Stylize;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;

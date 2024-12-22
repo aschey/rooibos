@@ -1,6 +1,6 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
-use reactive_graph::wrappers::read::MaybeSignal;
+use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, IntoKeyHandler, KeyHandler};
 use rooibos_dom::{AsDomNode, Borders, NodeId};
 use tachys::prelude::Renderer;
@@ -46,7 +46,7 @@ where
 {
     pub fn focusable<S>(self, focusable: S) -> FlexNode<C, P::Output<Focusable>>
     where
-        S: Into<MaybeSignal<bool>>,
+        S: Into<Signal<bool>>,
     {
         FlexNode {
             inner: self.inner,
@@ -178,7 +178,7 @@ macro_rules! flex_prop {
         {
             pub fn $fn<S>(self, val: S) -> FlexNode<C, P::Output<$struct_name>>
             where
-                S: Into<MaybeSignal<$inner>>,
+                S: Into<Signal<$inner>>,
             {
                 FlexNode {
                     inner: self.inner,

@@ -1,5 +1,5 @@
 use next_tuple::NextTuple;
-use reactive_graph::wrappers::read::MaybeSignal;
+use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::AsDomNode;
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
@@ -67,7 +67,7 @@ macro_rules! div_prop {
         {
             pub fn $fn<S>(self, val: S) -> Div<C, P::Output<$struct_name>>
             where
-                S: Into<MaybeSignal<$inner>>,
+                S: Into<Signal<$inner>>,
             {
                 Div {
                     inner: self.inner,

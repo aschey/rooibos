@@ -13,7 +13,7 @@ use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Update};
-use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::graph::wrappers::read::Signal;
 use tokio::sync::mpsc;
 use tokio::task::spawn_blocking;
 use tui_term::widget::PseudoTerminal;
@@ -43,7 +43,7 @@ impl TerminalRef {
 
 #[derive(Default)]
 pub struct Terminal {
-    block: Option<MaybeSignal<Block<'static>>>,
+    block: Option<Signal<Block<'static>>>,
     layout_props: LayoutProps,
 }
 
@@ -76,7 +76,7 @@ impl Terminal {
         TerminalRef { master, slave }
     }
 
-    pub fn block(mut self, block: impl Into<MaybeSignal<Block<'static>>>) -> Self {
+    pub fn block(mut self, block: impl Into<Signal<Block<'static>>>) -> Self {
         self.block = Some(block.into());
         self
     }
@@ -175,11 +175,11 @@ impl RenderNode for RenderTerminal {
 impl MeasureNode for RenderTerminal {
     fn measure(
         &self,
-        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
-        available_space: rooibos_reactive::dom::div::taffy::Size<
+        _known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        _available_space: rooibos_reactive::dom::div::taffy::Size<
             rooibos_reactive::dom::div::taffy::AvailableSpace,
         >,
-        style: &rooibos_reactive::dom::div::taffy::Style,
+        _style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
         Size::zero()
     }

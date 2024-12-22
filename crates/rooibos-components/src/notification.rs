@@ -11,7 +11,7 @@ use rooibos_reactive::dom::layout::{
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
-use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{col, for_each, height, padding_right, padding_top, wgt, width};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
@@ -94,8 +94,8 @@ impl Notifier {
 }
 
 pub struct Notifications {
-    content_width: MaybeSignal<taffy::Dimension>,
-    max_layout_width: MaybeSignal<taffy::Dimension>,
+    content_width: Signal<taffy::Dimension>,
+    max_layout_width: Signal<taffy::Dimension>,
     rx: broadcast::Receiver<Notification>,
 }
 
@@ -117,7 +117,7 @@ impl Notifications {
 
     pub fn content_width<S>(mut self, content_width: S) -> Self
     where
-        S: Into<MaybeSignal<taffy::Dimension>>,
+        S: Into<Signal<taffy::Dimension>>,
     {
         self.content_width = content_width.into();
         self
@@ -125,7 +125,7 @@ impl Notifications {
 
     pub fn max_layout_width<S>(mut self, max_layout_width: S) -> Self
     where
-        S: Into<MaybeSignal<taffy::Dimension>>,
+        S: Into<Signal<taffy::Dimension>>,
     {
         self.max_layout_width = max_layout_width.into();
         self

@@ -36,7 +36,7 @@ pub trait RenderNode {
 }
 
 impl RenderNode for () {
-    fn render(&mut self, rect: Rect, frame: &mut Frame) {}
+    fn render(&mut self, _rect: Rect, _frame: &mut Frame) {}
 }
 
 impl RenderNode for Box<dyn RenderNode> {
@@ -78,9 +78,9 @@ impl MeasureNode for Size<f32> {
 impl MeasureNode for () {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size::zero()
     }
@@ -108,9 +108,9 @@ impl MeasureNode for Box<dyn MeasureNode> {
 impl MeasureNode for String {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size {
             width: self.width_cjk() as f32,
@@ -129,9 +129,9 @@ impl MeasureNode for String {
 impl MeasureNode for &str {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size {
             width: self.width_cjk() as f32,
@@ -150,9 +150,9 @@ impl MeasureNode for &str {
 impl MeasureNode for Span<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size {
             width: self.width() as f32,
@@ -171,9 +171,9 @@ impl MeasureNode for Span<'_> {
 impl MeasureNode for Line<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size {
             width: self.width() as f32,
@@ -192,9 +192,9 @@ impl MeasureNode for Line<'_> {
 impl MeasureNode for Text<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size {
             width: self.width() as f32,
@@ -213,9 +213,9 @@ impl MeasureNode for Text<'_> {
 impl MeasureNode for Gauge<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size::zero()
     }
@@ -228,9 +228,9 @@ impl MeasureNode for Gauge<'_> {
 impl MeasureNode for LineGauge<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size::zero()
     }
@@ -243,9 +243,9 @@ impl MeasureNode for LineGauge<'_> {
 impl MeasureNode for Table<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size::zero()
     }
@@ -258,9 +258,9 @@ impl MeasureNode for Table<'_> {
 impl MeasureNode for BarChart<'_> {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size::zero()
     }
@@ -276,9 +276,9 @@ where
 {
     fn measure(
         &self,
-        known_dimensions: Size<Option<f32>>,
-        available_space: Size<AvailableSpace>,
-        style: &Style,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<AvailableSpace>,
+        _style: &Style,
     ) -> Size<f32> {
         Size::zero()
     }

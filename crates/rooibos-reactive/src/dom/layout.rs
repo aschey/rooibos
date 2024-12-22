@@ -1,7 +1,7 @@
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
-use reactive_graph::wrappers::read::{MaybeSignal, Signal};
+use reactive_graph::wrappers::read::Signal;
 pub use rooibos_dom::{BorderType, Borders};
 use taffy::Display;
 
@@ -28,43 +28,41 @@ pub(crate) trait UpdateLayout {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style);
 }
 
-pub fn chars(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::Dimension> {
+pub fn chars(val: impl Into<Signal<f32>>) -> Signal<taffy::Dimension> {
     let val = val.into();
     derive_signal!(taffy::Dimension::Length(val.get()))
 }
 
-pub fn pct(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::Dimension> {
+pub fn pct(val: impl Into<Signal<f32>>) -> Signal<taffy::Dimension> {
     let val = val.into();
     derive_signal!(taffy::Dimension::Percent(val.get() / 100.0))
 }
 
-pub fn length_percentage_pct(val: impl Into<MaybeSignal<f32>>) -> Signal<taffy::LengthPercentage> {
+pub fn length_percentage_pct(val: impl Into<Signal<f32>>) -> Signal<taffy::LengthPercentage> {
     let val = val.into();
     derive_signal!(taffy::LengthPercentage::Percent(val.get() / 100.0))
 }
 
-pub fn length_percentage_chars(
-    val: impl Into<MaybeSignal<f32>>,
-) -> Signal<taffy::LengthPercentage> {
+pub fn length_percentage_chars(val: impl Into<Signal<f32>>) -> Signal<taffy::LengthPercentage> {
     let val = val.into();
     derive_signal!(taffy::LengthPercentage::Length(val.get()))
 }
 
 pub fn length_percentage_auto_pct(
-    val: impl Into<MaybeSignal<f32>>,
+    val: impl Into<Signal<f32>>,
 ) -> Signal<taffy::LengthPercentageAuto> {
     let val = val.into();
     derive_signal!(taffy::LengthPercentageAuto::Percent(val.get() / 100.0))
 }
 
 pub fn length_percentage_auto_chars(
-    val: impl Into<MaybeSignal<f32>>,
+    val: impl Into<Signal<f32>>,
 ) -> Signal<taffy::LengthPercentageAuto> {
     let val = val.into();
     derive_signal!(taffy::LengthPercentageAuto::Length(val.get()))
 }
 
-pub struct Show(MaybeSignal<bool>);
+pub struct Show(Signal<bool>);
 
 impl Property for Show {
     type State = RenderEffect<()>;
@@ -93,16 +91,16 @@ impl Property for Show {
     }
 }
 
-pub fn show(val: impl Into<MaybeSignal<bool>>) -> (Show,) {
+pub fn show(val: impl Into<Signal<bool>>) -> (Show,) {
     (Show(val.into()),)
 }
 
 #[derive(Clone, Default)]
-pub struct BorderProp(pub(crate) Option<MaybeSignal<Borders>>);
+pub struct BorderProp(pub(crate) Option<Signal<Borders>>);
 
 pub fn borders<S>(borders: S) -> (BorderProp,)
 where
-    S: Into<MaybeSignal<Borders>>,
+    S: Into<Signal<Borders>>,
 {
     (BorderProp(Some(borders.into())),)
 }
@@ -133,9 +131,9 @@ impl Property for BorderProp {
     }
 }
 
-pub struct ZIndex(pub(crate) MaybeSignal<i32>);
+pub struct ZIndex(pub(crate) Signal<i32>);
 
-pub fn z_index(z_index: impl Into<MaybeSignal<i32>>) -> ZIndex {
+pub fn z_index(z_index: impl Into<Signal<i32>>) -> ZIndex {
     ZIndex(z_index.into())
 }
 
@@ -157,9 +155,9 @@ impl Property for ZIndex {
     }
 }
 
-pub struct Clear(pub(crate) MaybeSignal<bool>);
+pub struct Clear(pub(crate) Signal<bool>);
 
-pub fn clear(clear: impl Into<MaybeSignal<bool>>) -> Clear {
+pub fn clear(clear: impl Into<Signal<bool>>) -> Clear {
     Clear(clear.into())
 }
 
@@ -203,9 +201,9 @@ where
     }
 }
 
-pub struct Focusable(pub(crate) MaybeSignal<bool>);
+pub struct Focusable(pub(crate) Signal<bool>);
 
-pub fn focusable(focusable: impl Into<MaybeSignal<bool>>) -> Focusable {
+pub fn focusable(focusable: impl Into<Signal<bool>>) -> Focusable {
     Focusable(focusable.into())
 }
 
@@ -227,9 +225,9 @@ impl Property for Focusable {
     }
 }
 
-pub struct Enabled(pub(crate) MaybeSignal<bool>);
+pub struct Enabled(pub(crate) Signal<bool>);
 
-pub fn enabled(enabled: impl Into<MaybeSignal<bool>>) -> Enabled {
+pub fn enabled(enabled: impl Into<Signal<bool>>) -> Enabled {
     Enabled(enabled.into())
 }
 
@@ -455,10 +453,10 @@ macro_rules! margin {
 macro_rules! layout_prop {
     ($struct_name:ident, $fn:ident, $inner:ty, $($($props:ident).+),+) => {
         #[derive(Default, Clone)]
-        pub struct $struct_name(pub(crate) Option<MaybeSignal<$inner>>);
+        pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
 
         impl $struct_name {
-            pub fn value(&self) -> Option<MaybeSignal<$inner>> {
+            pub fn value(&self) -> Option<Signal<$inner>> {
                 self.0.clone()
             }
         }
@@ -472,7 +470,7 @@ macro_rules! layout_prop {
             }
         }
 
-        pub fn $fn(val: impl Into<MaybeSignal<$inner>>) -> ($struct_name,) {
+        pub fn $fn(val: impl Into<Signal<$inner>>) -> ($struct_name,) {
             ($struct_name(Some(val.into())),)
         }
     };
@@ -481,7 +479,7 @@ macro_rules! layout_prop {
 macro_rules! layout_prop_opt {
     ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
         #[derive(Default, Clone)]
-        pub struct $struct_name(pub(crate) Option<MaybeSignal<$inner>>);
+        pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
 
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
@@ -491,7 +489,7 @@ macro_rules! layout_prop_opt {
             }
         }
 
-        pub fn $fn(val: impl Into<MaybeSignal<$inner>>) -> ($struct_name,) {
+        pub fn $fn(val: impl Into<Signal<$inner>>) -> ($struct_name,) {
             ($struct_name(Some(val.into())),)
         }
     };

@@ -1,14 +1,14 @@
 use std::cell::RefCell;
-use std::io::{self, Write};
+use std::io;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use node_tree::*;
+use ratatui::Frame;
 use ratatui::backend::Backend;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
-use ratatui::Frame;
 use tokio::sync::watch;
 
 use crate::NonblockingTerminal;

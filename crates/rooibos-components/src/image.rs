@@ -16,7 +16,7 @@ use rooibos_reactive::dom::{DomWidget, Render};
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
-use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::graph::wrappers::read::Signal;
 
 #[derive(Clone)]
 pub enum ResizeMode {
@@ -25,25 +25,25 @@ pub enum ResizeMode {
 }
 
 pub struct Image {
-    resize_mode: MaybeSignal<ResizeMode>,
+    resize_mode: Signal<ResizeMode>,
     image_source: ImageSource,
 }
 
 #[derive(Clone)]
 pub enum ImageSource {
-    Url(MaybeSignal<PathBuf>),
-    Binary(MaybeSignal<DynamicImage>),
+    Url(Signal<PathBuf>),
+    Binary(Signal<DynamicImage>),
 }
 
 impl Image {
-    pub fn from_url(url: impl Into<MaybeSignal<PathBuf>>) -> Self {
+    pub fn from_url(url: impl Into<Signal<PathBuf>>) -> Self {
         Self {
             image_source: ImageSource::Url(url.into()),
             resize_mode: ResizeMode::Fit(None).into(),
         }
     }
 
-    pub fn from_binary(binary: impl Into<MaybeSignal<DynamicImage>>) -> Self {
+    pub fn from_binary(binary: impl Into<Signal<DynamicImage>>) -> Self {
         Self {
             image_source: ImageSource::Binary(binary.into()),
             resize_mode: ResizeMode::Fit(None).into(),
@@ -158,11 +158,11 @@ impl RenderNode for RenderImage {
 impl MeasureNode for RenderImage {
     fn measure(
         &self,
-        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        _known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
         available_space: rooibos_reactive::dom::div::taffy::Size<
             rooibos_reactive::dom::div::taffy::AvailableSpace,
         >,
-        style: &rooibos_reactive::dom::div::taffy::Style,
+        _style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
         taffy::Size {
             width: match available_space.width {

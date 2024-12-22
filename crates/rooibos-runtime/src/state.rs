@@ -55,6 +55,8 @@ impl ExitPayload {
     }
 }
 
+type BeforeExitFn = dyn Fn(ExitPayload) -> Pin<Box<ExitResultFuture>> + Send;
+
 pub(crate) struct RuntimeState {
     pub(crate) term_tx: broadcast::Sender<rooibos_dom::Event>,
     pub(crate) term_command_tx: broadcast::Sender<TerminalCommand>,
@@ -62,8 +64,7 @@ pub(crate) struct RuntimeState {
     pub(crate) service_manager: Option<Manager>,
     pub(crate) context: ServiceContext,
     pub(crate) restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
-    pub(crate) before_exit:
-        wasm_compat::Mutex<Box<dyn Fn(ExitPayload) -> Pin<Box<ExitResultFuture>> + Send>>,
+    pub(crate) before_exit: wasm_compat::Mutex<Box<BeforeExitFn>>,
 }
 
 impl RuntimeState {

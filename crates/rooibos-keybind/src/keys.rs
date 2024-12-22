@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::fmt;
 
-use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::graph::wrappers::read::Signal;
 
 pub enum Key<'a> {
     Modifier(char),
@@ -55,7 +55,7 @@ where
     }
 }
 
-impl From<Key<'_>> for MaybeSignal<String> {
+impl From<Key<'_>> for Signal<String> {
     fn from(val: Key<'_>) -> Self {
         val.to_string().into()
     }

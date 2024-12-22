@@ -17,7 +17,7 @@ use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::{WriteSignal, signal};
 use rooibos_reactive::graph::traits::{Get, Update, With, WriteValue};
-use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
+use rooibos_reactive::graph::wrappers::read::Signal;
 use wasm_compat::sync::Mutex;
 
 use crate::{
@@ -139,7 +139,7 @@ where
 
     pub fn map_action<S>(&mut self, key: S, action: T)
     where
-        S: Into<MaybeSignal<String>>,
+        S: Into<Signal<String>>,
     {
         let key = key.into();
         let key = derive_signal!(parse(key.get()));
@@ -178,7 +178,7 @@ where
 
     pub fn map_handler<S, H>(&mut self, key: S, handler: H)
     where
-        S: Into<MaybeSignal<String>>,
+        S: Into<Signal<String>>,
         H: KeybindHandler + Send + Sync + 'static,
     {
         let handler = Arc::new(Mutex::new(
@@ -267,7 +267,7 @@ where
 
     pub fn action<S>(key: S, action: T) -> Self
     where
-        S: Into<MaybeSignal<String>>,
+        S: Into<Signal<String>>,
     {
         let key = key.into();
         let key = derive_signal!(parse(key.get()));
@@ -276,7 +276,7 @@ where
 
     pub fn handler<S, H>(key: S, handler: H) -> KeyMap<T>
     where
-        S: Into<MaybeSignal<String>>,
+        S: Into<Signal<String>>,
         H: KeybindHandler + Send + Sync + 'static,
     {
         let key = key.into();
@@ -304,7 +304,7 @@ enum InternalKeyMap<T> {
 
 pub fn map_handler<S, H>(key: S, handler: H) -> KeyMap<()>
 where
-    S: Into<MaybeSignal<String>>,
+    S: Into<Signal<String>>,
     H: KeybindHandler + Send + Sync + 'static,
 {
     KeyMap::handler(key, handler)

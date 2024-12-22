@@ -131,11 +131,11 @@ where
 {
     fn measure(
         &self,
-        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
-        available_space: rooibos_reactive::dom::div::taffy::Size<
+        _known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        _available_space: rooibos_reactive::dom::div::taffy::Size<
             rooibos_reactive::dom::div::taffy::AvailableSpace,
         >,
-        style: &rooibos_reactive::dom::div::taffy::Style,
+        _style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
         Size {
             width: 0.0,

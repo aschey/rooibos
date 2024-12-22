@@ -3,7 +3,7 @@ use std::sync::Arc;
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
-use reactive_graph::wrappers::read::MaybeSignal;
+use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
     KeyHandler,
@@ -130,7 +130,7 @@ where
 {
     pub fn focusable<S>(self, focusable: S) -> DomWidget<P::Output<Focusable>>
     where
-        S: Into<MaybeSignal<bool>>,
+        S: Into<Signal<bool>>,
     {
         DomWidget {
             inner: self.inner,
@@ -140,7 +140,7 @@ where
 
     pub fn enabled<S>(self, enabled: S) -> DomWidget<P::Output<Enabled>>
     where
-        S: Into<MaybeSignal<bool>>,
+        S: Into<Signal<bool>>,
     {
         DomWidget {
             inner: self.inner,
@@ -548,7 +548,7 @@ macro_rules! update_props {
     ($fn:ident, $inner:ty) => {
         fn $fn<S>(self, val: S) -> Self
         where
-            S: Into<MaybeSignal<$inner>>,
+            S: Into<Signal<$inner>>,
         {
             let props = self.layout_props().$fn(val);
             self.update_props(props)
@@ -616,7 +616,7 @@ macro_rules! widget_prop {
         {
             pub fn $fn<S>(self, val: S) -> DomWidget<P::Output<$struct_name>>
             where
-                S: Into<MaybeSignal<$inner>>,
+                S: Into<Signal<$inner>>,
             {
                 DomWidget {
                     inner: self.inner,
@@ -634,7 +634,7 @@ macro_rules! widget_prop {
         impl LayoutProps {
             pub fn $fn<S>(mut self, val: S) -> Self
             where
-                S: Into<MaybeSignal<$inner>>,
+                S: Into<Signal<$inner>>,
             {
                 self.$($path).+ = $fn(val).0;
                 self

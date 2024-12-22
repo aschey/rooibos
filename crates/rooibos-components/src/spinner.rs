@@ -12,7 +12,7 @@ use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::on_cleanup;
 use rooibos_reactive::graph::signal::{ReadSignal, signal};
 use rooibos_reactive::graph::traits::{Get as _, GetUntracked, Update};
-use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
+use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{derive_signal, wgt};
 pub use throbber_widgets_tui::WhichUse as SpinnerDisplay;
 pub use throbber_widgets_tui::symbols::throbber::*;
@@ -21,12 +21,12 @@ use tokio_util::sync::CancellationToken;
 use wasm_compat::futures::spawn_local;
 
 pub struct Spinner {
-    label: Option<MaybeSignal<Span<'static>>>,
-    spinner_set: MaybeSignal<throbber_widgets_tui::Set>,
+    label: Option<Signal<Span<'static>>>,
+    spinner_set: Signal<throbber_widgets_tui::Set>,
     tick_interval: Duration,
-    style: MaybeSignal<Style>,
-    spinner_style: MaybeSignal<Style>,
-    display: MaybeSignal<SpinnerDisplay>,
+    style: Signal<Style>,
+    spinner_style: Signal<Style>,
+    display: Signal<SpinnerDisplay>,
 }
 
 impl Default for Spinner {
@@ -47,14 +47,14 @@ impl Spinner {
         }
     }
 
-    pub fn label(mut self, label: impl Into<MaybeSignal<Span<'static>>>) -> Self {
+    pub fn label(mut self, label: impl Into<Signal<Span<'static>>>) -> Self {
         self.label = Some(label.into());
         self
     }
 
     pub fn spinner_set(
         mut self,
-        spinner_set: impl Into<MaybeSignal<throbber_widgets_tui::Set>>,
+        spinner_set: impl Into<Signal<throbber_widgets_tui::Set>>,
     ) -> Self {
         self.spinner_set = spinner_set.into();
         self
@@ -65,17 +65,17 @@ impl Spinner {
         self
     }
 
-    pub fn style(mut self, style: impl Into<MaybeSignal<Style>>) -> Self {
+    pub fn style(mut self, style: impl Into<Signal<Style>>) -> Self {
         self.style = style.into();
         self
     }
 
-    pub fn spinner_style(mut self, spinner_style: impl Into<MaybeSignal<Style>>) -> Self {
+    pub fn spinner_style(mut self, spinner_style: impl Into<Signal<Style>>) -> Self {
         self.spinner_style = spinner_style.into();
         self
     }
 
-    pub fn display(mut self, display: impl Into<MaybeSignal<SpinnerDisplay>>) -> Self {
+    pub fn display(mut self, display: impl Into<Signal<SpinnerDisplay>>) -> Self {
         self.display = display.into();
         self
     }
@@ -89,7 +89,7 @@ impl Spinner {
 
         let (state, set_state) = signal(ThrobberState::default());
         let spinner_active = Memo::new({
-            let display = display.clone();
+            let display = *display;
             move |_| matches!(display.get(), SpinnerDisplay::Spin)
         });
         let tick_interval = *tick_interval;
@@ -172,15 +172,15 @@ impl Spinner {
     }
 
     pub fn render(self) -> impl Render {
-        let label = self.label.clone();
-        let spinner_set = self.spinner_set.clone();
+        let label = self.label;
+        let spinner_set = self.spinner_set;
         let state = self.create_state();
         let create_spinner = self.create_spinner_fn();
 
         wgt!(state.get(), SpinnerWidget {
             inner: create_spinner(),
-            label: label.clone(),
-            spinner_set: spinner_set.clone()
+            label,
+            spinner_set
         })
     }
 }
@@ -188,8 +188,8 @@ impl Spinner {
 #[derive(Clone)]
 struct SpinnerWidget<'a> {
     inner: Throbber<'a>,
-    label: Option<MaybeSignal<Span<'static>>>,
-    spinner_set: MaybeSignal<throbber_widgets_tui::Set>,
+    label: Option<Signal<Span<'static>>>,
+    spinner_set: Signal<throbber_widgets_tui::Set>,
 }
 
 impl SpinnerWidget<'_> {
@@ -221,11 +221,11 @@ impl SpinnerWidget<'_> {
 impl MeasureNode for SpinnerWidget<'_> {
     fn measure(
         &self,
-        known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
-        available_space: rooibos_reactive::dom::div::taffy::Size<
+        _known_dimensions: rooibos_reactive::dom::div::taffy::Size<Option<f32>>,
+        _available_space: rooibos_reactive::dom::div::taffy::Size<
             rooibos_reactive::dom::div::taffy::AvailableSpace,
         >,
-        style: &rooibos_reactive::dom::div::taffy::Style,
+        _style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
         self.estimate_size()
     }

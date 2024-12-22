@@ -12,7 +12,7 @@ use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
-use rooibos_reactive::graph::wrappers::read::MaybeSignal;
+use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{derive_signal, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
@@ -50,12 +50,12 @@ enum WidgetState {
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
     layout_props: LayoutProps,
-    border_color: MaybeSignal<Color>,
-    focused_border_color: MaybeSignal<Color>,
-    active_border_color: MaybeSignal<Color>,
-    enabled: MaybeSignal<bool>,
+    border_color: Signal<Color>,
+    focused_border_color: Signal<Color>,
+    active_border_color: Signal<Color>,
+    enabled: Signal<bool>,
     element_ref: Option<ButtonRef>,
-    text_alignment: MaybeSignal<Alignment>,
+    text_alignment: Signal<Alignment>,
     id: Option<NodeId>,
     class: Option<String>,
 }
@@ -108,7 +108,7 @@ impl Button {
         self
     }
 
-    pub fn enabled(mut self, enabled: impl Into<MaybeSignal<bool>>) -> Self {
+    pub fn enabled(mut self, enabled: impl Into<Signal<bool>>) -> Self {
         self.enabled = enabled.into();
         self
     }
@@ -118,28 +118,22 @@ impl Button {
         self
     }
 
-    pub fn border_color(mut self, border_color: impl Into<MaybeSignal<Color>>) -> Self {
+    pub fn border_color(mut self, border_color: impl Into<Signal<Color>>) -> Self {
         self.border_color = border_color.into();
         self
     }
 
-    pub fn focused_border_color(
-        mut self,
-        focused_border_color: impl Into<MaybeSignal<Color>>,
-    ) -> Self {
+    pub fn focused_border_color(mut self, focused_border_color: impl Into<Signal<Color>>) -> Self {
         self.focused_border_color = focused_border_color.into();
         self
     }
 
-    pub fn active_border_color(
-        mut self,
-        active_border_color: impl Into<MaybeSignal<Color>>,
-    ) -> Self {
+    pub fn active_border_color(mut self, active_border_color: impl Into<Signal<Color>>) -> Self {
         self.active_border_color = active_border_color.into();
         self
     }
 
-    pub fn text_alignment(mut self, alignment: impl Into<MaybeSignal<Alignment>>) -> Self {
+    pub fn text_alignment(mut self, alignment: impl Into<Signal<Alignment>>) -> Self {
         self.text_alignment = alignment.into();
         self
     }
@@ -166,7 +160,7 @@ impl Button {
 
     pub fn render<M>(self, children: M) -> impl Render
     where
-        M: Into<MaybeSignal<Text<'static>>> + 'static,
+        M: Into<Signal<Text<'static>>> + 'static,
     {
         let Self {
             on_click,
@@ -243,7 +237,7 @@ impl Button {
             Borders::all().inner().fg(Color::DarkGray)
         });
 
-        let children: MaybeSignal<Text> = children.into();
+        let children: Signal<Text> = children.into();
         let mut button = wgt![
             props(borders(button_borders)),
             rooibos_dom::widgets::Button::new(

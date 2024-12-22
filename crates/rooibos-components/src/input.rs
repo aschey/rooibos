@@ -13,7 +13,7 @@ use rooibos_reactive::graph::signal::{RwSignal, signal};
 use rooibos_reactive::graph::traits::{
     Get, GetUntracked, GetValue, Set, Track, Update, UpdateUntracked, With,
 };
-use rooibos_reactive::graph::wrappers::read::{MaybeSignal, Signal};
+use rooibos_reactive::graph::wrappers::read::Signal;
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
 use wasm_compat::futures::spawn_local;
@@ -122,11 +122,11 @@ impl InputRef {
 
 pub struct Input {
     layout_props: LayoutProps,
-    alignment: MaybeSignal<Alignment>,
-    cursor_style: MaybeSignal<Style>,
-    style: MaybeSignal<Style>,
-    placeholder_style: MaybeSignal<Style>,
-    placeholder_text: MaybeSignal<String>,
+    alignment: Signal<Alignment>,
+    cursor_style: Signal<Style>,
+    style: Signal<Style>,
+    placeholder_style: Signal<Style>,
+    placeholder_text: Signal<String>,
     on_submit: Box<dyn FnMut(String)>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
@@ -164,7 +164,7 @@ impl UpdateLayoutProps for Input {
 }
 
 impl Input {
-    pub fn placeholder_text(mut self, placeholder_text: impl Into<MaybeSignal<String>>) -> Self {
+    pub fn placeholder_text(mut self, placeholder_text: impl Into<Signal<String>>) -> Self {
         self.placeholder_text = placeholder_text.into();
         self
     }
