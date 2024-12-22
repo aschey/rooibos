@@ -10,19 +10,19 @@ use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
     KeyHandler,
 };
-use rooibos_dom::{AsDomNode, BuildNodeRenderer, DomNodeKey, NodeId};
+use rooibos_dom::{AsDomNode, Borders, BuildNodeRenderer, DomNodeKey, NodeId};
 use tachys::prelude::*;
 use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, Basis, BorderProp, Borders, Clear, Enabled, Focusable, Grow, Height,
-    Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight,
-    MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
-    PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width, align_self, aspect_ratio,
-    basis, borders, grow, height, margin, margin_bottom, margin_left, margin_right, margin_top,
-    margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
+    PaddingY, Position, Property, Shrink, UpdateLayout, Width, align_self, aspect_ratio, basis,
+    borders, grow, height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x,
+    margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, position, shrink, width,
 };
 use crate::dom::RooibosDom;
 

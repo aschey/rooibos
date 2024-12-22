@@ -1,3 +1,4 @@
+mod borders;
 mod dom;
 pub mod events;
 mod macros;
@@ -11,6 +12,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+pub use borders::*;
 pub use dom::*;
 pub use nonblocking_terminal::*;
 use ratatui::backend::WindowSize;

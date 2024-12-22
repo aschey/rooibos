@@ -43,7 +43,7 @@ fn app() -> impl Render {
     row![
         props(padding!(1.)),
         col![
-            props(width!(20.), padding_right!(2.)),
+            props(width!(15.), padding_right!(2.)),
             button(
                 bigger.bold(),
                 derive_signal!(block_height.get() < MAX_SIZE),

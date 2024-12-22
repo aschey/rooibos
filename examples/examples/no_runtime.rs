@@ -10,7 +10,7 @@ use rooibos::reactive::dom::{
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{Event, KeyCode, KeyEvent, KeyModifiers, wgt};
+use rooibos::reactive::{Event, KeyCode, KeyEvent, KeyModifiers, NonblockingTerminal, wgt};
 use rooibos::terminal::Backend;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::backend::Backend as _;
@@ -28,38 +28,37 @@ async fn main() -> Result<()> {
     let tui_backend = backend.create_tui_backend()?;
     let mut terminal = rooibos::tui::Terminal::new(tui_backend)?;
     backend.setup_terminal(&mut terminal)?;
-    let window_size = terminal.backend_mut().window_size().ok();
-    set_pixel_size(window_size.map(|s| Size {
-        width: s.pixels.width / s.columns_rows.width,
-        height: s.pixels.height / s.columns_rows.height,
-    }))
-    .unwrap();
+
+    let mut terminal = NonblockingTerminal::new(terminal);
+    let window_size = terminal.window_size().await.ok();
+    set_pixel_size(window_size).unwrap();
     set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement()).unwrap();
 
-    mount(app);
-    render_terminal(&mut terminal)?;
+    let window_size = backend.window_size().ok();
+    mount(app, window_size);
+    render_terminal(&mut terminal).await?;
     let cancellation_token = CancellationToken::new();
     let (term_tx, mut term_rx) = broadcast::channel(32);
     focus_next();
-    {
-        let cancellation_token = cancellation_token.clone();
-        let mut input_stream = backend.async_input_stream();
-        tokio::spawn(async move {
-            while let Ok(Some(event)) = input_stream
-                .next()
-                .cancel_on_shutdown(&cancellation_token)
-                .await
-            {
-                let _ = term_tx.send(event);
-            }
-        });
-    }
+
+    let cancellation_token = cancellation_token.clone();
+    let mut input_stream = backend.async_input_stream();
+    tokio::spawn(async move {
+        while let Ok(Some(event)) = input_stream
+            .next()
+            .cancel_on_shutdown(&cancellation_token)
+            .await
+        {
+            let _ = term_tx.send(event);
+        }
+    });
+
     let mut dom_update_rx = dom_update_receiver();
 
     loop {
         tokio::select! {
             Ok(()) = dom_update_rx.changed() => {
-               render_terminal(&mut terminal)?;
+               render_terminal(&mut terminal).await?;
             }
             Ok(event) = term_rx.recv() => {
                     if should_exit(&event) {

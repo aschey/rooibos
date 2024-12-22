@@ -16,7 +16,7 @@ use ratatui::widgets::{Block, Paragraph, WidgetRef};
 use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{
-    AsDomNode, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, focus_next, mount,
+    AsDomNode, Borders, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, focus_next, mount,
     render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
@@ -235,10 +235,10 @@ impl Counter {
     {
         let model = self.clone();
         let id: NodeId = format!("counter{}", self.id).into();
-        let block = if model.focused {
-            Block::bordered()
+        let borders = if model.focused {
+            Borders::all()
         } else {
-            Block::bordered().border_set(border::EMPTY)
+            Borders::all().empty()
         };
         let widget = DomWidgetNode::new::<Paragraph, _>(move || {
             RenderWidgetRef(format!("count: {}", model.count))
@@ -278,9 +278,10 @@ impl Counter {
             .on_blur(move |_, _| send(TaskMessage::Blur));
 
         with_nodes_mut(|nodes| {
-            nodes.set_block(node.get_key(), block);
+            let rect = borders.to_rect();
+            nodes.set_block(node.get_key(), borders.into_block());
             nodes.update_layout(node.get_key(), |layout| {
-                layout.border = taffy::Rect::length(1.);
+                layout.border = rect;
             });
         });
 
