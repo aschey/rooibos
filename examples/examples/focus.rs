@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, clear_focus, focus_next, focus_prev, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
@@ -35,13 +35,13 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler(keys::UP, move |_, _| {
+            key(keys::UP, move |_, _| {
                 focus_prev();
             }),
-            map_handler(keys::DOWN, move |_, _| {
+            key(keys::DOWN, move |_, _| {
                 focus_next();
             }),
-            map_handler(keys::ESC, move |_, _| {
+            key(keys::ESC, move |_, _| {
                 clear_focus();
             }),
         ]

@@ -2,7 +2,7 @@ use std::io::Stdout;
 use std::process::ExitCode;
 
 use rooibos::components::Show;
-use rooibos::keybind::{keys, map_handler};
+use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, after_render};
 use rooibos::reactive::graph::signal::{RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
@@ -46,7 +46,7 @@ fn app() -> impl Render {
             })
             .render(derive_signal!(!is_exiting.get()), move || {
                 wgt!(format!("count {}", count.get()))
-                    .on_key_down(map_handler(keys::ENTER, move |_, _| {
+                    .on_key_down(key(keys::ENTER, move |_, _| {
                         update_count();
                     }))
                     .on_click(move |_| update_count())

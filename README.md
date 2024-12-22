@@ -34,7 +34,7 @@ The example above can be written using the following code:
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::keybind::{keys, map_handler};
+use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -57,10 +57,9 @@ fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
     let update_count = move || set_count.update(|c| *c += 1);
-    let key_handler = map_handler(keys::ENTER, move |_, _| update_count());
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-        .on_key_down(key_handler)
+        .on_key_down(key(keys::ENTER, move |_, _| update_count()))
         .on_click(move |_| update_count())
 }
 ```
@@ -90,7 +89,7 @@ anytime they are updated.
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::keybind::{keys, map_handler};
+use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -114,13 +113,12 @@ fn app() -> impl Render {
     // Will automatically update anytime `count` is updated.
     let doubled_count = derive_signal!(count.get() * 2);
     let update_count = move || set_count.update(|c| *c += 1);
-    let key_handler = map_handler(keys::ENTER, move |_, _| update_count());
 
     col![
         // Reading a signal inside a widget will cause the widget to re-render
         // when the signal updates.
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-            .on_key_down(key_handler)
+            .on_key_down(key(keys::ENTER, move |_, _| update_count()))
             .on_click(move |_| update_count()),
         wgt!(format!("doubled count: {}", doubled_count.get()))
     ]
@@ -235,7 +233,7 @@ We provide a first-party package for testing your apps and components at a high
 level. The API is inspired by [Testing Library](https://testing-library.com/).
 
 ```rust
-use rooibos::keybind::{keys, map_handler};
+use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -251,13 +249,11 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_handler = map_handler(keys::ENTER, move |_, _| update_count());
-
     wgt!(rooibos::reactive::dom::line!(
         "count: ".bold(),
         span!(count.get()).cyan()
     ))
-    .on_key_down(key_handler)
+    .on_key_down(key(keys::ENTER, move |_, _| update_count()))
     .on_click(move |_| update_count())
 }
 

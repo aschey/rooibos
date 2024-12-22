@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 
 use rooibos::keybind::{
-    Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyMap, extract, handle_command,
-    keys,
+    Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyActionMap, extract, keys,
+    on_command,
 };
 use rooibos::reactive::dom::layout::chars;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
@@ -34,7 +34,7 @@ fn app() -> impl Render {
     let increase_count = move || set_count.update(|c| *c += 1);
     let decrease_count = move || set_count.update(|c| *c -= 1);
 
-    handle_command(extract!(val, AppAction::Count { val }), move |val| {
+    on_command(extract!(val, AppAction::Count { val }), move |val| {
         set_count.update(|c| *c += val);
     });
 
@@ -42,14 +42,15 @@ fn app() -> impl Render {
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(
                 [
-                    KeyMap::action(keys::combine([keys::CTRL, keys::UP]), AppAction::Count {
+                    KeyActionMap::action(keys::combine([keys::CTRL, keys::UP]), AppAction::Count {
                         val: 1
                     }),
-                    KeyMap::action(keys::combine([keys::CTRL, keys::DOWN]), AppAction::Count {
-                        val: -1
-                    }),
-                    KeyMap::handler(keys::UP, move |_, _| increase_count()),
-                    KeyMap::handler(keys::DOWN, move |_, _| decrease_count()),
+                    KeyActionMap::action(
+                        keys::combine([keys::CTRL, keys::DOWN]),
+                        AppAction::Count { val: -1 }
+                    ),
+                    KeyActionMap::handler(keys::UP, move |_, _| increase_count()),
+                    KeyActionMap::handler(keys::DOWN, move |_, _| decrease_count()),
                 ]
                 .bind()
             )

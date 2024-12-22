@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, line, span, text};
 use rooibos::reactive::graph::signal::signal;
@@ -48,7 +48,7 @@ fn app() -> impl Render {
             move |i| counter(i, move || remove_id(i))
         )
     ]
-    .on_key_down(map_handler("a", move |_, _| add_counter()))
+    .on_key_down(key("a", move |_, _| add_counter()))
     .id("root")
 }
 
@@ -74,10 +74,10 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> imp
         .on_right_click(move |_| decrease())
         .on_key_down(
             [
-                map_handler(keys::ENTER, move |_, _| increase()),
-                map_handler("+", move |_, _| increase()),
-                map_handler("-", move |_, _| decrease()),
-                map_handler("d", move |_, _| on_remove())
+                key(keys::ENTER, move |_, _| increase()),
+                key("+", move |_, _| increase()),
+                key("-", move |_, _| decrease()),
+                key("d", move |_, _| on_remove())
             ]
             .bind()
         )

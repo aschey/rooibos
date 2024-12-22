@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::signal::signal;
@@ -36,10 +36,10 @@ fn counter() -> impl Render {
     .on_blur(move |_, _| set_border_block.set(Borders::all().empty()))
     .on_key_down(
         [
-            map_handler(keys::UP, move |_, _| {
+            key(keys::UP, move |_, _| {
                 increase();
             }),
-            map_handler(keys::DOWN, move |_, _| {
+            key(keys::DOWN, move |_, _| {
                 decrease();
             }),
         ]

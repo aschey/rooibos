@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::events::KeyEventProps;
 use rooibos::reactive::dom::layout::{Borders, borders, chars};
 use rooibos::reactive::dom::{Render, line};
@@ -51,13 +51,13 @@ fn app() -> impl Render {
             })
             .on_key_down(
                 [
-                    map_handler(keys::LEFT, move |_, _| {
+                    key(keys::LEFT, move |_, _| {
                         let tabs = tabs.get();
                         if let Some(prev) = tabs.prev_item(&focused.get()) {
                             focused.set(prev.get_value().to_string());
                         }
                     }),
-                    map_handler(keys::RIGHT, move |_, _| {
+                    key(keys::RIGHT, move |_, _| {
                         let tabs = tabs.get();
                         if let Some(next) = tabs.next_item(&focused.get()) {
                             focused.set(next.get_value().to_string());

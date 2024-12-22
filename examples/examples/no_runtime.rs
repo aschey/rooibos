@@ -2,7 +2,7 @@ use std::error::Error;
 use std::sync::Arc;
 
 use futures_cancel::FutureExt;
-use rooibos::keybind::{keys, map_handler};
+use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::events::dispatch_event;
 use rooibos::reactive::dom::{
     Render, dom_update_receiver, focus_next, line, mount, render_terminal, set_pixel_size,
@@ -93,7 +93,7 @@ fn app() -> impl Render {
     let update_count = move || set_count.update(|c| *c += 1);
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-        .on_key_down(map_handler(keys::ENTER, move |_, _| {
+        .on_key_down(key(keys::ENTER, move |_, _| {
             update_count();
         }))
         .on_click(move |_| update_count())

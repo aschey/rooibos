@@ -543,7 +543,7 @@ pub struct CommandHandlerFn<T> {
 
 static HANDLER_ID: UsizeCell = UsizeCell::new(0);
 
-pub fn handle_command<EC, V, T, H>(extract_command: EC, mut handler: H)
+pub fn on_command<EC, V, T, H>(extract_command: EC, mut handler: H)
 where
     EC: Fn(&T) -> Option<V> + Send + Sync + 'static,
     H: FnMut(V) + Send + Sync + 'static,

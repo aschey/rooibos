@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::keybind::{keys, map_handler};
+use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, focus_next, line, render_terminal, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -61,7 +61,7 @@ fn app() -> impl Render {
     let update_count = move || set_count.update(|c| *c += 1);
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
-        .on_key_down(map_handler(keys::ENTER, move |_, _| {
+        .on_key_down(key(keys::ENTER, move |_, _| {
             update_count();
         }))
         .on_click(move |_| update_count())

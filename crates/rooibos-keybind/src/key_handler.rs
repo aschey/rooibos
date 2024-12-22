@@ -69,7 +69,7 @@ where
 impl<T, KM> From<KM> for KeyMapper<T>
 where
     T: CommandCompleter + ApplicationAction + Send + Sync,
-    KM: IntoIterator<Item = KeyMap<T>>,
+    KM: IntoIterator<Item = KeyActionMap<T>>,
 {
     fn from(value: KM) -> Self {
         let mut mapper = KeyMapper::new();
@@ -126,27 +126,27 @@ where
         }
     }
 
-    fn map(&mut self, map: KeyMap<T>) {
+    fn map(&mut self, map: KeyActionMap<T>) {
         match map {
-            KeyMap::Action(key, action) => {
-                self.map_action_inner(key, action);
+            KeyActionMap::Action(key, action) => {
+                self.action_inner(key, action);
             }
-            KeyMap::Handler(key, handler) => {
-                self.map_handler_inner(key, handler);
+            KeyActionMap::Handler(key, handler) => {
+                self.handler_inner(key, handler);
             }
         }
     }
 
-    pub fn map_action<S>(&mut self, key: S, action: T)
+    pub fn action<S>(&mut self, key: S, action: T)
     where
         S: Into<Signal<String>>,
     {
         let key = key.into();
         let key = derive_signal!(parse(key.get()));
-        self.map_action_inner(key, action)
+        self.action_inner(key, action)
     }
 
-    fn map_action_inner(
+    fn action_inner(
         &mut self,
         key: Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
         action: T,
@@ -176,7 +176,7 @@ where
         });
     }
 
-    pub fn map_handler<S, H>(&mut self, key: S, handler: H)
+    pub fn handler<S, H>(&mut self, key: S, handler: H)
     where
         S: Into<Signal<String>>,
         H: KeybindHandler + Send + Sync + 'static,
@@ -187,10 +187,10 @@ where
         let key = key.into();
         let key = derive_signal!(parse(key.get()));
 
-        self.map_handler_inner(key, handler);
+        self.handler_inner(key, handler);
     }
 
-    fn map_handler_inner(
+    fn handler_inner(
         &mut self,
         key: Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
         handler: Arc<Mutex<Box<dyn KeybindHandler + Send + Sync>>>,
@@ -249,7 +249,7 @@ impl KeybindHandler for Box<dyn KeybindHandler> {
     }
 }
 
-pub enum KeyMap<T> {
+pub enum KeyActionMap<T> {
     Action(Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>, T),
     Handler(
         Signal<Vec<EdgePathPart<TerminalKey, CommonKeyClass>>>,
@@ -257,7 +257,9 @@ pub enum KeyMap<T> {
     ),
 }
 
-impl<T> KeyMap<T>
+pub type KeyMap = KeyActionMap<()>;
+
+impl<T> KeyActionMap<T>
 where
     T: ApplicationAction + CommandCompleter + Send + Sync,
 {
@@ -274,18 +276,18 @@ where
         Self::Action(key, action)
     }
 
-    pub fn handler<S, H>(key: S, handler: H) -> KeyMap<T>
+    pub fn handler<S, H>(key: S, handler: H) -> KeyActionMap<T>
     where
         S: Into<Signal<String>>,
         H: KeybindHandler + Send + Sync + 'static,
     {
         let key = key.into();
         let key = derive_signal!(parse(key.get()));
-        KeyMap::Handler(key, Arc::new(Mutex::new(Box::new(handler))))
+        KeyActionMap::Handler(key, Arc::new(Mutex::new(Box::new(handler))))
     }
 }
 
-impl<T> IntoKeyHandler for KeyMap<T>
+impl<T> IntoKeyHandler for KeyActionMap<T>
 where
     T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
@@ -302,7 +304,7 @@ enum InternalKeyMap<T> {
     ),
 }
 
-pub fn map_handler<S, H>(key: S, handler: H) -> KeyMap<()>
+pub fn key<S, H>(key: S, handler: H) -> KeyMap
 where
     S: Into<Signal<String>>,
     H: KeybindHandler + Send + Sync + 'static,

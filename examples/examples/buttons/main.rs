@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
-use rooibos::keybind::{Bind, KeybindContext, keys, map_handler};
+use rooibos::keybind::{Bind, KeybindContext, key, keys};
 use rooibos::reactive::dom::{Render, text, try_focus_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -69,18 +69,18 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("+", move |_, _| {
+            key("+", move |_, _| {
                 if try_focus_id(bigger).is_ok() {
                     bigger_ref.click();
                 }
             }),
-            map_handler("-", move |_, _| {
+            key("-", move |_, _| {
                 if try_focus_id(smaller).is_ok() {
                     smaller_ref.click();
                 }
             }),
             //"{dec+}+"
-            map_handler(
+            key(
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('+')]),
                 move |_, context: KeybindContext| {
                     if try_focus_id(bigger).is_ok() {
@@ -89,7 +89,7 @@ fn app() -> impl Render {
                 },
             ),
             //"{dec+}-"
-            map_handler(
+            key(
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('-')]),
                 move |_, context: KeybindContext| {
                     if try_focus_id(smaller).is_ok() {

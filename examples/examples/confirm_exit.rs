@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{
     Borders, align_items, borders, justify_content, position, show,
 };
@@ -97,10 +97,10 @@ fn popup(
         .id(popup_id)
         .on_key_down(
             [
-                map_handler("y", move |_, _| {
+                key("y", move |_, _| {
                     on_confirm();
                 }),
-                map_handler(keys::ANY, move |_, _| {
+                key(keys::ANY, move |_, _| {
                     on_cancel();
                 })
             ]

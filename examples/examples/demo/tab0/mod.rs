@@ -1,4 +1,4 @@
-use rooibos::keybind::map_handler;
+use rooibos::keybind::key;
 use rooibos::reactive::dom::layout::{Borders, borders, height, pct};
 use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, line, span, text};
 use rooibos::reactive::graph::signal::signal;
@@ -27,7 +27,7 @@ pub(crate) fn tab0() -> impl Render {
     ]
     .focusable(true)
     .id(id)
-    .on_key_down(map_handler("t", move |_, _| {
+    .on_key_down(key("t", move |_, _| {
         set_show_chart.update(|s| *s = !*s);
     }))
 }

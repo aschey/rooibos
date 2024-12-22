@@ -2,7 +2,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
-use rooibos::keybind::{Bind, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{chars, pct};
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::owner::provide_context;
@@ -81,13 +81,13 @@ fn header_tabs() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("<Left>", move |_, _| {
+            key(keys::LEFT, move |_, _| {
                 let tabs = tabs.get();
                 if let Some(prev) = tabs.prev_item(&focused.get()) {
                     focused.set(prev.get_value().to_string());
                 }
             }),
-            map_handler("<Right>", move |_, _| {
+            key(keys::RIGHT, move |_, _| {
                 let tabs = tabs.get();
                 if let Some(next) = tabs.next_item(&focused.get()) {
                     focused.set(next.get_value().to_string());

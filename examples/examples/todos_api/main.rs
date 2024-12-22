@@ -1,6 +1,5 @@
 use rooibos::keybind::{
-    Bind, CommandFilter, KeybindContext, extract, handle_command, keys, map_handler,
-    use_command_context,
+    Bind, CommandFilter, KeybindContext, extract, key, keys, on_command, use_command_context,
 };
 mod client;
 mod server;
@@ -81,13 +80,13 @@ fn app(notification_timeout: Duration) -> impl Render {
     let update_todo = Action::new(move |(id, text): &(u32, String)| update_todo(*id, text.clone()));
     let delete_todo = Action::new(move |id: &u32| delete_todo(*id));
 
-    handle_command(extract!(val, Command::Add { val }), move |val| {
+    on_command(extract!(val, Command::Add { val }), move |val| {
         add_todo.dispatch(val);
     });
-    handle_command(extract!(id, Command::Edit { id }), move |id| {
+    on_command(extract!(id, Command::Edit { id }), move |id| {
         editing_id.set(Some(id));
     });
-    handle_command(extract!(id, Command::Delete { id }), move |id| {
+    on_command(extract!(id, Command::Delete { id }), move |id| {
         delete_todo.dispatch(id);
     });
 
@@ -129,11 +128,11 @@ fn app(notification_timeout: Duration) -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("a", move |_, _| {
+            key("a", move |_, _| {
                 focus_id(input_id);
             }),
             // {dec+}e
-            map_handler(
+            key(
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('e')]),
                 move |_, context: KeybindContext| {
                     let id = context.keys[0].get_numeric();
@@ -141,7 +140,7 @@ fn app(notification_timeout: Duration) -> impl Render {
                 },
             ),
             // {dec+}d
-            map_handler(
+            key(
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('d')]),
                 move |_, context: KeybindContext| {
                     let id = context.keys[0].get_numeric();

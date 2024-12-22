@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::keybind::{Bind, keys, map_handler};
+use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::Render;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
@@ -33,13 +33,13 @@ fn app() -> impl Render {
         })
         .on_key_down(
             [
-                map_handler(keys::DOWN, move |_, _| {
+                key(keys::DOWN, move |_, _| {
                     let selected_idx = selected.get().unwrap();
                     items.with(|i| {
                         selected.set(i.next_index(selected_idx));
                     });
                 }),
-                map_handler(keys::UP, move |_, _| {
+                key(keys::UP, move |_, _| {
                     let selected_idx = selected.get().unwrap();
                     items.with(|i| {
                         selected.set(i.prev_index(selected_idx));
