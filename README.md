@@ -234,7 +234,7 @@ level. The API is inspired by [Testing Library](https://testing-library.com/).
 
 ```rust
 use rooibos::keybind::{key, keys};
-use rooibos::reactive::dom::{Render, mount, span};
+use rooibos::reactive::dom::{self, Render, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{KeyCode, wgt};
@@ -249,12 +249,9 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    wgt!(rooibos::reactive::dom::line!(
-        "count: ".bold(),
-        span!(count.get()).cyan()
-    ))
-    .on_key_down(key(keys::ENTER, move |_, _| update_count()))
-    .on_click(move |_| update_count())
+    wgt!(dom::line!("count: ".bold(), span!(count.get()).cyan()))
+        .on_key_down(key(keys::ENTER, move |_, _| update_count()))
+        .on_click(move |_| update_count())
 }
 
 macro_rules! assert_snapshot {
@@ -266,6 +263,7 @@ macro_rules! assert_snapshot {
         });
     };
 }
+
 #[rooibos::test]
 async fn test_counter() {
     let mut harness = TestHarness::new_with_settings(
