@@ -2,7 +2,7 @@ use std::error::Error;
 use std::io::{IsTerminal, stdin};
 use std::process::ExitCode;
 
-use rooibos::reactive::dom::{Render, line, mount};
+use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
 use rooibos::terminal::crossterm::CrosstermBackend;

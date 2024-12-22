@@ -3,17 +3,17 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, justify_content, position, show,
+    Borders, align_items, borders, justify_content, position, show,
 };
 use rooibos::reactive::dom::{
-    NodeId, Render, UpdateLayoutProps, after_render, focus_id, mount, text,
+    NodeId, Render, after_render, focus_id, text,
 };
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, height, max_width, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, signal};
+use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use taffy::{AlignItems, JustifyContent, Position};
 

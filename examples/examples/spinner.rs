@@ -2,7 +2,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use rooibos::components::spinner::{Spinner, SpinnerDisplay};
-use rooibos::reactive::dom::{Render, mount, span};
+use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Set;
 use rooibos::runtime::error::RuntimeError;

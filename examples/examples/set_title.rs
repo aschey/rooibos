@@ -2,7 +2,7 @@ use std::io::Stdout;
 use std::process::ExitCode;
 
 use rooibos::keybind::{keys, map_handler};
-use rooibos::reactive::dom::{Render, mount};
+use rooibos::reactive::dom::Render;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};

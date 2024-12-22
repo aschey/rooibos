@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::reactive::dom::layout::{Borders, borders};
-use rooibos::reactive::dom::{Render, mount, use_window_focus, use_window_size};
+use rooibos::reactive::dom::{Render, use_window_focus, use_window_size};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, height, row, wgt, width};

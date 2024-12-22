@@ -1,5 +1,5 @@
 use rooibos::reactive::dom::Render;
-use rooibos::reactive::dom::layout::{Borders, borders, chars, grow, height, pct};
+use rooibos::reactive::dom::layout::{Borders, borders, chars, grow, height};
 use rooibos::reactive::dom::widgets::Sparkline;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;

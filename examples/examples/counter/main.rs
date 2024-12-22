@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::keybind::{keys, map_handler};
-use rooibos::reactive::dom::{Render, line, mount, span};
+use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;

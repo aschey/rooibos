@@ -3,8 +3,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use ratatui::layout::Alignment;
-use ratatui::style::{Color, Style, Stylize};
-use ratatui::symbols;
+use ratatui::style::{Color, Stylize};
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
 use rooibos_dom::{KeyCode, NodeId, delay, supports_keyboard_enhancement};

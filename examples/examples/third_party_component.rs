@@ -3,12 +3,11 @@ use std::process::ExitCode;
 use rooibos::reactive::KeyEvent;
 use rooibos::reactive::dom::events::KeyEventProps;
 use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode, mount};
+use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{
-    Get, GetUntracked as _, Track as _, Update as _, With as _,
+    GetUntracked as _, Track as _, Update as _, With as _,
 };
-use rooibos::reactive::graph::wrappers::read::MaybeSignal;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

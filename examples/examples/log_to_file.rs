@@ -2,7 +2,7 @@ use std::fs::File;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use rooibos::reactive::dom::{Render, mount};
+use rooibos::reactive::dom::Render;
 use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::spawn_local;

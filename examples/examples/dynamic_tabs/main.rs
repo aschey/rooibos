@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::{col, padding, row};

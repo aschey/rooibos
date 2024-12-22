@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use rooibos::components::Show;
 use rooibos::components::spinner::Spinner;
-use rooibos::reactive::dom::{Render, after_render, line, mount};
+use rooibos::reactive::dom::{Render, after_render, line};
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};

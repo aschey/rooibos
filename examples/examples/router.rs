@@ -2,14 +2,13 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars};
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::router::{Route, RouteFromStatic, Router, provide_router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::widgets::Block;
 use taffy::AlignItems;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

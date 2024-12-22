@@ -8,9 +8,9 @@ pub use button::*;
 pub use chart::*;
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::widgets::{List, Paragraph, StatefulWidget, Tabs, Widget, WidgetRef};
+use ratatui::widgets::{List, StatefulWidget, Tabs, Widget, WidgetRef};
 pub use sparkline::*;
-use taffy::{AvailableSpace, Size};
+use taffy::Size;
 
 use crate::{MeasureNode, RenderNode};
 

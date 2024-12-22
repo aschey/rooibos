@@ -1,8 +1,6 @@
 use std::cell::RefCell;
 use std::io::{self, Write};
-use std::sync::LazyLock;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::thread::{self, Thread};
 
 pub use dom_node::*;
 pub use dom_widget::*;
@@ -10,11 +8,10 @@ pub use node_tree::*;
 use ratatui::backend::Backend;
 use ratatui::text::Line;
 use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
-use ratatui::{CompletedFrame, Frame, Terminal};
-use tokio::sync::{oneshot, watch};
-use tokio::task::{LocalEnterGuard, LocalSet};
+use ratatui::Frame;
+use tokio::sync::watch;
 
-use crate::{NonblockingTerminal, set_pixel_size};
+use crate::NonblockingTerminal;
 
 mod dom_node;
 mod dom_widget;

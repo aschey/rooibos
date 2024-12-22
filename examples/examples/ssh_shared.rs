@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::reactive::derive_signal;
 use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
 use rooibos::reactive::graph::signal::ReadSignal;
 use rooibos::reactive::graph::traits::{FromStream, Get};
 use rooibos::runtime::Runtime;

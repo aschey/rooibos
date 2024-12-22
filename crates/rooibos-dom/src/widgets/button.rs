@@ -1,8 +1,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Style, Styled};
 use ratatui::text::Text;
-use ratatui::widgets::{Block, Paragraph, Widget, WidgetRef};
+use ratatui::widgets::{Widget, WidgetRef};
 
 use crate::MeasureNode;
 

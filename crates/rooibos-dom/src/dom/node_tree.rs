@@ -8,7 +8,7 @@ use std::{cmp, mem};
 use ratatui::layout::Rect;
 use ratatui::widgets::Block;
 use slotmap::{SlotMap, new_key_type};
-use taffy::{AvailableSpace, Dimension, NodeId, Point, Size, Style, TaffyTree};
+use taffy::{AvailableSpace, NodeId, Point, Size, Style, TaffyTree};
 
 use super::{MeasureNode, dom_node, refresh_dom};
 use crate::events::{BlurEvent, EventData, EventHandlers, FocusEvent};

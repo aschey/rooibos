@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::{
     Button, Input, Notification, Notifications, Notifier, provide_notifications,
 };
-use rooibos::reactive::dom::{Render, line, mount, text};
+use rooibos::reactive::dom::{Render, line, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, margin, padding, padding_right, row, wgt};
 use rooibos::runtime::error::RuntimeError;

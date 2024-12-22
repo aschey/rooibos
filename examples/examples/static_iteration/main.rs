@@ -1,11 +1,11 @@
 use std::process::ExitCode;
 
 use rooibos::keybind::{Bind, keys, map_handler};
-use rooibos::reactive::dom::layout::{Borders, borders, chars, height};
-use rooibos::reactive::dom::{Render, line, mount, span};
+use rooibos::reactive::dom::layout::{Borders, borders};
+use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{col, height, max_width, padding, wgt};
+use rooibos::reactive::{col, max_width, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

@@ -9,9 +9,8 @@ use ratatui::layout::Rect;
 use ratatui::prelude::StatefulWidget;
 use rooibos_dom::{MeasureNode, RenderNode, focus_id, focus_prev};
 use rooibos_reactive::dom::div::taffy::Size;
-use rooibos_reactive::dom::layout::{Borders, borders};
 use rooibos_reactive::dom::{DomWidget, LayoutProps, NodeId, Render, UpdateLayoutProps};
-use rooibos_reactive::graph::signal::{ReadSignal, signal};
+use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Set, Update, WriteValue};
 
 use crate::{AppInfo, CommandCompleter, CommandHandlerAction, use_command_context};

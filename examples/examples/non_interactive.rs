@@ -2,13 +2,11 @@ use std::error::Error;
 use std::io::stdout;
 
 use rooibos::reactive::dom::layout::{Borders, borders};
-use rooibos::reactive::dom::{Render, mount, render_single_frame};
-use rooibos::reactive::{col, row, wgt, width};
+use rooibos::reactive::dom::{Render, render_single_frame};
+use rooibos::reactive::wgt;
 use rooibos::tui::Viewport;
 use rooibos::tui::backend::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::symbols::border;
-use rooibos::tui::widgets::Block;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = rooibos::tui::Terminal::with_options(

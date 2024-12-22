@@ -10,17 +10,17 @@ use background_service::{Manager, TaskId};
 use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
 use ratatui::Viewport;
-use ratatui::layout::{Position, Size};
+use ratatui::layout::Position;
 use rooibos_dom::events::dispatch_event;
 use rooibos_dom::{
     DomUpdateReceiver, Event, NonblockingTerminal, dom_update_receiver, focus_next,
-    render_terminal, set_pixel_size, unmount,
+    render_terminal, unmount,
 };
 use rooibos_reactive::dom::{Render, mount};
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
-use tracing::{error, info, warn};
+use tracing::{error, warn};
 
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;

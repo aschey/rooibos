@@ -5,7 +5,7 @@ use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::dom::layout::{Borders, borders};
-use rooibos::reactive::dom::{Render, mount, text};
+use rooibos::reactive::dom::{Render, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, margin, max_width, padding, wgt};
 use rooibos::runtime::Runtime;

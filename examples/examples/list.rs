@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::keybind::{Bind, keys, map_handler};
-use rooibos::reactive::dom::{Render, mount};
+use rooibos::reactive::dom::Render;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::runtime::Runtime;

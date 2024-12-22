@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use derive_more::derive::{Deref, DerefMut};
 use futures_cancel::FutureExt as _;
 use ratatui::style::Style;
 use ratatui::text::{Line, Span};

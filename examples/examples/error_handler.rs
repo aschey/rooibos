@@ -1,23 +1,22 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::layout::{
-    Borders, align_content, align_items, borders, chars, justify_content, position, show,
+    Borders, align_items, borders, justify_content, position, show,
 };
 use rooibos::reactive::dom::{
-    NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, mount, text,
+    NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
 };
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Read, Set};
 use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, exit_with_error, signal};
+use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, exit_with_error};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::text::Line;
-use taffy::{AlignContent, AlignItems, JustifyContent, LengthPercentage, Position};
+use taffy::{AlignItems, JustifyContent, LengthPercentage, Position};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

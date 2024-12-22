@@ -2,20 +2,17 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, keys, map_handler};
-use rooibos::reactive::dom::layout::{Borders, borders, chars, height};
-use rooibos::reactive::dom::{Render, line, mount, span, text};
+use rooibos::reactive::dom::layout::{Borders, borders};
+use rooibos::reactive::dom::{Render, line, span, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Set, Update};
-use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    col, for_each, height, margin_x, max_width, padding, padding_left, padding_x, row, wgt, width,
+    col, for_each, height, margin_x, max_width, row, wgt,
 };
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::symbols::border;
-use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

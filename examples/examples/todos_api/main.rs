@@ -15,12 +15,12 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, clear, grow, justify_content, max_width, pct, position,
+    Borders, align_items, borders, chars, clear, justify_content, max_width, pct, position,
     show,
 };
 use rooibos::reactive::dom::{
-    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, mount, span, text,
-    use_focus, use_focus_with_id, use_focused_node,
+    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
+    use_focus, use_focus_with_id,
 };
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
@@ -30,15 +30,13 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Errors, col, derive_signal, height, margin, margin_left, margin_top, padding, padding_left,
+    Errors, col, derive_signal, height, margin, padding, padding_left,
     row, transition, wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::style::{Color, Stylize};
-use rooibos::tui::symbols::border;
-use rooibos::tui::widgets::{Block, Paragraph};
+use rooibos::tui::style::Stylize;
 use server::run_server;
 use taffy::{AlignItems, JustifyContent, LengthPercentage, Position};
 

@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::{Button, ButtonRef};
 use rooibos::keybind::{Bind, KeybindContext, keys, map_handler};
-use rooibos::reactive::dom::{Render, focus_id, mount, text, try_focus_id};
+use rooibos::reactive::dom::{Render, text, try_focus_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;

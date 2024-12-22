@@ -2,14 +2,13 @@ use std::process::ExitCode;
 
 use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::layout::{Borders, borders};
-use rooibos::reactive::dom::{Render, clear_focus, focus_next, focus_prev, line, mount, use_focus};
+use rooibos::reactive::dom::{Render, clear_focus, focus_next, focus_prev, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt, width};
+use rooibos::reactive::{col, derive_signal, max_width, padding, row, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::widgets::{Block, Paragraph};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

@@ -4,7 +4,7 @@ use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::events::KeyEventProps;
 use rooibos::reactive::dom::layout::{Borders, borders, chars};
-use rooibos::reactive::dom::{Render, line, mount};
+use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{KeyCode, col, max_height, max_width, row};

@@ -1,7 +1,6 @@
 use std::fmt::Write;
 use std::time::{Duration, Instant};
 
-use ratatui::Terminal;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use rooibos_dom::{

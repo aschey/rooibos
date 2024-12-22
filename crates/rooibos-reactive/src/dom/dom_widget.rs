@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use next_tuple::NextTuple;
@@ -10,7 +8,7 @@ use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
     KeyHandler,
 };
-use rooibos_dom::{AsDomNode, Borders, BuildNodeRenderer, DomNodeKey, NodeId};
+use rooibos_dom::{AsDomNode, Borders, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
 use wasm_compat::sync::RwLock;
 

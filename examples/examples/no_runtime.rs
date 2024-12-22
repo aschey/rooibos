@@ -14,7 +14,6 @@ use rooibos::reactive::{Event, KeyCode, KeyEvent, KeyModifiers, NonblockingTermi
 use rooibos::terminal::Backend;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::backend::Backend as _;
-use rooibos::tui::layout::Size;
 use rooibos::tui::style::Stylize;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;

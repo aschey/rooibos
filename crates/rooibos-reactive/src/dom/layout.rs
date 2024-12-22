@@ -1,15 +1,9 @@
-use ratatui::layout;
-use ratatui::style::{Style, Styled};
-use ratatui::symbols::{block, border};
-use ratatui::text::{Line, Text};
-use ratatui::widgets::block::{Title, title};
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
-use reactive_graph::signal::{ArcRwSignal, RwSignal};
-use reactive_graph::traits::{Get, Update};
-use reactive_graph::wrappers::read::{ArcSignal, MaybeSignal, Signal};
+use reactive_graph::traits::Get;
+use reactive_graph::wrappers::read::{MaybeSignal, Signal};
 pub use rooibos_dom::{BorderType, Borders};
-use taffy::{Display, LengthPercentage};
+use taffy::Display;
 
 use super::{DomNode, with_nodes_mut};
 use crate::derive_signal;

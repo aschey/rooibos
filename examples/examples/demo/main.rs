@@ -4,7 +4,7 @@ use std::time::Duration;
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, map_handler};
 use rooibos::reactive::dom::layout::{chars, pct};
-use rooibos::reactive::dom::{Render, line, mount};
+use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::owner::provide_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};

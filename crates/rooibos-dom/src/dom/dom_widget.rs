@@ -8,7 +8,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::canvas::{Canvas, Context};
-use ratatui::widgets::{BarChart, Chart, Gauge, LineGauge, Sparkline, Table};
+use ratatui::widgets::{BarChart, Gauge, LineGauge, Table};
 use taffy::{AvailableSpace, Size, Style};
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::BoolCell;

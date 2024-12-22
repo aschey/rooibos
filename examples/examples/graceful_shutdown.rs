@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
-use rooibos::reactive::dom::{Render, line, mount, span};
+use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, padding, wgt};

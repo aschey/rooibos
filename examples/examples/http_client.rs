@@ -4,16 +4,15 @@ use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, span, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span, text};
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::signal::{ArcRwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{Errors, col, max_width, padding, suspense, wgt};
+use rooibos::reactive::{Errors, col, padding, suspense, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use rooibos::tui::widgets::Paragraph;
 use serde::Deserialize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

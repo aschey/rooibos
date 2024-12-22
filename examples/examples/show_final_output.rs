@@ -3,7 +3,7 @@ use std::process::ExitCode;
 
 use rooibos::components::Show;
 use rooibos::keybind::{keys, map_handler};
-use rooibos::reactive::dom::{Render, after_render, mount};
+use rooibos::reactive::dom::{Render, after_render};
 use rooibos::reactive::graph::signal::{RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::{derive_signal, row, wgt};

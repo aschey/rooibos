@@ -4,10 +4,10 @@ use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::keybind::{Bind, map_handler};
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, mount, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{col, height, wgt, width};
+use rooibos::reactive::{col, height, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;

@@ -11,8 +11,7 @@ use crossterm::terminal::{
 use futures::StreamExt;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use ratatui::symbols::border;
-use ratatui::widgets::{Block, Paragraph, WidgetRef};
+use ratatui::widgets::{Block, Paragraph};
 use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{
@@ -20,7 +19,6 @@ use rooibos_dom::{
     render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
-use taffy::{Dimension, Size};
 use terminput::{Event, KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc;
 

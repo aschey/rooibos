@@ -1,5 +1,3 @@
-use ratatui::text;
-use ratatui::widgets::WidgetRef;
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{AsDomNode, clear_children, text, unmount_child};
 use tachys::prelude::Renderer;

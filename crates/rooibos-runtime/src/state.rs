@@ -3,7 +3,6 @@ use std::error::Error;
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
-use std::process::ExitCode;
 use std::sync::Arc;
 
 use background_service::{Manager, ServiceContext};

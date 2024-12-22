@@ -1,16 +1,14 @@
 use std::process::ExitCode;
 
 use rooibos::components::Input;
-use rooibos::reactive::dom::layout::{Borders, borders, chars};
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, mount, use_focus};
+use rooibos::reactive::dom::layout::{Borders, borders};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, derive_signal, max_width, padding, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
-use rooibos::tui::style::{Color, Stylize};
-use rooibos::tui::symbols::border;
-use rooibos::tui::widgets::Block;
+use rooibos::tui::style::Stylize;
 use taffy::LengthPercentage;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
