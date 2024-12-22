@@ -34,13 +34,13 @@ The example above can be written using the following code:
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::keybind::map_handler;
-use rooibos::reactive::dom::{line, mount, span, Render};
+use rooibos::keybind::{keys, map_handler};
+use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
@@ -48,16 +48,16 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
     let update_count = move || set_count.update(|c| *c += 1);
-    let key_handler = map_handler("<Enter>", move |_, _| update_count());
+    let key_handler = map_handler(keys::ENTER, move |_, _| update_count());
 
     wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
         .on_key_down(key_handler)
@@ -90,13 +90,13 @@ anytime they are updated.
 ```rust,no_run
 use std::process::ExitCode;
 
-use rooibos::keybind::map_handler;
-use rooibos::reactive::dom::{line, mount, span, Render};
+use rooibos::keybind::{keys, map_handler};
+use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, derive_signal, wgt};
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 
@@ -104,9 +104,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -114,7 +114,7 @@ fn app() -> impl Render {
     // Will automatically update anytime `count` is updated.
     let doubled_count = derive_signal!(count.get() * 2);
     let update_count = move || set_count.update(|c| *c += 1);
-    let key_handler = map_handler("<Enter>", move |_, _| update_count());
+    let key_handler = map_handler(keys::ENTER, move |_, _| update_count());
 
     col![
         // Reading a signal inside a widget will cause the widget to re-render
@@ -140,11 +140,11 @@ Layout properties can be added using the special `props()` keyword.
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::reactive::dom::{mount, text, Render};
+use rooibos::reactive::dom::{Render, mount, text};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{col, derive_signal, height, padding, padding_right, row, wgt, width};
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;
@@ -154,9 +154,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -191,24 +191,24 @@ any thread or async task.
 
 ```rust,no_run
 use std::process::ExitCode;
+use std::time::Duration;
 
-use rooibos::reactive::dom::{line, mount, span, Render};
+use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::Runtime;
+use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
-use std::time::Duration;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
-    runtime.run().await
+    Runtime::initialize(CrosstermBackend::stdout())
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -235,12 +235,11 @@ We provide a first-party package for testing your apps and components at a high
 level. The API is inspired by [Testing Library](https://testing-library.com/).
 
 ```rust
-use rooibos::keybind::map_handler;
-use rooibos::reactive::dom::{mount, span, Render};
+use rooibos::keybind::{keys, map_handler};
+use rooibos::reactive::dom::{Render, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::wgt;
-use rooibos::reactive::KeyCode;
+use rooibos::reactive::{KeyCode, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -252,7 +251,7 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    let key_handler = map_handler("<Enter>", move |_, _| update_count());
+    let key_handler = map_handler(keys::ENTER, move |_, _| update_count());
 
     wgt!(rooibos::reactive::dom::line!(
         "count: ".bold(),
@@ -263,25 +262,25 @@ fn app() -> impl Render {
 }
 
 macro_rules! assert_snapshot {
-    ($terminal:expr) => {
+    ($harness:expr) => {
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($terminal.backend().buffer());
+            insta::assert_debug_snapshot!($harness.buffer());
         });
     };
 }
-
 #[rooibos::test]
 async fn test_counter() {
-    mount(app);
     let mut harness = TestHarness::new_with_settings(
         RuntimeSettings::default().enable_signal_handler(false),
         20,
         10,
-    );
+    )
+    .await;
+    harness.mount(app).await;
 
-    assert_snapshot!(harness.terminal());
+    assert_snapshot!(harness);
 
     harness.send_key(KeyCode::Enter);
     harness
