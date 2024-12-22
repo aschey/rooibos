@@ -437,7 +437,7 @@ where
         Ok(())
     }
 
-    async fn draw(&self, terminal: &mut NonblockingTerminal<B::TuiBackend>) {
+    pub async fn draw(&self, terminal: &mut NonblockingTerminal<B::TuiBackend>) {
         render_terminal(terminal).await.expect("draw failed");
     }
 

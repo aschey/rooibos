@@ -14,34 +14,36 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    mount(app);
     let mut runtime = Runtime::initialize(CrosstermBackend::stdout());
-    let mut terminal = runtime.setup_terminal()?;
 
-    render_terminal(&mut terminal)?;
+    runtime.mount(app);
+    let mut terminal = runtime
+        .setup_terminal()
+        .await
+        .map_err(RuntimeError::SetupFailure)?;
+    runtime.draw(&mut terminal).await;
     focus_next();
 
     loop {
         let tick_result = runtime.tick().await?;
         match tick_result {
             TickResult::Redraw => {
-                render_terminal(&mut terminal)?;
+                render_terminal(&mut terminal).await?;
             }
             TickResult::Restart => {
-                terminal = runtime.setup_terminal()?;
-                render_terminal(&mut terminal)?;
+                terminal = runtime.setup_terminal().await?;
+                render_terminal(&mut terminal).await?;
             }
-            TickResult::Exit(Ok(code)) => {
-                if runtime.should_exit().await {
-                    runtime.handle_exit(&mut terminal).await.unwrap();
+            TickResult::Exit(payload) => {
+                if runtime.should_exit(payload.clone()).await {
+                    runtime.handle_exit(&mut terminal).await?;
                     restore_terminal()?;
-                    return Ok(code);
+                    if let Some(e) = payload.error() {
+                        return Err(RuntimeError::UserDefined(e.clone()));
+                    } else {
+                        return Ok(payload.code().as_exit_code().unwrap_or(ExitCode::FAILURE));
+                    }
                 }
-            }
-            TickResult::Exit(Err(e)) => {
-                runtime.handle_exit(&mut terminal).await.unwrap();
-                restore_terminal()?;
-                return Err(RuntimeError::UserDefined(e));
             }
             TickResult::Command(command) => {
                 runtime
@@ -56,10 +58,11 @@ async fn main() -> Result {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
-    wgt!(line!("count: ".bold(), span!(count.get()).cyan())).on_key_down(map_handler(
-        keys::ENTER,
-        move |_, _| {
-            set_count.update(|c| *c += 1);
-        },
-    ))
+    let update_count = move || set_count.update(|c| *c += 1);
+
+    wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
+        .on_key_down(map_handler(keys::ENTER, move |_, _| {
+            update_count();
+        }))
+        .on_click(move |_| update_count())
 }

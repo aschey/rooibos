@@ -26,6 +26,7 @@ use ratatui::layout::Size;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
 use reactive_graph::owner::Owner;
+pub use rooibos_dom::NonblockingTerminal;
 pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use tachys::view::any_view;

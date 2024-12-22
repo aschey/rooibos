@@ -1,21 +1,23 @@
 use std::collections::BTreeMap;
 use std::error::Error;
-use std::io::{stdout, Stdout};
+use std::io::{Stdout, stdout};
 
+use crossterm::cursor::{Hide, Show};
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, EventStream};
 use crossterm::execute;
 use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use futures::StreamExt;
+use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::symbols::border;
 use ratatui::widgets::{Block, Paragraph, WidgetRef};
-use ratatui::Terminal;
-use rooibos_dom::events::{dispatch_event, KeyEventProps};
+use rooibos_dom::events::{KeyEventProps, dispatch_event};
+use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{
-    focus_next, mount, render_terminal, with_nodes, with_nodes_mut, AsDomNode, DomNode,
-    DomWidgetNode, NodeId,
+    AsDomNode, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, focus_next, mount,
+    render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use taffy::{Dimension, Size};
@@ -24,7 +26,6 @@ use tokio::sync::mpsc;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let mut terminal = setup_terminal()?;
     let (tx, mut rx) = mpsc::channel(32);
 
     let mut app = Counters {
@@ -37,8 +38,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         app.view(move |msg| tx.clone().try_send(msg).unwrap())
     };
     mount(view);
+    let mut terminal = setup_terminal()?;
 
-    render_terminal(&mut terminal)?;
+    render_terminal(&mut terminal).await?;
     let mut event_reader = EventStream::new().fuse();
     focus_next();
 
@@ -56,7 +58,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let prev_focused_key = prev_focused_id.and_then(|p| nodes.get_key(p));
                     nodes.set_focused_untracked(prev_focused_key);
                 });
-                render_terminal(&mut terminal)?;
+                render_terminal(&mut terminal).await?;
             }
             Some(Ok(event)) = event_reader.next() => {
                 if let Ok(event) = event.try_into() {
@@ -73,7 +75,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    restore_terminal(terminal)?;
+    restore_terminal()?;
     Ok(())
 }
 
@@ -88,24 +90,18 @@ fn should_exit(event: &Event) -> bool {
     )
 }
 
-fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
+fn setup_terminal() -> Result<NonblockingTerminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+    execute!(stdout, Hide, EnterAlternateScreen, EnableMouseCapture)?;
     let backend = CrosstermBackend::new(stdout);
     let terminal = Terminal::new(backend)?;
-    Ok(terminal)
+    Ok(NonblockingTerminal::new(terminal))
 }
 
-fn restore_terminal(
-    mut terminal: Terminal<CrosstermBackend<Stdout>>,
-) -> Result<(), Box<dyn Error>> {
+fn restore_terminal() -> Result<(), Box<dyn Error>> {
     disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        DisableMouseCapture,
-        LeaveAlternateScreen
-    )?;
+    execute!(stdout(), DisableMouseCapture, LeaveAlternateScreen, Show)?;
     Ok(())
 }
 
@@ -138,14 +134,11 @@ impl Counters {
                 self.counters.get_mut(&id).unwrap().update(task_message);
             }
             Message::Add => {
-                self.counters.insert(
-                    self.next_id,
-                    Counter {
-                        id: self.next_id,
-                        count: 0,
-                        focused: false,
-                    },
-                );
+                self.counters.insert(self.next_id, Counter {
+                    id: self.next_id,
+                    count: 0,
+                    focused: false,
+                });
                 self.next_id += 1;
             }
             Message::Focus => {
@@ -181,7 +174,7 @@ impl Counters {
                 })
                 .on_blur(move |_, _| send(Message::Blur))
         };
-        if self.focused {
+        if self.focused && !self.counters.is_empty() {
             col = col.block(Block::bordered());
         }
 
@@ -242,16 +235,13 @@ impl Counter {
     {
         let model = self.clone();
         let id: NodeId = format!("counter{}", self.id).into();
-
+        let block = if model.focused {
+            Block::bordered()
+        } else {
+            Block::bordered().border_set(border::EMPTY)
+        };
         let widget = DomWidgetNode::new::<Paragraph, _>(move || {
-            let mut paragraph = Paragraph::new(format!("count: {}", model.count));
-            if model.focused {
-                paragraph = paragraph.block(Block::bordered());
-            } else {
-                paragraph = paragraph.block(Block::bordered().border_set(border::EMPTY))
-            }
-
-            move |rect, frame| paragraph.render_ref(rect, frame.buffer_mut())
+            RenderWidgetRef(format!("count: {}", model.count))
         });
         widget.build();
 
@@ -288,11 +278,9 @@ impl Counter {
             .on_blur(move |_, _| send(TaskMessage::Blur));
 
         with_nodes_mut(|nodes| {
+            nodes.set_block(node.get_key(), block);
             nodes.update_layout(node.get_key(), |layout| {
-                layout.size = Size {
-                    width: Dimension::Length(15.),
-                    height: Dimension::Length(3.),
-                };
+                layout.border = taffy::Rect::length(1.);
             });
         });
 
