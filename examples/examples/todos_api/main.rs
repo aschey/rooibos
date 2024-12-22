@@ -15,8 +15,7 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, clear, justify_content, max_width, pct, position,
-    show,
+    Borders, align_items, borders, chars, clear, justify_content, max_width, pct, position, show,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -30,8 +29,7 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Errors, col, derive_signal, height, margin, padding, padding_left,
-    row, transition, wgt, width,
+    Errors, col, derive_signal, height, margin, padding, padding_left, row, transition, wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};

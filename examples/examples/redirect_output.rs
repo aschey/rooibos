@@ -3,7 +3,7 @@ use std::io::{IsTerminal, Stderr, stdout};
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
-use rooibos::keybind::{Bind, map_handler};
+use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
@@ -50,19 +50,19 @@ fn app() -> impl Render {
             })
             .on_key_down(
                 [
-                    map_handler("<Down>", move |_, _| {
+                    map_handler(keys::DOWN, move |_, _| {
                         let selected_idx = selected.get().unwrap();
                         items.with(|i| {
                             selected.set(i.next_index(selected_idx));
                         });
                     }),
-                    map_handler("<Up>", move |_, _| {
+                    map_handler(keys::UP, move |_, _| {
                         let selected_idx = selected.get().unwrap();
                         items.with(|i| {
                             selected.set(i.prev_index(selected_idx));
                         });
                     }),
-                    map_handler("<Enter>", move |_, _| {
+                    map_handler(keys::ENTER, move |_, _| {
                         let selected_idx = selected.get().unwrap();
                         println!("{}", item_text[selected_idx]);
                         exit();

@@ -1,6 +1,6 @@
 use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
-use rooibos_dom::widgets::{RenderStatefulWidget, RenderWidget, RenderWidgetRef};
 use rooibos_dom::MeasureNode;
+use rooibos_dom::widgets::{RenderStatefulWidget, RenderWidget, RenderWidgetRef};
 
 use crate::dom::DomWidget;
 

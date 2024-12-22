@@ -6,9 +6,7 @@ use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, line, span, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Set, Update};
-use rooibos::reactive::{
-    col, for_each, height, margin_x, max_width, row, wgt,
-};
+use rooibos::reactive::{col, for_each, height, margin_x, max_width, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;

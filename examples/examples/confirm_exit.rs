@@ -5,9 +5,7 @@ use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::layout::{
     Borders, align_items, borders, justify_content, position, show,
 };
-use rooibos::reactive::dom::{
-    NodeId, Render, after_render, focus_id, text,
-};
+use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};

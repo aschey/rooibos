@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 
 use rooibos::components::Image;
-use rooibos::keybind::{Bind, map_handler};
+use rooibos::keybind::{Bind, keys, map_handler};
 use rooibos::reactive::dom::Render;
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked, Update};
@@ -41,12 +41,12 @@ fn app() -> impl Render {
     ]
     .on_key_down(
         [
-            map_handler("<Down>", move |_, _| {
+            map_handler(keys::DOWN, move |_, _| {
                 if image_length.get_untracked() > 5. {
                     image_length.update(|l| *l -= 1.);
                 }
             }),
-            map_handler("<Up>", move |_, _| {
+            map_handler(keys::UP, move |_, _| {
                 if image_length.get_untracked() < 20. {
                     image_length.update(|l| *l += 1.);
                 }
