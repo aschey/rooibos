@@ -13,6 +13,8 @@ use crossterm::terminal::{
 use crossterm::{execute, queue};
 use futures::Future;
 use futures_cancel::FutureExt;
+use ratatui::backend::WindowSize;
+use ratatui::layout::Size;
 use ratatui::{Terminal, Viewport};
 use ratatui_xterm_js::xterm::Theme;
 use ratatui_xterm_js::{EventStream, TerminalHandle, XtermJsBackend, init_terminal};
@@ -77,27 +79,6 @@ pub struct WasmBackend {
 
 impl WasmBackend {
     pub fn new(settings: TerminalSettings) -> Self {
-        Self {
-            supports_keyboard_enhancement: if settings.keyboard_enhancement {
-                supports_keyboard_enhancement().unwrap_or(false)
-            } else {
-                false
-            },
-            settings,
-        }
-    }
-}
-
-impl Default for WasmBackend {
-    fn default() -> Self {
-        Self::new(TerminalSettings::default())
-    }
-}
-
-impl Backend for WasmBackend {
-    type TuiBackend = XtermJsBackend;
-
-    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let elem = web_sys::window()
             .unwrap()
             .document()
@@ -121,8 +102,45 @@ impl Backend for WasmBackend {
             elem.dyn_into().unwrap(),
         );
 
+        Self {
+            supports_keyboard_enhancement: if settings.keyboard_enhancement {
+                supports_keyboard_enhancement().unwrap_or(false)
+            } else {
+                false
+            },
+            settings,
+        }
+    }
+}
+
+impl Default for WasmBackend {
+    fn default() -> Self {
+        Self::new(TerminalSettings::default())
+    }
+}
+
+impl Backend for WasmBackend {
+    type TuiBackend = XtermJsBackend;
+
+    fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
         let mut handle = TerminalHandle::default();
         Ok(XtermJsBackend::new(handle))
+    }
+
+    fn window_size(&self) -> io::Result<WindowSize> {
+        let crossterm::terminal::WindowSize {
+            columns,
+            rows,
+            width,
+            height,
+        } = ratatui_xterm_js::window_size()?;
+        Ok(WindowSize {
+            columns_rows: Size {
+                width: columns,
+                height: rows,
+            },
+            pixels: Size { width, height },
+        })
     }
 
     fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {

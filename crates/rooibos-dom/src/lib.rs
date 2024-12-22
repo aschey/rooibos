@@ -2,7 +2,10 @@ mod borders;
 mod dom;
 pub mod events;
 mod macros;
+#[cfg(not(target_arch = "wasm32"))]
 mod nonblocking_terminal;
+#[cfg(target_arch = "wasm32")]
+mod nonblocking_terminal_wasm;
 pub mod widgets;
 
 use std::cell::{LazyCell, OnceCell};
@@ -14,7 +17,10 @@ use std::time::Duration;
 
 pub use borders::*;
 pub use dom::*;
+#[cfg(not(target_arch = "wasm32"))]
 pub use nonblocking_terminal::*;
+#[cfg(target_arch = "wasm32")]
+pub use nonblocking_terminal_wasm::*;
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 #[doc(hidden)]

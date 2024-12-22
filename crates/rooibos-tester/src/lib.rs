@@ -130,7 +130,7 @@ impl TestHarness {
 
     pub fn buffer(&self) -> Buffer {
         self.terminal
-            .with_terminal_mut(|t| t.backend().buffer().clone())
+            .with_terminal(|t| t.backend().buffer().clone())
     }
 
     #[cfg(feature = "runtime")]

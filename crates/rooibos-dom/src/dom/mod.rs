@@ -200,14 +200,14 @@ pub fn render_dom(frame: &mut Frame) {
 
 pub async fn render_terminal<B>(terminal: &mut NonblockingTerminal<B>) -> Result<(), io::Error>
 where
-    B: Backend + Send + Sync + 'static,
+    B: Backend + wasm_compat::sync::Send + wasm_compat::sync::Sync + 'static,
 {
     draw(terminal, render_dom).await
 }
 
 async fn draw<B, F>(terminal: &mut NonblockingTerminal<B>, render_callback: F) -> io::Result<()>
 where
-    B: Backend + Send + Sync + 'static,
+    B: Backend + wasm_compat::sync::Send + wasm_compat::sync::Sync + 'static,
     F: FnOnce(&mut Frame),
 {
     terminal.auto_resize().await;

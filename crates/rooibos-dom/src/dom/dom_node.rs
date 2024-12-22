@@ -164,9 +164,9 @@ impl DomNodeRepr {
         self.node_type.clone()
     }
 
-    pub fn find<F>(&self, f: F) -> Option<DomNodeRepr>
+    pub fn find<F>(&self, mut f: F) -> Option<DomNodeRepr>
     where
-        F: Fn(&DomNodeRepr) -> bool + Clone,
+        F: FnMut(&DomNodeRepr) -> bool,
     {
         self.key
             .traverse(
@@ -182,14 +182,14 @@ impl DomNodeRepr {
 
     pub fn get<F>(&self, f: F) -> DomNodeRepr
     where
-        F: Fn(&DomNodeRepr) -> bool + Clone,
+        F: FnMut(&DomNodeRepr) -> bool,
     {
         self.find(f).unwrap()
     }
 
-    pub fn find_all<F>(&self, f: F) -> Vec<DomNodeRepr>
+    pub fn find_all<F>(&self, mut f: F) -> Vec<DomNodeRepr>
     where
-        F: Fn(&DomNodeRepr) -> bool + Clone,
+        F: FnMut(&DomNodeRepr) -> bool,
     {
         self.key.traverse(
             |key, node| {

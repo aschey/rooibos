@@ -1,5 +1,6 @@
 use std::io;
 
+#[cfg(not(target_arch = "wasm32"))]
 use async_signal::{Signal, Signals};
 use background_service::ServiceContext;
 use futures_cancel::FutureExt;
@@ -14,12 +15,14 @@ pub mod signal {
     pub use proc_exit::bash::{SIGINT, SIGQUIT, SIGTERM};
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) struct SignalHandler {
     pub(crate) runtime_command_tx: broadcast::Sender<RuntimeCommand>,
     pub(crate) enable_internal_handler: bool,
     pub(crate) context: ServiceContext,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl SignalHandler {
     pub(crate) async fn run(self) -> Result<(), io::Error> {
         if let Some(mut signals) = crate::get_external_signal_stream() {
@@ -51,7 +54,6 @@ impl SignalHandler {
         Ok(())
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
     fn handle_signal(&self, signal: async_signal::Signal) {
         use async_signal::Signal;
         match signal {

@@ -13,7 +13,7 @@ modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "00aae1e3
 terminput = { git = "https://github.com/aschey/terminput", rev = "f07cb891c397c1ab092f0f1d09c085eb52c42e8d" }
 crossterm = "0.28"
 ratatui = { version = "0.28", features = ["unstable"] }
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
 ] }
 educe = "0.6"

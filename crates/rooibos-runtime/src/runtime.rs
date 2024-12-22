@@ -68,7 +68,7 @@ pub enum TickResult {
 impl<B> Runtime<B>
 where
     B: Backend + 'static,
-    B::TuiBackend: Send + Sync + 'static,
+    B::TuiBackend: wasm_compat::Send + wasm_compat::Sync + 'static,
 {
     pub fn initialize(backend: B) -> Self {
         Self::initialize_with(RuntimeSettings::default(), backend)

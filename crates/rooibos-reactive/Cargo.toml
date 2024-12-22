@@ -25,7 +25,7 @@ futures = "0.3"
 rustc-hash = "2"
 tui-textarea = { version = "0.6", optional = true, default-features = false }
 paste = "1"
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
 ] }
 taffy = "0.6.2"

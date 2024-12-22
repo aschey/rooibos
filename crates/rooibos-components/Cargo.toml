@@ -10,7 +10,7 @@ tui-textarea = { version = "0.6", default-features = false, optional = true }
 crossterm = { version = "0.28.1", optional = true }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "98287ef1046e4c8694e0b90fbb0d0986573a1969", features = [
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
 ] }
 educe = "0.6"

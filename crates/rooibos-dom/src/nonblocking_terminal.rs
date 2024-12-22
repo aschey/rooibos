@@ -161,7 +161,7 @@ where
         self.requester.rx.recv().await.unwrap();
     }
 
-    pub fn area(&self) -> Rect {
+    pub fn area(&mut self) -> Rect {
         self.terminal.write().current_buffer_mut().area
     }
 
@@ -196,11 +196,18 @@ where
         self.requester.rx.recv().await.unwrap();
     }
 
-    pub fn with_terminal_mut<F, R>(&self, mut f: F) -> R
+    pub fn with_terminal_mut<F, R>(&mut self, mut f: F) -> R
     where
         F: FnMut(&mut Terminal<B>) -> R,
     {
         f(&mut self.terminal.write())
+    }
+
+    pub fn with_terminal<F, R>(&self, mut f: F) -> R
+    where
+        F: FnMut(&Terminal<B>) -> R,
+    {
+        f(&self.terminal.read())
     }
 
     pub async fn join(self) {

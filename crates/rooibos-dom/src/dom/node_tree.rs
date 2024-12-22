@@ -46,18 +46,18 @@ pub enum MatchBehavior {
 }
 
 impl DomNodeKey {
-    pub(crate) fn traverse<F, T>(&self, f: F, match_behavior: MatchBehavior) -> Vec<T>
+    pub(crate) fn traverse<F, T>(&self, mut f: F, match_behavior: MatchBehavior) -> Vec<T>
     where
-        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T> + Clone,
+        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T>,
     {
         let mut out_list = vec![];
-        self.traverse_inner(f, &mut out_list, match_behavior);
+        self.traverse_inner(&mut f, &mut out_list, match_behavior);
         out_list
     }
 
-    fn traverse_inner<F, T>(&self, mut f: F, out_list: &mut Vec<T>, match_behavior: MatchBehavior)
+    fn traverse_inner<F, T>(&self, f: &mut F, out_list: &mut Vec<T>, match_behavior: MatchBehavior)
     where
-        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T> + Clone,
+        F: FnMut(DomNodeKey, &NodeProperties) -> Option<T>,
     {
         if let Some(out) = with_nodes(|nodes| f(*self, &nodes[*self])) {
             out_list.push(out);
@@ -68,7 +68,7 @@ impl DomNodeKey {
         let children = with_nodes(|nodes| nodes[*self].children.clone());
         for child in children {
             let current_length = out_list.len();
-            child.traverse_inner(f.clone(), out_list, match_behavior);
+            child.traverse_inner(f, out_list, match_behavior);
             if out_list.len() > current_length
                 && match_behavior == MatchBehavior::SearchChildrenOnMatch
             {
