@@ -323,7 +323,6 @@ impl DomWidgetNode {
         let widget_type = type_name::<T>();
         let role = T::widget_role();
         let id = next_node_id();
-        //let rc_f: Rc<RefCell<DomWidgetFn>> = Rc::new(RefCell::new(Box::new(|_, _| {})));
 
         Self {
             id,
@@ -332,12 +331,6 @@ impl DomWidgetNode {
             widget_fn: Rc::new(RefCell::new(Box::new(()))),
             recompute_pending: Rc::new(BoolCell::new(false)),
             current_size: Size::zero(),
-            //measure_fn: Rc::new(RefCell::new(Box::new(Size::zero()))),
-            //measure_node: Rc::new(()),
-            // render_node: Rc::new(()),
-            //rc_f,
-            //measure_fn: Rc::new(move || render_node.get_measure_fn(props))
-            //f: Rc::new(move || Box::new(render_node.get_render_fn(render_node.build_props()))),
             widget_type: widget_type.into(),
             key: DomNodeKey::default(),
         }

@@ -231,10 +231,6 @@ impl Input {
         });
 
         let (focused, set_focused) = signal(false);
-        // let block = derive_signal!({
-        //     let state = widget_state.get();
-        //     return block(state);
-        // });
 
         spawn_local(async move {
             while let Ok(line) = submit_rx.recv().await {

@@ -321,27 +321,12 @@ impl NodeTree {
     {
         let value = &self.dom_nodes[node];
         let mut style = self.layout_tree.style(value.layout_id).unwrap().clone();
-        // let before = style.clone();
+
         f(&mut style);
-        // let context = self
-        //     .layout_tree
-        //     .get_node_context_mut(value.layout_id)
-        //     .unwrap();
-        // if style.size.width != before.size.width {
-        //     context.width_auto = false;
-        // }
-        // if style.size.height != before.size.height {
-        //     context.height_auto = false;
-        // }
+
         self.layout_tree
             .set_style(value.layout_id, style.clone())
             .unwrap();
-        //let parent = self.layout_tree.parent(value.layout_id);
-        // if let Some(parent) = parent {
-        //     if before.display != style.display {
-        //         self.update_sizes(parent);
-        //     }
-        // }
 
         refresh_dom();
     }
@@ -383,48 +368,6 @@ impl NodeTree {
             .unwrap()
             .clone()
     }
-
-    // fn update_sizes(&mut self, parent: NodeId) {
-    //     let parent_style = self.layout_tree.style(parent).unwrap().clone();
-    //
-    //     let children = self.layout_tree.children(parent).unwrap();
-    //     let num_children = children
-    //         .iter()
-    //         .filter(|c| {
-    //             let style = self.layout_tree.style(**c).unwrap();
-    //             style.display != Display::None && style.position != Position::Absolute
-    //         })
-    //         .count() as f32;
-    //     for child in children {
-    //         let mut style = self.layout_tree.style(child).unwrap().clone();
-    //         if style.display != Display::None && style.position != Position::Absolute {
-    //             let context = self.layout_tree.get_node_context(child).unwrap();
-    //
-    //             if parent_style.display == Display::Block
-    //                 || (parent_style.display == Display::Flex
-    //                     && parent_style.flex_direction == FlexDirection::Row)
-    //             {
-    //                 if context.width_auto {
-    //                     style.size.width = Dimension::Percent(1. / num_children);
-    //                 }
-    //                 if context.height_auto {
-    //                     style.size.height = Dimension::Percent(1.);
-    //                 }
-    //             } else if parent_style.display == Display::Flex
-    //                 && parent_style.flex_direction == FlexDirection::Column
-    //             {
-    //                 if context.height_auto {
-    //                     style.size.height = Dimension::Percent(1. / num_children);
-    //                 }
-    //                 if context.width_auto {
-    //                     style.size.width = Dimension::Percent(1.);
-    //                 }
-    //             }
-    //             self.layout_tree.set_style(child, style).unwrap();
-    //         }
-    //         self.update_sizes(child);
-    //     }
-    // }
 
     pub(crate) fn iter_nodes(&self) -> slotmap::basic::Iter<'_, DomNodeKey, TreeValue> {
         self.dom_nodes.iter()
@@ -485,7 +428,6 @@ impl NodeTree {
                         child_node.layout_id,
                     )
                     .unwrap();
-                //self.update_sizes(parent_node.layout_id);
             }
         } else {
             self.dom_nodes[parent_key].inner.children.push(child_key);
@@ -495,7 +437,6 @@ impl NodeTree {
             self.layout_tree
                 .add_child(parent_node.layout_id, child_node.layout_id)
                 .unwrap();
-            //self.update_sizes(parent_node.layout_id);
         }
         let parent_node = &self.dom_nodes[parent_key];
         // If the parent is disabled, the child should also be disabled
@@ -508,11 +449,7 @@ impl NodeTree {
 
     pub(crate) fn remove(&mut self, node: DomNodeKey) -> Option<TreeValue> {
         let layout_id = self.dom_nodes[node].layout_id;
-        //let parent = self.layout_tree.parent(layout_id);
         self.layout_tree.remove(layout_id).unwrap();
-        // if let Some(parent) = parent {
-        //     self.update_sizes(parent);
-        // }
         refresh_dom();
         self.dom_nodes.remove(node)
     }
@@ -539,8 +476,6 @@ impl NodeTree {
     }
 
     pub(crate) fn replace_node(&mut self, old_key: DomNodeKey, new_key: DomNodeKey) {
-        // let layout_id = self.dom_nodes[old_key].layout_id;
-
         let mut new_key_vals = mem::take(&mut self.dom_nodes[new_key].inner);
         new_key_vals.replace_with(&self.dom_nodes[old_key].inner);
         self.dom_nodes[new_key].inner = new_key_vals;
@@ -551,7 +486,6 @@ impl NodeTree {
                 .set_parent_enabled(parent_enabled);
         }
 
-        // self.dom_nodes[new_key].layout_id = layout_id;
         refresh_dom();
     }
 
