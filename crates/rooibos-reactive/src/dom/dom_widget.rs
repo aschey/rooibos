@@ -29,11 +29,6 @@ pub struct DomWidgetRef {
     inner: Arc<RwLock<DomNode>>,
 }
 
-impl DomWidgetRef {
-    // pub fn state(&self) {
-    //     self.inner.read().on_click(handler)   }
-}
-
 #[derive(Clone)]
 pub struct DomWidget<P> {
     inner: DomNode,
@@ -46,7 +41,6 @@ impl WidgetProperty for () {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
-//impl WidgetProperty for BorderProp {}
 
 pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
 
