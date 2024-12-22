@@ -36,13 +36,13 @@ impl<'a> Button<'a> {
     }
 }
 
-impl<'a> WidgetRef for Button<'a> {
+impl WidgetRef for Button<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.text.render_ref(area, buf);
     }
 }
 
-impl<'a> Widget for Button<'a> {
+impl Widget for Button<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_ref(area, buf);
     }

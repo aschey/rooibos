@@ -3,6 +3,8 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::widgets::{Block, RenderDirection, Widget, WidgetRef};
 
+use crate::MeasureNode;
+
 #[derive(Clone, Default)]
 pub struct Sparkline<'a> {
     inner: ratatui::widgets::Sparkline<'a>,
@@ -41,19 +43,19 @@ impl<'a> Sparkline<'a> {
     }
 }
 
-impl<'a> WidgetRef for Sparkline<'a> {
+impl WidgetRef for Sparkline<'_> {
     fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         self.inner.clone().data(&self.data).render(area, buf)
     }
 }
 
-impl<'a> Widget for Sparkline<'a> {
+impl Widget for Sparkline<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_ref(area, buf)
     }
 }
 
-impl<'a> Styled for Sparkline<'a> {
+impl Styled for Sparkline<'_> {
     type Item = Self;
 
     fn style(&self) -> Style {
@@ -62,5 +64,20 @@ impl<'a> Styled for Sparkline<'a> {
 
     fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
         self.style(style.into())
+    }
+}
+
+impl MeasureNode for Sparkline<'_> {
+    fn measure(
+        &self,
+        _known_dimensions: taffy::Size<Option<f32>>,
+        _available_space: taffy::Size<taffy::AvailableSpace>,
+        _style: &taffy::Style,
+    ) -> taffy::Size<f32> {
+        taffy::Size::zero()
+    }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        taffy::Size::zero()
     }
 }

@@ -2,7 +2,7 @@ use rooibos::reactive::dom::Render;
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::owner::StoredValue;
 use rooibos::reactive::graph::traits::{Get, GetValue};
-use rooibos::reactive::{col, row, wgt, width};
+use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
@@ -37,10 +37,11 @@ pub(crate) fn tab1() -> impl Render {
         },
     ]);
 
-    row![col![props(width!(30.%)), demo_table(servers)], col![
-        props(width!(70.%)),
-        demo_map(servers, true)
-    ]]
+    row![
+        props(width!(100.%), height!(100.%)),
+        col![props(width!(30.%), height!(100.%)), demo_table(servers)],
+        col![props(width!(70.%)), demo_map(servers, true)]
+    ]
 }
 
 #[derive(Clone)]
@@ -68,6 +69,7 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
     });
 
     wgt!(
+        props(width!(100.%), height!(100.%)),
         Table::new(rows.get(), [
             Constraint::Length(15),
             Constraint::Length(15),
@@ -125,6 +127,7 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
     };
 
     wgt!(
+        props(width!(100.%), height!(100.%)),
         Canvas::default()
             .block(Block::bordered().title("World"))
             .paint(paint_map)

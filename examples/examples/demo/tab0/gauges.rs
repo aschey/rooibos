@@ -1,12 +1,12 @@
 use rooibos::reactive::dom::Render;
-use rooibos::reactive::dom::layout::{block, chars, height};
+use rooibos::reactive::dom::layout::{Borders, borders, chars, grow, height, pct};
 use rooibos::reactive::dom::widgets::Sparkline;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, wgt};
+use rooibos::reactive::{col, min_height, wgt};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Block, Gauge, LineGauge};
@@ -39,11 +39,12 @@ pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -
 
     col![
         props(
-            block(Block::bordered().title("Graphs")),
-            height(gauge_height)
+            borders(Borders::all().title("Graphs")),
+            height(gauge_height),
+            min_height!(7.)
         ),
         demo_gauge(enhanced_graphics, progress, chars(2.)),
-        demo_sparkline(enhanced_graphics, chars(3.)),
+        demo_sparkline(enhanced_graphics),
         demo_line_gauge(enhanced_graphics, progress, chars(2.))
     ]
 }
@@ -83,7 +84,7 @@ fn demo_line_gauge(
     ]
 }
 
-fn demo_sparkline(enhanced_graphics: bool, line_height: Signal<Dimension>) -> impl Render {
+fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
     let mut rand_signal = RandomDistribution::new(0, 100);
     let sparkline_points = rand_signal.by_ref().take(300).collect();
     let sparkline_signal = RwSignal::new(RandomData {
@@ -106,7 +107,7 @@ fn demo_sparkline(enhanced_graphics: bool, line_height: Signal<Dimension>) -> im
     });
 
     wgt![
-        props(height(line_height)),
+        props(grow(1.)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()

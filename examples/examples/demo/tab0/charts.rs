@@ -7,7 +7,7 @@ use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{KeyCode, col, row, wgt};
+use rooibos::reactive::{KeyCode, col, height, row, wgt, width};
 use rooibos::runtime::use_keypress;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
@@ -24,8 +24,15 @@ pub(crate) fn charts(
 ) -> impl Render {
     row![
         props(height(chart_min_height)),
-        col![row![task_list(), logs()], demo_bar_chart(enhanced_graphics)],
-        col![props(show(show_chart)), demo_chart(enhanced_graphics)]
+        col![
+            props(width!(100.%), height!(100.%)),
+            row![props(width!(100.%), height!(100.%)), task_list(), logs()],
+            demo_bar_chart(enhanced_graphics)
+        ],
+        col![
+            props(width!(100.%), height!(100.%), show(show_chart)),
+            demo_chart(enhanced_graphics)
+        ]
     ]
 }
 
@@ -95,6 +102,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let window_end = Memo::new(move |_| window.get()[1]);
 
     wgt!(
+        props(height!(100.%)),
         Chart::new(vec![
             Dataset::default()
                 .name("data2")
@@ -181,6 +189,7 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
     });
 
     wgt!(
+        props(width!(100.%), height!(100.%)),
         BarChart::default()
             .block(Block::bordered().title("Bar chart"))
             .data(&bar_chart_data.get())
@@ -228,6 +237,7 @@ fn task_list() -> impl Render {
     });
 
     wgt!(
+        props(width!(50.%), height!(100.%)),
         ListState::default().with_selected(selected_task.get()),
         List::new(TASKS.map(|t| ListItem::new(span!(t))))
             .block(Block::bordered().title("List"))
@@ -305,6 +315,7 @@ fn logs() -> impl Render {
     });
 
     wgt!(
+        props(width!(50.%), height!(100.%)),
         List::new(logs.get().iter().map(|(evt, level, style)| {
             ListItem::new(line!(span!(*style; "{level:<9}"), span!(*evt)))
         }))

@@ -1,10 +1,10 @@
 use rooibos::keybind::map_handler;
-use rooibos::reactive::dom::layout::{height, pct};
-use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, line, span};
+use rooibos::reactive::dom::layout::{Borders, borders, height, pct};
+use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, line, span, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Update;
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, wgt};
+use rooibos::reactive::{col, height, wgt};
 use rooibos::tui::style::{Modifier, Stylize};
 use rooibos::tui::widgets::{Block, Paragraph, Wrap};
 use taffy::Dimension;
@@ -21,6 +21,7 @@ pub(crate) fn tab0() -> impl Render {
     after_render(move || focus_id(id));
 
     col![
+        props(height!(100.%)),
         gauges(true, pct(30.)),
         charts(true, pct(50.), show_chart),
         footer(pct(20.))
@@ -34,8 +35,11 @@ pub(crate) fn tab0() -> impl Render {
 
 fn footer(footer_height: Signal<Dimension>) -> impl Render {
     wgt![
-        props(height(footer_height)),
-        Paragraph::new(vec![
+        props(
+            height(footer_height),
+            borders(Borders::all().title("Footer".magenta()).bold())
+        ),
+        text![
             line!(
                 "This is a paragraph with several lines. You can style your text the way you want"
             ),
@@ -61,12 +65,6 @@ fn footer(footer_height: Signal<Dimension>) -> impl Render {
                 span!(".")
             ),
             line!("One more thing is that it should display unicode characters: 10€")
-        ])
-        .block(
-            Block::bordered()
-                .title("Footer".magenta())
-                .add_modifier(Modifier::BOLD)
-        )
-        .wrap(Wrap { trim: true })
+        ] //        .wrap(Wrap { trim: true })
     ]
 }

@@ -2,6 +2,9 @@ use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
 use ratatui::widgets::{Axis, Block, GraphType, WidgetRef};
 use style::Styled;
+use taffy::AvailableSpace;
+
+use crate::MeasureNode;
 
 #[derive(Clone, Default)]
 pub struct Dataset<'a> {
@@ -42,7 +45,7 @@ impl<'a> Dataset<'a> {
     }
 }
 
-impl<'a> Styled for Dataset<'a> {
+impl Styled for Dataset<'_> {
     type Item = Self;
 
     fn style(&self) -> Style {
@@ -105,7 +108,7 @@ impl<'a> Chart<'a> {
     }
 }
 
-impl<'a> Styled for Chart<'a> {
+impl Styled for Chart<'_> {
     type Item = Self;
 
     fn style(&self) -> Style {
@@ -117,7 +120,7 @@ impl<'a> Styled for Chart<'a> {
     }
 }
 
-impl<'a> WidgetRef for Chart<'a> {
+impl WidgetRef for Chart<'_> {
     fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         let mut chart = ratatui::widgets::Chart::new(
             self.datasets
@@ -137,8 +140,23 @@ impl<'a> WidgetRef for Chart<'a> {
     }
 }
 
-impl<'a> Widget for Chart<'a> {
+impl Widget for Chart<'_> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         self.render_ref(area, buf)
+    }
+}
+
+impl MeasureNode for Chart<'_> {
+    fn measure(
+        &self,
+        _known_dimensions: taffy::Size<Option<f32>>,
+        _available_space: taffy::Size<AvailableSpace>,
+        _style: &taffy::Style,
+    ) -> taffy::Size<f32> {
+        taffy::Size::zero()
+    }
+
+    fn estimate_size(&self) -> taffy::Size<f32> {
+        taffy::Size::zero()
     }
 }

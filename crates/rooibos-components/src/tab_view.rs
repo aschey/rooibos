@@ -10,7 +10,7 @@ use rooibos_reactive::dom::layout::{height, pct};
 use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, MaybeSignal, Signal};
-use rooibos_reactive::{col, derive_signal, max_height, wgt};
+use rooibos_reactive::{col, derive_signal, height, max_height, wgt};
 
 use crate::Keyed;
 use crate::wrapping_list::KeyedWrappingList;
@@ -393,7 +393,7 @@ impl TabView {
         };
 
         col![
-            props(rooibos_reactive::dom::layout::width(width)),
+            props(rooibos_reactive::dom::layout::width(width), height!(100.%)),
             wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())

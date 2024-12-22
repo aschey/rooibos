@@ -7,6 +7,8 @@ use std::rc::Rc;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::canvas::{Canvas, Context};
+use ratatui::widgets::{BarChart, Chart, Gauge, LineGauge, Sparkline, Table};
 use taffy::{AvailableSpace, Size, Style};
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::BoolCell;
@@ -205,6 +207,84 @@ impl MeasureNode for Text<'_> {
             width: self.width() as f32,
             height: self.height() as f32,
         }
+    }
+}
+
+impl MeasureNode for Gauge<'_> {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        style: &Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl MeasureNode for LineGauge<'_> {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        style: &Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl MeasureNode for Table<'_> {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        style: &Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl MeasureNode for BarChart<'_> {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        style: &Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl<F> MeasureNode for Canvas<'_, F>
+where
+    F: Fn(&mut Context),
+{
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<AvailableSpace>,
+        style: &Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
     }
 }
 
