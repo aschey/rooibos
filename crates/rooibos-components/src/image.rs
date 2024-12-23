@@ -7,7 +7,6 @@ use ratatui::Frame;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
 use ratatui_image::picker::Picker;
-use ratatui_image::protocol::StatefulProtocol;
 use ratatui_image::thread::{ThreadImage, ThreadProtocol};
 use ratatui_image::{CropOptions, FilterType, Resize};
 use rooibos_dom::{MeasureNode, RenderNode, pixel_size};
@@ -71,8 +70,7 @@ impl Image {
             }
         });
 
-        let (tx_worker, rec_worker) =
-            std::sync::mpsc::channel::<(Box<dyn StatefulProtocol>, Resize, Rect)>();
+        let (tx_worker, rec_worker) = std::sync::mpsc::channel();
 
         let async_state = RwSignal::new(None);
         let fallback_size = Size {
@@ -89,8 +87,7 @@ impl Image {
                 let (mut picker, image) = if let Some(Some(picker)) = prev_picker {
                     (picker, image)
                 } else {
-                    let mut picker = Picker::new((pixel_size.width, pixel_size.height));
-                    picker.guess_protocol();
+                    let picker = Picker::from_fontsize((pixel_size.width, pixel_size.height));
 
                     (picker, image)
                 };

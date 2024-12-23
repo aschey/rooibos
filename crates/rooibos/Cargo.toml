@@ -15,7 +15,7 @@ rooibos-ssh = { path = "../rooibos-ssh", optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
 rooibos-keybind = { path = "../rooibos-keybind", optional = true }
-ratatui = { version = "0.28", features = ["unstable"] }
+ratatui = { version = "0.29", features = ["unstable"] }
 
 [dev-dependencies]
 tokio = "1.40.0"

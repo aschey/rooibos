@@ -18,8 +18,8 @@ use rooibos_runtime::{
 pub use russh::server::Config as SshConfig;
 use russh::server::{Auth, Handle, Handler, Msg, Server, Session};
 use russh::{Channel, ChannelId};
-pub use russh_keys::key::KeyPair;
-use russh_keys::key::PublicKey;
+pub use russh_keys as keys;
+use russh_keys::PublicKey;
 use tap::TapFallible;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::{RwLock, broadcast, mpsc};
@@ -247,9 +247,11 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         channel: ChannelId,
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        session.eof(channel);
-        session.disconnect(russh::Disconnect::ByApplication, "Quit", "");
-        session.close(channel);
+        session.eof(channel).unwrap();
+        session
+            .disconnect(russh::Disconnect::ByApplication, "Quit", "")
+            .unwrap();
+        session.close(channel).unwrap();
         Ok(())
     }
 

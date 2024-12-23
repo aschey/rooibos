@@ -5,14 +5,14 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.28.1" }
-russh-keys = "0.46"
-russh = "0.46"
+russh-keys = "0.49"
+russh = "0.49"
 rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-terminal = { path = "../rooibos-terminal" }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
-ratatui = { version = "0.28", default-features = false }
+ratatui = { version = "0.29", default-features = false }
 tracing = "0.1"
 tap = "1"
 futures = "0.3"

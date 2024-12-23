@@ -1,5 +1,5 @@
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::div::taffy::LengthPercentage;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -26,8 +26,8 @@ pub fn app() -> impl Render {
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
     Button::new()
-        .height(chars(3.))
-        .width(chars(20.))
+        .centered()
+        .padding_x(LengthPercentage::Length(1.))
         .on_click(move || set_count.update(|c| *c += 1))
         .render(derive_signal!(line!("count ", span!(count.get())).into()))
 }

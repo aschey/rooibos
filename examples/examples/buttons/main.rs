@@ -1,5 +1,6 @@
 use std::process::ExitCode;
 
+use ratatui::palette::Hsl;
 use rooibos::components::{Button, ButtonRef};
 use rooibos::keybind::{Bind, KeybindContext, key, keys};
 use rooibos::reactive::dom::{Render, text, try_focus_id};
@@ -62,8 +63,12 @@ fn app() -> impl Render {
             text!(format!("{} x {}", block_width.get(), block_height.get()))
                 .centered()
                 .bg({
-                    let height = block_height.get() as f64;
-                    Color::from_hsl(18.0 * height, 5.0 * height, 5.0 * height)
+                    let height = block_height.get();
+                    Color::from_hsl(Hsl::new(
+                        18.0 * height,
+                        5.0 * height / 100.,
+                        5.0 * height / 100.,
+                    ))
                 })
         )
     ]

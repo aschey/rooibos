@@ -1,5 +1,7 @@
 use std::process::ExitCode;
 
+use rand::SeedableRng;
+use rand::rngs::StdRng;
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::chars;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
@@ -9,7 +11,9 @@ use rooibos::reactive::{col, derive_signal};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
-use rooibos::ssh::{AppServer, ArcHandle, KeyPair, SshConfig, SshHandler};
+use rooibos::ssh::keys::PrivateKey;
+use rooibos::ssh::keys::ssh_key::private::{Ed25519Keypair, KeypairData};
+use rooibos::ssh::{AppServer, ArcHandle, SshConfig, SshHandler};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -17,7 +21,13 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     let server = AppServer::new(
         SshConfig {
-            keys: vec![KeyPair::generate_ed25519()],
+            keys: vec![
+                PrivateKey::new(
+                    KeypairData::Ed25519(Ed25519Keypair::random(&mut StdRng::seed_from_u64(42))),
+                    "test key",
+                )
+                .unwrap(),
+            ],
             ..Default::default()
         },
         SshApp,
