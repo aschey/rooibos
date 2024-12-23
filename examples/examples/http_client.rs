@@ -55,15 +55,25 @@ fn app() -> impl Render {
 
 #[derive(Deserialize)]
 struct Response {
+    result: ApiResult,
+}
+
+#[derive(Deserialize)]
+struct ApiResult {
+    properties: Properties,
+}
+
+#[derive(Deserialize)]
+struct Properties {
     name: String,
 }
 
 async fn fetch_next(id: i32) -> rooibos::reactive::Result<String> {
     let res = Client::new()
-        .get(format!("https://swapi.dev/api/people/{id}"))
+        .get(format!("https://swapi.tech/api/people/{id}"))
         .send()
         .await?
         .json::<Response>()
         .await?;
-    Ok(res.name)
+    Ok(res.result.properties.name)
 }

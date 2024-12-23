@@ -6,8 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { version = "0.1.0", features = ["tracing", "effects"] }
-tachys = { git = "https://github.com/aschey/leptos", rev = "3ccbc884b2c9f0e7fbf6776389c2a1a75843559b", features = [
+reactive_graph = { version = "0.1.1", features = ["tracing", "effects"] }
+tachys = { git = "https://github.com/aschey/leptos", rev = "4ef9abc38fc9727f2f8e8d862791fc9169784c8c", features = [
   "reactive_graph",
   "tracing",
 ] }
@@ -23,7 +23,7 @@ bitflags = "2"
 educe = "0.6"
 futures = "0.3"
 rustc-hash = "2"
-tui-textarea = { version = "0.6", optional = true, default-features = false }
+tui-textarea = { version = "0.7", optional = true, default-features = false }
 paste = "1"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
