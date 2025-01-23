@@ -309,10 +309,9 @@ impl TestHarness {
         use rooibos_runtime::signal;
 
         self.event_tx
-            .send(Event::Key(KeyEvent::new(
-                KeyCode::Char('c'),
-                KeyModifiers::CONTROL,
-            )))
+            .send(Event::Key(
+                KeyEvent::new(KeyCode::Char('c')).modifiers(KeyModifiers::CTRL),
+            ))
             .unwrap();
 
         let start = Instant::now();

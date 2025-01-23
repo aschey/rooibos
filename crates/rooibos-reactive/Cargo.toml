@@ -1,24 +1,24 @@
 [package]
 name = "rooibos-reactive"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { version = "0.1.1", features = ["tracing", "effects"] }
-tachys = { git = "https://github.com/aschey/leptos", rev = "4ef9abc38fc9727f2f8e8d862791fc9169784c8c", features = [
+reactive_graph = { version = "0.1.4", features = ["tracing", "effects"] }
+tachys = { git = "https://github.com/aschey/leptos", rev = "caf592e87903919a63a5e2b5ef819414a547ffca", features = [
   "reactive_graph",
   "tracing",
 ] }
 throw_error = "0.2.0"
 next_tuple = "0.1.0"
-reactive_stores = "0.1.0"
-terminput = { git = "https://github.com/aschey/terminput", rev = "f07cb891c397c1ab092f0f1d09c085eb52c42e8d" }
+reactive_stores = "0.1.3"
+terminput = "0.2"
 rooibos-dom = { path = "../rooibos-dom" }
 ratatui = { version = "0.29", features = ["unstable"] }
 slotmap = "1"
-tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
+tokio = { version = "1.43.0", default-features = false, features = ["sync"] }
 bitflags = "2"
 educe = "0.6"
 futures = "0.3"
@@ -28,7 +28,7 @@ paste = "1"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
 ] }
-taffy = "0.7.0"
+taffy = "0.7.5"
 crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
 tracing = "0.1"
 

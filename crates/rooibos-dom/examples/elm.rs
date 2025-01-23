@@ -82,7 +82,7 @@ fn should_exit(event: &Event) -> bool {
         event,
         Event::Key(KeyEvent {
             code: KeyCode::Char('c'),
-            modifiers: KeyModifiers::CONTROL,
+            modifiers: KeyModifiers::CTRL,
             ..
         })
     )
@@ -148,7 +148,7 @@ impl Counters {
         }
     }
 
-    fn view<F>(&self, send: F) -> impl AsDomNode
+    fn view<F>(&self, send: F) -> impl AsDomNode + use<F>
     where
         F: Fn(Message) + Clone + 'static,
     {

@@ -1,7 +1,7 @@
 [package]
 name = "wasm-test"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -11,9 +11,9 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 crossterm = "0.28.1"
 rooibos = { path = "../../crates/rooibos", features = ["xterm-js"] }
-tokio = { version = "1.38.1", features = ["rt", "macros"] }
-wasm-bindgen = "0.2.87"
-wasm-bindgen-futures = "0.4.37"
+tokio = { version = "1.43.0", features = ["rt", "macros"] }
+wasm-bindgen = "0.2.100"
+wasm-bindgen-futures = "0.4.50"
 
 
 [features]

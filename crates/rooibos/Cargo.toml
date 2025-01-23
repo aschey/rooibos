@@ -1,7 +1,7 @@
 [package]
 name = "rooibos"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 rooibos-reactive = { path = "../rooibos-reactive" }
@@ -18,8 +18,8 @@ rooibos-keybind = { path = "../rooibos-keybind", optional = true }
 ratatui = { version = "0.29", features = ["unstable"] }
 
 [dev-dependencies]
-tokio = "1.40.0"
-insta = "1.40.0"
+tokio = "1.43.0"
+insta = "1.42.0"
 
 [features]
 nightly = ["rooibos-reactive/nightly"]

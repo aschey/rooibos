@@ -3,4 +3,4 @@ members = ["./crates/*", "examples", "examples/wasm"]
 resolver = "2"
 
 [patch.crates-io]
-crossterm = { git = "https://github.com/aschey/crossterm", rev = "458cf53294741ad7d0f4a28110ef8bf5e96c5155" }
+crossterm = { git = "https://github.com/aschey/crossterm", rev = "fe6d36126d11655b6eb3f85645d12e008fb8c57b" }

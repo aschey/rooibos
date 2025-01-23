@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::thread;
 
-use image::DynamicImage;
 pub use image::ImageReader;
+use image::{DynamicImage, Rgba};
 use ratatui::Frame;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
@@ -84,7 +84,7 @@ impl Image {
         Effect::new(move |prev_picker: Option<Option<Picker>>| {
             let image = image.get();
             if let Some(image) = image {
-                let (mut picker, image) = if let Some(Some(picker)) = prev_picker {
+                let (picker, image) = if let Some(Some(picker)) = prev_picker {
                     (picker, image)
                 } else {
                     let picker = Picker::from_fontsize((pixel_size.width, pixel_size.height));
@@ -105,7 +105,7 @@ impl Image {
         thread::spawn(move || {
             loop {
                 if let Ok((mut protocol, resize, area)) = rec_worker.recv() {
-                    protocol.resize_encode(&resize, None, area);
+                    protocol.resize_encode(&resize, Rgba([0, 0, 0, 0]), area);
                     async_state.update(|s| {
                         if let Some(s) = s {
                             s.set_protocol(protocol);

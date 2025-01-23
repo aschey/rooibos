@@ -40,8 +40,7 @@ impl Default for RuntimeSettings {
             hover_debounce: Duration::from_millis(20),
             resize_debounce: Duration::from_millis(20),
             is_quit_event: Arc::new(|key| {
-                let ctrl_c =
-                    key.code == KeyCode::Char('c') && key.modifiers == KeyModifiers::CONTROL;
+                let ctrl_c = key.code == KeyCode::Char('c') && key.modifiers == KeyModifiers::CTRL;
                 let q = key.code == KeyCode::Char('q') && key.modifiers == KeyModifiers::empty();
                 ctrl_c || q
             }),

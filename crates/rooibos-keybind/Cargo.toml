@@ -1,7 +1,7 @@
 [package]
 name = "rooibos-keybind"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 rooibos-keybind-macros = { path = "../rooibos-keybind-macros" }
@@ -10,16 +10,16 @@ rooibos-reactive = { path = "../rooibos-reactive" }
 rooibos-runtime = { path = "../rooibos-runtime", optional = true }
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-terminput = { git = "https://github.com/aschey/terminput", rev = "f07cb891c397c1ab092f0f1d09c085eb52c42e8d" }
+terminput = "0.2"
 crossterm = "0.28"
 ratatui = { version = "0.29", features = ["unstable"] }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
 ] }
 educe = "0.6"
-clap = { version = "4.5.20", features = ["derive"] }
+clap = { version = "4.5.27", features = ["derive"] }
 shlex = "1.3.0"
-clap_complete = { version = "4.5.33", features = ["unstable-dynamic"] }
+clap_complete = { version = "4.5.42", features = ["unstable-dynamic"] }
 unicode-width = "0.2.0"
 
 [features]

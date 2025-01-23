@@ -26,9 +26,10 @@ impl EventHandle {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct EventData {
     pub rect: Rect,
+    pub target: Option<NodeId>,
 }
 
 #[derive(Debug)]

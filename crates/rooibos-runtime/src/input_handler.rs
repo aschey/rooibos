@@ -89,7 +89,7 @@ impl InputHandler {
                     .await
                     .inspect_err(|e| error!("error debouncing hover event: {e:?}"));
             }
-            resize_event @ Event::Resize(_, _) => {
+            resize_event @ Event::Resize { .. } => {
                 let _ = self
                     .resize_debouncer
                     .update(resize_event)
@@ -114,7 +114,7 @@ impl InputHandler {
                 .send(RuntimeCommand::Terminate(Ok(proc_exit::Code::SUCCESS)))
                 .inspect_err(|_| warn!("error sending terminate signal"));
         } else if cfg!(unix)
-            && key_event.modifiers == KeyModifiers::CONTROL
+            && key_event.modifiers == KeyModifiers::CTRL
             && key_event.code == KeyCode::Char('z')
         {
             // Defer to the external stream for suspend commands if it exists

@@ -81,7 +81,7 @@ fn should_exit(event: &Event) -> bool {
         event,
         Event::Key(KeyEvent {
             code: KeyCode::Char('c'),
-            modifiers: KeyModifiers::CONTROL,
+            modifiers: KeyModifiers::CTRL,
             ..
         })
     )

@@ -1,5 +1,6 @@
 use core::fmt::Debug;
 use std::any::Any;
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 
 use reactive_graph::effect::RenderEffect;
@@ -12,8 +13,14 @@ use tachys::view::{Mountable, Render};
 use super::{RooibosDom, with_nodes};
 use crate::dom::DomWidgetNode;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug, Copy)]
 pub struct NodeId(pub(crate) StoredValue<rooibos_dom::NodeId>);
+
+impl fmt::Display for NodeId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.with_value(|v| fmt::Display::fmt(v, f))
+    }
+}
 
 impl NodeId {
     pub fn new_auto() -> Self {
@@ -157,7 +164,7 @@ impl Render<RooibosDom> for DomNode {
         (self, state)
     }
 
-    fn rebuild(self, (_node, ref mut node_type_state): &mut Self::State) {
+    fn rebuild(self, &mut (ref _node, ref mut node_type_state): &mut Self::State) {
         let node_type = with_nodes(|n| NodeType(n.node_type(self.0.get_key()).clone()));
         node_type.rebuild(node_type_state);
     }

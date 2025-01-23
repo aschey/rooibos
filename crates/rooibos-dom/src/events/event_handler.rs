@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use ratatui::layout::Rect;
+use terminput::ScrollDirection;
 
 use super::{BlurEvent, ClickEventProps, EventData, EventHandle, FocusEvent, KeyEventProps};
 
@@ -76,6 +77,7 @@ pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData, EventHandle)>>;
 pub(crate) type FocusFn = Rc<RefCell<dyn FnMut(FocusEvent, EventData)>>;
 pub(crate) type BlurFn = Rc<RefCell<dyn FnMut(BlurEvent, EventData)>>;
+pub(crate) type ScrollFn = Rc<RefCell<dyn FnMut(ScrollDirection, EventData, EventHandle)>>;
 
 #[derive(Clone, Default)]
 pub struct EventHandlers {
@@ -90,6 +92,7 @@ pub struct EventHandlers {
     pub(crate) on_mouse_enter: Option<EventFn>,
     pub(crate) on_mouse_leave: Option<EventFn>,
     pub(crate) on_size_change: Option<SizeChangeFn>,
+    pub(crate) on_scroll: Option<ScrollFn>,
 }
 
 impl EventHandlers {
@@ -178,6 +181,14 @@ impl EventHandlers {
         F: FnMut(Rect) + 'static,
     {
         self.on_size_change = Some(Rc::new(RefCell::new(handler)));
+        self
+    }
+
+    pub fn on_scroll<F>(mut self, handler: F) -> Self
+    where
+        F: FnMut(ScrollDirection, EventData, EventHandle) + 'static,
+    {
+        self.on_scroll = Some(Rc::new(RefCell::new(handler)));
         self
     }
 }

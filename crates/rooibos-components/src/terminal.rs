@@ -7,7 +7,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
 use rooibos_dom::events::KeyEventProps;
-use rooibos_dom::{Event, MeasureNode, RenderNode};
+use rooibos_dom::{Encoding, Event, MeasureNode, RenderNode};
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
@@ -18,7 +18,6 @@ use tokio::sync::mpsc;
 use tokio::task::spawn_blocking;
 use tui_term::widget::PseudoTerminal;
 use vt100::{Parser, Screen};
-
 #[derive(Clone, Copy)]
 pub struct TerminalRef {
     master: StoredValue<Arc<Mutex<Box<dyn MasterPty + Send>>>>,
@@ -133,8 +132,11 @@ impl Terminal {
         })
         .layout_props(layout_props)
         .on_key_down(move |props: KeyEventProps| {
-            tx.try_send(Event::Key(props.event).to_escape_sequence())
+            let mut buf = [0; 16];
+            let written = Event::Key(props.event)
+                .encode(&mut buf, Encoding::Xterm)
                 .unwrap();
+            tx.try_send(buf[..written].to_vec()).unwrap();
         })
         .on_size_change(move |rect| {
             master

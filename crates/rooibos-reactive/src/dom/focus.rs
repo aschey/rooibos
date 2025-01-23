@@ -1,7 +1,8 @@
 use std::cell::LazyCell;
 
-use reactive_graph::signal::{ReadSignal, signal};
-use reactive_graph::traits::{Get, SetValue, Update as _};
+use reactive_graph::owner::{ArcStoredValue, StoredValue};
+use reactive_graph::signal::{ArcReadSignal, arc_signal};
+use reactive_graph::traits::{Get, GetValue, SetValue, Update as _};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::with_nodes_mut;
 
@@ -9,22 +10,22 @@ use crate::derive_signal;
 use crate::dom::NodeId;
 
 thread_local! {
-    static FOCUS_SIGNAL: LazyCell<ReadSignal<Option<NodeId>>> = LazyCell::new(|| {
-        let (focus, set_focus) = signal::<Option<NodeId>>(None);
-        let wrapper = NodeId::new_auto();
+    static FOCUS_SIGNAL: LazyCell<ArcReadSignal<Option<rooibos_dom::NodeId>>> = LazyCell::new(|| {
+        let (focus, set_focus) = arc_signal::<Option<rooibos_dom::NodeId>>(None);
+        let  wrapper = ArcStoredValue::new(rooibos_dom::NodeId::new_auto());
 
         with_nodes_mut(|nodes| {
             nodes.on_focus_change(move |id| {
-                set_focus.update(|focused| match (&focused, id) {
+                set_focus.update(|focused| match (focused, id) {
                     (Some(f), Some(id)) => {
-                        f.0.set_value(id);
+                        *f = id;
                     }
-                    (_, None) => {
-                        *focused = None;
+                    (f, None) => {
+                        *f = None;
                     }
-                    (None, Some(id)) => {
-                        wrapper.0.set_value(id);
-                        *focused = Some(wrapper);
+                    (f, Some(id)) => {
+                         wrapper.set_value(id);
+                         *f = Some(wrapper.get_value());
                     }
                 })
             })
@@ -42,11 +43,19 @@ pub fn use_focus_with_id(id: impl Into<NodeId>) -> Signal<bool> {
     use_focus_with_id_inner(id.into())
 }
 
-pub fn use_focused_node() -> ReadSignal<Option<NodeId>> {
-    FOCUS_SIGNAL.with(|f| **f)
+pub fn use_focused_node() -> Signal<Option<NodeId>> {
+    FOCUS_SIGNAL.with(|f| {
+        let f = (**f).clone();
+        derive_signal!(f.get().map(|f| NodeId(StoredValue::new(f))))
+    })
 }
 
 fn use_focus_with_id_inner(id: NodeId) -> Signal<bool> {
     let focused_node = use_focused_node();
-    derive_signal!(focused_node.get().map(|node| node == id).unwrap_or(false))
+    derive_signal!(
+        focused_node
+            .get()
+            .map(|node| { node == id })
+            .unwrap_or(false)
+    )
 }

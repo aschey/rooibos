@@ -1,13 +1,13 @@
 [package]
 name = "rooibos-keybind-macros"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [lib]
 proc-macro = true
 
 [dependencies]
 manyhow = "0.11.4"
-proc-macro2 = "1.0.87"
-quote = "1.0.37"
-syn = { version = "2.0.79", features = ["full"] }
+proc-macro2 = "1.0.93"
+quote = "1.0.38"
+syn = { version = "2.0.96", features = ["full"] }

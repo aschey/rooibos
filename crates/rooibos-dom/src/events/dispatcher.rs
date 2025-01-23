@@ -3,14 +3,15 @@ use std::cell::RefCell;
 use ratatui::layout::{Position, Rect};
 use terminput::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    ScrollDirection,
 };
 
 use super::{
     ClickEvent, ClickEventFn, ClickEventProps, EventData, EventHandle, EventHandlers, KeyEventProps,
 };
 use crate::{
-    DomNodeKey, MatchBehavior, NodeType, focus_next, focus_prev, set_pending_resize,
-    toggle_print_dom, trigger_window_focus_changed, with_nodes, with_nodes_mut,
+    DomNodeKey, MatchBehavior, NodeId, NodeProperties, NodeType, focus_next, focus_prev,
+    set_pending_resize, toggle_print_dom, trigger_window_focus_changed, with_nodes, with_nodes_mut,
 };
 
 thread_local! {
@@ -62,7 +63,7 @@ impl EventDispatcher {
             Event::Paste(val) => {
                 dispatch_paste(val);
             }
-            Event::Resize(_, _) => {
+            Event::Resize { .. } => {
                 set_pending_resize();
             }
         };
@@ -78,10 +79,9 @@ impl EventDispatcher {
             MouseEventKind::Moved => {
                 self.dispatch_mouse_moved(mouse_event);
             }
-            MouseEventKind::ScrollDown => {}
-            MouseEventKind::ScrollUp => {}
-            MouseEventKind::ScrollLeft => {}
-            MouseEventKind::ScrollRight => {}
+            MouseEventKind::Scroll(direction) => {
+                self.dispatch_scroll_event(direction);
+            }
         }
     }
 
@@ -121,9 +121,15 @@ impl EventDispatcher {
                 if hovered_key != current {
                     bubble_event(
                         hovered_key,
-                        |handlers| handlers.on_mouse_leave.clone(),
-                        |event, rect, handle| {
-                            event.borrow_mut()(EventData { rect }, handle);
+                        |props| props.event_handlers.on_mouse_leave.clone(),
+                        |event, node_id, rect, handle| {
+                            event.borrow_mut()(
+                                EventData {
+                                    target: node_id,
+                                    rect,
+                                },
+                                handle,
+                            );
                         },
                     );
                 }
@@ -132,9 +138,15 @@ impl EventDispatcher {
                 with_nodes_mut(|nodes| nodes.set_hovered(current));
                 bubble_event(
                     current,
-                    |handlers| handlers.on_mouse_enter.clone(),
-                    |event, rect, handle| {
-                        event.borrow_mut()(EventData { rect }, handle);
+                    |props| props.event_handlers.on_mouse_enter.clone(),
+                    |event, node_id, rect, handle| {
+                        event.borrow_mut()(
+                            EventData {
+                                target: node_id,
+                                rect,
+                            },
+                            handle,
+                        );
                     },
                 );
             }
@@ -143,9 +155,15 @@ impl EventDispatcher {
             if let Some(hovered_key) = hovered_key {
                 bubble_event(
                     hovered_key,
-                    |handlers| handlers.on_mouse_leave.clone(),
-                    |event, rect, handle| {
-                        event.borrow_mut()(EventData { rect }, handle);
+                    |props| props.event_handlers.on_mouse_leave.clone(),
+                    |event, node_id, rect, handle| {
+                        event.borrow_mut()(
+                            EventData {
+                                target: node_id,
+                                rect,
+                            },
+                            handle,
+                        );
                     },
                 );
                 with_nodes_mut(|nodes| {
@@ -154,15 +172,48 @@ impl EventDispatcher {
             }
         }
     }
+
+    fn dispatch_scroll_event(&self, direction: ScrollDirection) {
+        if let Some(current_hovered) = hit_test(
+            Position {
+                x: self.last_mouse_position.column,
+                y: self.last_mouse_position.row,
+            },
+            |props| props.max_scroll_offset.x > 0 || props.max_scroll_offset.y > 0,
+        )
+        .last()
+        {
+            with_nodes_mut(|n| {
+                n.scroll(*current_hovered, direction);
+            });
+            bubble_event(
+                *current_hovered,
+                |props| props.event_handlers.on_scroll.clone(),
+                |event, node_id, rect, handle| {
+                    (event.borrow_mut())(
+                        direction,
+                        EventData {
+                            rect,
+                            target: node_id,
+                        },
+                        handle,
+                    );
+                },
+            );
+        }
+    }
 }
 
 fn dispatch_key_event(key_event: KeyEvent) {
     if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
         focus_next();
-    } else if key_event.code == KeyCode::BackTab && key_event.kind == KeyEventKind::Press {
+    } else if key_event.code == KeyCode::Tab
+        && key_event.modifiers.intersects(KeyModifiers::SHIFT)
+        && key_event.kind == KeyEventKind::Press
+    {
         focus_prev();
     } else if key_event.code == KeyCode::Char('x')
-        && key_event.modifiers.contains(KeyModifiers::CONTROL)
+        && key_event.modifiers.contains(KeyModifiers::CTRL)
     {
         toggle_print_dom();
     } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
@@ -182,22 +233,28 @@ fn bubble_key_event(key: DomNodeKey, key_event: KeyEvent) -> bool {
     match key_event.kind {
         KeyEventKind::Press | KeyEventKind::Repeat => bubble_event(
             key,
-            |handlers| handlers.on_key_down.clone(),
-            |event, rect, handle| {
+            |props| props.event_handlers.on_key_down.clone(),
+            |event, node_id, rect, handle| {
                 event.borrow_mut().handle(KeyEventProps {
                     event: key_event,
-                    data: EventData { rect },
+                    data: EventData {
+                        rect,
+                        target: node_id,
+                    },
                     handle,
                 });
             },
         ),
         KeyEventKind::Release => bubble_event(
             key,
-            |handlers| handlers.on_key_up.clone(),
-            |event, rect, handle| {
+            |props| props.event_handlers.on_key_up.clone(),
+            |event, node_id, rect, handle| {
                 event.borrow_mut().handle(KeyEventProps {
                     event: key_event,
-                    data: EventData { rect },
+                    data: EventData {
+                        rect,
+                        target: node_id,
+                    },
                     handle,
                 });
             },
@@ -207,24 +264,25 @@ fn bubble_key_event(key: DomNodeKey, key_event: KeyEvent) -> bool {
 
 fn bubble_event<GE, EF, E>(key: DomNodeKey, get_event: GE, event_fn: EF) -> bool
 where
-    GE: Fn(&EventHandlers) -> Option<E>,
-    EF: Fn(&mut E, Rect, EventHandle),
+    GE: Fn(&NodeProperties) -> Option<E>,
+    EF: Fn(&mut E, Option<NodeId>, Rect, EventHandle),
 {
     let enabled = with_nodes(|nodes| nodes[key].enabled());
     if !enabled {
         return false;
     }
-    let (rect, event) = with_nodes(|nodes| {
+    let (rect, node_id, event) = with_nodes(|nodes| {
         (
             *nodes[key].rect.borrow(),
-            get_event(&nodes[key].event_handlers),
+            nodes[key].id.clone(),
+            get_event(&nodes[key]),
         )
     });
     let mut handled = false;
     if let Some(mut event) = event {
         handled = true;
         let handle = EventHandle::default();
-        event_fn(&mut event, rect, handle.clone());
+        event_fn(&mut event, node_id, rect, handle.clone());
         if handle.get_stop_propagation() {
             return handled;
         }
@@ -236,14 +294,15 @@ where
     handled
 }
 
-fn hit_test(position: Position) -> Vec<DomNodeKey> {
+fn hit_test<F>(position: Position, filter: F) -> Vec<DomNodeKey>
+where
+    F: Fn(&NodeProperties) -> bool,
+{
     let roots = with_nodes(|nodes| nodes.roots_desc());
     for root in roots {
         let found = root.get_key().traverse(
             |key, inner| {
-                // Only widgets are actually drawn on the screen, layout types or placeholders
-                // can't have click events
-                if !inner.enabled() || !matches!(inner.node_type, NodeType::Widget(_)) {
+                if !inner.enabled() || !filter(inner) {
                     return None;
                 }
 
@@ -280,10 +339,15 @@ fn dispatch_mouse_button<GE>(mouse_event: MouseEvent, get_event: GE)
 where
     GE: Fn(&EventHandlers) -> &Option<ClickEventFn>,
 {
-    let found = hit_test(Position {
-        x: mouse_event.column,
-        y: mouse_event.row,
-    });
+    let found = hit_test(
+        Position {
+            x: mouse_event.column,
+            y: mouse_event.row,
+        },
+        // Only widgets are actually drawn on the screen, layout types or placeholders
+        // can't have click events
+        |props| matches!(props.node_type, NodeType::Widget(_)),
+    );
     if !found.is_empty() {
         let mut focus_set = false;
         let mut stop_propagation = false;
@@ -302,13 +366,17 @@ where
                     if let Some(on_click) = get_event(&nodes[key].event_handlers) {
                         let handle = EventHandle::default();
                         let rect = nodes[key].rect.borrow();
+                        let node_id = nodes[key].id.clone();
                         on_click.borrow_mut().handle(ClickEventProps {
                             event: ClickEvent {
                                 column: mouse_event.column,
                                 row: mouse_event.row,
                                 modifiers: mouse_event.modifiers,
                             },
-                            data: EventData { rect: *rect },
+                            data: EventData {
+                                rect: *rect,
+                                target: node_id,
+                            },
                             handle: handle.clone(),
                         });
                         if !stop_propagation {
@@ -332,9 +400,16 @@ fn dispatch_paste(val: String) {
     if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
         bubble_event(
             key,
-            |handlers| handlers.on_paste.clone(),
-            |event, rect, handle| {
-                event.borrow_mut()(val.clone(), EventData { rect }, handle);
+            |props| props.event_handlers.on_paste.clone(),
+            |event, node_id, rect, handle| {
+                event.borrow_mut()(
+                    val.clone(),
+                    EventData {
+                        rect,
+                        target: node_id,
+                    },
+                    handle,
+                );
             },
         );
     }

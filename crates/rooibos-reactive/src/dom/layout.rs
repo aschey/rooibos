@@ -601,6 +601,10 @@ layout_prop!(
     padding.right
 );
 
+layout_prop!(OverflowX, overflow_x, taffy::Overflow, overflow.x);
+layout_prop!(OverflowY, overflow_y, taffy::Overflow, overflow.y);
+layout_prop!(Overflow, overflow, taffy::Overflow, overflow.x, overflow.y);
+
 // Flex properties
 layout_prop!(Wrap, wrap, taffy::FlexWrap, flex_wrap);
 layout_prop_opt!(AlignItems, align_items, taffy::AlignItems, align_items);

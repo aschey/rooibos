@@ -265,7 +265,7 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         data: &[u8],
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
-        if let Some(event) = terminput::parser::parse_event(data)? {
+        if let Some(event) = Event::parse_from(data)? {
             let clients = self.clients.read().await;
             if let Some(client_tx) = clients.get(&self.client_id) {
                 let _ = client_tx

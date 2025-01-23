@@ -1,7 +1,7 @@
 [package]
 name = "rooibos-ssh"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 crossterm = { version = "0.28.1" }
@@ -11,17 +11,17 @@ rooibos-runtime = { path = "../rooibos-runtime" }
 rooibos-terminal = { path = "../rooibos-terminal" }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
-tokio = { version = "1.38.1", default-features = false, features = ["sync"] }
+tokio = { version = "1.43.0", default-features = false, features = ["sync"] }
 ratatui = { version = "0.29", default-features = false }
 tracing = "0.1"
 tap = "1"
 futures = "0.3"
 async-signal = "0.2"
 async-trait = "0.1"
-terminput = { git = "https://github.com/aschey/terminput", rev = "f07cb891c397c1ab092f0f1d09c085eb52c42e8d" }
+terminput = "0.2"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "14ead7cf98eb9c32962665abb00a06df728992c8" }
-tokio-stream = { version = "0.1.16", features = ["sync"] }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "27c1c31b5d96707c835871984ede8de38b66e1ed" }
+tokio-stream = { version = "0.1.17", features = ["sync"] }
 
 [features]
 clipboard = ["rooibos-runtime/clipboard"]
