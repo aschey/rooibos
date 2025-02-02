@@ -5,10 +5,12 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{cmp, mem};
 
-use ratatui::layout::Rect;
+use ratatui::buffer::{Buffer, Cell};
+use ratatui::layout::{Position, Rect};
 use ratatui::widgets::Block;
 use slotmap::{SlotMap, new_key_type};
-use taffy::{AvailableSpace, NodeId, Point, Size, Style, TaffyTree};
+use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
+use terminput::ScrollDirection;
 
 use super::{MeasureNode, dom_node, refresh_dom};
 use crate::events::{BlurEvent, EventData, EventHandlers, FocusEvent};
@@ -43,6 +45,96 @@ pub enum MatchBehavior {
     StopOnFistMatch,
     ContinueOnMatch,
     SearchChildrenOnMatch,
+}
+
+#[derive(Debug)]
+pub(crate) struct ContentRect {
+    size: Size<u16>,
+    content_box_size: Size<u16>,
+    content_size: Size<u16>,
+    border: taffy::Rect<u16>,
+    scroll_offset: Position,
+    x: u16,
+    y: u16,
+}
+
+impl ContentRect {
+    pub(crate) fn render_bounds(&self) -> Rect {
+        Rect {
+            x: self.x,
+            y: self.y,
+            width: self.size.width.max(self.content_size.width),
+            height: self.size.height.max(self.content_size.height),
+        }
+    }
+
+    pub(crate) fn visible_bounds(&self) -> Rect {
+        Rect {
+            x: self.x,
+            y: self.y,
+            width: self.size.width,
+            height: self.size.height,
+        }
+    }
+
+    pub(crate) fn scroll_offset(&self) -> Position {
+        self.scroll_offset
+    }
+
+    fn compute_inner2(&self, width: u16, height: u16) -> Rect {
+        Rect {
+            x: self.x + self.border.left,
+            y: self.y + self.border.top,
+            width: width - (self.border.left + self.border.right),
+            height: height - (self.border.top + self.border.bottom),
+        }
+    }
+
+    pub(crate) fn compute_inner(&self) -> Rect {
+        let width = self.size.width; //self.size.width.max(self.content_size.width);
+        let height = self.size.height; //self.size.height.max(self.content_size.height);
+        Rect {
+            x: self.x + self.border.left,
+            y: self.y + self.border.top,
+            width: width - (self.border.left + self.border.right),
+            height: height - (self.border.top + self.border.bottom),
+        }
+    }
+
+    pub(crate) fn can_scroll(&self) -> bool {
+        self.content_size.width > self.size.width || self.content_size.height > self.size.height
+    }
+
+    pub(crate) fn resize_for_render(&self, buf: &mut Buffer) {
+        if self.content_size.width > buf.area.width || self.content_size.height > buf.area.height {
+            let mut new = buf.area;
+            new.width = new.width.max(self.content_size.width).max(self.size.width);
+            new.height = new
+                .height
+                .max(self.content_size.height)
+                .max(self.size.height);
+
+            buf.resize(new);
+            // self.size.width = new.width;
+            // self.size.height = new.height;
+        }
+    }
+
+    pub(crate) fn apply_scroll(&self, rect: Rect, buf: &mut Buffer) {
+        if self.scroll_offset == Position::ORIGIN {
+            return;
+        }
+        for row in rect.rows().skip(self.scroll_offset.y as usize) {
+            for col in row.columns() {
+                let pos: Position = col.into();
+                let mut new_pos = pos;
+                new_pos.y -= self.scroll_offset.y;
+                buf[new_pos] = buf[pos].clone();
+            }
+        }
+    }
+
+    pub(crate) fn resize_after_render(&self, buf: &mut Buffer) {}
 }
 
 impl DomNodeKey {
@@ -134,6 +226,7 @@ pub struct NodeTree {
     focusable_nodes: Rc<RefCell<Vec<DomNodeKey>>>,
     on_window_size_change: Box<dyn Fn(Rect)>,
     on_focus_change: Box<dyn Fn(Option<crate::NodeId>)>,
+    pub(super) temp_buf: RefCell<Buffer>,
 }
 
 impl Index<DomNodeKey> for NodeTree {
@@ -162,6 +255,7 @@ impl NodeTree {
             window_size: Rect::default(),
             on_window_size_change: Box::new(move |_| {}),
             on_focus_change: Box::new(move |_| {}),
+            temp_buf: RefCell::new(Buffer::empty(Rect::default())),
         }
     }
 
@@ -191,12 +285,15 @@ impl NodeTree {
                     },
                 )
                 .unwrap();
-            self.recompute_offsets(root_key, Point {
-                // inline viewports will likely have an initial offset relative to the total size of
-                // the terminal
-                x: rect.x as f32,
-                y: rect.y as f32,
-            });
+            self.recompute_offsets(
+                root_key,
+                Point {
+                    // inline viewports will likely have an initial offset relative to the total
+                    // size of the terminal
+                    x: rect.x as f32,
+                    y: rect.y as f32,
+                },
+            );
         }
     }
 
@@ -295,22 +392,36 @@ impl NodeTree {
     }
 
     fn recompute_offsets(&mut self, root_key: DomNodeKey, root_offset: Point<f32>) {
-        let node = &self.dom_nodes[root_key];
-        self.recompute_offset(node.layout_id, root_offset);
+        // let node = &self.dom_nodes[root_key];
+        self.recompute_offset(root_key, root_offset);
     }
 
-    fn recompute_offset(&mut self, parent: NodeId, root_offset: Point<f32>) {
+    fn recompute_offset(&mut self, parent_key: DomNodeKey, root_offset: Point<f32>) {
+        let parent = self.dom_nodes[parent_key].layout_id;
         let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
-        let children = self.layout_tree.children(parent).unwrap();
-        for child in &children {
-            let child_layout = *self.layout_tree.layout(*child).unwrap();
-            let context = self.layout_tree.get_node_context_mut(*child).unwrap();
+        let children = self.dom_nodes[parent_key].inner.children.clone();
+        let layout = self.layout_tree.layout(parent).unwrap();
+        if layout.content_size.height > layout.size.height
+            && self.style(parent_key).overflow.y == Overflow::Scroll
+            || layout.content_size.width > layout.size.width
+                && self.style(parent_key).overflow.x == Overflow::Scroll
+        {
+            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(
+                (layout.content_size.width as u16).saturating_sub(layout.size.width as u16),
+                (layout.content_size.height as u16).saturating_sub(layout.size.height as u16),
+            );
+        }
+
+        for child_key in children {
+            let child = self.dom_nodes[child_key].layout_id;
+            let child_layout = *self.layout_tree.layout(child).unwrap();
+            let context = self.layout_tree.get_node_context_mut(child).unwrap();
             let new_x = child_layout.location.x + parent_context.offset.x + root_offset.x;
             let new_y = child_layout.location.y + parent_context.offset.y + root_offset.y;
             // if context.0.x != new_x || context.0.y != new_y {
             context.offset.x = new_x;
             context.offset.y = new_y;
-            self.recompute_offset(*child, root_offset);
+            self.recompute_offset(child_key, root_offset);
             // }
         }
     }
@@ -331,42 +442,35 @@ impl NodeTree {
         refresh_dom();
     }
 
-    pub(crate) fn rect(&self, key: DomNodeKey) -> Rect {
+    pub(crate) fn rect(&self, key: DomNodeKey) -> ContentRect {
         let context = self
             .layout_tree
             .get_node_context(self.dom_nodes[key].layout_id)
             .unwrap();
-        let computed = self
-            .layout_tree
-            .layout(self.dom_nodes[key].layout_id)
-            .unwrap();
+        let computed = self.get_computed(key);
+        let scroll_offset = self.dom_nodes[key].inner.scroll_offset;
 
-        Rect {
+        ContentRect {
             x: context.offset.x as u16,
             y: context.offset.y as u16,
-            width: computed.size.width as u16,
-            height: computed.size.height as u16,
+            content_box_size: computed.content_box_size().map(|s| s as u16),
+            size: computed.size.map(|s| s as u16),
+            content_size: computed.content_size.map(|s| s as u16),
+            border: computed.border.map(|s| s as u16),
+            scroll_offset,
         }
     }
 
-    pub(crate) fn compute_inner(&self, key: DomNodeKey, outer: Rect) -> Rect {
-        let computed = self
-            .layout_tree
+    fn get_computed(&self, key: DomNodeKey) -> &taffy::Layout {
+        self.layout_tree
             .layout(self.dom_nodes[key].layout_id)
-            .unwrap();
-        Rect {
-            x: outer.x + (computed.border.left) as u16,
-            y: outer.y + (computed.border.top) as u16,
-            width: outer.width - (computed.border.left + computed.border.right) as u16,
-            height: outer.height - (computed.border.top + computed.border.bottom) as u16,
-        }
+            .unwrap()
     }
 
-    pub(crate) fn style(&self, key: DomNodeKey) -> taffy::Style {
+    pub(crate) fn style(&self, key: DomNodeKey) -> &taffy::Style {
         self.layout_tree
             .style(self.dom_nodes[key].layout_id)
             .unwrap()
-            .clone()
     }
 
     pub(crate) fn iter_nodes(&self) -> slotmap::basic::Iter<'_, DomNodeKey, TreeValue> {
@@ -378,9 +482,14 @@ impl NodeTree {
     }
 
     pub(crate) fn insert(&mut self, val: NodeProperties) -> DomNodeKey {
+        let style = Style {
+            scrollbar_width: 1.0,
+            ..Default::default()
+        };
+
         let layout_node = self
             .layout_tree
-            .new_leaf_with_context(Style::default(), Context::default())
+            .new_leaf_with_context(style, Context::default())
             .unwrap();
         let key = self.dom_nodes.insert(TreeValue {
             inner: val,
@@ -503,6 +612,11 @@ impl NodeTree {
         refresh_dom();
     }
 
+    pub(crate) fn scroll(&mut self, node: DomNodeKey, direction: ScrollDirection) {
+        self.dom_nodes[node].inner.scroll(direction);
+        refresh_dom();
+    }
+
     pub fn set_enabled(&mut self, key: DomNodeKey, enabled: bool) {
         self.dom_nodes[key].inner.set_enabled(enabled);
 
@@ -597,7 +711,14 @@ impl NodeTree {
                 .clone();
             if let Some(on_blur) = &mut on_blur {
                 let rect = *self.dom_nodes[focused_key].inner.rect.borrow();
-                on_blur.borrow_mut()(BlurEvent { new_target: None }, EventData { rect });
+                let node_id = self.dom_nodes[focused_key].inner.id.clone();
+                on_blur.borrow_mut()(
+                    BlurEvent { new_target: None },
+                    EventData {
+                        rect,
+                        target: node_id,
+                    },
+                );
             }
         }
         self.set_focused(None);
@@ -637,12 +758,16 @@ impl NodeTree {
                 .clone();
             if let Some(on_blur) = &mut on_blur {
                 let rect = *self.dom_nodes[focused_key].inner.rect.borrow();
+                let node_id = self.dom_nodes[focused_key].inner.id.clone();
                 let focus_id = node_key.and_then(|k| self.dom_nodes[k].inner.id.clone());
                 on_blur.borrow_mut()(
                     BlurEvent {
                         new_target: focus_id,
                     },
-                    EventData { rect },
+                    EventData {
+                        rect,
+                        target: node_id,
+                    },
                 );
             }
             node_id
@@ -667,11 +792,15 @@ impl NodeTree {
 
         if let Some(on_focused) = &mut on_focus {
             let rect = *self.dom_nodes[node_key].inner.rect.borrow();
+            let node_id = self.dom_nodes[node_key].inner.id.clone();
             on_focused.borrow_mut()(
                 FocusEvent {
                     previous_target: prev_focused_id,
                 },
-                EventData { rect },
+                EventData {
+                    rect,
+                    target: node_id,
+                },
             );
         }
         refresh_dom();

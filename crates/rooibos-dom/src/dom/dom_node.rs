@@ -1,15 +1,16 @@
 use core::fmt::Debug;
 use std::cell::RefCell;
 use std::fmt::{self};
+use std::mem;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use educe::Educe;
 use ratatui::Frame;
-use ratatui::layout::Rect;
+use ratatui::layout::{Position, Rect};
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
-use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, ScrollDirection};
 
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::unmount_child;
@@ -44,7 +45,7 @@ impl AsDomNode for Box<dyn AsDomNode> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum NodeIdInner {
     Auto(u32),
-    Manual(String),
+    Manual { id: String, internal_id: u32 },
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -56,28 +57,31 @@ impl NodeId {
     }
 
     pub fn new(id: impl Into<String>) -> Self {
-        Self(NodeIdInner::Manual(id.into()))
+        Self(NodeIdInner::Manual {
+            id: id.into(),
+            internal_id: next_node_id(),
+        })
     }
 }
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
-            NodeIdInner::Auto(val) => std::fmt::Display::fmt(&val, f),
-            NodeIdInner::Manual(val) => std::fmt::Display::fmt(&val, f),
+            NodeIdInner::Auto(val) => fmt::Display::fmt(&val, f),
+            NodeIdInner::Manual { id, .. } => fmt::Display::fmt(&id, f),
         }
     }
 }
 
 impl From<String> for NodeId {
     fn from(val: String) -> Self {
-        NodeId(NodeIdInner::Manual(val))
+        Self::new(val)
     }
 }
 
 impl From<&str> for NodeId {
     fn from(val: &str) -> Self {
-        NodeId(NodeIdInner::Manual(val.to_string()))
+        Self::new(val)
     }
 }
 
@@ -299,6 +303,8 @@ pub struct NodeProperties {
     pub(crate) z_index: Option<i32>,
     pub(crate) block: Option<Block<'static>>,
     pub(crate) clear: bool,
+    pub(crate) scroll_offset: Position,
+    pub(crate) max_scroll_offset: Position,
     #[educe(Default = true)]
     enabled: bool,
     #[educe(Default = true)]
@@ -309,6 +315,8 @@ pub struct NodeProperties {
 struct RenderProps<'a, 'b> {
     frame: &'a mut Frame<'b>,
     window: Rect,
+    parent_bounds: Rect,
+    parent_scroll_offset: Position,
     key: DomNodeKey,
     dom_nodes: &'a NodeTree,
 }
@@ -335,23 +343,43 @@ impl NodeProperties {
         self.parent_enabled = enabled;
     }
 
+    pub(crate) fn scroll(&mut self, direction: ScrollDirection) {
+        let delta = direction.delta();
+        let mut x = self.scroll_offset.x as i32 - delta.x;
+        let mut y = self.scroll_offset.y as i32 - delta.y;
+
+        x = x.min(self.max_scroll_offset.x as i32).max(0);
+        y = y.min(self.max_scroll_offset.y as i32).max(0);
+
+        self.scroll_offset.x = x as u16;
+        self.scroll_offset.y = y as u16;
+    }
+
     fn render(&self, props: RenderProps) {
         let RenderProps {
             frame,
             window,
             key,
+            parent_bounds,
+            parent_scroll_offset,
             dom_nodes,
         } = props;
 
         let prev_rect = *self.rect.borrow();
-        let mut outer = dom_nodes.rect(key);
+        let content_rect = dom_nodes.rect(key);
 
         if self.focusable {
             dom_nodes.add_focusable(key);
         }
 
+        let render_bounds = content_rect.render_bounds();
+        let needs_temp_buf = content_rect.can_scroll();
+        if needs_temp_buf {
+            content_rect.resize_for_render(&mut dom_nodes.temp_buf.borrow_mut());
+        }
+
         if self.clear {
-            Clear.render(outer, frame.buffer_mut());
+            Clear.render(render_bounds, frame.buffer_mut());
         }
 
         // If the widget dimension == the window dimension, there's probably no explicit
@@ -360,40 +388,95 @@ impl NodeProperties {
 
         // If we're using an inline viewport, the (x,y) of the top left corner may be
         // greater than zero, so we need to account for that too.
-        if outer.width == window.width {
-            outer.width = normalize_rect(outer.width, outer.x, window.x);
-        }
-        if outer.height == window.height {
-            outer.height = normalize_rect(outer.height, outer.y, window.y);
-        }
-        // prevent panic if the calculated rect overflows the window area
-        let outer = outer.clamp(window);
+        // if outer.width == window.width {
+        //     outer.width = normalize_rect(outer.width, outer.x, window.x);
+        // }
+        // if outer.height == window.height {
+        //     outer.height = normalize_rect(outer.height, outer.y, window.y);
+        // }
+        // // prevent panic if the calculated rect overflows the window area
+        // let outer = outer.clamp(window);
 
         if let Some(block) = &self.block {
-            block.render_ref(outer, frame.buffer_mut());
+            block.render_ref(render_bounds, frame.buffer_mut());
         };
         match &self.node_type {
             NodeType::Layout => {
-                self.children.iter().for_each(|key| {
-                    dom_nodes[*key].render(RenderProps {
-                        frame,
-                        window,
-                        key: *key,
-                        dom_nodes,
+                if needs_temp_buf {
+                    let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
+                    let visible_bounds = content_rect.visible_bounds();
+                    temp_buf.area.x = visible_bounds.x;
+                    temp_buf.area.y = visible_bounds.y;
+                    temp_buf.reset();
+                    mem::swap(frame.buffer_mut(), &mut temp_buf);
+
+                    self.children.iter().for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            frame,
+                            window,
+                            parent_bounds: visible_bounds,
+                            parent_scroll_offset: content_rect.scroll_offset(),
+                            key: *key,
+                            dom_nodes,
+                        });
                     });
-                });
+                    content_rect.apply_scroll(render_bounds, frame.buffer_mut());
+                    mem::swap(frame.buffer_mut(), &mut temp_buf);
+                    for row in visible_bounds.rows() {
+                        for col in row.columns() {
+                            let pos: Position = col.into();
+                            frame.buffer_mut()[pos] = temp_buf[pos].clone();
+                        }
+                    }
+                } else {
+                    self.children.iter().for_each(|key| {
+                        dom_nodes[*key].render(RenderProps {
+                            frame,
+                            window,
+                            parent_bounds: content_rect.visible_bounds(),
+                            parent_scroll_offset: content_rect.scroll_offset(),
+                            key: *key,
+                            dom_nodes,
+                        });
+                    });
+                }
             }
             NodeType::Widget(widget) => {
                 widget.recompute_done();
-                let inner = dom_nodes.compute_inner(key, outer);
-                widget.render(inner, frame);
+                let visible_bounds = content_rect.visible_bounds();
+                let needs_render = visible_bounds.x
+                    < parent_bounds.x + parent_bounds.width + parent_scroll_offset.x
+                    && visible_bounds.y
+                        < parent_bounds.y + parent_bounds.height + parent_scroll_offset.y;
+                if needs_render {
+                    let inner = content_rect.compute_inner();
+                    if needs_temp_buf {
+                        let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
+                        temp_buf.reset();
+                        temp_buf.area.x = inner.x;
+                        temp_buf.area.y = inner.y;
+                        mem::swap(frame.buffer_mut(), &mut temp_buf);
+                        widget.render(inner, frame);
+                        content_rect.apply_scroll(inner, frame.buffer_mut());
+                        mem::swap(frame.buffer_mut(), &mut temp_buf);
+                        for row in inner.rows() {
+                            for col in row.columns() {
+                                let pos: Position = col.into();
+                                frame.buffer_mut()[pos] = temp_buf[pos].clone();
+                            }
+                        }
+                    } else {
+                        widget.render(inner, frame);
+                    }
+                }
             }
             NodeType::Placeholder => {}
         }
-        *self.rect.borrow_mut() = outer;
-        if outer != prev_rect {
+
+        *self.rect.borrow_mut() = render_bounds;
+        if render_bounds != prev_rect {
             if let Some(on_size_change) = &dom_nodes[key].event_handlers.on_size_change {
-                on_size_change.borrow_mut()(outer);
+                on_size_change.borrow_mut()(render_bounds);
             }
         }
     }
@@ -415,6 +498,8 @@ impl NodeProperties {
             block,
             clear,
             enabled,
+            scroll_offset,
+            max_scroll_offset,
             z_index: _z_index,
             unmounted: _unmounted,
             parent_enabled: _parent_enabled,
@@ -431,6 +516,8 @@ impl NodeProperties {
         let block = block.clone();
         let clear = *clear;
         let enabled = *enabled;
+        let scroll_offset = *scroll_offset;
+        let max_scroll_offset = *max_scroll_offset;
 
         self.name = name;
         self.node_type = node_type;
@@ -443,6 +530,8 @@ impl NodeProperties {
         self.block = block;
         self.clear = clear;
         self.enabled = enabled;
+        self.scroll_offset = scroll_offset;
+        self.max_scroll_offset = max_scroll_offset;
     }
 }
 
@@ -802,6 +891,8 @@ impl DomNode {
             nodes[self.key].render(RenderProps {
                 frame,
                 window,
+                parent_bounds: window,
+                parent_scroll_offset: Position::ORIGIN,
                 key: self.key,
                 dom_nodes: nodes,
             });

@@ -2,11 +2,11 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::dom::layout::{Borders, borders};
-use rooibos::reactive::dom::{Render, line, span, text};
+use rooibos::reactive::dom::layout::{Borders, borders, overflow_y};
+use rooibos::reactive::dom::{NodeId, Render, line, span, text, use_focus_with_id};
 use rooibos::reactive::graph::signal::signal;
-use rooibos::reactive::graph::traits::{Get, GetUntracked, Set, Update};
-use rooibos::reactive::{col, for_each, height, margin_x, max_width, row, wgt};
+use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
+use rooibos::reactive::{col, derive_signal, for_each, height, margin_x, max_width, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::crossterm::CrosstermBackend;
@@ -35,9 +35,12 @@ fn app() -> impl Render {
     };
 
     col![
-        props(max_width!(50.)),
+        props(
+            max_width!(50.),
+            height!(100.%),
+            overflow_y(taffy::Overflow::Scroll)
+        ),
         row![
-            props(height!(3.)),
             Button::new()
                 .on_click(add_counter)
                 .render(text!("Add Counter")),
@@ -45,23 +48,27 @@ fn app() -> impl Render {
         for_each(
             move || ids.get(),
             |k| *k,
-            move |i| counter(i, move || remove_id(i))
+            move |i| counter(NodeId::new(i.to_string()), move || remove_id(i))
         )
     ]
     .on_key_down(key("a", move |_, _| add_counter()))
     .id("root")
 }
 
-fn counter(id: i32, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> impl Render {
+fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> impl Render {
     let (count, set_count) = signal(0);
-    let (border_block, set_block) = signal(Borders::all().empty());
+    let focused = use_focus_with_id(id);
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
     let increase = move || update_count(1);
     let decrease = move || update_count(-1);
 
     row![
-        props(borders(border_block)),
+        props(borders(derive_signal!(if focused.get() {
+            Borders::all()
+        } else {
+            Borders::all().empty()
+        }))),
         wgt!(
             props(margin_x!(1.)),
             line!(
@@ -81,12 +88,7 @@ fn counter(id: i32, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> imp
             ]
             .bind()
         )
-        .on_focus(move |_, _| {
-            set_block.set(Borders::all());
-        })
-        .on_blur(move |_, _| {
-            set_block.set(Borders::all().empty());
-        })
+        .id(id)
     ]
 }
 

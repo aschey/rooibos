@@ -16,7 +16,7 @@ pub async fn run_server(listener: tokio::net::TcpListener) {
 
     let app = axum::Router::new()
         .route("/todos", get(todos_get).post(todos_create))
-        .route("/todos/:id", patch(todos_update).delete(todos_delete))
+        .route("/todos/{id}", patch(todos_update).delete(todos_delete))
         .with_state(db);
 
     axum::serve(listener, app).await.unwrap();
