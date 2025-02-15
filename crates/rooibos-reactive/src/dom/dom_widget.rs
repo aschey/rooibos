@@ -16,11 +16,12 @@ use super::dom_node::DomNode;
 use super::layout::{
     AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Position, Property, Shrink, UpdateLayout, Width, align_self, aspect_ratio, basis,
-    borders, grow, height, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x,
-    margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
+    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width,
+    align_self, aspect_ratio, basis, borders, grow, height, margin, margin_bottom, margin_left,
+    margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width,
+    overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right,
+    padding_top, padding_x, padding_y, position, shrink, width,
 };
 use crate::dom::RooibosDom;
 
@@ -467,6 +468,10 @@ pub struct SimpleLayoutProps {
     pub padding_y: PaddingY,
     pub padding: Padding,
 
+    pub overflow: Overflow,
+    pub overflow_x: OverflowX,
+    pub overflow_y: OverflowY,
+
     pub grow: Grow,
     pub shrink: Shrink,
     pub basis: Basis,
@@ -499,6 +504,10 @@ impl UpdateLayout for SimpleLayoutProps {
             margin_y,
             margin,
 
+            overflow_x,
+            overflow_y,
+            overflow,
+
             padding_left,
             padding_right,
             padding_top,
@@ -527,6 +536,10 @@ impl UpdateLayout for SimpleLayoutProps {
         margin_x.update_layout(original_display, style);
         margin_y.update_layout(original_display, style);
         margin.update_layout(original_display, style);
+
+        overflow_x.update_layout(original_display, style);
+        overflow_y.update_layout(original_display, style);
+        overflow.update_layout(original_display, style);
 
         padding_left.update_layout(original_display, style);
         padding_right.update_layout(original_display, style);
@@ -581,6 +594,10 @@ where
     update_props!(padding_x, taffy::LengthPercentage);
     update_props!(padding_y, taffy::LengthPercentage);
     update_props!(padding, taffy::LengthPercentage);
+
+    // update_props!(overflow, taffy::Point<taffy::Overflow>);
+    update_props!(overflow_x, taffy::Overflow);
+    update_props!(overflow_y, taffy::Overflow);
 
     update_props!(grow, f32);
     update_props!(shrink, f32);
@@ -683,6 +700,10 @@ widget_prop!(
     simple.margin_y
 );
 widget_prop!(Margin, margin, taffy::LengthPercentageAuto, simple.margin);
+
+widget_prop!(Overflow, overflow, taffy::Overflow, simple.overflow);
+widget_prop!(OverflowX, overflow_x, taffy::Overflow, simple.overflow_x);
+widget_prop!(OverflowY, overflow_y, taffy::Overflow, simple.overflow_y);
 
 widget_prop!(
     PaddingLeft,

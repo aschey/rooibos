@@ -5,7 +5,6 @@ use std::io;
 use std::sync::Arc;
 
 use async_signal::{Signal, Signals};
-use async_trait::async_trait;
 use background_service::Manager;
 use futures::{Future, StreamExt};
 use futures_cancel::FutureExt;
@@ -15,11 +14,11 @@ use rooibos_reactive::init_executor;
 use rooibos_runtime::{
     CancellationToken, ServiceContext, restore_terminal, set_external_signal_source, with_runtime,
 };
+pub use russh::keys;
+use russh::keys::PublicKey;
 pub use russh::server::Config as SshConfig;
 use russh::server::{Auth, Handle, Handler, Msg, Server, Session};
 use russh::{Channel, ChannelId};
-pub use russh_keys as keys;
-use russh_keys::PublicKey;
 use tap::TapFallible;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::{RwLock, broadcast, mpsc};
@@ -187,7 +186,6 @@ where
     }
 }
 
-#[async_trait]
 impl<T: SshHandler> Handler for AppHandler<T> {
     type Error = Box<dyn Error + Send + Sync>;
 

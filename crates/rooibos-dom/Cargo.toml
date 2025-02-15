@@ -13,7 +13,7 @@ bitflags = "2"
 educe = "0.6"
 futures = "0.3"
 rustc-hash = "2"
-terminput = "0.2"
+terminput = "0.3"
 tui-textarea = { version = "0.7", optional = true, default-features = false }
 paste = "1"
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [

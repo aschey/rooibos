@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use educe::Educe;
 use ratatui::Frame;
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, ScrollDirection};
@@ -310,6 +311,8 @@ pub struct NodeProperties {
     #[educe(Default = true)]
     parent_enabled: bool,
     pub(crate) unmounted: Arc<AtomicBool>,
+    #[educe(Default = AtomicBool::new(true))]
+    visible: AtomicBool,
 }
 
 struct RenderProps<'a, 'b> {
@@ -343,6 +346,13 @@ impl NodeProperties {
         self.parent_enabled = enabled;
     }
 
+    pub(crate) fn position(&self) -> Rect {
+        let mut rect = *self.rect.borrow();
+        rect.x += self.scroll_offset.x;
+        rect.y += self.scroll_offset.y;
+        rect
+    }
+
     pub(crate) fn scroll(&mut self, direction: ScrollDirection) {
         let delta = direction.delta();
         let mut x = self.scroll_offset.x as i32 - delta.x;
@@ -374,8 +384,14 @@ impl NodeProperties {
 
         let render_bounds = content_rect.render_bounds();
         let needs_temp_buf = content_rect.can_scroll();
-        if needs_temp_buf {
-            content_rect.resize_for_render(&mut dom_nodes.temp_buf.borrow_mut());
+
+        let mut temp_buf = if content_rect.can_scroll() {
+            Some(Buffer::empty(Rect::default()))
+        } else {
+            None
+        };
+        if let Some(temp_buf) = &mut temp_buf {
+            content_rect.resize_for_render(temp_buf);
         }
 
         if self.clear {
@@ -402,13 +418,16 @@ impl NodeProperties {
         };
         match &self.node_type {
             NodeType::Layout => {
-                if needs_temp_buf {
-                    let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
+                if let Some(temp_buf) = &mut temp_buf {
                     let visible_bounds = content_rect.visible_bounds();
+
+                    // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
+
                     temp_buf.area.x = visible_bounds.x;
                     temp_buf.area.y = visible_bounds.y;
-                    temp_buf.reset();
-                    mem::swap(frame.buffer_mut(), &mut temp_buf);
+                    // temp_buf.reset();
+
+                    mem::swap(frame.buffer_mut(), temp_buf);
 
                     self.children.iter().for_each(|key| {
                         dom_nodes[*key].render(RenderProps {
@@ -420,8 +439,11 @@ impl NodeProperties {
                             dom_nodes,
                         });
                     });
-                    content_rect.apply_scroll(render_bounds, frame.buffer_mut());
-                    mem::swap(frame.buffer_mut(), &mut temp_buf);
+                    content_rect.apply_scroll(frame.buffer_mut().area, frame.buffer_mut());
+
+                    // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
+                    mem::swap(frame.buffer_mut(), temp_buf);
+
                     for row in visible_bounds.rows() {
                         for col in row.columns() {
                             let pos: Position = col.into();
@@ -449,16 +471,22 @@ impl NodeProperties {
                     && visible_bounds.y
                         < parent_bounds.y + parent_bounds.height + parent_scroll_offset.y;
                 if needs_render {
+                    self.visible.store(true, Ordering::Relaxed);
                     let inner = content_rect.compute_inner();
-                    if needs_temp_buf {
-                        let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
-                        temp_buf.reset();
+                    if let Some(temp_buf) = &mut temp_buf {
+                        // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
+                        // temp_buf.reset();
                         temp_buf.area.x = inner.x;
                         temp_buf.area.y = inner.y;
-                        mem::swap(frame.buffer_mut(), &mut temp_buf);
+
+                        mem::swap(frame.buffer_mut(), temp_buf);
+
                         widget.render(inner, frame);
-                        content_rect.apply_scroll(inner, frame.buffer_mut());
-                        mem::swap(frame.buffer_mut(), &mut temp_buf);
+
+                        content_rect.apply_scroll(frame.buffer_mut().area, frame.buffer_mut());
+
+                        mem::swap(frame.buffer_mut(), temp_buf);
+
                         for row in inner.rows() {
                             for col in row.columns() {
                                 let pos: Position = col.into();
@@ -468,6 +496,8 @@ impl NodeProperties {
                     } else {
                         widget.render(inner, frame);
                     }
+                } else {
+                    self.visible.store(false, Ordering::Relaxed);
                 }
             }
             NodeType::Placeholder => {}
@@ -503,6 +533,7 @@ impl NodeProperties {
             z_index: _z_index,
             unmounted: _unmounted,
             parent_enabled: _parent_enabled,
+            visible: _visible,
         } = new;
 
         let name = name.clone();
@@ -895,6 +926,7 @@ impl DomNode {
                 parent_scroll_offset: Position::ORIGIN,
                 key: self.key,
                 dom_nodes: nodes,
+                // using_temp_buf: false,
             });
         });
         reset_mouse_position();

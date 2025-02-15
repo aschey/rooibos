@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::u16;
 
 use ratatui::layout::{Position, Rect};
 use terminput::{
@@ -19,7 +20,7 @@ thread_local! {
 }
 
 struct EventDispatcher {
-    last_mouse_position: MouseEvent,
+    last_mouse_position: Position,
 }
 
 pub fn dispatch_event(event: Event) {
@@ -33,17 +34,20 @@ pub(crate) fn reset_mouse_position() {
 impl EventDispatcher {
     fn new() -> Self {
         Self {
-            last_mouse_position: MouseEvent {
-                kind: MouseEventKind::Moved,
-                column: u16::MAX,
-                row: u16::MAX,
-                modifiers: KeyModifiers::empty(),
+            last_mouse_position: Position {
+                x: u16::MAX,
+                y: u16::MAX,
             },
         }
     }
 
     fn reset_mouse_position(&mut self) {
-        self.dispatch(Event::Mouse(self.last_mouse_position))
+        self.dispatch(Event::Mouse(MouseEvent {
+            kind: MouseEventKind::Moved,
+            column: self.last_mouse_position.x,
+            row: self.last_mouse_position.y,
+            modifiers: KeyModifiers::empty(),
+        }));
     }
 
     fn dispatch(&mut self, event: Event) {
@@ -79,14 +83,15 @@ impl EventDispatcher {
             MouseEventKind::Moved => {
                 self.dispatch_mouse_moved(mouse_event);
             }
-            MouseEventKind::Scroll(direction) => {
-                self.dispatch_scroll_event(direction);
+            MouseEventKind::Scroll(_) => {
+                self.dispatch_scroll_event(mouse_event);
             }
         }
     }
 
     fn dispatch_mouse_moved(&mut self, mouse_event: MouseEvent) {
-        self.last_mouse_position = mouse_event;
+        self.last_mouse_position.x = mouse_event.column;
+        self.last_mouse_position.y = mouse_event.row;
         let roots = with_nodes(|nodes| nodes.roots_desc());
         let mut current = None;
 
@@ -97,7 +102,7 @@ impl EventDispatcher {
                         return None;
                     }
 
-                    if inner.rect.borrow().contains(Position {
+                    if inner.position().contains(Position {
                         x: mouse_event.column,
                         y: mouse_event.row,
                     }) && inner.focusable()
@@ -173,16 +178,19 @@ impl EventDispatcher {
         }
     }
 
-    fn dispatch_scroll_event(&self, direction: ScrollDirection) {
+    fn dispatch_scroll_event(&self, mouse_event: MouseEvent) {
         if let Some(current_hovered) = hit_test(
             Position {
-                x: self.last_mouse_position.column,
-                y: self.last_mouse_position.row,
+                x: mouse_event.column,
+                y: mouse_event.row,
             },
-            |props| props.max_scroll_offset.x > 0 || props.max_scroll_offset.y > 0,
+            |props| props.max_scroll_offset != Position::ORIGIN,
         )
         .last()
         {
+            let MouseEventKind::Scroll(direction) = mouse_event.kind else {
+                unreachable!()
+            };
             with_nodes_mut(|n| {
                 n.scroll(*current_hovered, direction);
             });
@@ -305,9 +313,8 @@ where
                 if !inner.enabled() || !filter(inner) {
                     return None;
                 }
-
-                let rect = inner.rect.borrow();
-                if rect.contains(position) {
+                let inner_rect = with_nodes(|n| n.rect(key).visible_bounds());
+                if inner_rect.contains(position) {
                     return Some(key);
                 }
                 None

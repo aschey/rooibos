@@ -54,6 +54,7 @@ pub(crate) struct ContentRect {
     content_size: Size<u16>,
     border: taffy::Rect<u16>,
     scroll_offset: Position,
+    max_scroll_offset: Position,
     x: u16,
     y: u16,
 }
@@ -91,8 +92,16 @@ impl ContentRect {
     }
 
     pub(crate) fn compute_inner(&self) -> Rect {
-        let width = self.size.width; //self.size.width.max(self.content_size.width);
-        let height = self.size.height; //self.size.height.max(self.content_size.height);
+        let width = self
+            .size
+            .width
+            .max(self.content_size.width)
+            .max(self.content_box_size.width);
+        let height = self
+            .size
+            .height
+            .max(self.content_size.height)
+            .max(self.content_box_size.height);
         Rect {
             x: self.x + self.border.left,
             y: self.y + self.border.top,
@@ -102,7 +111,7 @@ impl ContentRect {
     }
 
     pub(crate) fn can_scroll(&self) -> bool {
-        self.content_size.width > self.size.width || self.content_size.height > self.size.height
+        self.max_scroll_offset != Position::ORIGIN
     }
 
     pub(crate) fn resize_for_render(&self, buf: &mut Buffer) {
@@ -129,7 +138,11 @@ impl ContentRect {
                 let pos: Position = col.into();
                 let mut new_pos = pos;
                 new_pos.y -= self.scroll_offset.y;
-                buf[new_pos] = buf[pos].clone();
+                if new_pos.x <= buf.area.x + buf.area.width
+                    && new_pos.y <= buf.area.y + buf.area.height
+                {
+                    buf[new_pos] = buf[pos].clone();
+                }
             }
         }
     }
@@ -401,10 +414,20 @@ impl NodeTree {
         let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
         let children = self.dom_nodes[parent_key].inner.children.clone();
         let layout = self.layout_tree.layout(parent).unwrap();
-        if layout.content_size.height > layout.size.height
-            && self.style(parent_key).overflow.y == Overflow::Scroll
-            || layout.content_size.width > layout.size.width
-                && self.style(parent_key).overflow.x == Overflow::Scroll
+        if (layout.size.height as u16 > self.window_size.height
+            && self.style(parent_key).overflow.y == Overflow::Scroll)
+            || (layout.size.width as u16 > self.window_size.width
+                && self.style(parent_key).overflow.x == Overflow::Scroll)
+        {
+            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(
+                (layout.size.width as u16).saturating_sub(self.window_size.width),
+                (layout.size.height as u16).saturating_sub(self.window_size.height),
+            );
+        }
+        if (layout.content_size.height > layout.size.height
+            && self.style(parent_key).overflow.y == Overflow::Scroll)
+            || (layout.content_size.width > layout.size.width
+                && self.style(parent_key).overflow.x == Overflow::Scroll)
         {
             self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(
                 (layout.content_size.width as u16).saturating_sub(layout.size.width as u16),
@@ -449,15 +472,21 @@ impl NodeTree {
             .unwrap();
         let computed = self.get_computed(key);
         let scroll_offset = self.dom_nodes[key].inner.scroll_offset;
+        let max_scroll_offset = self.dom_nodes[key].inner.max_scroll_offset;
 
         ContentRect {
             x: context.offset.x as u16,
             y: context.offset.y as u16,
             content_box_size: computed.content_box_size().map(|s| s as u16),
-            size: computed.size.map(|s| s as u16),
+            size: computed
+                .size
+                .map(|s| s as u16)
+                .map_height(|s| s.min(self.window_size.height))
+                .map_width(|s| s.min(self.window_size.width)),
             content_size: computed.content_size.map(|s| s as u16),
             border: computed.border.map(|s| s as u16),
             scroll_offset,
+            max_scroll_offset,
         }
     }
 
@@ -484,6 +513,10 @@ impl NodeTree {
     pub(crate) fn insert(&mut self, val: NodeProperties) -> DomNodeKey {
         let style = Style {
             scrollbar_width: 1.0,
+            // overflow: Point {
+            //     x: Overflow::Scroll,
+            //     y: Overflow::Scroll,
+            // },
             ..Default::default()
         };
 
