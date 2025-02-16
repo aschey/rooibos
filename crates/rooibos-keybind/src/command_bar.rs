@@ -137,13 +137,13 @@ where
         >,
         _style: &rooibos_reactive::dom::div::taffy::Style,
     ) -> rooibos_reactive::dom::div::taffy::Size<f32> {
+        self.estimate_size()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
         Size {
             width: 0.0,
             height: 1.0,
         }
-    }
-
-    fn estimate_size(&self) -> Size<f32> {
-        Size::zero()
     }
 }

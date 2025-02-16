@@ -1,10 +1,8 @@
 use std::cell::RefCell;
-use std::u16;
 
 use ratatui::layout::{Position, Rect};
 use terminput::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
-    ScrollDirection,
 };
 
 use super::{

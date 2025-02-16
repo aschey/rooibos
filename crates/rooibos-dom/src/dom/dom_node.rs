@@ -383,7 +383,7 @@ impl NodeProperties {
         }
 
         let render_bounds = content_rect.render_bounds();
-        let needs_temp_buf = content_rect.can_scroll();
+        // let needs_temp_buf = content_rect.can_scroll();
 
         let mut temp_buf = if content_rect.can_scroll() {
             Some(Buffer::empty(Rect::default()))
@@ -444,10 +444,15 @@ impl NodeProperties {
                     // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
                     mem::swap(frame.buffer_mut(), temp_buf);
 
+                    let buf = frame.buffer_mut();
                     for row in visible_bounds.rows() {
                         for col in row.columns() {
                             let pos: Position = col.into();
-                            frame.buffer_mut()[pos] = temp_buf[pos].clone();
+                            if pos.x < buf.area.x + buf.area.width
+                                && pos.y < buf.area.y + buf.area.height
+                            {
+                                buf[pos] = temp_buf[pos].clone();
+                            }
                         }
                     }
                 } else {
@@ -455,7 +460,7 @@ impl NodeProperties {
                         dom_nodes[*key].render(RenderProps {
                             frame,
                             window,
-                            parent_bounds: content_rect.visible_bounds(),
+                            parent_bounds: content_rect.inner_bounds(),
                             parent_scroll_offset: content_rect.scroll_offset(),
                             key: *key,
                             dom_nodes,
@@ -466,13 +471,21 @@ impl NodeProperties {
             NodeType::Widget(widget) => {
                 widget.recompute_done();
                 let visible_bounds = content_rect.visible_bounds();
-                let needs_render = visible_bounds.x
-                    < parent_bounds.x + parent_bounds.width + parent_scroll_offset.x
-                    && visible_bounds.y
-                        < parent_bounds.y + parent_bounds.height + parent_scroll_offset.y;
+                let needs_render = (visible_bounds.x
+                    < parent_bounds.x + parent_bounds.width + parent_scroll_offset.x)
+                    && (visible_bounds.y
+                        < parent_bounds.y + parent_bounds.height + parent_scroll_offset.y);
+                // if (visible_bounds.x + visible_bounds.width > parent_bounds.x +
+                // parent_bounds.width)     || (visible_bounds.y + visible_bounds.height
+                //         > parent_bounds.y + parent_bounds.height)
+                // {
+                //     let mut buf = Buffer::empty(Rect::default());
+                //     content_rect.resize_for_render(&mut buf);
+                //     temp_buf = Some(buf);
+                // }
                 if needs_render {
                     self.visible.store(true, Ordering::Relaxed);
-                    let inner = content_rect.compute_inner();
+                    let inner = content_rect.inner_bounds();
                     if let Some(temp_buf) = &mut temp_buf {
                         // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
                         // temp_buf.reset();

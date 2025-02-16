@@ -5,7 +5,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{cmp, mem};
 
-use ratatui::buffer::{Buffer, Cell};
+use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::Block;
 use slotmap::{SlotMap, new_key_type};
@@ -49,10 +49,12 @@ pub enum MatchBehavior {
 
 #[derive(Debug)]
 pub(crate) struct ContentRect {
-    size: Size<u16>,
+    pub(crate) size: Size<u16>,
     content_box_size: Size<u16>,
-    content_size: Size<u16>,
+    pub(crate) content_size: Size<u16>,
     border: taffy::Rect<u16>,
+    padding: taffy::Rect<u16>,
+    window_size: Rect,
     scroll_offset: Position,
     max_scroll_offset: Position,
     x: u16,
@@ -64,8 +66,8 @@ impl ContentRect {
         Rect {
             x: self.x,
             y: self.y,
-            width: self.size.width.max(self.content_size.width),
-            height: self.size.height.max(self.content_size.height),
+            width: self.size.width,
+            height: self.size.height,
         }
     }
 
@@ -73,8 +75,8 @@ impl ContentRect {
         Rect {
             x: self.x,
             y: self.y,
-            width: self.size.width,
-            height: self.size.height,
+            width: self.size.width.min(self.window_size.width),
+            height: self.size.height.min(self.window_size.height),
         }
     }
 
@@ -82,31 +84,22 @@ impl ContentRect {
         self.scroll_offset
     }
 
-    fn compute_inner2(&self, width: u16, height: u16) -> Rect {
+    pub(crate) fn inner_bounds(&self) -> Rect {
+        let width = self.content_size.width.max(self.size.width);
+        let height = self.content_size.height.max(self.size.height);
         Rect {
-            x: self.x + self.border.left,
-            y: self.y + self.border.top,
-            width: width - (self.border.left + self.border.right),
-            height: height - (self.border.top + self.border.bottom),
-        }
-    }
-
-    pub(crate) fn compute_inner(&self) -> Rect {
-        let width = self
-            .size
-            .width
-            .max(self.content_size.width)
-            .max(self.content_box_size.width);
-        let height = self
-            .size
-            .height
-            .max(self.content_size.height)
-            .max(self.content_box_size.height);
-        Rect {
-            x: self.x + self.border.left,
-            y: self.y + self.border.top,
-            width: width - (self.border.left + self.border.right),
-            height: height - (self.border.top + self.border.bottom),
+            x: self.x + self.border.left + self.padding.left,
+            y: self.y + self.border.top + self.padding.top,
+            width: width
+                - self.padding.left
+                - self.padding.right
+                - self.border.left
+                - self.border.right,
+            height: height
+                - self.padding.top
+                - self.padding.bottom
+                - self.border.top
+                - self.border.bottom,
         }
     }
 
@@ -138,16 +131,14 @@ impl ContentRect {
                 let pos: Position = col.into();
                 let mut new_pos = pos;
                 new_pos.y -= self.scroll_offset.y;
-                if new_pos.x <= buf.area.x + buf.area.width
-                    && new_pos.y <= buf.area.y + buf.area.height
+                if new_pos.x < buf.area.x + buf.area.width
+                    && new_pos.y < buf.area.y + buf.area.height
                 {
                     buf[new_pos] = buf[pos].clone();
                 }
             }
         }
     }
-
-    pub(crate) fn resize_after_render(&self, buf: &mut Buffer) {}
 }
 
 impl DomNodeKey {
@@ -191,7 +182,6 @@ pub(crate) struct TreeValue {
 #[derive(Clone, Default)]
 struct Context {
     offset: Point<f32>,
-
     key: DomNodeKey,
 }
 
@@ -239,7 +229,6 @@ pub struct NodeTree {
     focusable_nodes: Rc<RefCell<Vec<DomNodeKey>>>,
     on_window_size_change: Box<dyn Fn(Rect)>,
     on_focus_change: Box<dyn Fn(Option<crate::NodeId>)>,
-    pub(super) temp_buf: RefCell<Buffer>,
 }
 
 impl Index<DomNodeKey> for NodeTree {
@@ -268,7 +257,6 @@ impl NodeTree {
             window_size: Rect::default(),
             on_window_size_change: Box::new(move |_| {}),
             on_focus_change: Box::new(move |_| {}),
-            temp_buf: RefCell::new(Buffer::empty(Rect::default())),
         }
     }
 
@@ -424,15 +412,13 @@ impl NodeTree {
                 (layout.size.height as u16).saturating_sub(self.window_size.height),
             );
         }
-        if (layout.content_size.height > layout.size.height
-            && self.style(parent_key).overflow.y == Overflow::Scroll)
-            || (layout.content_size.width > layout.size.width
+        // let content_box_height = layout.content_box_height();
+        if (layout.scroll_height() > 0.0 && self.style(parent_key).overflow.y == Overflow::Scroll)
+            || (layout.scroll_width() > 0.0
                 && self.style(parent_key).overflow.x == Overflow::Scroll)
         {
-            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(
-                (layout.content_size.width as u16).saturating_sub(layout.size.width as u16),
-                (layout.content_size.height as u16).saturating_sub(layout.size.height as u16),
-            );
+            self.dom_nodes[parent_key].inner.max_scroll_offset =
+                Position::new(layout.scroll_width() as u16, layout.scroll_height() as u16);
         }
 
         for child_key in children {
@@ -478,13 +464,11 @@ impl NodeTree {
             x: context.offset.x as u16,
             y: context.offset.y as u16,
             content_box_size: computed.content_box_size().map(|s| s as u16),
-            size: computed
-                .size
-                .map(|s| s as u16)
-                .map_height(|s| s.min(self.window_size.height))
-                .map_width(|s| s.min(self.window_size.width)),
+            size: computed.size.map(|s| s as u16),
+            window_size: self.window_size,
             content_size: computed.content_size.map(|s| s as u16),
             border: computed.border.map(|s| s as u16),
+            padding: computed.padding.map(|s| s as u16),
             scroll_offset,
             max_scroll_offset,
         }

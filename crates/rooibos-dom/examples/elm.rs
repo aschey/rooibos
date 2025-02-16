@@ -19,7 +19,7 @@ use rooibos_dom::{
     render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
-use terminput::{Event, KeyCode, KeyEvent, KeyModifiers};
+use terminput::{CTRL, Event, KeyCode, KeyEvent, KeyModifiers, Repeats, key};
 use tokio::sync::mpsc;
 
 #[tokio::main(flavor = "current_thread")]
@@ -78,16 +78,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn should_exit(event: &Event) -> bool {
-    matches!(
-        event,
-        Event::Key(KeyEvent {
-            code: KeyCode::Char('c'),
-            modifiers: KeyModifiers::CTRL,
-            ..
-        })
-    )
+    if let Some(key_event) = event.as_key_press(Repeats::Include) {
+        matches!(key_event, key!(CTRL, KeyCode::Char('c')))
+    } else {
+        false
+    }
 }
-
 fn setup_terminal() -> Result<NonblockingTerminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;
     let mut stdout = stdout();
@@ -132,11 +128,14 @@ impl Counters {
                 self.counters.get_mut(&id).unwrap().update(task_message);
             }
             Message::Add => {
-                self.counters.insert(self.next_id, Counter {
-                    id: self.next_id,
-                    count: 0,
-                    focused: false,
-                });
+                self.counters.insert(
+                    self.next_id,
+                    Counter {
+                        id: self.next_id,
+                        count: 0,
+                        focused: false,
+                    },
+                );
                 self.next_id += 1;
             }
             Message::Focus => {
