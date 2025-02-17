@@ -1,4 +1,4 @@
-use ratatui::style::{Color, Style, Styled, Stylize};
+use ratatui::style::{Color, Style, Styled};
 use ratatui::symbols::border;
 use ratatui::widgets::block::Title;
 use taffy::LengthPercentage;

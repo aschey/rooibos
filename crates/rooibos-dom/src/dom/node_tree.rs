@@ -402,11 +402,14 @@ impl NodeTree {
     }
 
     fn recompute_offsets(&mut self, root_key: DomNodeKey, root_offset: Point<f32>) {
-        // let node = &self.dom_nodes[root_key];
-        self.recompute_offset(root_key, root_offset);
+        let root = self.dom_nodes[root_key].layout_id;
+        let root_context = self.layout_tree.get_node_context_mut(root).unwrap();
+        root_context.offset.x = root_offset.x;
+        root_context.offset.y = root_offset.y;
+        self.recompute_offset(root_key);
     }
 
-    fn recompute_offset(&mut self, parent_key: DomNodeKey, root_offset: Point<f32>) {
+    fn recompute_offset(&mut self, parent_key: DomNodeKey) {
         let parent = self.dom_nodes[parent_key].layout_id;
         let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
         let children = self.dom_nodes[parent_key].inner.children.clone();
@@ -434,12 +437,12 @@ impl NodeTree {
             let child = self.dom_nodes[child_key].layout_id;
             let child_layout = *self.layout_tree.layout(child).unwrap();
             let context = self.layout_tree.get_node_context_mut(child).unwrap();
-            let new_x = child_layout.location.x + parent_context.offset.x + root_offset.x;
-            let new_y = child_layout.location.y + parent_context.offset.y + root_offset.y;
+            let new_x = child_layout.location.x + parent_context.offset.x;
+            let new_y = child_layout.location.y + parent_context.offset.y;
             // if context.0.x != new_x || context.0.y != new_y {
             context.offset.x = new_x;
             context.offset.y = new_y;
-            self.recompute_offset(child_key, root_offset);
+            self.recompute_offset(child_key);
             // }
         }
     }

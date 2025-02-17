@@ -383,7 +383,6 @@ impl NodeProperties {
         }
 
         let render_bounds = content_rect.render_bounds();
-        // let needs_temp_buf = content_rect.can_scroll();
 
         let height_above_parent = (render_bounds.y + render_bounds.height)
             .saturating_sub(parent_bounds.y + parent_bounds.height)

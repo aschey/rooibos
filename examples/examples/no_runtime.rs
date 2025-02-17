@@ -10,9 +10,7 @@ use rooibos::reactive::dom::{
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{
-    CTRL, Event, KeyCode, KeyEvent, KeyModifiers, NonblockingTerminal, Repeats, key, wgt,
-};
+use rooibos::reactive::{CTRL, Event, KeyCode, NonblockingTerminal, Repeats, key, wgt};
 use rooibos::terminal::Backend;
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
