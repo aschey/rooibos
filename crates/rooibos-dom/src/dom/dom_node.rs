@@ -431,21 +431,6 @@ impl NodeProperties {
             Clear.render(render_bounds, frame.buffer_mut());
         }
 
-        // If the widget dimension == the window dimension, there's probably no explicit
-        // constraint. Subtract the extra to prevent clamp from removing any
-        // margins.
-
-        // If we're using an inline viewport, the (x,y) of the top left corner may be
-        // greater than zero, so we need to account for that too.
-        // if outer.width == window.width {
-        //     outer.width = normalize_rect(outer.width, outer.x, window.x);
-        // }
-        // if outer.height == window.height {
-        //     outer.height = normalize_rect(outer.height, outer.y, window.y);
-        // }
-        // // prevent panic if the calculated rect overflows the window area
-        // let outer = outer.clamp(window);
-
         if let NodeType::Widget(widget) = &self.node_type {
             widget.recompute_done();
         }
@@ -491,9 +476,7 @@ impl NodeProperties {
                                 }
                             }
                         }
-                        if let Some(block) = &self.block {
-                            block.render_ref(render_bounds, frame.buffer_mut());
-                        };
+                        self.render_block(render_bounds, frame.buffer_mut());
                     } else {
                         self.children.iter().for_each(|key| {
                             dom_nodes[*key].render(RenderProps {
@@ -536,14 +519,10 @@ impl NodeProperties {
                                 frame.buffer_mut()[pos] = temp_buf[pos].clone();
                             }
                         }
-                        if let Some(block) = &self.block {
-                            block.render_ref(render_bounds, frame.buffer_mut());
-                        };
+                        self.render_block(render_bounds, frame.buffer_mut());
                     } else {
                         widget.render(inner, frame);
-                        if let Some(block) = &self.block {
-                            block.render_ref(render_bounds, frame.buffer_mut());
-                        };
+                        self.render_block(render_bounds, frame.buffer_mut());
                     }
                 }
                 NodeType::Placeholder => {}
@@ -558,6 +537,12 @@ impl NodeProperties {
                 on_size_change.borrow_mut()(render_bounds);
             }
         }
+    }
+
+    fn render_block(&self, bounds: Rect, buf: &mut Buffer) {
+        if let Some(block) = &self.block {
+            block.render_ref(bounds, buf);
+        };
     }
 
     pub(crate) fn replace_with(&mut self, new: &NodeProperties) {
