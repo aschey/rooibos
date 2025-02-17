@@ -36,6 +36,7 @@ pub struct Runtime<B: Backend> {
     settings: RuntimeSettings,
     runtime_command_tx: broadcast::Sender<RuntimeCommand>,
     runtime_command_rx: broadcast::Receiver<RuntimeCommand>,
+    render_debouncer: Debouncer<()>,
     term_command_rx: broadcast::Receiver<TerminalCommand>,
     term_event_tx: broadcast::Sender<Event>,
     term_event_rx: broadcast::Receiver<Event>,
@@ -112,12 +113,15 @@ where
 
         let term_command_tx = with_state(|s| s.term_command_tx.clone());
         let term_event_tx = with_state(|s| s.term_tx.clone());
-
+        const MILLIS_PER_SEC: f32 = 1000.0;
         Self {
             term_command_rx: term_command_tx.subscribe(),
             term_event_rx: term_event_tx.subscribe(),
             term_event_tx,
             term_parser_tx,
+            render_debouncer: Debouncer::new(Duration::from_millis(
+                (MILLIS_PER_SEC / settings.max_fps) as u64,
+            )),
             runtime_command_rx: runtime_command_tx.subscribe(),
             backend,
             runtime_command_tx,
@@ -265,6 +269,9 @@ where
                     self.draw(&mut terminal).await;
                 }
                 TickResult::Exit(payload) => {
+                    // Redraw one last time in case the screen was updated after the last debounce
+                    // tick
+                    self.draw(&mut terminal).await;
                     if self.should_exit(payload.clone()).await {
                         self.handle_exit(&mut terminal).await?;
                         restore_terminal()?;
@@ -474,6 +481,13 @@ where
                 }
             }
             _ = self.dom_update_rx.changed() => {
+                self.render_debouncer
+                    .update(())
+                    .await
+                    .map_err(|e| RuntimeError::Internal(e.into()))?;
+                Ok(TickResult::Continue)
+            }
+            Some(()) = self.render_debouncer.next_value() => {
                 Ok(TickResult::Redraw)
             }
             term_event = self.term_event_rx.recv() => {

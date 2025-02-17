@@ -717,6 +717,13 @@ impl NodeTree {
         self.dom_nodes[node].inner.block = Some(block);
     }
 
+    #[cfg(feature = "effects")]
+    pub fn set_effect(&mut self, node: DomNodeKey, effect: tachyonfx::Effect) {
+        self.dom_nodes[node].inner.effects =
+            Some(RefCell::new(super::EffectProperties::new(effect)));
+        refresh_dom();
+    }
+
     pub fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
         self.dom_nodes[key].inner.z_index = Some(z_index);
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();

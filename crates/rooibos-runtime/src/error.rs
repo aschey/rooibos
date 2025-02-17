@@ -17,6 +17,8 @@ pub enum RuntimeError {
     SignalHandlerFailure(io::Error),
     #[error("I/O failure: {0}")]
     IoFailure(#[from] io::Error),
+    #[error("internal error: {0}")]
+    Internal(Box<dyn Error + Send + Sync>),
     #[error("{0}")]
     UserDefined(Arc<Box<dyn Error + Send + Sync>>),
 }

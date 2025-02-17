@@ -8,6 +8,7 @@ use tracing::error;
 
 use crate::wasm_compat;
 
+#[derive(Debug)]
 pub(crate) struct Debouncer<T> {
     pending: Option<T>,
     update_tx: mpsc::Sender<()>,

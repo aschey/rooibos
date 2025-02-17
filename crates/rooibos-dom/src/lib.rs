@@ -25,6 +25,8 @@ use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
+#[cfg(feature = "effects")]
+pub use tachyonfx;
 pub use terminput::*;
 
 pub fn delay<F>(duration: Duration, f: F)

@@ -146,6 +146,8 @@ impl<C, P> FlexNode<C, P> {
 }
 
 impl FlexProperty for ZIndex {}
+#[cfg(feature = "effects")]
+impl FlexProperty for super::layout::Effect {}
 impl FlexProperty for Clear {}
 impl FlexProperty for Focusable {}
 

@@ -25,6 +25,9 @@ tracing = "0.1"
 thiserror = "2"
 textwrap = "0.16.1"
 unicode-width = "0.2.0"
+tachyonfx = { path = "../../../tachyonfx", default-features = false, features = [
+  "sendable",
+], optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.43", features = ["rt", "macros", "sync"] }
@@ -38,3 +41,4 @@ termion = ["terminput/termion", "tui-textarea?/termion"]
 termwiz = ["terminput/termwiz", "tui-textarea?/termwiz"]
 input = ["tui-textarea"]
 default = ["crossterm"]
+effects = ["dep:tachyonfx"]

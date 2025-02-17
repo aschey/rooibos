@@ -11,10 +11,12 @@ use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
+#[cfg(feature = "effects")]
+use tachyonfx::{EffectRenderer, Shader};
 use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind, ScrollDirection};
 
 use super::node_tree::{DomNodeKey, NodeTree};
-use super::unmount_child;
+use super::{refresh_dom, unmount_child};
 use crate::events::{
     BlurEvent, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler, IntoKeyHandler,
     dispatch_event, reset_mouse_position,
@@ -284,6 +286,29 @@ impl DomNodeRepr {
     }
 }
 
+#[cfg(feature = "effects")]
+#[derive(Debug, Clone)]
+pub struct EffectProperties {
+    effect: tachyonfx::Effect,
+    last_tick: std::time::Instant,
+}
+
+#[cfg(feature = "effects")]
+impl EffectProperties {
+    pub(crate) fn new(effect: tachyonfx::Effect) -> Self {
+        Self {
+            effect,
+            last_tick: std::time::Instant::now(),
+        }
+    }
+
+    fn tick(&mut self) -> tachyonfx::Duration {
+        let elapsed = self.last_tick.elapsed();
+        self.last_tick = std::time::Instant::now();
+        elapsed.into()
+    }
+}
+
 #[derive(Educe)]
 #[educe(Debug, Default)]
 pub struct NodeProperties {
@@ -304,6 +329,8 @@ pub struct NodeProperties {
     pub(crate) scroll_offset: Position,
     pub(crate) ancestor_scroll_offset: Position,
     pub(crate) max_scroll_offset: Position,
+    #[cfg(feature = "effects")]
+    pub(crate) effects: Option<RefCell<EffectProperties>>,
     #[educe(Default = true)]
     enabled: bool,
     #[educe(Default = true)]
@@ -527,6 +554,17 @@ impl NodeProperties {
                 }
                 NodeType::Placeholder => {}
             }
+            #[cfg(feature = "effects")]
+            if let Some(effects) = &self.effects {
+                let mut effects = effects.borrow_mut();
+
+                if effects.effect.running() {
+                    let tick = effects.tick();
+
+                    frame.render_effect(&mut effects.effect, render_bounds, tick);
+                    refresh_dom();
+                }
+            }
         } else {
             self.visible.store(false, Ordering::Relaxed);
         }
@@ -565,6 +603,8 @@ impl NodeProperties {
             scroll_offset,
             ancestor_scroll_offset: _ancestor_scroll_offset,
             max_scroll_offset,
+            #[cfg(feature = "effects")]
+            effects,
             z_index: _z_index,
             unmounted: _unmounted,
             parent_enabled: _parent_enabled,
@@ -584,6 +624,8 @@ impl NodeProperties {
         let enabled = *enabled;
         let scroll_offset = *scroll_offset;
         let max_scroll_offset = *max_scroll_offset;
+        #[cfg(feature = "effects")]
+        let effects = effects.clone();
 
         self.name = name;
         self.node_type = node_type;
@@ -598,6 +640,10 @@ impl NodeProperties {
         self.enabled = enabled;
         self.scroll_offset = scroll_offset;
         self.max_scroll_offset = max_scroll_offset;
+        #[cfg(feature = "effects")]
+        {
+            self.effects = effects;
+        }
     }
 }
 
@@ -860,6 +906,14 @@ impl DomNode {
     pub fn block(self, block: Block<'static>) -> Self {
         with_nodes_mut(|n| {
             n.set_block(self.key, block);
+        });
+        self
+    }
+
+    #[cfg(feature = "effects")]
+    pub fn effect(self, effect: tachyonfx::Effect) -> Self {
+        with_nodes_mut(|n| {
+            n.set_effect(self.key, effect);
         });
         self
     }

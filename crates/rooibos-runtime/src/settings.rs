@@ -1,3 +1,4 @@
+use std::num::NonZeroU16;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -24,6 +25,7 @@ pub struct RuntimeSettings {
     pub(crate) hover_debounce: Duration,
     pub(crate) resize_debounce: Duration,
     pub(crate) viewport: Viewport,
+    pub(crate) max_fps: f32,
     #[educe(Debug(ignore))]
     pub(crate) is_quit_event: Arc<IsQuitEvent>,
     #[educe(Debug(ignore))]
@@ -37,6 +39,7 @@ impl Default for RuntimeSettings {
             enable_signal_handler: true,
             show_final_output: None,
             viewport: Viewport::Fullscreen,
+            max_fps: 60.0,
             hover_debounce: Duration::from_millis(20),
             resize_debounce: Duration::from_millis(20),
             is_quit_event: Arc::new(|key_event| {
@@ -77,6 +80,11 @@ impl RuntimeSettings {
 
     pub fn viewport(mut self, viewport: Viewport) -> Self {
         self.viewport = viewport;
+        self
+    }
+
+    pub fn max_fps(mut self, max_fps: NonZeroU16) -> Self {
+        self.max_fps = max_fps.get() as f32;
         self
     }
 

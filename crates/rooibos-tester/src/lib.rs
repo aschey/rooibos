@@ -297,6 +297,8 @@ impl TestHarness {
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
             if f(self, last_tick_result) {
+                // Ensure the screen is updated in case we're still in a debouncer timeout
+                render_terminal(&mut self.terminal).await.unwrap();
                 return Ok(());
             }
             if Instant::now().duration_since(start) > timeout {

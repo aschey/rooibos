@@ -56,3 +56,4 @@ clipboard = [
 keybind = ["rooibos-keybind"]
 spinner = ["rooibos-components/spinner"]
 derive-commands = ["rooibos-keybind?/derive-commands"]
+effects = ["rooibos-reactive/effects"]

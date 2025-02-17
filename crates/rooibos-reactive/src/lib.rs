@@ -22,6 +22,8 @@ pub use provider::*;
 pub use reactive_graph as __reactive;
 use reactive_graph::owner::Owner;
 pub use rooibos_dom::NonblockingTerminal;
+#[cfg(feature = "effects")]
+pub use rooibos_dom::tachyonfx;
 pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use tachys::view::any_view;

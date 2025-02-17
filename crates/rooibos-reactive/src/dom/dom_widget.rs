@@ -39,6 +39,8 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
+#[cfg(feature = "effects")]
+impl WidgetProperty for super::layout::Effect {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
