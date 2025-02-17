@@ -29,18 +29,14 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Errors, col, derive_signal, height, margin, max_height, padding, padding_left, row, transition,
-    wgt, width,
+    Errors, col, derive_signal, height, margin, padding, padding_left, row, transition, wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use server::run_server;
-use taffy::{
-    AlignItems, Dimension, JustifyContent, LengthPercentage, LengthPercentageAuto, Overflow,
-    Position,
-};
+use taffy::{AlignItems, JustifyContent, LengthPercentage, Overflow, Position};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

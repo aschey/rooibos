@@ -19,7 +19,7 @@ use rooibos_dom::{
     render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
-use terminput::{CTRL, Event, KeyCode, KeyEvent, KeyModifiers, Repeats, key};
+use terminput::{CTRL, Event, KeyCode, Repeats, key};
 use tokio::sync::mpsc;
 
 #[tokio::main(flavor = "current_thread")]
