@@ -302,6 +302,7 @@ pub struct NodeProperties {
     pub(crate) block: Option<Block<'static>>,
     pub(crate) clear: bool,
     pub(crate) scroll_offset: Position,
+    pub(crate) ancestor_scroll_offset: Position,
     pub(crate) max_scroll_offset: Position,
     #[educe(Default = true)]
     enabled: bool,
@@ -343,14 +344,24 @@ impl NodeProperties {
         self.parent_enabled = enabled;
     }
 
+    pub(crate) fn visible(&self) -> bool {
+        self.visible.load(Ordering::Relaxed)
+    }
+
     pub(crate) fn position(&self) -> Rect {
         let mut rect = *self.rect.borrow();
-        rect.x += self.scroll_offset.x;
-        rect.y += self.scroll_offset.y;
+        rect.x = rect
+            .x
+            .saturating_sub(self.scroll_offset.x)
+            .saturating_sub(self.ancestor_scroll_offset.x);
+        rect.y = rect
+            .y
+            .saturating_sub(self.scroll_offset.y)
+            .saturating_sub(self.ancestor_scroll_offset.y);
         rect
     }
 
-    pub(crate) fn scroll(&mut self, direction: ScrollDirection) {
+    pub(crate) fn scroll(&mut self, direction: ScrollDirection) -> taffy::Point<i32> {
         let delta = direction.delta();
         let mut x = self.scroll_offset.x as i32 - delta.x;
         let mut y = self.scroll_offset.y as i32 - delta.y;
@@ -358,8 +369,21 @@ impl NodeProperties {
         x = x.min(self.max_scroll_offset.x as i32).max(0);
         y = y.min(self.max_scroll_offset.y as i32).max(0);
 
+        let x_change = x - self.scroll_offset.x as i32;
+        let y_change = y - self.scroll_offset.y as i32;
         self.scroll_offset.x = x as u16;
         self.scroll_offset.y = y as u16;
+        taffy::Point {
+            x: x_change,
+            y: y_change,
+        }
+    }
+
+    pub(crate) fn update_ancestor_scroll_offsets(&mut self, change: taffy::Point<i32>) {
+        self.ancestor_scroll_offset.x =
+            (self.ancestor_scroll_offset.x as i32 + change.x).max(0) as u16;
+        self.ancestor_scroll_offset.y =
+            (self.ancestor_scroll_offset.y as i32 + change.y).max(0) as u16;
     }
 
     fn render(&self, props: RenderProps) {
@@ -554,6 +578,7 @@ impl NodeProperties {
             clear,
             enabled,
             scroll_offset,
+            ancestor_scroll_offset: _ancestor_scroll_offset,
             max_scroll_offset,
             z_index: _z_index,
             unmounted: _unmounted,

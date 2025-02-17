@@ -100,10 +100,12 @@ impl EventDispatcher {
                         return None;
                     }
 
-                    if inner.position().contains(Position {
-                        x: mouse_event.column,
-                        y: mouse_event.row,
-                    }) && inner.focusable()
+                    if inner.focusable()
+                        && inner.visible()
+                        && inner.position().contains(Position {
+                            x: mouse_event.column,
+                            y: mouse_event.row,
+                        })
                     {
                         Some(key)
                     } else {

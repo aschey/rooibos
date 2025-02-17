@@ -424,7 +424,7 @@ impl NodeTree {
                 (layout.size.height as u16).saturating_sub(self.window_size.height),
             );
         }
-        // let content_box_height = layout.content_box_height();
+
         if (layout.scroll_height() > 0.0 && self.style(parent_key).overflow.y == Overflow::Scroll)
             || (layout.scroll_width() > 0.0
                 && self.style(parent_key).overflow.x == Overflow::Scroll)
@@ -642,10 +642,19 @@ impl NodeTree {
     }
 
     pub(crate) fn scroll(&mut self, node: DomNodeKey, direction: ScrollDirection) {
-        self.dom_nodes[node].inner.scroll(direction);
+        let change = self.dom_nodes[node].inner.scroll(direction);
+        self.update_ancestor_scroll_offsets(node, change);
         refresh_dom();
     }
 
+    fn update_ancestor_scroll_offsets(&mut self, node: DomNodeKey, change: taffy::Point<i32>) {
+        for child in self.dom_nodes[node].inner.children.clone() {
+            self.dom_nodes[child]
+                .inner
+                .update_ancestor_scroll_offsets(change);
+            self.update_ancestor_scroll_offsets(child, change);
+        }
+    }
     pub fn set_enabled(&mut self, key: DomNodeKey, enabled: bool) {
         self.dom_nodes[key].inner.set_enabled(enabled);
 
