@@ -171,3 +171,22 @@ where
         self.widget.estimate_size()
     }
 }
+
+#[cfg(feature = "effects")]
+impl MeasureNode for tachyonfx::widget::EffectTimeline {
+    fn measure(
+        &self,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<taffy::AvailableSpace>,
+        _style: &taffy::Style,
+    ) -> Size<f32> {
+        self.estimate_size()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size {
+            width: 0.0,
+            height: 0.0,
+        }
+    }
+}
