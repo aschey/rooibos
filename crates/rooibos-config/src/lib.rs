@@ -41,10 +41,7 @@ pub fn provide_config<T: Config + PartialEq + Send + Sync + 'static>(config: App
     spawn_service((
         "config_watcher",
         move |context: ServiceContext| async move {
-            watcher
-                .cancel_on(async move { context.cancelled().await })
-                .run()
-                .await;
+            watcher.cancel_on(context.cancelled_owned()).run().await;
             Ok(())
         },
     ));

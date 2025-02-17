@@ -142,10 +142,12 @@ where
 
     pub async fn setup_terminal(&mut self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
         let tui_backend = self.backend.create_tui_backend()?;
-        let mut terminal =
-            ratatui::Terminal::with_options(tui_backend, ratatui::TerminalOptions {
+        let mut terminal = ratatui::Terminal::with_options(
+            tui_backend,
+            ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
-            })?;
+            },
+        )?;
         self.backend.setup_terminal(&mut terminal)?;
         let terminal = NonblockingTerminal::new(terminal);
 
@@ -314,7 +316,7 @@ where
         loop {
             tokio::select! {
                 services_result = services_cancel.clone() => {
-                    services_result?;
+                    let _ = services_result.inspect_err(|e| error!("services failed: {e:?}"));
                     let _ = self
                         .service_manager
                         .cancel()
