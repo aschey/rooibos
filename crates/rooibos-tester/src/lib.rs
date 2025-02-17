@@ -49,8 +49,9 @@ impl TerminalView for Buffer {
             width: rect.width,
             height: rect.height,
         });
-        for row in rect.y..rect.y + rect.height {
-            for col in rect.x..rect.x + rect.width {
+        let Rect { width, height, .. } = self.area();
+        for row in rect.y..(rect.y + rect.height).min(*height) {
+            for col in rect.x..(rect.x + rect.width).min(*width) {
                 let cur = self.cell((col, row)).unwrap();
                 let new = buf.cell_mut((col - rect.x, row - rect.y)).unwrap();
 

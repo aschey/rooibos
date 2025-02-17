@@ -46,7 +46,7 @@ impl AsDomNode for Box<dyn AsDomNode> {
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum NodeIdInner {
     Auto(u32),
-    Manual { id: String, internal_id: u32 },
+    Manual(String),
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -58,10 +58,7 @@ impl NodeId {
     }
 
     pub fn new(id: impl Into<String>) -> Self {
-        Self(NodeIdInner::Manual {
-            id: id.into(),
-            internal_id: next_node_id(),
-        })
+        Self(NodeIdInner::Manual(id.into()))
     }
 }
 
@@ -69,7 +66,7 @@ impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match &self.0 {
             NodeIdInner::Auto(val) => fmt::Display::fmt(&val, f),
-            NodeIdInner::Manual { id, .. } => fmt::Display::fmt(&id, f),
+            NodeIdInner::Manual(id) => fmt::Display::fmt(&id, f),
         }
     }
 }
@@ -592,11 +589,6 @@ impl NodeProperties {
         self.scroll_offset = scroll_offset;
         self.max_scroll_offset = max_scroll_offset;
     }
-}
-
-fn normalize_rect(dimension: u16, coord: u16, window_coord: u16) -> u16 {
-    // convert to signed values first to prevent overflow on subtraction
-    (dimension as i16 - coord as i16 - window_coord as i16) as u16
 }
 
 #[derive(Clone, Debug, Default)]

@@ -1,10 +1,9 @@
 ---
 source: examples/examples/todos_api/tests.rs
 expression: harness.buffer()
-snapshot_kind: text
 ---
 Buffer {
-    area: Rect { x: 0, y: 0, width: 50, height: 10 },
+    area: Rect { x: 0, y: 0, width: 50, height: 15 },
     content: [
         "                                                  ",
         "            ┌───────────────────────────┐╭──────╮ ",
@@ -12,6 +11,11 @@ Buffer {
         "            └───────────────────────────┘╰──────╯ ",
         " ┌Todos─────────────────────────────────────────┐ ",
         " │No todos                                      │ ",
+        " │                                              │ ",
+        " │                                              │ ",
+        " │                                              │ ",
+        " │                                              │ ",
+        " │                                              │ ",
         " │                                              │ ",
         " └──────────────────────────────────────────────┘ ",
         "                                                  ",

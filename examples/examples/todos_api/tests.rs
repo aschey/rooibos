@@ -35,7 +35,7 @@ async fn test_todos() {
             .handle_commands(cmd_handler)
             .enable_signal_handler(false),
         50,
-        10,
+        15,
     )
     .await;
     harness.mount(|| app(Duration::from_millis(500))).await;
