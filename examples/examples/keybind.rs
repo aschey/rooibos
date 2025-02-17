@@ -42,9 +42,10 @@ fn app() -> impl Render {
         wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
             .on_key_down(
                 [
-                    KeyActionMap::action(keys::combine([keys::CTRL, keys::UP]), AppAction::Count {
-                        val: 1
-                    }),
+                    KeyActionMap::action(
+                        keys::combine([keys::CTRL, keys::UP]),
+                        AppAction::Count { val: 1 }
+                    ),
                     KeyActionMap::action(
                         keys::combine([keys::CTRL, keys::DOWN]),
                         AppAction::Count { val: -1 }

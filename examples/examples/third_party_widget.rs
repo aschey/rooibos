@@ -28,15 +28,20 @@ fn app() -> impl Render {
     let state = RwSignal::new(TreeState::default());
     let tree = RwSignal::new(vec![
         TreeItem::new_leaf("a", "a"),
-        TreeItem::new("b", "b", vec![
-            TreeItem::new_leaf("c", "c"),
-            TreeItem::new("d", "d", vec![
-                TreeItem::new_leaf("e", "e"),
-                TreeItem::new_leaf("f", "f"),
-            ])
-            .unwrap(),
-            TreeItem::new_leaf("g", "g"),
-        ])
+        TreeItem::new(
+            "b",
+            "b",
+            vec![
+                TreeItem::new_leaf("c", "c"),
+                TreeItem::new(
+                    "d",
+                    "d",
+                    vec![TreeItem::new_leaf("e", "e"), TreeItem::new_leaf("f", "f")],
+                )
+                .unwrap(),
+                TreeItem::new_leaf("g", "g"),
+            ],
+        )
         .unwrap(),
         TreeItem::new_leaf("h", "h"),
     ]);

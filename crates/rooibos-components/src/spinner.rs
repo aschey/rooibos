@@ -177,11 +177,14 @@ impl Spinner {
         let state = self.create_state();
         let create_spinner = self.create_spinner_fn();
 
-        wgt!(state.get(), SpinnerWidget {
-            inner: create_spinner(),
-            label,
-            spinner_set
-        })
+        wgt!(
+            state.get(),
+            SpinnerWidget {
+                inner: create_spinner(),
+                label,
+                spinner_set
+            }
+        )
     }
 }
 

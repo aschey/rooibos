@@ -19,10 +19,10 @@ pub(crate) struct BidiChannel<S, R> {
 pub(crate) fn channel<S, R>(buffer_size: usize) -> (BidiChannel<S, R>, BidiChannel<R, S>) {
     let (tx1, rx1) = mpsc::channel(buffer_size);
     let (tx2, rx2) = mpsc::channel(buffer_size);
-    (BidiChannel { tx: tx1, rx: rx2 }, BidiChannel {
-        tx: tx2,
-        rx: rx1,
-    })
+    (
+        BidiChannel { tx: tx1, rx: rx2 },
+        BidiChannel { tx: tx2, rx: rx1 },
+    )
 }
 
 enum TermRequest {

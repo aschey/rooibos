@@ -70,11 +70,14 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
 
     wgt!(
         props(width!(100.%), height!(100.%)),
-        Table::new(rows.get(), [
-            Constraint::Length(15),
-            Constraint::Length(15),
-            Constraint::Length(10),
-        ])
+        Table::new(
+            rows.get(),
+            [
+                Constraint::Length(15),
+                Constraint::Length(15),
+                Constraint::Length(10),
+            ]
+        )
         .header(
             Row::new(vec!["Server", "Location", "Status"])
                 .yellow()
