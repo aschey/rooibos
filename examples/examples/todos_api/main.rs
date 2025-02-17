@@ -14,7 +14,8 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, clear, justify_content, max_width, pct, position, show,
+    Borders, align_items, borders, chars, clear, justify_content, max_width, overflow_y, pct,
+    position, show,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -28,14 +29,18 @@ use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    Errors, col, derive_signal, height, margin, padding, padding_left, row, transition, wgt, width,
+    Errors, col, derive_signal, height, margin, max_height, padding, padding_left, row, transition,
+    wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::crossterm::CrosstermBackend;
 use rooibos::tui::style::Stylize;
 use server::run_server;
-use taffy::{AlignItems, JustifyContent, LengthPercentage, Position};
+use taffy::{
+    AlignItems, Dimension, JustifyContent, LengthPercentage, LengthPercentageAuto, Overflow,
+    Position,
+};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -112,10 +117,11 @@ fn app(notification_timeout: Duration) -> impl Render {
             wgt!("Add a Todo"),
             add_todo_input(input_id)
         ],
-        row![
+        col![
             props(
                 width!(100.%),
                 height!(100.%),
+                overflow_y(Overflow::Scroll),
                 borders(Borders::all().title("Todos"))
             ),
             todos_body(editing_id, notification_timeout)
@@ -234,18 +240,15 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     transition!(
         wgt!(line!(" Loading...".gray())),
         todos.await.map(|todos| {
-            col![
-                props(width!(100.%)),
-                if todos.is_empty() {
-                    wgt!("No todos".gray()).into_any()
-                } else {
-                    todos
-                        .into_iter()
-                        .map(|t| todo_item(t.id, t.text, editing_id))
-                        .collect::<Vec<_>>()
-                        .into_any()
-                }
-            ]
+            if todos.is_empty() {
+                wgt!("No todos".gray()).into_any()
+            } else {
+                todos
+                    .into_iter()
+                    .map(|t| todo_item(t.id, t.text, editing_id))
+                    .collect::<Vec<_>>()
+                    .into_any()
+            }
         }),
         fallback
     )

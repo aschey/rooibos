@@ -103,6 +103,15 @@ impl ContentRect {
         }
     }
 
+    pub(crate) fn child_bounds(&self) -> Rect {
+        Rect {
+            x: self.x + self.border.left + self.padding.left,
+            y: self.y + self.border.top + self.padding.top,
+            width: self.content_box_size.width,
+            height: self.content_box_size.height,
+        }
+    }
+
     pub(crate) fn can_scroll(&self) -> bool {
         self.max_scroll_offset != Position::ORIGIN
     }

@@ -1,4 +1,4 @@
-use ratatui::style::{Style, Styled};
+use ratatui::style::{Color, Style, Styled, Stylize};
 use ratatui::symbols::border;
 use ratatui::widgets::block::Title;
 use taffy::LengthPercentage;
@@ -39,12 +39,23 @@ impl From<BorderType> for border::Set {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Borders {
     borders: ratatui::widgets::Borders,
     border_type: BorderType,
     titles: Vec<Title<'static>>,
     style: Style,
+}
+
+impl Default for Borders {
+    fn default() -> Self {
+        Self {
+            borders: ratatui::widgets::Borders::default(),
+            border_type: BorderType::default(),
+            titles: Vec::new(),
+            style: Style::default().fg(Color::Reset),
+        }
+    }
 }
 
 impl Styled for Borders {
