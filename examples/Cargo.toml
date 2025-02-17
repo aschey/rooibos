@@ -15,6 +15,7 @@ rooibos = { path = "../crates/rooibos", features = [
   "router",
   "spinner",
   "keybind",
+  "derive-commands",
 ] }
 tokio = { version = "1.43.0", features = ["rt", "macros"] }
 tracing = "0.1.41"

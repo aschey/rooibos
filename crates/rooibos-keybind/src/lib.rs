@@ -15,6 +15,7 @@ use modalkit::env::CommonKeyClass;
 pub use modalkit::key::TerminalKey;
 pub use modalkit::keybindings::SequenceStatus;
 use modalkit::keybindings::{EdgeEvent, EdgeRepeat};
+#[cfg(feature = "derive-commands")]
 pub use rooibos_keybind_macros::*;
 
 fn parse<S>(input: S) -> Vec<(EdgeRepeat, EdgeEvent<TerminalKey, CommonKeyClass>)>

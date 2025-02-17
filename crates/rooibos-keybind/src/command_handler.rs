@@ -3,7 +3,6 @@ use std::ffi::OsString;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use clap::Parser;
 use educe::Educe;
 use modalkit::actions::{
     Action, CommandAction, CommandBarAction, Commandable, EditAction, EditorAction, PromptAction,
@@ -458,9 +457,10 @@ where
     }
 }
 
+#[cfg(feature = "derive-commands")]
 pub fn generate_commands<C>(command_handler: &mut CommandHandler<C>)
 where
-    C: Parser + ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    C: clap::Parser + ApplicationAction + CommandCompleter + Send + Sync + 'static,
 {
     let cmd = C::command();
     for sub in cmd.get_subcommands().map(|s| s.get_name()) {
@@ -472,12 +472,13 @@ where
     }
 }
 
+#[cfg(feature = "derive-commands")]
 pub fn handler<C>(
     desc: CommandDescription,
     ctx: &mut CommandContext,
 ) -> CommandResult<VimCommand<AppInfo<C>>>
 where
-    C: Parser + ApplicationAction + CommandCompleter,
+    C: clap::Parser + ApplicationAction + CommandCompleter,
 {
     let full_cmd = format!("- {} {}", desc.name(), desc.arg.text);
     let args = shlex::split(&full_cmd).unwrap();
@@ -488,9 +489,10 @@ where
     ))
 }
 
+#[cfg(feature = "derive-commands")]
 pub fn complete<C>(text: &str, cursor_position: usize) -> Vec<String>
 where
-    C: Parser,
+    C: clap::Parser,
 {
     let cursor_position = char_index_to_offset(text, cursor_position);
     let text = &text[..cursor_position];
