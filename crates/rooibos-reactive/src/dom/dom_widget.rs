@@ -23,6 +23,8 @@ use super::layout::{
     overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right,
     padding_top, padding_x, padding_y, position, shrink, width,
 };
+#[cfg(feature = "effects")]
+use super::layout::{Effect, effect};
 use crate::dom::RooibosDom;
 
 #[derive(Clone, Debug)]
@@ -39,8 +41,6 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
-#[cfg(feature = "effects")]
-impl WidgetProperty for super::layout::Effect {}
 impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
@@ -421,11 +421,15 @@ where
 pub struct LayoutProps {
     pub borders: BorderProp,
     pub simple: SimpleLayoutProps,
+    #[cfg(feature = "effects")]
+    pub effect: Effect,
 }
 
 pub struct LayoutPropsState {
     borders: <BorderProp as Property>::State,
     simple: <SimpleLayoutProps as Property>::State,
+    #[cfg(feature = "effects")]
+    effect: <Effect as Property>::State,
 }
 
 impl Property for LayoutProps {
@@ -433,13 +437,22 @@ impl Property for LayoutProps {
 
     fn build(self, node: &DomNode) -> Self::State {
         let borders = self.borders.build(node);
+        #[cfg(feature = "effects")]
+        let effect = self.effect.build(node);
         let simple = self.simple.build(node);
-        LayoutPropsState { borders, simple }
+        LayoutPropsState {
+            borders,
+            simple,
+            #[cfg(feature = "effects")]
+            effect,
+        }
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
         self.borders.rebuild(node, &mut state.borders);
         self.simple.rebuild(node, &mut state.simple);
+        #[cfg(feature = "effects")]
+        self.effect.rebuild(node, &mut state.effect);
     }
 }
 
@@ -751,6 +764,8 @@ widget_prop!(AlignSelf, align_self, taffy::AlignSelf, simple.align_self);
 widget_prop!(Basis, basis, taffy::Dimension, simple.basis);
 
 widget_prop!(BorderProp, borders, Borders, borders);
+#[cfg(feature = "effects")]
+widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
 
 macro_rules! impl_widget_property_for_tuples {
     ($($ty:ident),* $(,)?) => {

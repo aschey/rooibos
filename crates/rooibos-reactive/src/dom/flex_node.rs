@@ -18,6 +18,8 @@ use super::layout::{
     overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top,
     padding_x, padding_y, position, show, shrink, width, wrap,
 };
+#[cfg(feature = "effects")]
+use super::layout::{Effect, effect};
 use super::{DomNode, RenderAny, RooibosDom};
 use crate::dom::layout::Focusable;
 
@@ -146,8 +148,6 @@ impl<C, P> FlexNode<C, P> {
 }
 
 impl FlexProperty for ZIndex {}
-#[cfg(feature = "effects")]
-impl FlexProperty for super::layout::Effect {}
 impl FlexProperty for Clear {}
 impl FlexProperty for Focusable {}
 
@@ -219,6 +219,7 @@ flex_prop!(PaddingY, padding_y, taffy::LengthPercentage);
 flex_prop!(Padding, padding, taffy::LengthPercentage);
 
 flex_prop!(BorderProp, borders, Borders);
+flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
 
 flex_prop!(Show, show, bool);
 

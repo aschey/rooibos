@@ -156,11 +156,12 @@ impl Property for ZIndex {
 }
 
 #[cfg(feature = "effects")]
-pub struct Effect(pub(crate) Signal<rooibos_dom::tachyonfx::Effect>);
+#[derive(Default, Clone)]
+pub struct Effect(pub(crate) Option<Signal<rooibos_dom::tachyonfx::Effect>>);
 
 #[cfg(feature = "effects")]
 pub fn effect(effect: impl Into<Signal<rooibos_dom::tachyonfx::Effect>>) -> (Effect,) {
-    (Effect(effect.into()),)
+    (Effect(Some(effect.into())),)
 }
 
 #[cfg(feature = "effects")]
@@ -170,9 +171,11 @@ impl Property for Effect {
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
         RenderEffect::new(move |_| {
-            with_nodes_mut(|nodes| {
-                nodes.set_effect(key, self.0.get());
-            });
+            if let Some(effect) = self.0 {
+                with_nodes_mut(|nodes| {
+                    nodes.set_effect(key, effect.get());
+                });
+            }
         })
     }
 
