@@ -2,6 +2,7 @@ use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::Signal;
+use rooibos_dom::NodeId;
 pub use rooibos_dom::{BorderType, Borders};
 use taffy::Display;
 
@@ -160,6 +161,13 @@ impl Property for ZIndex {
 pub struct Effect(pub(crate) Option<Signal<rooibos_dom::tachyonfx::Effect>>);
 
 #[cfg(feature = "effects")]
+impl Effect {
+    pub fn value(&self) -> Option<Signal<rooibos_dom::tachyonfx::Effect>> {
+        self.0
+    }
+}
+
+#[cfg(feature = "effects")]
 pub fn effect(effect: impl Into<Signal<rooibos_dom::tachyonfx::Effect>>) -> (Effect,) {
     (Effect(Some(effect.into())),)
 }
@@ -188,6 +196,12 @@ impl Property for Effect {
 #[derive(Default, Clone)]
 pub struct Clear(pub(crate) Option<Signal<bool>>);
 
+impl Clear {
+    pub fn value(&self) -> Option<Signal<bool>> {
+        self.0
+    }
+}
+
 pub fn clear(clear: impl Into<Signal<bool>>) -> (Clear,) {
     (Clear(Some(clear.into())),)
 }
@@ -210,6 +224,34 @@ impl Property for Clear {
         let new = self.build(node);
         *state = new;
     }
+}
+
+#[derive(Default, Clone)]
+pub struct Id(pub(crate) Option<NodeId>);
+
+impl Id {
+    pub fn value(&self) -> Option<NodeId> {
+        self.0.clone()
+    }
+}
+
+pub fn id(id: impl Into<NodeId>) -> (Id,) {
+    (Id(Some(id.into())),)
+}
+
+impl Property for Id {
+    type State = ();
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.get_key();
+        if let Some(id) = self.0 {
+            with_nodes_mut(|nodes| {
+                nodes.set_id(key, id);
+            });
+        }
+    }
+
+    fn rebuild(self, _node: &DomNode, _state: &mut Self::State) {}
 }
 
 impl<T> Property for T
@@ -237,6 +279,12 @@ where
 #[derive(Default, Clone)]
 pub struct Focusable(pub(crate) Option<Signal<bool>>);
 
+impl Focusable {
+    pub fn value(&self) -> Option<Signal<bool>> {
+        self.0
+    }
+}
+
 pub fn focusable(focusable: impl Into<Signal<bool>>) -> (Focusable,) {
     (Focusable(Some(focusable.into())),)
 }
@@ -261,10 +309,17 @@ impl Property for Focusable {
     }
 }
 
-pub struct Enabled(pub(crate) Signal<bool>);
+#[derive(Default, Clone)]
+pub struct Enabled(pub(crate) Option<Signal<bool>>);
 
-pub fn enabled(enabled: impl Into<Signal<bool>>) -> Enabled {
-    Enabled(enabled.into())
+impl Enabled {
+    pub fn value(&self) -> Option<Signal<bool>> {
+        self.0
+    }
+}
+
+pub fn enabled(enabled: impl Into<Signal<bool>>) -> (Enabled,) {
+    (Enabled(Some(enabled.into())),)
 }
 
 impl Property for Enabled {
@@ -272,11 +327,13 @@ impl Property for Enabled {
 
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
-        let enabled = Memo::new(move |_| self.0.get());
+        let enabled = self.0.map(|v| Memo::new(move |_| v.get()));
         RenderEffect::new(move |_| {
-            with_nodes_mut(|nodes| {
-                nodes.set_enabled(key, enabled.get());
-            });
+            if let Some(enabled) = enabled {
+                with_nodes_mut(|nodes| {
+                    nodes.set_enabled(key, enabled.get());
+                });
+            }
         })
     }
 

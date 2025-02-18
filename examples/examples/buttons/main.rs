@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use ratatui::palette::Hsl;
 use rooibos::components::{Button, ButtonRef};
 use rooibos::keybind::{Bind, KeybindContext, key, keys};
-use rooibos::reactive::dom::{Render, text, try_focus_id};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, text, try_focus_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;

@@ -3,7 +3,7 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::Widget;
 use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
-use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, NodeId, RenderNode, set_editing};
+use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, RenderNode, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
@@ -131,7 +131,6 @@ pub struct Input {
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
     initial_value: String,
-    id: Option<NodeId>,
 }
 
 impl Default for Input {
@@ -147,7 +146,6 @@ impl Default for Input {
             on_focus: Box::new(|_, _| {}),
             on_blur: Box::new(|_, _| {}),
             initial_value: "".to_string(),
-            id: None,
         }
     }
 }
@@ -189,11 +187,6 @@ impl Input {
         self
     }
 
-    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
-        self.id = Some(id.into());
-        self
-    }
-
     pub fn get_ref() -> InputRef {
         let (submit_tx, _) = broadcast::channel(32);
         InputRef {
@@ -214,7 +207,6 @@ impl Input {
             mut on_focus,
             mut on_blur,
             initial_value,
-            id,
         } = self;
 
         let text_area = input_ref.text_area;
@@ -290,7 +282,7 @@ impl Input {
             }
         };
 
-        let mut widget = DomWidget::new::<TextArea, _>(move || {
+        DomWidget::new::<TextArea, _>(move || {
             text_area.track();
             RenderInput { text_area }
         })
@@ -307,11 +299,7 @@ impl Input {
             set_editing(false);
             set_focused.set(false);
             on_blur(blur_event, event_data);
-        });
-        if let Some(id) = id {
-            widget = widget.id(id);
-        }
-        widget
+        })
     }
 }
 

@@ -704,7 +704,7 @@ impl NodeTree {
             update(self.dom_nodes[node].inner.event_handlers.clone())
     }
 
-    pub(crate) fn set_id(&mut self, node: DomNodeKey, id: impl Into<dom_node::NodeId>) {
+    pub fn set_id(&mut self, node: DomNodeKey, id: impl Into<dom_node::NodeId>) {
         self.dom_nodes[node].inner.id = Some(id.into());
     }
 

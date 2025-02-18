@@ -6,7 +6,7 @@ use ratatui::layout::Alignment;
 use ratatui::style::{Color, Stylize};
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
-use rooibos_dom::{KeyCode, NodeId, delay, supports_keyboard_enhancement};
+use rooibos_dom::{KeyCode, delay, supports_keyboard_enhancement};
 use rooibos_reactive::dom::layout::{BorderType, Borders, borders};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
@@ -53,10 +53,8 @@ pub struct Button {
     border_color: Signal<Color>,
     focused_border_color: Signal<Color>,
     active_border_color: Signal<Color>,
-    enabled: Signal<bool>,
     element_ref: Option<ButtonRef>,
     text_alignment: Signal<Alignment>,
-    id: Option<NodeId>,
     class: Option<String>,
 }
 
@@ -85,31 +83,14 @@ impl Button {
             focused_border_color: Color::Blue.into(),
             active_border_color: Color::Green.into(),
             border_color: Color::Gray.into(),
-            enabled: true.into(),
             text_alignment: Alignment::Left.into(),
             element_ref: None,
-            id: None,
             class: None,
         }
     }
 
-    pub fn style(mut self, props: LayoutProps) -> Self {
-        self.layout_props = props;
-        self
-    }
-
-    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
-        self.id = Some(id.into());
-        self
-    }
-
     pub fn class(mut self, class: impl Into<String>) -> Self {
         self.class = Some(class.into());
-        self
-    }
-
-    pub fn enabled(mut self, enabled: impl Into<Signal<bool>>) -> Self {
-        self.enabled = enabled.into();
         self
     }
 
@@ -168,12 +149,11 @@ impl Button {
             border_color,
             focused_border_color,
             active_border_color,
-            enabled,
             element_ref,
             text_alignment,
-            id,
             class,
         } = self;
+        let enabled = layout_props.enabled.value().unwrap_or(true.into());
 
         let border_type = RwSignal::new(BorderType::Round);
         let focused = RwSignal::new(false);
@@ -272,9 +252,6 @@ impl Button {
             }
         })
         .on_key_up(key_up);
-        if let Some(id) = id {
-            button = button.id(id);
-        }
         if let Some(class) = class {
             button = button.class(class);
         }

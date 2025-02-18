@@ -5,7 +5,9 @@ use rooibos::reactive::dom::flex_node::FlexProperty;
 use rooibos::reactive::dom::layout::{
     Borders, align_items, borders, justify_content, show, z_index,
 };
-use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, line, text};
+use rooibos::reactive::dom::{
+    NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
+};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get as _, Set};

@@ -14,11 +14,11 @@ use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Margin,
+    AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Id, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
     PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width,
-    align_self, aspect_ratio, basis, borders, clear, focusable, grow, height, margin,
+    align_self, aspect_ratio, basis, borders, clear, enabled, focusable, grow, height, id, margin,
     margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
     max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
     padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
@@ -41,7 +41,6 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
-impl WidgetProperty for Enabled {}
 
 pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
 
@@ -99,11 +98,6 @@ impl<P> DomWidget<P> {
         }
     }
 
-    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
-        self.inner.0 = self.inner.0.id(id);
-        self
-    }
-
     pub fn class(mut self, class: impl Into<String>) -> Self {
         self.inner.0 = self.inner.0.class(class);
         self
@@ -123,16 +117,6 @@ impl<P> DomWidget<P>
 where
     P: NextTuple,
 {
-    pub fn enabled<S>(self, enabled: S) -> DomWidget<P::Output<Enabled>>
-    where
-        S: Into<Signal<bool>>,
-    {
-        DomWidget {
-            inner: self.inner,
-            properties: self.properties.next_tuple(Enabled(enabled.into())),
-        }
-    }
-
     pub fn on_key_down<H>(mut self, handler: H) -> Self
     where
         H: IntoKeyHandler + 'static,
@@ -407,51 +391,65 @@ where
 
 #[derive(Default, Clone)]
 pub struct LayoutProps {
-    borders: BorderProp,
-    simple: SimpleLayoutProps,
-    focusable: Focusable,
-    clear: Clear,
+    pub simple: SimpleLayoutProps,
+    pub borders: BorderProp,
+    pub focusable: Focusable,
+    pub clear: Clear,
+    pub enabled: Enabled,
+    pub id: Id,
     #[cfg(feature = "effects")]
-    effect: Effect,
+    pub effect: Effect,
 }
 
 pub struct LayoutPropsState {
+    simple: <SimpleLayoutProps as Property>::State,
     borders: <BorderProp as Property>::State,
     focusable: <Focusable as Property>::State,
-    simple: <SimpleLayoutProps as Property>::State,
     clear: <Clear as Property>::State,
+    enabled: <Enabled as Property>::State,
+    id: <Id as Property>::State,
     #[cfg(feature = "effects")]
     effect: <Effect as Property>::State,
+}
+
+macro_rules! build_props {
+    ($self:ident, $node:ident, $($prop:ident),*) => {
+        $(let $prop = $self.$prop.build($node);)*
+    };
+}
+
+macro_rules! rebuild_props {
+    ($self:ident, $node:ident, $state:ident, $($prop:ident),*) => {
+        $($self.$prop.rebuild($node, &mut $state.$prop);)*
+    };
 }
 
 impl Property for LayoutProps {
     type State = LayoutPropsState;
 
     fn build(self, node: &DomNode) -> Self::State {
-        let borders = self.borders.build(node);
-        let focusable = self.focusable.build(node);
-        let simple = self.simple.build(node);
-        let clear = self.clear.build(node);
+        build_props!(self, node, borders, focusable, simple, clear, enabled, id);
         #[cfg(feature = "effects")]
-        let effect = self.effect.build(node);
+        build_props!(self, node, effect);
 
         LayoutPropsState {
             borders,
             focusable,
             simple,
             clear,
+            enabled,
+            id,
             #[cfg(feature = "effects")]
             effect,
         }
     }
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
-        self.borders.rebuild(node, &mut state.borders);
-        self.focusable.rebuild(node, &mut state.focusable);
-        self.simple.rebuild(node, &mut state.simple);
-        self.clear.rebuild(node, &mut state.clear);
+        rebuild_props!(
+            self, node, state, borders, focusable, simple, clear, enabled, id
+        );
         #[cfg(feature = "effects")]
-        self.effect.rebuild(node, &mut state.effect);
+        rebuild_props!(self, node, state, effect);
     }
 }
 
@@ -619,6 +617,52 @@ where
     update_props!(basis, taffy::Dimension);
 
     update_props!(borders, Borders);
+    update_props!(focusable, bool);
+    update_props!(clear, bool);
+    update_props!(enabled, bool);
+    #[cfg(feature = "effects")]
+    update_props!(effect, rooibos_dom::tachyonfx::Effect);
+
+    fn id<S>(self, val: S) -> Self
+    where
+        S: Into<NodeId>,
+    {
+        let props = self.layout_props().id(val);
+        self.update_props(props)
+    }
+}
+
+impl WidgetProperty for Id {}
+
+impl<P> DomWidget<P>
+where
+    P: NextTuple,
+{
+    pub fn id<S>(self, val: S) -> DomWidget<P::Output<Id>>
+    where
+        S: Into<NodeId>,
+    {
+        DomWidget {
+            inner: self.inner,
+            properties: self.properties.next_tuple(id(val).0),
+        }
+    }
+}
+
+impl UpdateLayoutPropsBorrowed for Id {
+    fn update_props(self, props: &mut LayoutProps) {
+        props.id = self;
+    }
+}
+
+impl LayoutProps {
+    pub fn id<S>(mut self, val: S) -> Self
+    where
+        S: Into<NodeId>,
+    {
+        self.id = id(val).0;
+        self
+    }
 }
 
 #[macro_export]
@@ -765,6 +809,7 @@ widget_prop!(Basis, basis, taffy::Dimension, simple.basis);
 widget_prop!(BorderProp, borders, Borders, borders);
 widget_prop!(Focusable, focusable, bool, focusable);
 widget_prop!(Clear, clear, bool, clear);
+widget_prop!(Enabled, enabled, bool, enabled);
 #[cfg(feature = "effects")]
 widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
 
