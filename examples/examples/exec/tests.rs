@@ -1,4 +1,4 @@
-use rooibos::reactive::{KeyCode, tick};
+use rooibos::reactive::KeyCode;
 use rooibos::runtime::{RuntimeSettings, TickResult};
 use rooibos::tester::{TerminalView, TestHarness};
 

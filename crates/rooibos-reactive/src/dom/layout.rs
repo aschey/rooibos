@@ -231,10 +231,11 @@ where
     }
 }
 
-pub struct Focusable(pub(crate) Signal<bool>);
+#[derive(Default, Clone)]
+pub struct Focusable(pub(crate) Option<Signal<bool>>);
 
-pub fn focusable(focusable: impl Into<Signal<bool>>) -> Focusable {
-    Focusable(focusable.into())
+pub fn focusable(focusable: impl Into<Signal<bool>>) -> (Focusable,) {
+    (Focusable(Some(focusable.into())),)
 }
 
 impl Property for Focusable {
@@ -243,9 +244,11 @@ impl Property for Focusable {
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
         RenderEffect::new(move |_| {
-            with_nodes_mut(|nodes| {
-                nodes.set_focusable(key, self.0.get());
-            });
+            if let Some(focusable) = self.0 {
+                with_nodes_mut(|nodes| {
+                    nodes.set_focusable(key, focusable.get());
+                });
+            }
         })
     }
 

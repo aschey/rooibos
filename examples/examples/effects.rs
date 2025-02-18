@@ -22,11 +22,7 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    // You can construct effects using the builder pattern.
-
-    // Or you can use the provided effect combinators.
     let (current_effect, set_current_effect) = signal(fx::sequence(&[
-        // first we "sweep in" the text from the left, before reversing the effect
         fx::ping_pong(fx::sweep_in(
             Motion::LeftToRight,
             10,
@@ -34,8 +30,6 @@ fn app() -> impl Render {
             Color::DarkGray,
             EffectTimer::from_ms(2000, Interpolation::QuadIn),
         )),
-        // then we coalesce the text back to its original state
-        // (note that EffectTimers can be constructed from a tuple of duration and interpolation)
         fx::coalesce((800, Interpolation::SineOut)),
     ]));
     wasm_compat::spawn_local(async move {

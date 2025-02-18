@@ -18,10 +18,10 @@ use super::layout::{
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
     PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width,
-    align_self, aspect_ratio, basis, borders, grow, height, margin, margin_bottom, margin_left,
-    margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width,
-    overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right,
-    padding_top, padding_x, padding_y, position, shrink, width,
+    align_self, aspect_ratio, basis, borders, focusable, grow, height, margin, margin_bottom,
+    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
+    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, position, shrink, width,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -41,7 +41,6 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
-impl WidgetProperty for Focusable {}
 impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
 
@@ -125,16 +124,6 @@ impl<P> DomWidget<P>
 where
     P: NextTuple,
 {
-    pub fn focusable<S>(self, focusable: S) -> DomWidget<P::Output<Focusable>>
-    where
-        S: Into<Signal<bool>>,
-    {
-        DomWidget {
-            inner: self.inner,
-            properties: self.properties.next_tuple(Focusable(focusable.into())),
-        }
-    }
-
     pub fn enabled<S>(self, enabled: S) -> DomWidget<P::Output<Enabled>>
     where
         S: Into<Signal<bool>>,
@@ -421,12 +410,14 @@ where
 pub struct LayoutProps {
     pub borders: BorderProp,
     pub simple: SimpleLayoutProps,
+    pub focusable: Focusable,
     #[cfg(feature = "effects")]
     pub effect: Effect,
 }
 
 pub struct LayoutPropsState {
     borders: <BorderProp as Property>::State,
+    focusable: <Focusable as Property>::State,
     simple: <SimpleLayoutProps as Property>::State,
     #[cfg(feature = "effects")]
     effect: <Effect as Property>::State,
@@ -437,11 +428,14 @@ impl Property for LayoutProps {
 
     fn build(self, node: &DomNode) -> Self::State {
         let borders = self.borders.build(node);
+        let focusable = self.focusable.build(node);
+        let simple = self.simple.build(node);
         #[cfg(feature = "effects")]
         let effect = self.effect.build(node);
-        let simple = self.simple.build(node);
+
         LayoutPropsState {
             borders,
+            focusable,
             simple,
             #[cfg(feature = "effects")]
             effect,
@@ -450,6 +444,7 @@ impl Property for LayoutProps {
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
         self.borders.rebuild(node, &mut state.borders);
+        self.focusable.rebuild(node, &mut state.focusable);
         self.simple.rebuild(node, &mut state.simple);
         #[cfg(feature = "effects")]
         self.effect.rebuild(node, &mut state.effect);
@@ -764,6 +759,7 @@ widget_prop!(AlignSelf, align_self, taffy::AlignSelf, simple.align_self);
 widget_prop!(Basis, basis, taffy::Dimension, simple.basis);
 
 widget_prop!(BorderProp, borders, Borders, borders);
+widget_prop!(Focusable, focusable, bool, focusable);
 #[cfg(feature = "effects")]
 widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
 

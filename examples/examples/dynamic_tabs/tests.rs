@@ -1,4 +1,3 @@
-use rooibos::reactive::tick;
 use rooibos::runtime::RuntimeSettings;
 use rooibos::tester::{TerminalView, TestHarness};
 
