@@ -25,7 +25,7 @@ tracing = "0.1"
 thiserror = "2"
 textwrap = "0.16.1"
 unicode-width = "0.2.0"
-tachyonfx = { path = "../../../tachyonfx", default-features = false, features = [
+tachyonfx = { git = "https://github.com/aschey/tachyonfx", rev = "96fdf27fe17bfe1f0c678750d7554a502943cef2", default-features = false, features = [
   "sendable",
 ], optional = true }
 

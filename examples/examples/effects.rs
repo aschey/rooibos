@@ -6,10 +6,7 @@ use rooibos::reactive::dom::{Render, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Set;
 use rooibos::reactive::tachyonfx::fx::{self, Glitch};
-use rooibos::reactive::tachyonfx::{
-    Effect, EffectTimer, Interpolation, IntoEffect,
-    Motion, SimpleRng,
-};
+use rooibos::reactive::tachyonfx::{EffectTimer, Interpolation, IntoEffect, Motion, SimpleRng};
 use rooibos::reactive::{row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, wasm_compat};
@@ -43,7 +40,7 @@ fn app() -> impl Render {
     ]));
     wasm_compat::spawn_local(async move {
         wasm_compat::sleep(std::time::Duration::from_secs(7)).await;
-        let glitch: Effect = Glitch::builder()
+        let glitch = Glitch::builder()
             .rng(SimpleRng::default())
             .action_ms(200..400)
             .action_start_delay_ms(0..1)
