@@ -12,9 +12,9 @@ use slotmap::{SlotMap, new_key_type};
 use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
 use terminput::ScrollDirection;
 
-use super::{MeasureNode, dom_node, refresh_dom};
+use super::{MeasureNode, NodeProperties, dom_node, refresh_dom};
 use crate::events::{BlurEvent, EventData, EventHandlers, FocusEvent};
-use crate::{AsDomNode, DomNode, NodeProperties, NodeType};
+use crate::{AsDomNode, DomNode, NodeType};
 
 new_key_type! { pub struct DomNodeKey; }
 
@@ -608,7 +608,6 @@ impl NodeTree {
             self.layout_tree
                 .remove_child(parent_node.layout_id, child_node.layout_id)
                 .unwrap();
-            //self.update_sizes(parent_node.layout_id);
             refresh_dom();
         }
     }
@@ -725,6 +724,7 @@ impl NodeTree {
     }
 
     pub fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
+        self.unmount_child(key);
         self.dom_nodes[key].inner.z_index = Some(z_index);
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();
         let node = DomNode::from_existing(key, unmounted);

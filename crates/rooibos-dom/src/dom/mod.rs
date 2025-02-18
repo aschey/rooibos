@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 pub use dom_node::*;
 pub use dom_widget::*;
+pub use node_properties::*;
 pub use node_tree::*;
 use ratatui::Frame;
 use ratatui::backend::Backend;
@@ -15,7 +16,7 @@ use crate::NonblockingTerminal;
 
 mod dom_node;
 mod dom_widget;
-
+mod node_properties;
 mod node_tree;
 
 // Reference for focus impl https://github.com/reactjs/rfcs/pull/109/files
