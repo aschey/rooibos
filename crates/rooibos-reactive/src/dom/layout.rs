@@ -132,10 +132,11 @@ impl Property for BorderProp {
     }
 }
 
-pub struct ZIndex(pub(crate) Signal<i32>);
+#[derive(Default, Clone)]
+pub struct ZIndex(pub(crate) Option<Signal<i32>>);
 
-pub fn z_index(z_index: impl Into<Signal<i32>>) -> ZIndex {
-    ZIndex(z_index.into())
+pub fn z_index(z_index: impl Into<Signal<i32>>) -> (ZIndex,) {
+    (ZIndex(Some(z_index.into())),)
 }
 
 impl Property for ZIndex {
@@ -143,10 +144,13 @@ impl Property for ZIndex {
 
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
+        let z_index = self.0.map(|v| Memo::new(move |_| v.get()));
         RenderEffect::new(move |_| {
-            with_nodes_mut(|nodes| {
-                nodes.set_z_index(key, self.0.get());
-            });
+            if let Some(z_index) = z_index {
+                with_nodes_mut(|nodes| {
+                    nodes.set_z_index(key, z_index.get());
+                });
+            }
         })
     }
 

@@ -706,14 +706,17 @@ impl NodeTree {
 
     pub fn set_id(&mut self, node: DomNodeKey, id: impl Into<dom_node::NodeId>) {
         self.dom_nodes[node].inner.id = Some(id.into());
+        refresh_dom();
     }
 
     pub fn set_class(&mut self, node: DomNodeKey, class: impl Into<Vec<String>>) {
         self.dom_nodes[node].inner.class = class.into();
+        refresh_dom();
     }
 
     pub fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
         self.dom_nodes[node].inner.block = Some(block);
+        refresh_dom();
     }
 
     #[cfg(feature = "effects")]
@@ -729,10 +732,12 @@ impl NodeTree {
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();
         let node = DomNode::from_existing(key, unmounted);
         self.roots.insert(RootId::new(z_index), Box::new(node));
+        refresh_dom();
     }
 
     pub fn set_clear(&mut self, key: DomNodeKey, clear: bool) {
         self.dom_nodes[key].inner.clear = clear;
+        refresh_dom();
     }
 
     pub(crate) fn add_focusable(&self, key: DomNodeKey) {

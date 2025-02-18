@@ -18,11 +18,11 @@ use super::layout::{
     Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight,
     MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom,
     PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink,
-    UpdateLayout, Width, align_self, aspect_ratio, basis, borders, class, clear, enabled,
+    UpdateLayout, Width, ZIndex, align_self, aspect_ratio, basis, borders, class, clear, enabled,
     focusable, grow, height, id, margin, margin_bottom, margin_left, margin_right, margin_top,
     margin_x, margin_y, max_height, max_width, min_height, min_width, overflow, overflow_x,
     overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
-    padding_y, position, shrink, width,
+    padding_y, position, shrink, width, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -97,11 +97,6 @@ impl<P> DomWidget<P> {
             inner,
             properties: props,
         }
-    }
-
-    pub fn z_index(mut self, z_index: i32) -> Self {
-        self.inner.0 = self.inner.0.z_index(z_index);
-        self
     }
 
     pub fn set_ref(&self, widget_ref: &mut DomWidgetRef) {
@@ -394,6 +389,7 @@ pub struct LayoutProps {
     pub enabled: Enabled,
     pub id: Id,
     pub class: Class,
+    pub z_index: ZIndex,
     #[cfg(feature = "effects")]
     pub effect: Effect,
 }
@@ -406,6 +402,7 @@ pub struct LayoutPropsState {
     enabled: <Enabled as Property>::State,
     id: <Id as Property>::State,
     class: <Class as Property>::State,
+    z_index: <ZIndex as Property>::State,
     #[cfg(feature = "effects")]
     effect: <Effect as Property>::State,
 }
@@ -427,7 +424,7 @@ impl Property for LayoutProps {
 
     fn build(self, node: &DomNode) -> Self::State {
         build_props!(
-            self, node, borders, focusable, simple, clear, enabled, id, class
+            self, node, borders, focusable, simple, clear, enabled, id, class, z_index
         );
         #[cfg(feature = "effects")]
         build_props!(self, node, effect);
@@ -440,6 +437,7 @@ impl Property for LayoutProps {
             enabled,
             id,
             class,
+            z_index,
             #[cfg(feature = "effects")]
             effect,
         }
@@ -447,7 +445,7 @@ impl Property for LayoutProps {
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
         rebuild_props!(
-            self, node, state, borders, focusable, simple, clear, enabled, id, class
+            self, node, state, borders, focusable, simple, clear, enabled, id, class, z_index
         );
         #[cfg(feature = "effects")]
         rebuild_props!(self, node, state, effect);
@@ -622,6 +620,7 @@ where
     update_props!(clear, bool);
     update_props!(enabled, bool);
     update_props!(class, Vec<String>);
+    update_props!(z_index, i32);
     #[cfg(feature = "effects")]
     update_props!(effect, rooibos_dom::tachyonfx::Effect);
 
@@ -813,6 +812,7 @@ widget_prop!(Focusable, focusable, bool, focusable);
 widget_prop!(Clear, clear, bool, clear);
 widget_prop!(Enabled, enabled, bool, enabled);
 widget_prop!(Class, class, Vec<String>, class);
+widget_prop!(ZIndex, z_index, i32, z_index);
 #[cfg(feature = "effects")]
 widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
 

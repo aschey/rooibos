@@ -17,7 +17,7 @@ use super::layout::{
     margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
     max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
     padding_left, padding_right, padding_top, padding_x, padding_y, position, show, shrink, width,
-    wrap,
+    wrap, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -115,14 +115,7 @@ impl<C, P> FlexNode<C, P> {
         });
         self
     }
-
-    pub fn z_index(mut self, z_index: i32) -> Self {
-        self.inner.0 = self.inner.0.z_index(z_index);
-        self
-    }
 }
-
-impl FlexProperty for ZIndex {}
 
 pub fn row<C, P>(props: P, children: C) -> FlexNode<C, P> {
     FlexNode {
@@ -214,6 +207,7 @@ flex_prop!(Focusable, focusable, bool);
 flex_prop!(Show, show, bool);
 flex_prop!(Clear, clear, bool);
 flex_prop!(Class, class, Vec<String>);
+flex_prop!(ZIndex, z_index, i32);
 #[cfg(feature = "effects")]
 flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
 
