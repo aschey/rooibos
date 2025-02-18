@@ -233,7 +233,7 @@ impl DomNodeRepr {
         let class = class.into();
         self.key.traverse(
             |key, node| {
-                if node.class.as_ref() == Some(&class) {
+                if node.class.contains(&class) {
                     return Some(DomNodeRepr::from_node(key, node));
                 }
 
@@ -556,7 +556,7 @@ impl DomNode {
         self
     }
 
-    pub fn class(self, class: impl Into<String>) -> Self {
+    pub fn class(self, class: impl Into<Vec<String>>) -> Self {
         with_nodes_mut(|n| {
             n.set_class(self.key, class);
         });

@@ -708,8 +708,8 @@ impl NodeTree {
         self.dom_nodes[node].inner.id = Some(id.into());
     }
 
-    pub(crate) fn set_class(&mut self, node: DomNodeKey, class: impl Into<String>) {
-        self.dom_nodes[node].inner.class = Some(class.into());
+    pub fn set_class(&mut self, node: DomNodeKey, class: impl Into<Vec<String>>) {
+        self.dom_nodes[node].inner.class = class.into();
     }
 
     pub fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {

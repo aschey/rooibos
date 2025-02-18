@@ -14,14 +14,15 @@ use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, Basis, BorderProp, Clear, Enabled, Focusable, Grow, Height, Id, Margin,
-    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
-    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width,
-    align_self, aspect_ratio, basis, borders, clear, enabled, focusable, grow, height, id, margin,
-    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
-    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Enabled, Focusable, Grow, Height, Id,
+    Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight,
+    MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom,
+    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink,
+    UpdateLayout, Width, align_self, aspect_ratio, basis, borders, class, clear, enabled,
+    focusable, grow, height, id, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, overflow, overflow_x,
+    overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
+    padding_y, position, shrink, width,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -96,11 +97,6 @@ impl<P> DomWidget<P> {
             inner,
             properties: props,
         }
-    }
-
-    pub fn class(mut self, class: impl Into<String>) -> Self {
-        self.inner.0 = self.inner.0.class(class);
-        self
     }
 
     pub fn z_index(mut self, z_index: i32) -> Self {
@@ -397,6 +393,7 @@ pub struct LayoutProps {
     pub clear: Clear,
     pub enabled: Enabled,
     pub id: Id,
+    pub class: Class,
     #[cfg(feature = "effects")]
     pub effect: Effect,
 }
@@ -408,6 +405,7 @@ pub struct LayoutPropsState {
     clear: <Clear as Property>::State,
     enabled: <Enabled as Property>::State,
     id: <Id as Property>::State,
+    class: <Class as Property>::State,
     #[cfg(feature = "effects")]
     effect: <Effect as Property>::State,
 }
@@ -428,7 +426,9 @@ impl Property for LayoutProps {
     type State = LayoutPropsState;
 
     fn build(self, node: &DomNode) -> Self::State {
-        build_props!(self, node, borders, focusable, simple, clear, enabled, id);
+        build_props!(
+            self, node, borders, focusable, simple, clear, enabled, id, class
+        );
         #[cfg(feature = "effects")]
         build_props!(self, node, effect);
 
@@ -439,6 +439,7 @@ impl Property for LayoutProps {
             clear,
             enabled,
             id,
+            class,
             #[cfg(feature = "effects")]
             effect,
         }
@@ -446,7 +447,7 @@ impl Property for LayoutProps {
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
         rebuild_props!(
-            self, node, state, borders, focusable, simple, clear, enabled, id
+            self, node, state, borders, focusable, simple, clear, enabled, id, class
         );
         #[cfg(feature = "effects")]
         rebuild_props!(self, node, state, effect);
@@ -620,6 +621,7 @@ where
     update_props!(focusable, bool);
     update_props!(clear, bool);
     update_props!(enabled, bool);
+    update_props!(class, Vec<String>);
     #[cfg(feature = "effects")]
     update_props!(effect, rooibos_dom::tachyonfx::Effect);
 
@@ -810,6 +812,7 @@ widget_prop!(BorderProp, borders, Borders, borders);
 widget_prop!(Focusable, focusable, bool, focusable);
 widget_prop!(Clear, clear, bool, clear);
 widget_prop!(Enabled, enabled, bool, enabled);
+widget_prop!(Class, class, Vec<String>, class);
 #[cfg(feature = "effects")]
 widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
 

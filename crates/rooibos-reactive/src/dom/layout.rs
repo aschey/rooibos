@@ -227,6 +227,39 @@ impl Property for Clear {
 }
 
 #[derive(Default, Clone)]
+pub struct Class(pub(crate) Option<Signal<Vec<String>>>);
+
+impl Class {
+    pub fn value(&self) -> Option<Signal<Vec<String>>> {
+        self.0
+    }
+}
+
+pub fn class(class: impl Into<Signal<Vec<String>>>) -> (Class,) {
+    (Class(Some(class.into())),)
+}
+
+impl Property for Class {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.get_key();
+        RenderEffect::new(move |_| {
+            if let Some(class) = self.0 {
+                with_nodes_mut(|nodes| {
+                    nodes.set_class(key, class.get());
+                });
+            }
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
+#[derive(Default, Clone)]
 pub struct Id(pub(crate) Option<NodeId>);
 
 impl Id {

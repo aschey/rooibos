@@ -26,7 +26,7 @@ pub struct NodeProperties {
     pub(crate) children: Vec<DomNodeKey>,
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
-    pub(crate) class: Option<String>,
+    pub(crate) class: Vec<String>,
     pub(crate) focusable: bool,
     #[educe(Debug(ignore))]
     pub(crate) event_handlers: EventHandlers,

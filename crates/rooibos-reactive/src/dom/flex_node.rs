@@ -8,15 +8,16 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Clear, Gap, Grow, Height,
-    JustifyContent, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY,
-    MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
+    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Gap, Grow,
+    Height, Id, JustifyContent, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX,
+    MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
     PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
     Show, Shrink, Width, Wrap, ZIndex, align_content, align_items, align_self, aspect_ratio, basis,
-    borders, clear, focusable, gap, grow, height, justify_content, margin, margin_bottom,
-    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
-    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, show, shrink, width, wrap,
+    borders, class, clear, focusable, gap, grow, height, id, justify_content, margin,
+    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
+    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, show, shrink, width,
+    wrap,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -44,16 +45,6 @@ where
 }
 
 impl<C, P> FlexNode<C, P> {
-    pub fn id(mut self, id: impl Into<NodeId>) -> Self {
-        self.inner.0 = self.inner.0.id(id);
-        self
-    }
-
-    pub fn class(mut self, class: impl Into<String>) -> Self {
-        self.inner.0 = self.inner.0.class(class);
-        self
-    }
-
     pub fn on_focus<F>(mut self, mut handler: F) -> Self
     where
         F: FnMut(FocusEvent, EventData) + 'static,
@@ -153,6 +144,24 @@ pub trait FlexProperty: Property {}
 
 impl FlexProperty for () {}
 
+impl FlexProperty for Id {}
+
+impl<C, P> FlexNode<C, P>
+where
+    P: NextTuple,
+{
+    pub fn id<S>(self, val: S) -> FlexNode<C, P::Output<Id>>
+    where
+        S: Into<NodeId>,
+    {
+        FlexNode {
+            inner: self.inner,
+            children: self.children,
+            properties: self.properties.next_tuple(id(val).0),
+        }
+    }
+}
+
 macro_rules! flex_prop {
     ($struct_name:ident, $fn:ident, $inner:ty) => {
         impl FlexProperty for $struct_name {}
@@ -204,6 +213,7 @@ flex_prop!(BorderProp, borders, Borders);
 flex_prop!(Focusable, focusable, bool);
 flex_prop!(Show, show, bool);
 flex_prop!(Clear, clear, bool);
+flex_prop!(Class, class, Vec<String>);
 #[cfg(feature = "effects")]
 flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
 

@@ -55,7 +55,6 @@ pub struct Button {
     active_border_color: Signal<Color>,
     element_ref: Option<ButtonRef>,
     text_alignment: Signal<Alignment>,
-    class: Option<String>,
 }
 
 impl Default for Button {
@@ -85,13 +84,7 @@ impl Button {
             border_color: Color::Gray.into(),
             text_alignment: Alignment::Left.into(),
             element_ref: None,
-            class: None,
         }
-    }
-
-    pub fn class(mut self, class: impl Into<String>) -> Self {
-        self.class = Some(class.into());
-        self
     }
 
     pub fn element_ref(mut self, button_ref: ButtonRef) -> Self {
@@ -151,7 +144,6 @@ impl Button {
             active_border_color,
             element_ref,
             text_alignment,
-            class,
         } = self;
         let enabled = layout_props.enabled.value().unwrap_or(true.into());
 
@@ -218,7 +210,7 @@ impl Button {
         });
 
         let children: Signal<Text> = children.into();
-        let mut button = wgt![
+        wgt![
             props(borders(button_borders)),
             rooibos_dom::widgets::Button::new(
                 children
@@ -251,10 +243,6 @@ impl Button {
                 on_enter()
             }
         })
-        .on_key_up(key_up);
-        if let Some(class) = class {
-            button = button.class(class);
-        }
-        button
+        .on_key_up(key_up)
     }
 }
