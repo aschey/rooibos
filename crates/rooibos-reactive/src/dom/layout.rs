@@ -185,10 +185,11 @@ impl Property for Effect {
     }
 }
 
-pub struct Clear(pub(crate) Signal<bool>);
+#[derive(Default, Clone)]
+pub struct Clear(pub(crate) Option<Signal<bool>>);
 
-pub fn clear(clear: impl Into<Signal<bool>>) -> Clear {
-    Clear(clear.into())
+pub fn clear(clear: impl Into<Signal<bool>>) -> (Clear,) {
+    (Clear(Some(clear.into())),)
 }
 
 impl Property for Clear {
@@ -197,9 +198,11 @@ impl Property for Clear {
     fn build(self, node: &DomNode) -> Self::State {
         let key = node.get_key();
         RenderEffect::new(move |_| {
-            with_nodes_mut(|nodes| {
-                nodes.set_clear(key, self.0.get());
-            });
+            if let Some(clear) = self.0 {
+                with_nodes_mut(|nodes| {
+                    nodes.set_clear(key, clear.get());
+                });
+            }
         })
     }
 

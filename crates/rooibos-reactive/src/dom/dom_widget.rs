@@ -18,10 +18,10 @@ use super::layout::{
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
     PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width,
-    align_self, aspect_ratio, basis, borders, focusable, grow, height, margin, margin_bottom,
-    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
-    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    align_self, aspect_ratio, basis, borders, clear, focusable, grow, height, margin,
+    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
+    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -41,7 +41,6 @@ pub struct DomWidget<P> {
 pub trait WidgetProperty: Property {}
 
 impl WidgetProperty for () {}
-impl WidgetProperty for Clear {}
 impl WidgetProperty for Enabled {}
 
 pub struct DomWidgetNode(pub(crate) rooibos_dom::DomWidgetNode);
@@ -408,17 +407,19 @@ where
 
 #[derive(Default, Clone)]
 pub struct LayoutProps {
-    pub borders: BorderProp,
-    pub simple: SimpleLayoutProps,
-    pub focusable: Focusable,
+    borders: BorderProp,
+    simple: SimpleLayoutProps,
+    focusable: Focusable,
+    clear: Clear,
     #[cfg(feature = "effects")]
-    pub effect: Effect,
+    effect: Effect,
 }
 
 pub struct LayoutPropsState {
     borders: <BorderProp as Property>::State,
     focusable: <Focusable as Property>::State,
     simple: <SimpleLayoutProps as Property>::State,
+    clear: <Clear as Property>::State,
     #[cfg(feature = "effects")]
     effect: <Effect as Property>::State,
 }
@@ -430,6 +431,7 @@ impl Property for LayoutProps {
         let borders = self.borders.build(node);
         let focusable = self.focusable.build(node);
         let simple = self.simple.build(node);
+        let clear = self.clear.build(node);
         #[cfg(feature = "effects")]
         let effect = self.effect.build(node);
 
@@ -437,6 +439,7 @@ impl Property for LayoutProps {
             borders,
             focusable,
             simple,
+            clear,
             #[cfg(feature = "effects")]
             effect,
         }
@@ -446,6 +449,7 @@ impl Property for LayoutProps {
         self.borders.rebuild(node, &mut state.borders);
         self.focusable.rebuild(node, &mut state.focusable);
         self.simple.rebuild(node, &mut state.simple);
+        self.clear.rebuild(node, &mut state.clear);
         #[cfg(feature = "effects")]
         self.effect.rebuild(node, &mut state.effect);
     }
@@ -605,7 +609,7 @@ where
     update_props!(padding_y, taffy::LengthPercentage);
     update_props!(padding, taffy::LengthPercentage);
 
-    // update_props!(overflow, taffy::Point<taffy::Overflow>);
+    update_props!(overflow, taffy::Overflow);
     update_props!(overflow_x, taffy::Overflow);
     update_props!(overflow_y, taffy::Overflow);
 
@@ -760,6 +764,7 @@ widget_prop!(Basis, basis, taffy::Dimension, simple.basis);
 
 widget_prop!(BorderProp, borders, Borders, borders);
 widget_prop!(Focusable, focusable, bool, focusable);
+widget_prop!(Clear, clear, bool, clear);
 #[cfg(feature = "effects")]
 widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
 

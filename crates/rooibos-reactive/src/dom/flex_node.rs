@@ -13,10 +13,10 @@ use super::layout::{
     MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
     PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
     Show, Shrink, Width, Wrap, ZIndex, align_content, align_items, align_self, aspect_ratio, basis,
-    borders, focusable, gap, grow, height, justify_content, margin, margin_bottom, margin_left,
-    margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width,
-    overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right,
-    padding_top, padding_x, padding_y, position, show, shrink, width, wrap,
+    borders, clear, focusable, gap, grow, height, justify_content, margin, margin_bottom,
+    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
+    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, position, show, shrink, width, wrap,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -132,7 +132,6 @@ impl<C, P> FlexNode<C, P> {
 }
 
 impl FlexProperty for ZIndex {}
-impl FlexProperty for Clear {}
 
 pub fn row<C, P>(props: P, children: C) -> FlexNode<C, P> {
     FlexNode {
@@ -203,10 +202,10 @@ flex_prop!(Padding, padding, taffy::LengthPercentage);
 
 flex_prop!(BorderProp, borders, Borders);
 flex_prop!(Focusable, focusable, bool);
+flex_prop!(Show, show, bool);
+flex_prop!(Clear, clear, bool);
 #[cfg(feature = "effects")]
 flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
-
-flex_prop!(Show, show, bool);
 
 flex_prop!(Wrap, wrap, taffy::FlexWrap);
 flex_prop!(AlignItems, align_items, taffy::AlignItems);
