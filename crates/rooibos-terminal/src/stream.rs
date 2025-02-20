@@ -1,6 +1,5 @@
 use std::fmt;
 use std::io::{self, IoSlice, IsTerminal, Stderr, Stdout, Write, stderr, stdout};
-use std::os::fd::{AsFd, AsRawFd, BorrowedFd, RawFd};
 
 enum StreamImpl {
     Stdout(Stdout),
@@ -64,8 +63,9 @@ impl Write for AutoStream {
     }
 }
 
-impl AsFd for AutoStream {
-    fn as_fd(&self) -> BorrowedFd<'_> {
+#[cfg(unix)]
+impl std::os::fd::AsFd for AutoStream {
+    fn as_fd(&self) -> std::os::fd::BorrowedFd<'_> {
         match &self.0 {
             StreamImpl::Stdout(s) => s.as_fd(),
             StreamImpl::Stderr(s) => s.as_fd(),
@@ -73,8 +73,9 @@ impl AsFd for AutoStream {
     }
 }
 
-impl AsRawFd for AutoStream {
-    fn as_raw_fd(&self) -> RawFd {
+#[cfg(unix)]
+impl std::os::fd::AsRawFd for AutoStream {
+    fn as_raw_fd(&self) -> std::os::fd::RawFd {
         match &self.0 {
             StreamImpl::Stdout(s) => s.as_raw_fd(),
             StreamImpl::Stderr(s) => s.as_raw_fd(),
