@@ -5,8 +5,8 @@ use ratatui::layout::Rect;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
-    BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
-    KeyHandler,
+    BlurEvent, ClickHandler, DragHandler, EventData, EventHandle, FocusEvent, IntoClickHandler,
+    IntoDragHandler, IntoKeyHandler, KeyHandler,
 };
 use rooibos_dom::{AsDomNode, Borders, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
@@ -231,6 +231,23 @@ where
             .inner
             .0
             .on_middle_click(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props);
+            })
+            .focusable(true);
+        self
+    }
+
+    pub fn on_mouse_drag<H>(mut self, handler: H) -> Self
+    where
+        H: IntoDragHandler + 'static,
+    {
+        let mut handler = handler.into_drag_handler();
+        self.inner.0 = self
+            .inner
+            .0
+            .on_mouse_drag(move |props| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
                 handler.handle(props);

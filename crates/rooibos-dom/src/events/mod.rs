@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 pub use dispatcher::*;
 pub use event_handler::*;
 use ratatui::layout::Rect;
-use terminput::{KeyEvent, KeyModifiers};
+use terminput::{KeyEvent, KeyModifiers, MouseButton};
 
 use crate::NodeId;
 
@@ -49,6 +49,13 @@ pub struct ClickEvent {
     pub modifiers: KeyModifiers,
 }
 
+pub struct DragEvent {
+    pub button: MouseButton,
+    pub column: u16,
+    pub row: u16,
+    pub modifiers: KeyModifiers,
+}
+
 #[derive(Clone, Debug)]
 pub struct KeyEventProps {
     pub event: KeyEvent,
@@ -59,6 +66,12 @@ pub struct KeyEventProps {
 #[derive(Clone, Debug)]
 pub struct ClickEventProps {
     pub event: ClickEvent,
+    pub data: EventData,
+    pub handle: EventHandle,
+}
+
+pub struct DragEventProps {
+    pub event: DragEvent,
     pub data: EventData,
     pub handle: EventHandle,
 }

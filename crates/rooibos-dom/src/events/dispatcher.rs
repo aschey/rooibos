@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use ratatui::layout::{Position, Rect};
 use terminput::{
     Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    ScrollDirection,
 };
 
 use super::{
@@ -72,24 +73,27 @@ impl EventDispatcher {
     }
 
     fn dispatch_mouse_event(&mut self, mouse_event: MouseEvent) {
+        let position = Position {
+            x: mouse_event.column,
+            y: mouse_event.row,
+        };
         match mouse_event.kind {
             MouseEventKind::Down(mouse_button) => {
-                dispatch_mouse_down(mouse_event, mouse_button);
+                dispatch_mouse_down(position, mouse_event.modifiers, mouse_button);
             }
             MouseEventKind::Up(_) => {}
             MouseEventKind::Drag(_) => {}
             MouseEventKind::Moved => {
-                self.dispatch_mouse_moved(mouse_event);
+                self.dispatch_mouse_moved(position);
             }
-            MouseEventKind::Scroll(_) => {
-                self.dispatch_scroll_event(mouse_event);
+            MouseEventKind::Scroll(direction) => {
+                self.dispatch_scroll_event(position, direction);
             }
         }
     }
 
-    fn dispatch_mouse_moved(&mut self, mouse_event: MouseEvent) {
-        self.last_mouse_position.x = mouse_event.column;
-        self.last_mouse_position.y = mouse_event.row;
+    fn dispatch_mouse_moved(&mut self, position: Position) {
+        self.last_mouse_position = position;
         let roots = with_nodes(|nodes| nodes.roots_desc());
         let mut current = None;
 
@@ -100,13 +104,7 @@ impl EventDispatcher {
                         return None;
                     }
 
-                    if inner.focusable()
-                        && inner.visible()
-                        && inner.position().contains(Position {
-                            x: mouse_event.column,
-                            y: mouse_event.row,
-                        })
-                    {
+                    if inner.focusable() && inner.visible() && inner.position().contains(position) {
                         Some(key)
                     } else {
                         None
@@ -178,19 +176,12 @@ impl EventDispatcher {
         }
     }
 
-    fn dispatch_scroll_event(&self, mouse_event: MouseEvent) {
-        if let Some(current_hovered) = hit_test(
-            Position {
-                x: mouse_event.column,
-                y: mouse_event.row,
-            },
-            |props| props.max_scroll_offset != Position::ORIGIN,
-        )
+    fn dispatch_scroll_event(&self, position: Position, direction: ScrollDirection) {
+        if let Some(current_hovered) = hit_test(position, |props| {
+            props.max_scroll_offset != Position::ORIGIN
+        })
         .last()
         {
-            let MouseEventKind::Scroll(direction) = mouse_event.kind else {
-                unreachable!()
-            };
             with_nodes_mut(|n| {
                 n.scroll(*current_hovered, direction);
             });
@@ -328,29 +319,26 @@ where
     vec![]
 }
 
-fn dispatch_mouse_down(mouse_event: MouseEvent, mouse_button: MouseButton) {
+fn dispatch_mouse_down(position: Position, modifiers: KeyModifiers, mouse_button: MouseButton) {
     match mouse_button {
         MouseButton::Left | MouseButton::Unknown => {
-            dispatch_mouse_button(mouse_event, |handlers| &handlers.on_click)
+            dispatch_mouse_button(position, modifiers, |handlers| &handlers.on_click)
         }
         MouseButton::Right => {
-            dispatch_mouse_button(mouse_event, |handlers| &handlers.on_right_click)
+            dispatch_mouse_button(position, modifiers, |handlers| &handlers.on_right_click)
         }
         MouseButton::Middle => {
-            dispatch_mouse_button(mouse_event, |handlers| &handlers.on_middle_click)
+            dispatch_mouse_button(position, modifiers, |handlers| &handlers.on_middle_click)
         }
     }
 }
 
-fn dispatch_mouse_button<GE>(mouse_event: MouseEvent, get_event: GE)
+fn dispatch_mouse_button<GE>(position: Position, modifiers: KeyModifiers, get_event: GE)
 where
     GE: Fn(&EventHandlers) -> &Option<ClickEventFn>,
 {
     let found = hit_test(
-        Position {
-            x: mouse_event.column,
-            y: mouse_event.row,
-        },
+        position,
         // Only widgets are actually drawn on the screen, layout types or placeholders
         // can't have click events
         |props| matches!(props.node_type, NodeType::Widget(_)),
@@ -376,9 +364,9 @@ where
                         let node_id = nodes[key].id.clone();
                         on_click.borrow_mut().handle(ClickEventProps {
                             event: ClickEvent {
-                                column: mouse_event.column,
-                                row: mouse_event.row,
-                                modifiers: mouse_event.modifiers,
+                                column: position.x,
+                                row: position.y,
+                                modifiers,
                             },
                             data: EventData {
                                 rect: *rect,

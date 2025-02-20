@@ -4,7 +4,9 @@ use std::rc::Rc;
 use ratatui::layout::Rect;
 use terminput::ScrollDirection;
 
-use super::{BlurEvent, ClickEventProps, EventData, EventHandle, FocusEvent, KeyEventProps};
+use super::{
+    BlurEvent, ClickEventProps, DragEventProps, EventData, EventHandle, FocusEvent, KeyEventProps,
+};
 
 pub trait IntoKeyHandler {
     fn into_key_handler(self) -> impl KeyHandler;
@@ -70,8 +72,41 @@ impl ClickHandler for Box<dyn ClickHandler> {
     }
 }
 
+pub trait IntoDragHandler {
+    fn into_drag_handler(self) -> impl DragHandler;
+}
+
+impl<T> IntoDragHandler for T
+where
+    T: DragHandler,
+{
+    fn into_drag_handler(self) -> impl DragHandler {
+        self
+    }
+}
+
+pub trait DragHandler {
+    fn handle(&mut self, props: DragEventProps);
+}
+
+impl<F> DragHandler for F
+where
+    F: FnMut(DragEventProps),
+{
+    fn handle(&mut self, props: DragEventProps) {
+        self(props)
+    }
+}
+
+impl DragHandler for Box<dyn DragHandler> {
+    fn handle(&mut self, props: DragEventProps) {
+        (**self).handle(props)
+    }
+}
+
 pub(crate) type KeyEventFn = Rc<RefCell<dyn KeyHandler>>;
 pub(crate) type ClickEventFn = Rc<RefCell<dyn ClickHandler>>;
+pub(crate) type DragEventFn = Rc<RefCell<dyn DragHandler>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData, EventHandle)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData, EventHandle)>>;
@@ -91,6 +126,7 @@ pub struct EventHandlers {
     pub(crate) on_middle_click: Option<ClickEventFn>,
     pub(crate) on_mouse_enter: Option<EventFn>,
     pub(crate) on_mouse_leave: Option<EventFn>,
+    pub(crate) on_mouse_drag: Option<DragEventFn>,
     pub(crate) on_size_change: Option<SizeChangeFn>,
     pub(crate) on_scroll: Option<ScrollFn>,
 }
@@ -157,6 +193,14 @@ impl EventHandlers {
         H: IntoClickHandler + 'static,
     {
         self.on_middle_click = Some(Rc::new(RefCell::new(handler.into_click_handler())));
+        self
+    }
+
+    pub fn on_mouse_drag<H>(mut self, handler: H) -> Self
+    where
+        H: IntoDragHandler + 'static,
+    {
+        self.on_mouse_drag = Some(Rc::new(RefCell::new(handler.into_drag_handler())));
         self
     }
 

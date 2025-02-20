@@ -10,8 +10,8 @@ use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::{DomNodeKey, NodeProperties, RenderProps, unmount_child};
 use crate::events::{
-    BlurEvent, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler, IntoKeyHandler,
-    dispatch_event, reset_mouse_position,
+    BlurEvent, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
+    IntoDragHandler, IntoKeyHandler, dispatch_event, reset_mouse_position,
 };
 use crate::widgets::Role;
 use crate::{
@@ -474,6 +474,14 @@ impl DomNode {
         H: IntoClickHandler + 'static,
     {
         self.update_event_handlers(|h| h.on_middle_click(handler));
+        self
+    }
+
+    pub fn on_mouse_drag<H>(self, handler: H) -> Self
+    where
+        H: IntoDragHandler + 'static,
+    {
+        self.update_event_handlers(|h| h.on_mouse_drag(handler));
         self
     }
 
