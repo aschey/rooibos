@@ -116,6 +116,15 @@ impl ContentRect {
         self.max_scroll_offset != Position::ORIGIN
     }
 
+    pub(crate) fn total_size(&self) -> Rect {
+        Rect {
+            width: self.size.width.max(self.content_size.width),
+            height: self.size.height.max(self.content_size.height),
+            x: self.x,
+            y: self.y,
+        }
+    }
+
     pub(crate) fn resize_for_render(&self, buf: &mut Buffer) {
         if self.content_size.width > buf.area.width || self.content_size.height > buf.area.height {
             let mut new = buf.area;
@@ -414,23 +423,34 @@ impl NodeTree {
         let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
         let children = self.dom_nodes[parent_key].inner.children.clone();
         let layout = self.layout_tree.layout(parent).unwrap();
+
+        let scroll_height =
+            (layout.scroll_height() as u16).saturating_sub(layout.scrollbar_size.height as u16);
+        let scroll_width =
+            (layout.scroll_width() as u16).saturating_sub(layout.scrollbar_size.width as u16);
+
         if (layout.size.height as u16 > self.window_size.height
             && self.style(parent_key).overflow.y == Overflow::Scroll)
             || (layout.size.width as u16 > self.window_size.width
                 && self.style(parent_key).overflow.x == Overflow::Scroll)
         {
-            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(
-                (layout.size.width as u16).saturating_sub(self.window_size.width),
-                (layout.size.height as u16).saturating_sub(self.window_size.height),
-            );
-        }
-
-        if (layout.scroll_height() > 0.0 && self.style(parent_key).overflow.y == Overflow::Scroll)
-            || (layout.scroll_width() > 0.0
-                && self.style(parent_key).overflow.x == Overflow::Scroll)
+            let max_x = (layout.size.width as u16).saturating_sub(self.window_size.width);
+            let max_y = (layout.size.height as u16).saturating_sub(self.window_size.height);
+            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(max_x, max_y);
+            let scroll_offset = self.dom_nodes[parent_key].inner.scroll_offset;
+            self.dom_nodes[parent_key].inner.scroll_offset.x = scroll_offset.x.min(max_x);
+            self.dom_nodes[parent_key].inner.scroll_offset.y = scroll_offset.y.min(max_y);
+        } else if (scroll_height > 0 && self.style(parent_key).overflow.y == Overflow::Scroll)
+            || (scroll_width > 0 && self.style(parent_key).overflow.x == Overflow::Scroll)
         {
             self.dom_nodes[parent_key].inner.max_scroll_offset =
-                Position::new(layout.scroll_width() as u16, layout.scroll_height() as u16);
+                Position::new(scroll_width, scroll_height);
+            let scroll_offset = self.dom_nodes[parent_key].inner.scroll_offset;
+            self.dom_nodes[parent_key].inner.scroll_offset.x = scroll_offset.x.min(scroll_width);
+            self.dom_nodes[parent_key].inner.scroll_offset.y = scroll_offset.y.min(scroll_height);
+        } else {
+            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::default();
+            self.dom_nodes[parent_key].inner.scroll_offset = Position::default();
         }
 
         for child_key in children {

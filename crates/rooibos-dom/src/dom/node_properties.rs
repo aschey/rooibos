@@ -8,13 +8,16 @@ use educe::Educe;
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
-use ratatui::widgets::{Block, Clear, Widget, WidgetRef};
+use ratatui::widgets::{
+    Block, Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
+    WidgetRef,
+};
 #[cfg(feature = "effects")]
 use tachyonfx::{EffectRenderer, Shader};
 use terminput::ScrollDirection;
 
 use super::node_tree::{DomNodeKey, NodeTree};
-use super::{NodeId, NodeType, refresh_dom};
+use super::{ContentRect, NodeId, NodeType, refresh_dom};
 use crate::events::EventHandlers;
 
 #[derive(Educe)]
@@ -193,16 +196,26 @@ impl NodeProperties {
             match &self.node_type {
                 NodeType::Layout => {
                     if let Some(temp_buf) = &mut temp_buf {
-                        // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
-
                         temp_buf.area.x = visible_bounds.x;
                         temp_buf.area.y = visible_bounds.y;
-                        // temp_buf.reset();
 
                         mem::swap(frame.buffer_mut(), temp_buf);
 
                         let child_bounds = content_rect.child_bounds();
+
+                        let mut all_child_bounds = Rect::default();
+                        let mut init = false;
                         self.children.iter().for_each(|key| {
+                            let visible_child_bounds = dom_nodes.rect(*key).total_size();
+                            if visible_child_bounds.width > 0 && visible_child_bounds.height > 0 {
+                                if !init {
+                                    all_child_bounds = visible_child_bounds;
+                                    init = true;
+                                } else {
+                                    all_child_bounds = all_child_bounds.union(visible_child_bounds);
+                                }
+                            }
+
                             dom_nodes[*key].render(RenderProps {
                                 frame,
                                 window,
@@ -214,7 +227,6 @@ impl NodeProperties {
                         });
                         content_rect.apply_scroll(frame.buffer_mut().area, frame.buffer_mut());
 
-                        // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
                         mem::swap(frame.buffer_mut(), temp_buf);
 
                         let buf = frame.buffer_mut();
@@ -231,6 +243,7 @@ impl NodeProperties {
                             }
                         }
                         self.render_block(render_bounds, frame.buffer_mut());
+                        self.render_scrollbar(&content_rect, all_child_bounds, child_bounds, frame);
                     } else {
                         self.children.iter().for_each(|key| {
                             dom_nodes[*key].render(RenderProps {
@@ -249,10 +262,10 @@ impl NodeProperties {
                 }
                 NodeType::Widget(widget) => {
                     self.visible.store(true, Ordering::Relaxed);
-                    let inner = content_rect.inner_bounds();
+                    let mut inner = content_rect.inner_bounds();
                     if let Some(temp_buf) = &mut temp_buf {
-                        // let mut temp_buf = dom_nodes.temp_buf.borrow_mut();
-                        // temp_buf.reset();
+                        let total_area = temp_buf.area;
+
                         temp_buf.area.x = inner.x;
                         temp_buf.area.y = inner.y;
 
@@ -264,16 +277,15 @@ impl NodeProperties {
 
                         mem::swap(frame.buffer_mut(), temp_buf);
 
-                        for row in inner
-                            .rows()
-                            .take((inner.height.saturating_sub(height_above_parent)) as usize)
-                        {
+                        inner.height = inner.height.saturating_sub(height_above_parent);
+                        for row in inner.rows() {
                             for col in row.columns() {
                                 let pos: Position = col.into();
                                 frame.buffer_mut()[pos] = temp_buf[pos].clone();
                             }
                         }
                         self.render_block(render_bounds, frame.buffer_mut());
+                        self.render_scrollbar(&content_rect, total_area, inner, frame);
                     } else {
                         widget.render(inner, frame);
                         self.render_block(render_bounds, frame.buffer_mut());
@@ -308,6 +320,27 @@ impl NodeProperties {
         if let Some(block) = &self.block {
             block.render_ref(bounds, buf);
         };
+    }
+
+    fn render_scrollbar(
+        &self,
+        content_rect: &ContentRect,
+        total_area: Rect,
+        render_bounds: Rect,
+        frame: &mut Frame,
+    ) {
+        if !content_rect.can_scroll() {
+            return;
+        }
+        let pct = content_rect.scroll_offset().y as f64
+            / (total_area.height - render_bounds.height) as f64;
+
+        Scrollbar::new(ScrollbarOrientation::VerticalRight).render(
+            render_bounds,
+            frame.buffer_mut(),
+            &mut ScrollbarState::new(total_area.height as usize)
+                .position((total_area.height as f64 * pct).floor() as usize),
+        );
     }
 
     pub(crate) fn replace_with(&mut self, new: &NodeProperties) {
