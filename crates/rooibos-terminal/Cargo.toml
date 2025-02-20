@@ -29,7 +29,7 @@ termion = { version = "4", optional = true }
 clipboard-win = { version = "5.4", features = ["std"], optional = true }
 
 [features]
-crossterm = ["dep:crossterm", "ratatui/crossterm"]
-termion = ["dep:termion", "ratatui/termion"]
-termwiz = ["dep:termwiz", "ratatui/termwiz"]
+crossterm = ["dep:crossterm", "rooibos-dom/crossterm", "ratatui/crossterm"]
+termion = ["dep:termion", "rooibos-dom/termion", "ratatui/termion"]
+termwiz = ["dep:termwiz", "rooibos-dom/termwiz", "ratatui/termwiz"]
 clipboard = ["dep:base64", "clipboard-win"]
