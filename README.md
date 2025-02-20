@@ -41,14 +41,14 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
+    Runtime::initialize(DefaultBackend::auto())
         .run(app)
         .await
 }
@@ -96,14 +96,14 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
+    Runtime::initialize(DefaultBackend::auto())
         .run(app)
         .await
 }
@@ -143,7 +143,7 @@ use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{col, derive_signal, height, padding, padding_right, row, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;
 use rooibos::tui::widgets::Paragraph;
@@ -152,7 +152,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
+    Runtime::initialize(DefaultBackend::auto())
         .run(app)
         .await
 }
@@ -197,14 +197,14 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
+    Runtime::initialize(DefaultBackend::auto())
         .run(app)
         .await
 }
@@ -240,7 +240,7 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{KeyCode, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tester::{TerminalView, TestHarness};
 use rooibos::tui::style::Stylize;
 

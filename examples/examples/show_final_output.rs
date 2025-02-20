@@ -1,4 +1,3 @@
-use std::io::Stdout;
 use std::process::ExitCode;
 
 use rooibos::components::Show;
@@ -18,7 +17,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     Runtime::initialize_with(
         RuntimeSettings::default().viewport(Viewport::Inline(1)),
-        CrosstermBackend::new(TerminalSettings::<Stdout>::new().alternate_screen(false)),
+        CrosstermBackend::new(TerminalSettings::stdout().alternate_screen(false)),
     )
     .run(app)
     .await

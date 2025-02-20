@@ -7,7 +7,7 @@ use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::spawn_local;
 use rooibos::runtime::{Runtime, wasm_compat};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use tracing::{Level, info};
 
@@ -28,7 +28,7 @@ async fn main() -> Result {
         .with_writer(non_blocking_appender);
     subscriber.init();
 
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    let runtime = Runtime::initialize(DefaultBackend::auto());
     runtime.run(app).await
 }
 

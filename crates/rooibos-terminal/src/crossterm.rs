@@ -18,7 +18,7 @@ use ratatui::layout::Size;
 use tokio_stream::StreamExt as _;
 
 use super::Backend;
-use crate::AsyncInputStream;
+use crate::{AsyncInputStream, AutoStream};
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -33,25 +33,37 @@ pub struct TerminalSettings<W> {
 
 impl Default for TerminalSettings<Stdout> {
     fn default() -> Self {
-        Self::new()
+        Self::stdout()
     }
 }
 
 impl Default for TerminalSettings<Stderr> {
     fn default() -> Self {
-        Self::new()
+        Self::stderr()
+    }
+}
+
+impl Default for TerminalSettings<AutoStream> {
+    fn default() -> Self {
+        Self::auto()
     }
 }
 
 impl TerminalSettings<Stdout> {
-    pub fn new() -> Self {
+    pub fn stdout() -> Self {
         Self::from_writer(stdout)
     }
 }
 
 impl TerminalSettings<Stderr> {
-    pub fn new() -> Self {
+    pub fn stderr() -> Self {
         Self::from_writer(stderr)
+    }
+}
+
+impl TerminalSettings<AutoStream> {
+    pub fn auto() -> Self {
+        Self::from_writer(AutoStream::new)
     }
 }
 
@@ -120,13 +132,25 @@ pub struct CrosstermBackend<W: Write> {
 
 impl<W: Write> CrosstermBackend<W> {
     pub fn new(settings: TerminalSettings<W>) -> Self {
-        Self {
-            supports_keyboard_enhancement: if settings.keyboard_enhancement {
-                supports_keyboard_enhancement().unwrap_or(false)
-            } else {
-                false
-            },
+        let mut this = Self {
             settings,
+            supports_keyboard_enhancement: false,
+        };
+        this.set_keyboard_enhancement();
+        this
+    }
+
+    pub fn settings(mut self, settings: TerminalSettings<W>) -> Self {
+        self.settings = settings;
+        self.set_keyboard_enhancement();
+        self
+    }
+
+    fn set_keyboard_enhancement(&mut self) {
+        self.supports_keyboard_enhancement = if self.settings.keyboard_enhancement {
+            supports_keyboard_enhancement().unwrap_or(false)
+        } else {
+            false
         }
     }
 }
@@ -140,6 +164,18 @@ impl Default for CrosstermBackend<Stdout> {
 impl Default for CrosstermBackend<Stderr> {
     fn default() -> Self {
         Self::new(TerminalSettings::default())
+    }
+}
+
+impl Default for CrosstermBackend<AutoStream> {
+    fn default() -> Self {
+        Self::new(TerminalSettings::default())
+    }
+}
+
+impl CrosstermBackend<AutoStream> {
+    pub fn auto() -> Self {
+        Self::default()
     }
 }
 

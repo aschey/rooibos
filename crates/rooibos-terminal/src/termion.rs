@@ -12,7 +12,7 @@ use tokio::task::spawn_blocking;
 use tokio_stream::wrappers::ReceiverStream;
 
 use super::Backend;
-use crate::AsyncInputStream;
+use crate::{AsyncInputStream, AutoStream};
 
 pub struct TermionBackend<W: Write + AsFd> {
     settings: TerminalSettings<W>,
@@ -38,7 +38,23 @@ impl Default for TerminalSettings<Stderr> {
     }
 }
 
+impl Default for TerminalSettings<AutoStream> {
+    fn default() -> Self {
+        Self {
+            get_writer: Box::new(AutoStream::new),
+        }
+    }
+}
+
 impl Default for TermionBackend<Stdout> {
+    fn default() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
+impl Default for TermionBackend<AutoStream> {
     fn default() -> Self {
         Self {
             settings: Default::default(),
@@ -62,6 +78,12 @@ impl TermionBackend<Stdout> {
 
 impl TermionBackend<Stderr> {
     pub fn stderr() -> Self {
+        Self::default()
+    }
+}
+
+impl TermionBackend<AutoStream> {
+    pub fn auto() -> Self {
         Self::default()
     }
 }

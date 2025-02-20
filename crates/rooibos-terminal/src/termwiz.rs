@@ -13,6 +13,7 @@ use tokio::sync::broadcast;
 use tracing::warn;
 
 use super::Backend;
+use crate::AutoStream;
 
 pub struct TermwizBackend<W: Write> {
     settings: TerminalSettings<W>,
@@ -61,6 +62,12 @@ impl Default for TerminalSettings<Stderr> {
     }
 }
 
+impl Default for TerminalSettings<AutoStream> {
+    fn default() -> Self {
+        Self::new(AutoStream::new)
+    }
+}
+
 impl Default for TermwizBackend<Stdout> {
     fn default() -> Self {
         Self {
@@ -77,6 +84,14 @@ impl Default for TermwizBackend<Stderr> {
     }
 }
 
+impl Default for TermwizBackend<AutoStream> {
+    fn default() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
 impl TermwizBackend<Stdout> {
     pub fn stdout() -> Self {
         Self {
@@ -86,6 +101,14 @@ impl TermwizBackend<Stdout> {
 }
 
 impl TermwizBackend<Stderr> {
+    pub fn stderr() -> Self {
+        Self {
+            settings: Default::default(),
+        }
+    }
+}
+
+impl TermwizBackend<AutoStream> {
     pub fn stderr() -> Self {
         Self {
             settings: Default::default(),

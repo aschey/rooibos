@@ -14,14 +14,14 @@ use rooibos::reactive::graph::traits::{Get as _, Set};
 use rooibos::reactive::{col, height, max_height, max_width, padding, row, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use taffy::{AlignItems, JustifyContent};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    let runtime = Runtime::initialize(DefaultBackend::auto());
     runtime.run(app).await
 }
 

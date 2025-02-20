@@ -8,7 +8,7 @@ use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::router::{Route, RouteFromStatic, Router, provide_router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use taffy::AlignItems;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -29,9 +29,7 @@ struct BlogPost {
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {

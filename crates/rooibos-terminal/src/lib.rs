@@ -1,5 +1,6 @@
 #[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
 pub mod crossterm;
+mod stream;
 #[cfg(all(feature = "termion", not(target_arch = "wasm32")))]
 pub mod termion;
 #[cfg(all(feature = "termwiz", not(target_arch = "wasm32")))]
@@ -11,7 +12,11 @@ use std::io;
 
 use futures_util::Stream;
 use ratatui::Terminal;
+pub use stream::*;
 use tokio::sync::broadcast;
+
+#[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
+pub type DefaultBackend = crossterm::CrosstermBackend<AutoStream>;
 
 // From https://github.com/crossterm-rs/crossterm/pull/697
 /// Which selection to set. Only affects X11. See

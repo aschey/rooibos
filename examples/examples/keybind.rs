@@ -11,7 +11,7 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -23,7 +23,7 @@ async fn main() -> Result {
 
     let runtime = Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
-        CrosstermBackend::stdout(),
+        DefaultBackend::auto(),
     );
     runtime.run(app).await
 }

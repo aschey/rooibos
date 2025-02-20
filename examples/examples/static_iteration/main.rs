@@ -8,16 +8,14 @@ use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::{col, max_width, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn counter() -> impl Render {

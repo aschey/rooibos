@@ -7,14 +7,14 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, TickResult, restore_terminal};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    let mut runtime = Runtime::initialize(CrosstermBackend::stdout());
+    let mut runtime = Runtime::initialize(DefaultBackend::auto());
 
     runtime.mount(app);
     let mut terminal = runtime

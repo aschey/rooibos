@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;
@@ -23,7 +23,7 @@ async fn main() -> Result {
         buffer
     };
 
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    let runtime = Runtime::initialize(DefaultBackend::auto());
     Ok(runtime.run(|| app(input)).await?)
 }
 

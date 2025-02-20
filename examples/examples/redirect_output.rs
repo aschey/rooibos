@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::io::{IsTerminal, Stderr, stdout};
+use std::io::{IsTerminal, stdout};
 use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
@@ -27,7 +27,7 @@ async fn main() -> Result {
         RuntimeSettings::default()
             .viewport(Viewport::Inline(6))
             .show_final_output(false),
-        CrosstermBackend::new(TerminalSettings::<Stderr>::new().alternate_screen(false)),
+        CrosstermBackend::new(TerminalSettings::auto().alternate_screen(false)),
     )
     .run(app)
     .await?;

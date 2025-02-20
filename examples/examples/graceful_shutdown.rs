@@ -9,16 +9,14 @@ use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, padding, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, ServiceContext, spawn_service, wasm_compat};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {

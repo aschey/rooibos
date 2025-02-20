@@ -1,4 +1,3 @@
-use std::io::Stdout;
 use std::process::ExitCode;
 
 use rooibos::keybind::{key, keys};
@@ -9,15 +8,16 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_title};
-use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::terminal::DefaultBackend;
+use rooibos::terminal::crossterm::TerminalSettings;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::<Stdout>::new(
-        TerminalSettings::default().title("initial title"),
-    ))
+    Runtime::initialize(
+        DefaultBackend::auto().settings(TerminalSettings::default().title("initial title")),
+    )
     .run(app)
     .await
 }

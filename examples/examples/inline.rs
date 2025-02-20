@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::io::Stdout;
 use std::process::ExitCode;
 use std::time::Duration;
 
@@ -12,7 +11,8 @@ use rooibos::reactive::graph::traits::{Get, Update, With as _};
 use rooibos::reactive::{col, derive_signal, padding_left, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
-use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::terminal::crossterm::TerminalSettings;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 
@@ -22,7 +22,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     Runtime::initialize_with(
         RuntimeSettings::default().viewport(Viewport::Inline(1)),
-        CrosstermBackend::<Stdout>::new(TerminalSettings::default().alternate_screen(false)),
+        DefaultBackend::auto().settings(TerminalSettings::default().alternate_screen(false)),
     )
     .run(app)
     .await

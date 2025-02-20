@@ -9,7 +9,7 @@ use rooibos::reactive::{col, height, row, wgt, width};
 use rooibos::router::{Route, RouteFromStatic, Router, ToRoute, provide_router, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use taffy::AlignItems;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -55,7 +55,7 @@ fn main() -> Result {
 
 #[rooibos::main]
 async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
+    Runtime::initialize(DefaultBackend::auto())
         .run(|| app(initial_route))
         .await
 }

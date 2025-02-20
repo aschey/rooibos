@@ -11,8 +11,7 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{CTRL, Event, KeyCode, NonblockingTerminal, Repeats, key, wgt};
-use rooibos::terminal::Backend;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::{Backend, DefaultBackend};
 use rooibos::tui::style::Stylize;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
@@ -22,7 +21,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let backend = Arc::new(CrosstermBackend::stdout());
+    let backend = Arc::new(DefaultBackend::auto());
     let tui_backend = backend.create_tui_backend()?;
     let mut terminal = rooibos::tui::Terminal::new(tui_backend)?;
     backend.setup_terminal(&mut terminal)?;

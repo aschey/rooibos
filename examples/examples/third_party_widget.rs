@@ -9,7 +9,7 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::Frame;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::style::{Style, Stylize};
@@ -20,7 +20,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    let runtime = Runtime::initialize(CrosstermBackend::stdout());
+    let runtime = Runtime::initialize(DefaultBackend::auto());
     runtime.run(app).await
 }
 

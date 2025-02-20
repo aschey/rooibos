@@ -13,7 +13,7 @@ use rooibos::reactive::graph::traits::{Get, Read, Set};
 use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, exit_with_error};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::text::Line;
 use taffy::{AlignItems, JustifyContent, LengthPercentage, Position};
@@ -23,9 +23,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     color_eyre::install().unwrap();
-    Runtime::initialize(CrosstermBackend::stdout())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {

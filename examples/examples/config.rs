@@ -10,7 +10,7 @@ use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, margin, max_width, padding, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use schematic::Format;
 
@@ -32,9 +32,7 @@ async fn main() -> Result<ExitCode, RuntimeError> {
     ));
     provide_config(config);
 
-    Runtime::initialize(CrosstermBackend::stdout())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {

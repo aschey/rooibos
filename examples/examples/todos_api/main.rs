@@ -33,7 +33,7 @@ use rooibos::reactive::{
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use server::run_server;
 use taffy::{AlignItems, JustifyContent, LengthPercentage, Overflow, Position};
@@ -59,7 +59,7 @@ async fn main() -> Result {
 
     Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
-        CrosstermBackend::stdout(),
+        DefaultBackend::auto(),
     )
     .run(|| app(Duration::from_secs(3)))
     .await

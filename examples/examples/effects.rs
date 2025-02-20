@@ -10,15 +10,13 @@ use rooibos::reactive::tachyonfx::{EffectTimer, Interpolation, IntoEffect, Motio
 use rooibos::reactive::{row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, wasm_compat};
-use rooibos::terminal::crossterm::CrosstermBackend;
+use rooibos::terminal::DefaultBackend;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(CrosstermBackend::stdout())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {
