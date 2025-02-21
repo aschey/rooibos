@@ -29,7 +29,7 @@ async fn main() -> Result {
 fn app() -> impl Render {
     let (popup_text, set_popup_text) = signal(None);
 
-    before_exit(move |payload| async move {
+    before_exit(move |payload| {
         if let Some(err) = payload.error() {
             set_popup_text.set(Some(line!("An error occurred: ", err.to_string().red())));
             ExitResult::PreventExit

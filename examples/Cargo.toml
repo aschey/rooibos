@@ -17,6 +17,7 @@ rooibos = { path = "../crates/rooibos", features = [
   "keybind",
   "derive-commands",
   "effects",
+  "palette",
 ] }
 tokio = { version = "1.43.0", features = ["rt", "macros"] }
 tracing = "0.1.41"

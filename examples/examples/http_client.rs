@@ -66,7 +66,7 @@ struct Properties {
     name: String,
 }
 
-async fn fetch_next(id: i32) -> rooibos::reactive::Result<String> {
+async fn fetch_next(id: i32) -> rooibos::reactive::error::Result<String> {
     let res = Client::new()
         .get(format!("https://swapi.tech/api/people/{id}"))
         .send()

@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, justify_content, position, show,
+    Borders, align_items, borders, justify_content, position, show, z_index,
 };
 use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
@@ -26,7 +26,7 @@ fn app() -> impl Render {
     let (show_popup, set_show_popup) = signal(false);
     let (quit_confirmed, set_quit_confirmed) = signal(false);
 
-    before_exit(move |payload| async move {
+    before_exit(move |payload| {
         // We should always exit when we have a non-success code
         if !payload.is_success() || quit_confirmed.get() {
             return ExitResult::Exit;
@@ -81,9 +81,11 @@ fn popup(
 
     col![
         props(
+            z_index(1),
             width!(100.%),
             height!(100.%),
             show(show_popup),
+            max_width!(100.),
             position(Position::Absolute),
             align_items(AlignItems::Center),
             justify_content(JustifyContent::Center),

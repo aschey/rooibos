@@ -67,9 +67,9 @@ async fn main() -> Result {
 
 #[derive(Clone)]
 struct TodoContext {
-    add_todo: Action<String, std::result::Result<(), rooibos::reactive::Error>>,
-    update_todo: Action<(u32, String), std::result::Result<(), rooibos::reactive::Error>>,
-    delete_todo: Action<u32, std::result::Result<(), rooibos::reactive::Error>>,
+    add_todo: Action<String, std::result::Result<(), rooibos::reactive::error::Error>>,
+    update_todo: Action<(u32, String), std::result::Result<(), rooibos::reactive::error::Error>>,
+    delete_todo: Action<u32, std::result::Result<(), rooibos::reactive::error::Error>>,
 }
 
 fn app(notification_timeout: Duration) -> impl Render {

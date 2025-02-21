@@ -28,7 +28,11 @@ pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use tachys::view::any_view;
 pub use terminput::*;
-pub use throw_error::*;
+pub mod error {
+    pub use throw_error::*;
+    pub type Result<T> = core::result::Result<T, throw_error::Error>;
+}
+
 #[doc(hidden)]
 #[cfg(not(target_arch = "wasm32"))]
 pub use tokio as __tokio;

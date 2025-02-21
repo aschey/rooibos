@@ -1,7 +1,7 @@
 use std::any::Any;
 use std::error::Error;
 use std::fmt::Display;
-use std::future::Future;
+use std::future::{self, Future};
 use std::io;
 use std::ops::{Deref, DerefMut};
 use std::process::ExitStatus;
@@ -179,7 +179,7 @@ pub fn spawn_blocking_service_on<
     with_state(|s| s.context.spawn_blocking_on(service, handle))
 }
 
-pub fn before_exit<F, Fut>(f: F)
+pub fn before_exit_async<F, Fut>(f: F)
 where
     F: Fn(ExitPayload) -> Fut + Send + Sync + 'static,
     Fut: Future<Output = ExitResult> + Send + 'static,
@@ -188,6 +188,18 @@ where
         *s.before_exit.lock_mut() = Box::new(move |payload| {
             let out = f(payload);
             Box::pin(out)
+        })
+    });
+}
+
+pub fn before_exit<F>(f: F)
+where
+    F: Fn(ExitPayload) -> ExitResult + Send + 'static,
+{
+    with_state(|s| {
+        *s.before_exit.lock_mut() = Box::new(move |payload| {
+            let out = f(payload);
+            Box::pin(future::ready(out))
         })
     });
 }

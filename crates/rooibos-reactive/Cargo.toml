@@ -14,7 +14,7 @@ tachys = { git = "https://github.com/aschey/leptos", rev = "bff886ea6e10eb6b6c53
 throw_error = "0.2.0"
 next_tuple = "0.1.0"
 reactive_stores = "0.1.7"
-terminput = "0.3"
+terminput = "=0.3.0"
 rooibos-dom = { path = "../rooibos-dom" }
 ratatui = { version = "0.29", features = ["unstable"] }
 slotmap = "1"

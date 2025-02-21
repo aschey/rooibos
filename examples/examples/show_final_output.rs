@@ -27,7 +27,7 @@ fn app() -> impl Render {
     let (count, set_count) = signal(0);
     let is_exiting = RwSignal::new(false);
 
-    before_exit(move |_| async move {
+    before_exit(move |_| {
         if !is_exiting.get() {
             is_exiting.set(true);
             return ExitResult::PreventExit;

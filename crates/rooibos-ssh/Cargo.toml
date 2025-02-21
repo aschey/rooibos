@@ -16,7 +16,7 @@ tracing = "0.1"
 tap = "1"
 futures = "0.3"
 async-signal = "0.2"
-terminput = "0.3"
+terminput = "=0.3.0"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "27c1c31b5d96707c835871984ede8de38b66e1ed" }
 tokio-stream = { version = "0.1.17", features = ["sync"] }

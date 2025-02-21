@@ -1,0 +1,23 @@
+[package]
+name = "integration-tests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+rooibos = { path = "../crates/rooibos", features = [
+    "ssh",
+    "terminal-widget",
+    "input",
+    "image",
+    "clipboard",
+    "config",
+    "router",
+    "spinner",
+    "keybind",
+    "derive-commands",
+    "effects",
+    "palette",
+] }
+tokio = { version = "1.43.0", features = ["rt", "macros"] }
+insta = "1.42.1"
