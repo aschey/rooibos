@@ -4,18 +4,18 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rooibos-reactive = { path = "../rooibos-reactive" }
-rooibos-runtime = { path = "../rooibos-runtime", optional = true }
-rooibos-reactive-macros = { path = "../rooibos-reactive-macros" }
-rooibos-components = { path = "../rooibos-components" }
-rooibos-config = { path = "../rooibos-config", optional = true }
-rooibos-tester = { path = "../rooibos-tester" }
-rooibos-terminal = { path = "../rooibos-terminal" }
-rooibos-ssh = { path = "../rooibos-ssh", optional = true }
+rooibos-reactive = { workspace = true }
+rooibos-runtime = { workspace = true, optional = true }
+rooibos-reactive-macros = { workspace = true }
+rooibos-components = { workspace = true }
+rooibos-config = { workspace = true, optional = true }
+rooibos-tester = { workspace = true, optional = true }
+rooibos-terminal = { workspace = true }
+rooibos-ssh = { workspace = true, optional = true }
 rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
 rooibos-keybind = { path = "../rooibos-keybind", optional = true }
-ratatui = { version = "0.29", features = ["unstable"] }
+ratatui = { workspace = true, default-features = false }
 
 [dev-dependencies]
 tokio = "1.43.0"
@@ -38,6 +38,7 @@ termwiz = [
   "rooibos-components/termwiz",
   "rooibos-terminal/termwiz",
 ]
+tester = ["rooibos-tester"]
 runtime = ["rooibos-runtime", "rooibos-keybind?/runtime"]
 xterm-js = ["rooibos-xterm-js"]
 config = ["rooibos-config"]

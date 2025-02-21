@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [dependencies]
-rooibos = { path = "../crates/rooibos", features = [
+rooibos = { workspace = true, features = [
     "ssh",
     "terminal-widget",
     "input",
@@ -18,6 +18,7 @@ rooibos = { path = "../crates/rooibos", features = [
     "derive-commands",
     "effects",
     "palette",
+    "tester",
 ] }
-tokio = { version = "1.43.0", features = ["rt", "macros"] }
-insta = "1.42.1"
+tokio = { workspace = true, features = ["rt", "macros"] }
+insta = { workspace = true }

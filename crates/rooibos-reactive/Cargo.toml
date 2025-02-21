@@ -6,38 +6,33 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reactive_graph = { version = "0.1.7", features = ["tracing", "effects"] }
-tachys = { git = "https://github.com/aschey/leptos", rev = "bff886ea6e10eb6b6c5368f911d1f5f24389c55b", features = [
-  "reactive_graph",
-  "tracing",
-] }
-throw_error = "0.2.0"
-next_tuple = "0.1.0"
-reactive_stores = "0.1.7"
-terminput = "=0.3.0"
-rooibos-dom = { path = "../rooibos-dom" }
-ratatui = { version = "0.29", features = ["unstable"] }
-slotmap = "1"
-tokio = { version = "1.43.0", default-features = false, features = ["sync"] }
-bitflags = "2"
-educe = "0.6"
-futures = "0.3"
-rustc-hash = "2"
-tui-textarea = { version = "0.7", optional = true, default-features = false }
-paste = "1"
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
-  "all",
-] }
-taffy = "0.7.5"
-crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
-tracing = "0.1"
+reactive_graph = { workspace = true, features = ["tracing", "effects"] }
+tachys = { workspace = true, features = ["reactive_graph", "tracing"] }
+throw_error = { workspace = true }
+next_tuple = { workspace = true }
+reactive_stores = { workspace = true }
+terminput = { workspace = true }
+rooibos-dom = { workspace = true }
+ratatui = { workspace = true, features = ["unstable"] }
+slotmap = { workspace = true }
+tokio = { workspace = true, default-features = false, features = ["sync"] }
+bitflags = { workspace = true }
+educe = { workspace = true }
+futures = { workspace = true }
+rustc-hash = { workspace = true }
+tui-textarea = { workspace = true, optional = true, default-features = false }
+paste = { workspace = true }
+wasm-compat = { workspace = true, features = ["all"] }
+taffy = { workspace = true }
+crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
+tracing = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-any_spawner = { version = "0.2.0", features = ["tokio", "tracing"] }
+any_spawner = { workspace = true, features = ["tokio", "tracing"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
-any_spawner = { version = "0.2.0", features = ["wasm-bindgen"] }
+wasm-bindgen = { workspace = true, features = ["enable-interning"] }
+any_spawner = { workspace = true, features = ["wasm-bindgen"] }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]

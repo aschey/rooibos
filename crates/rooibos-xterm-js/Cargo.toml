@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "c361c2148819048e34f032bae0eb9856a5e9b008" }
-crossterm = { version = "0.28.1", features = ["event-stream"] }
-futures = "0.3"
-ratatui = { version = "0.29", default-features = false }
-tokio = { version = "1.43.0", default-features = false, features = ["sync"] }
-tracing = "0.1"
-web-sys = { version = "0.3.77", features = ["console", "Window", "Document"] }
-rooibos-dom = { path = "../rooibos-dom" }
-rooibos-terminal = { path = "../rooibos-terminal" }
-tap = "1"
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-tokio-stream = { version = "0.1.17", features = ["sync"] }
+ratatui-xterm-js = { workspace = true }
+crossterm = { workspace = true, features = ["event-stream"] }
+futures = { workspace = true }
+ratatui = { workspace = true, default-features = false }
+tokio = { workspace = true, default-features = false, features = ["sync"] }
+tracing = { workspace = true }
+web-sys = { workspace = true, features = ["console", "Window", "Document"] }
+rooibos-dom = { workspace = true }
+rooibos-terminal = { workspace = true }
+tap = { workspace = true }
+futures-cancel = { workspace = true }
+tokio-stream = { workspace = true, features = ["sync"] }

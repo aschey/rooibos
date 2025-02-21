@@ -4,25 +4,23 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rooibos-keybind-macros = { path = "../rooibos-keybind-macros", optional = true }
-rooibos-dom = { path = "../rooibos-dom" }
-rooibos-reactive = { path = "../rooibos-reactive" }
-rooibos-runtime = { path = "../rooibos-runtime", optional = true }
-modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-terminput = "=0.3.0"
-crossterm = "0.28"
-ratatui = { version = "0.29", features = ["unstable"] }
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
-  "all",
-] }
-educe = "0.6"
-clap = { version = "4.5.29", features = ["derive"], optional = true }
-shlex = { version = "1.3.0", optional = true }
-clap_complete = { version = "4.5.44", features = [
+rooibos-keybind-macros = { workspace = true, optional = true }
+rooibos-dom = { workspace = true }
+rooibos-reactive = { workspace = true }
+rooibos-runtime = { workspace = true, optional = true }
+modalkit = { workspace = true }
+modalkit-ratatui = { workspace = true }
+terminput = { workspace = true }
+crossterm = { workspace = true }
+ratatui = { workspace = true, features = ["unstable"] }
+wasm-compat = { workspace = true, features = ["all"] }
+educe = { workspace = true }
+clap = { workspace = true, optional = true }
+shlex = { workspace = true, optional = true }
+clap_complete = { workspace = true, features = [
   "unstable-dynamic",
 ], optional = true }
-unicode-width = "0.2.0"
+unicode-width = { workspace = true }
 
 [features]
 runtime = ["rooibos-runtime"]

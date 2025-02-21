@@ -4,34 +4,32 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-futures-util = "0.3"
-rooibos-dom = { path = "../rooibos-dom" }
-rooibos-reactive = { path = "../rooibos-reactive", optional = true }
-ratatui = { version = "0.29", default-features = false }
-tracing = "0.1"
-educe = "0.6"
-tokio-util = "0.7"
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
-  "all",
-] }
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "27c1c31b5d96707c835871984ede8de38b66e1ed" }
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-thiserror = "2"
-rooibos-terminal = { path = "../rooibos-terminal" }
-proc-exit = "2.0.2"
+futures-util = { workspace = true }
+rooibos-dom = { workspace = true }
+rooibos-reactive = { workspace = true, optional = true }
+ratatui = { workspace = true, default-features = false }
+tracing = { workspace = true }
+educe = { workspace = true }
+tokio-util = { workspace = true }
+wasm-compat = { workspace = true, features = ["all"] }
+background-service = { workspace = true }
+futures-cancel = { workspace = true }
+thiserror = { workspace = true }
+rooibos-terminal = { workspace = true }
+proc-exit = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-tokio = { version = "1.43.0", default-features = false, features = [
+tokio = { workspace = true, default-features = false, features = [
   "sync",
   "macros",
   "rt",
 ] }
-console_error_panic_hook = "0.1"
+console_error_panic_hook = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-signal-hook = "0.3"
-async-signal = "0.2"
-tokio = { version = "1.43.0", default-features = false, features = [
+signal-hook = { workspace = true }
+async-signal = { workspace = true }
+tokio = { workspace = true, default-features = false, features = [
   "sync",
   "macros",
   "time",

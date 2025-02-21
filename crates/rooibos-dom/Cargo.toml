@@ -6,34 +6,32 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ratatui = { version = "0.29", features = ["unstable"] }
-slotmap = "1"
-tokio = { version = "1.43.0", default-features = false, features = ["sync"] }
-bitflags = "2"
-educe = "0.6"
-futures = "0.3"
-rustc-hash = "2"
-terminput = "=0.3.0"
-tui-textarea = { version = "0.7", optional = true, default-features = false }
-paste = "1"
-wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
-  "all",
-] }
-taffy = "0.7.5"
-crossterm = { version = "0.28.1", features = ["event-stream", "use-dev-tty"] }
-tracing = "0.1"
-thiserror = "2"
-textwrap = "0.16.1"
-unicode-width = "0.2.0"
-tachyonfx = { git = "https://github.com/aschey/tachyonfx", rev = "96fdf27fe17bfe1f0c678750d7554a502943cef2", default-features = false, features = [
+ratatui = { workspace = true, features = ["unstable"] }
+slotmap = { workspace = true }
+tokio = { workspace = true, default-features = false, features = ["sync"] }
+bitflags = { workspace = true }
+educe = { workspace = true }
+futures = { workspace = true }
+rustc-hash = { workspace = true }
+terminput = { workspace = true }
+tui-textarea = { workspace = true, optional = true, default-features = false }
+paste = { workspace = true }
+wasm-compat = { workspace = true, features = ["all"] }
+taffy = { workspace = true }
+crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+textwrap = { workspace = true }
+unicode-width = { workspace = true }
+tachyonfx = { workspace = true, default-features = false, features = [
   "sendable",
 ], optional = true }
 
 [dev-dependencies]
-tokio = { version = "1.43", features = ["rt", "macros", "sync"] }
+tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen = { version = "0.2", features = ["enable-interning"] }
+wasm-bindgen = { workspace = true, features = ["enable-interning"] }
 
 [features]
 crossterm = ["terminput/crossterm", "tui-textarea?/crossterm"]

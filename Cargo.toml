@@ -2,6 +2,110 @@
 members = ["./crates/*", "examples", "examples/wasm", "integration-tests"]
 resolver = "3"
 
+[workspace.dependencies]
+# workspace crates
+rooibos = { path = "./crates/rooibos" }
+rooibos-reactive = { path = "./crates/rooibos-reactive" }
+rooibos-dom = { path = "./crates/rooibos-dom" }
+rooibos-runtime = { path = "./crates/rooibos-runtime" }
+rooibos-reactive-macros = { path = "./crates/rooibos-reactive-macros" }
+rooibos-components = { path = "./crates/rooibos-components" }
+rooibos-config = { path = "./crates/rooibos-config" }
+rooibos-tester = { path = "./crates/rooibos-tester" }
+rooibos-terminal = { path = "./crates/rooibos-terminal" }
+rooibos-ssh = { path = "./crates/rooibos-ssh" }
+rooibos-xterm-js = { path = "./crates/rooibos-xterm-js" }
+rooibos-router = { path = "./crates/rooibos-router" }
+rooibos-router-macros = { path = "./crates/rooibos-router-macros" }
+rooibos-keybind = { path = "./crates/rooibos-keybind" }
+rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
+
+# leptos
+next_tuple = "0.1.0"
+either_of = "0.1.5"
+reactive_graph = "0.1.7"
+tachys = { git = "https://github.com/aschey/leptos", rev = "bff886ea6e10eb6b6c5368f911d1f5f24389c55b" }
+throw_error = "0.2.0"
+reactive_stores = "0.1.7"
+any_spawner = "0.2.0"
+
+# ratatui
+ratatui = { version = "0.29", default-features = false }
+tui-textarea = { version = "0.7", default-features = false }
+ratatui-image = "4"
+throbber-widgets-tui = "0.8.0"
+tui-term = "0.2.0"
+modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
+ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "c361c2148819048e34f032bae0eb9856a5e9b008" }
+
+# other TUI things
+crossterm = "0.28.1"
+termion = "4"
+termwiz = "0.22"
+vt100 = "0.15"
+portable-pty = "0.9"
+modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
+
+# proc macros
+manyhow = "0.11"
+proc-macro2 = "1"
+quote = "1"
+syn = "2"
+proc-macro-crate = "3"
+
+# misc
+wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87" }
+educe = "0.6"
+tokio = { version = "1", default-features = false }
+tracing = "0.1"
+image = { version = "0.25" }
+tokio-util = "0.7"
+futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+getrandom = "0.3"
+derive_more = "2"
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "ca03ba579b645ff6c147339b66095cb688ff1a46" }
+slotmap = "1"
+bitflags = "2"
+futures = "0.3"
+rustc-hash = "2"
+terminput = "=0.3.0"
+paste = "1"
+taffy = "0.7.5"
+thiserror = "2"
+textwrap = "0.16.1"
+unicode-width = "0.2.0"
+tachyonfx = { git = "https://github.com/aschey/tachyonfx", rev = "96fdf27fe17bfe1f0c678750d7554a502943cef2", default-features = false }
+clap = "4.5.29"
+shlex = "1.3.0"
+clap_complete = "4.5.44"
+wasm-bindgen = "0.2"
+matchit = "0.8"
+url = "2"
+convert_case = "0.7"
+futures-util = "0.3"
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "27c1c31b5d96707c835871984ede8de38b66e1ed" }
+proc-exit = "2.0.2"
+console_error_panic_hook = "0.1"
+signal-hook = "0.3"
+async-signal = "0.2"
+russh = "0.50"
+tap = "1"
+tokio-stream = "0.1.17"
+base64 = "0.22.1"
+clipboard-win = "5.4"
+web-sys = "0.3.77"
+
+# examples/testing
+tracing-subscriber = "0.3.19"
+tracing-appender = "0.2.3"
+rand = "0.8.5"
+reqwest = "0.12.12"
+serde = "1.0.217"
+axum = "0.8.1"
+schematic = { version = "0.17.11" }
+color-eyre = "0.6.3"
+insta = "1.42.1"
+tui-tree-widget = "0.23.0"
 
 [patch.crates-io]
 crossterm = { git = "https://github.com/aschey/crossterm", rev = "3b6db3586eda31a803a67af7bdb1d0937cf26485" }

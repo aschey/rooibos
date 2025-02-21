@@ -31,6 +31,7 @@ pub mod keybind {
     pub use rooibos_keybind::*;
 }
 
+#[cfg(feature = "tester")]
 pub mod tester {
     pub use rooibos_tester::*;
 }

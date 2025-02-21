@@ -4,29 +4,29 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-futures-util = "0.3"
-ratatui = { version = "0.29", default-features = false }
-tokio = { version = "1.43.0", default-features = false, features = [
+futures-util = { workspace = true }
+ratatui = { workspace = true, default-features = false }
+tokio = { workspace = true, default-features = false, features = [
   "sync",
   "macros",
   "rt",
 ] }
-rooibos-dom = { path = "../rooibos-dom" }
-crossterm = { version = "0.28.1", features = [
+rooibos-dom = { workspace = true }
+crossterm = { workspace = true, features = [
   "event-stream",
   "use-dev-tty",
 ], optional = true }
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
-tracing = "0.1"
-termwiz = { version = "0.22", optional = true }
-base64 = { version = "0.22.1", optional = true }
-tokio-stream = { version = "0.1.17", features = ["sync"] }
+futures-cancel = { workspace = true }
+tracing = { workspace = true }
+termwiz = { workspace = true, optional = true }
+base64 = { workspace = true, optional = true }
+tokio-stream = { workspace = true, features = ["sync"] }
 
 [target.'cfg(unix)'.dependencies]
-termion = { version = "4", optional = true }
+termion = { workspace = true, optional = true }
 
 [target.'cfg(windows)'.dependencies]
-clipboard-win = { version = "5.4", features = ["std"], optional = true }
+clipboard-win = { workspace = true, features = ["std"], optional = true }
 
 [features]
 crossterm = ["dep:crossterm", "rooibos-dom/crossterm", "ratatui/crossterm"]

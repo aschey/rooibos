@@ -8,7 +8,7 @@ use rooibos::reactive::dom::{Render, UpdateLayoutProps, text, try_focus_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, derive_signal, height, padding, padding_right, row, wgt, width};
+use rooibos::reactive::{col, derive_signal, height, padding_right, row, wgt, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
