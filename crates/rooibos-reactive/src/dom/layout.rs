@@ -42,6 +42,37 @@ macro_rules! impl_next_tuple {
     };
 }
 
+macro_rules! signal_wrapper {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr) => {
+        #[derive(Default, Clone)]
+        pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
+
+        impl_next_tuple!($struct_name);
+
+        impl From<Signal<$inner>> for $struct_name {
+            fn from(val: Signal<$inner>) -> Self {
+                $struct_name(Some(val))
+            }
+        }
+
+        impl From<$struct_name> for Signal<$inner> {
+            fn from(val: $struct_name) -> Self {
+                val.0.unwrap_or_else(|| $default.into())
+            }
+        }
+
+        impl $struct_name {
+            pub fn value(&self) -> Option<Signal<$inner>> {
+                self.0.clone()
+            }
+        }
+
+        pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
+            $struct_name(Some(val.into()))
+        }
+    };
+}
+
 pub fn chars(val: impl Into<Signal<f32>>) -> Signal<taffy::Dimension> {
     let val = val.into();
     derive_signal!(taffy::Dimension::Length(val.get()))
@@ -76,9 +107,7 @@ pub fn length_percentage_auto_chars(
     derive_signal!(taffy::LengthPercentageAuto::Length(val.get()))
 }
 
-pub struct Show(Signal<bool>);
-
-impl_next_tuple!(Show);
+signal_wrapper!(Show, show, bool, true);
 
 impl Property for Show {
     type State = RenderEffect<()>;
@@ -88,7 +117,7 @@ impl Property for Show {
         RenderEffect::new(move |_| {
             with_nodes_mut(|nodes| {
                 let original_display = *nodes.original_display(key);
-                let enabled = self.0.get();
+                let enabled = self.0.get().unwrap_or(true);
                 nodes.set_enabled(key, enabled);
                 nodes.update_layout(key, |s| {
                     s.display = if enabled {
@@ -107,21 +136,7 @@ impl Property for Show {
     }
 }
 
-pub fn show(val: impl Into<Signal<bool>>) -> Show {
-    Show(val.into())
-}
-
-#[derive(Clone, Default)]
-pub struct BorderProp(pub(crate) Option<Signal<Borders>>);
-
-impl_next_tuple!(BorderProp);
-
-pub fn borders<S>(borders: S) -> BorderProp
-where
-    S: Into<Signal<Borders>>,
-{
-    BorderProp(Some(borders.into()))
-}
+signal_wrapper!(BorderProp, borders, Borders, Borders::default());
 
 impl Property for BorderProp {
     type State = RenderEffect<()>;
@@ -149,14 +164,7 @@ impl Property for BorderProp {
     }
 }
 
-#[derive(Default, Clone)]
-pub struct ZIndex(pub(crate) Option<Signal<i32>>);
-
-impl_next_tuple!(ZIndex);
-
-pub fn z_index(z_index: impl Into<Signal<i32>>) -> ZIndex {
-    ZIndex(Some(z_index.into()))
-}
+signal_wrapper!(ZIndex, z_index, i32, 0);
 
 impl Property for ZIndex {
     type State = RenderEffect<()>;
@@ -180,23 +188,12 @@ impl Property for ZIndex {
 }
 
 #[cfg(feature = "effects")]
-#[derive(Default, Clone)]
-pub struct Effect(pub(crate) Option<Signal<rooibos_dom::tachyonfx::Effect>>);
-
-#[cfg(feature = "effects")]
-impl_next_tuple!(Effect);
-
-#[cfg(feature = "effects")]
-impl Effect {
-    pub fn value(&self) -> Option<Signal<rooibos_dom::tachyonfx::Effect>> {
-        self.0
-    }
-}
-
-#[cfg(feature = "effects")]
-pub fn effect(effect: impl Into<Signal<rooibos_dom::tachyonfx::Effect>>) -> Effect {
-    Effect(Some(effect.into()))
-}
+signal_wrapper!(
+    Effect,
+    effect,
+    rooibos_dom::tachyonfx::Effect,
+    rooibos_dom::tachyonfx::Effect::new(rooibos_dom::tachyonfx::fx::sequence(&[]))
+);
 
 #[cfg(feature = "effects")]
 impl Property for Effect {
@@ -219,20 +216,7 @@ impl Property for Effect {
     }
 }
 
-#[derive(Default, Clone)]
-pub struct Clear(pub(crate) Option<Signal<bool>>);
-
-impl_next_tuple!(Clear);
-
-impl Clear {
-    pub fn value(&self) -> Option<Signal<bool>> {
-        self.0
-    }
-}
-
-pub fn clear(clear: impl Into<Signal<bool>>) -> Clear {
-    Clear(Some(clear.into()))
-}
+signal_wrapper!(Clear, clear, bool, false);
 
 impl Property for Clear {
     type State = RenderEffect<()>;
@@ -254,20 +238,7 @@ impl Property for Clear {
     }
 }
 
-#[derive(Default, Clone)]
-pub struct Class(pub(crate) Option<Signal<Vec<String>>>);
-
-impl_next_tuple!(Class);
-
-impl Class {
-    pub fn value(&self) -> Option<Signal<Vec<String>>> {
-        self.0
-    }
-}
-
-pub fn class(class: impl Into<Signal<Vec<String>>>) -> Class {
-    Class(Some(class.into()))
-}
+signal_wrapper!(Class, class, Vec<String>, Vec::default());
 
 impl Property for Class {
     type State = RenderEffect<()>;
@@ -341,20 +312,7 @@ where
     }
 }
 
-#[derive(Default, Clone)]
-pub struct Focusable(pub(crate) Option<Signal<bool>>);
-
-impl_next_tuple!(Focusable);
-
-impl Focusable {
-    pub fn value(&self) -> Option<Signal<bool>> {
-        self.0
-    }
-}
-
-pub fn focusable(focusable: impl Into<Signal<bool>>) -> Focusable {
-    Focusable(Some(focusable.into()))
-}
+signal_wrapper!(Focusable, focusable, bool, false);
 
 impl Property for Focusable {
     type State = RenderEffect<()>;
@@ -376,20 +334,7 @@ impl Property for Focusable {
     }
 }
 
-#[derive(Default, Clone)]
-pub struct Enabled(pub(crate) Option<Signal<bool>>);
-
-impl_next_tuple!(Enabled);
-
-impl Enabled {
-    pub fn value(&self) -> Option<Signal<bool>> {
-        self.0
-    }
-}
-
-pub fn enabled(enabled: impl Into<Signal<bool>>) -> Enabled {
-    Enabled(Some(enabled.into()))
-}
+signal_wrapper!(Enabled, enabled, bool, true);
 
 impl Property for Enabled {
     type State = RenderEffect<()>;
@@ -614,26 +559,7 @@ macro_rules! margin {
 
 macro_rules! layout_prop {
     ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($($props:ident).+),+) => {
-        #[derive(Default, Clone)]
-        pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
-
-        impl From<Signal<$inner>> for $struct_name {
-            fn from(val: Signal<$inner>) -> Self {
-                $struct_name(Some(val))
-            }
-        }
-
-        impl From<$struct_name> for Signal<$inner> {
-            fn from(val: $struct_name) -> Self {
-                val.0.unwrap_or_else(|| $default.into())
-            }
-        }
-
-        impl $struct_name {
-            pub fn value(&self) -> Option<Signal<$inner>> {
-                self.0.clone()
-            }
-        }
+        signal_wrapper!($struct_name, $fn, $inner, $default);
 
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
@@ -642,12 +568,6 @@ macro_rules! layout_prop {
                 }
 
             }
-        }
-
-        impl_next_tuple!($struct_name);
-
-        pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
-            $struct_name(Some(val.into()))
         }
     };
 }
