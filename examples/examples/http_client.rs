@@ -35,13 +35,13 @@ fn app() -> impl Render {
     };
 
     col![
-        props(padding!(1.)),
+        props(padding!(1)),
         Button::new()
-            .width(chars(12.))
+            .width(chars(12))
             .on_click(move || {
                 set_id.set(rand::thread_rng().gen_range(1..80));
             })
-            .height(chars(3.))
+            .height(chars(3))
             .render(text!("fetch next")),
         suspense!(
             wgt!(line!(" Loading...".gray())),

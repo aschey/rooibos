@@ -19,34 +19,30 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    let image_length = RwSignal::new(10.);
+    let image_length = RwSignal::new(10);
     let image_url = RwSignal::new(PathBuf::from("./examples/assets/cat.jpg"));
 
     col![
-        props(padding!(1.)),
+        props(padding!(1)),
         wgt!(
-            props(height!(1.)),
+            props(height!(1)),
             "Press up to increase image size, down to decrease"
         ),
         col![
-            props(
-                width!(image_length),
-                height!(image_length),
-                padding_top!(1.)
-            ),
+            props(width!(image_length), height!(image_length), padding_top!(1)),
             Image::from_url(image_url).render()
         ]
     ]
     .on_key_down(
         [
             key(keys::DOWN, move |_, _| {
-                if image_length.get_untracked() > 5. {
-                    image_length.update(|l| *l -= 1.);
+                if image_length.get_untracked() > 5 {
+                    image_length.update(|l| *l = (*l as i32 - 1) as u32);
                 }
             }),
             key(keys::UP, move |_, _| {
-                if image_length.get_untracked() < 20. {
-                    image_length.update(|l| *l += 1.);
+                if image_length.get_untracked() < 20 {
+                    image_length.update(|l| *l += 1);
                 }
             }),
             key("t", move |_, _| {

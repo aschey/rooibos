@@ -23,8 +23,8 @@ fn app() -> impl Render {
     term_ref.spawn_command(cmd);
 
     components::Terminal::default()
-        .width(pct(100.))
-        .height(pct(100.))
+        .width(pct(100))
+        .height(pct(100))
         .block(Block::bordered().title("Terminal"))
         .render(term_ref)
 }

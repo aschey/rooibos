@@ -24,7 +24,7 @@ fn app() -> impl Render {
     let window_focused = use_window_focus();
 
     col![
-        props(height!(100.%), width!(100.%)),
+        props(height!(100%), width!(100%)),
         wgt![props(borders(Borders::all())), {
             let window_size = window_size.get().viewport();
             format!(
@@ -35,12 +35,12 @@ fn app() -> impl Render {
             )
         }],
         row![
-            props(height!(50.%), width!(100.%)),
+            props(height!(50%), width!(100%)),
             show_size(1),
             show_size(2)
         ],
         row![
-            props(height!(50.%), width!(100.%)),
+            props(height!(50%), width!(100%)),
             show_size(3),
             show_size(4)
         ]
@@ -49,7 +49,7 @@ fn app() -> impl Render {
 
 fn show_size(id: usize) -> impl Render {
     let widget_size = RwSignal::new(Rect::default());
-    wgt!(props(width!(100.%), borders(Borders::all())), {
+    wgt!(props(width!(100%), borders(Borders::all())), {
         let widget_size = widget_size.get();
         format!(
             "id:{id} x={} y={} width={} height={}",

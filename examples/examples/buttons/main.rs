@@ -21,17 +21,17 @@ async fn main() -> Result {
     Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
-const MIN_SIZE: f32 = 3.;
-const MAX_SIZE: f32 = 15.;
+const MIN_SIZE: u32 = 3;
+const MAX_SIZE: u32 = 15;
 
 fn app() -> impl Render {
-    let (block_height, set_block_height) = signal(5.);
-    let block_width = derive_signal!(block_height.get() * 2.);
+    let (block_height, set_block_height) = signal(5u32);
+    let block_width = derive_signal!(block_height.get() * 2);
 
-    let adjust_size = move |adjustment: f32| {
+    let adjust_size = move |adjustment: i32| {
         set_block_height.update(|b| {
-            *b += adjustment;
-            *b = b.clamp(MIN_SIZE, MAX_SIZE);
+            *b = (*b as i32 + adjustment) as u32;
+            *b = (*b).clamp(MIN_SIZE, MAX_SIZE);
         });
     };
     let bigger = "bigger";
@@ -40,20 +40,20 @@ fn app() -> impl Render {
     let smaller_ref = ButtonRef::new();
 
     row![
-        props(padding!(1.)),
+        props(padding!(1)),
         col![
-            props(width!(15.), padding_right!(2.)),
+            props(width!(15), padding_right!(2)),
             button(
                 bigger.bold(),
                 derive_signal!(block_height.get() < MAX_SIZE),
                 bigger_ref,
-                move || adjust_size(1.)
+                move || adjust_size(1)
             ),
             button(
                 smaller.bold(),
                 derive_signal!(block_height.get() > MIN_SIZE),
                 smaller_ref,
-                move || adjust_size(-1.)
+                move || adjust_size(-1)
             )
         ],
         wgt!(
@@ -61,7 +61,7 @@ fn app() -> impl Render {
             text!(format!("{} x {}", block_width.get(), block_height.get()))
                 .centered()
                 .bg({
-                    let height = block_height.get();
+                    let height = block_height.get() as f32;
                     Color::from_hsl(Hsl::new(
                         18.0 * height,
                         5.0 * height / 100.,
@@ -87,7 +87,7 @@ fn app() -> impl Render {
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('+')]),
                 move |_, context: KeybindContext| {
                     if try_focus_id(bigger).is_ok() {
-                        adjust_size(context.keys[0].get_numeric() as f32);
+                        adjust_size(context.keys[0].get_numeric() as i32);
                     }
                 },
             ),
@@ -96,7 +96,7 @@ fn app() -> impl Render {
                 keys::combine([keys::Key::decimal('+'), keys::Key::Literal('-')]),
                 move |_, context: KeybindContext| {
                     if try_focus_id(smaller).is_ok() {
-                        adjust_size(-1.0 * context.keys[0].get_numeric() as f32);
+                        adjust_size(-(context.keys[0].get_numeric() as i32));
                     }
                 },
             ),

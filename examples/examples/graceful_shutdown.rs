@@ -39,7 +39,7 @@ fn app() -> impl Render {
         }),
     );
 
-    col![props(padding!(1.)), move || {
+    col![props(padding!(1)), move || {
         if cancelled.get() {
             Either::Left(wgt!("App is shutting down..."))
         } else {

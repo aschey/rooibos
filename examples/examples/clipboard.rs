@@ -1,8 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::components::{
-    Button, Input, Notification, use_notifications,
-};
+use rooibos::components::{Button, Input, Notification, use_notifications};
 use rooibos::reactive::dom::{Render, line, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, margin, padding, padding_right, row, wgt};
@@ -25,10 +23,10 @@ fn app() -> impl Render {
     let text = textarea.text();
 
     col![
-        props(padding!(1.)),
+        props(padding!(1)),
         row![
-            props(margin!(1.)),
-            wgt!(props(padding_right!(1.)), "Input:".bold().cyan()),
+            props(margin!(1)),
+            wgt!(props(padding_right!(1)), "Input:".bold().cyan()),
             Input::default()
                 .placeholder_text("Enter some text")
                 .render(textarea),

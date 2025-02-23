@@ -161,9 +161,9 @@ fn app() -> impl Render {
     row![
         // `props()` is a special keyword that sets the layout properties on a widget
         // or layout node.
-        props(padding!(1.)),
+        props(padding!(1)),
         col![
-            props(width!(20.), padding_right!(2.)),
+            props(width!(20), padding_right!(2)),
             button("bigger".bold()),
             button("smaller".bold())
         ]
@@ -173,7 +173,7 @@ fn app() -> impl Render {
 // Simple components can be written as functions, while complex ones with optional arguments,
 // such as `Button`, may be written as structs.
 fn button(title: Span<'static>) -> impl Render {
-    row![props(height!(3.)), Button::new().render(text!(title))]
+    row![props(height!(3)), Button::new().render(text!(title))]
 }
 ```
 

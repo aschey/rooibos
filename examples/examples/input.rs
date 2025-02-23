@@ -26,8 +26,8 @@ fn app() -> impl Render {
     let text = textarea.text();
     col![
         props(
-            padding!(1.),
-            width!(100.%),
+            padding!(1),
+            width!(100%),
             borders(derive_signal!(if focused.get() {
                 Borders::all().title("Input").blue()
             } else {

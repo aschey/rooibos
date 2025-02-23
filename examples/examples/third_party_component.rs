@@ -39,7 +39,7 @@ fn app() -> impl Render {
 
     text_area(text_area_widget)
         .on_key_down(key_down)
-        .min_width(chars(9.))
+        .min_width(chars(9))
 }
 
 fn text_area(text_area: RwSignal<TextArea<'static>>) -> DomWidget<()> {

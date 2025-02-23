@@ -32,9 +32,9 @@ fn app() -> impl Render {
     ]));
 
     col![
-        props(max_width!(50.), max_height!(20.), borders(Borders::all())),
+        props(max_width!(50), max_height!(20), borders(Borders::all())),
         TabView::new()
-            .header_height(chars(3.))
+            .header_height(chars(3))
             .block(tab_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
@@ -97,7 +97,7 @@ fn inner_tabs() -> impl Render {
     row![
         props(borders(Borders::all())),
         TabView::new()
-            .header_height(chars(3.))
+            .header_height(chars(3))
             .block(tab_block)
             .fit(true)
             .highlight_style(Style::new().yellow())

@@ -149,11 +149,11 @@ impl Notifications {
         col![
             props(
                 z_index(2),
-                width!(100.%),
-                height!(100.%),
+                width!(100%),
+                height!(100%),
                 max_width(max_layout_width),
-                padding_right!(1.),
-                padding_top!(1.),
+                padding_right!(1),
+                padding_top!(1),
                 align_items(AlignItems::End),
             ),
             col![

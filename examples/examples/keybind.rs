@@ -57,7 +57,7 @@ fn app() -> impl Render {
             )
             .on_click(move |_| increase_count())
             .grow(1.),
-        CommandBar::<AppAction>::new().height(chars(1.)).render()
+        CommandBar::<AppAction>::new().height(chars(1)).render()
     ]
 }
 

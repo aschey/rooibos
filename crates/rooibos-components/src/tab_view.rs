@@ -102,7 +102,7 @@ impl Default for TabView {
             fit: false.into(),
             divider: span!(symbols::line::VERTICAL).into(),
             header_height: Dimension::Length(1.).into(),
-            width: pct(100.),
+            width: pct(100),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
             body_height: Dimension::Auto.into(),
@@ -375,7 +375,7 @@ impl TabView {
         };
 
         col![
-            props(rooibos_reactive::dom::layout::width(width), height!(100.%)),
+            props(rooibos_reactive::dom::layout::width(width), height!(100%)),
             wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())
@@ -393,7 +393,7 @@ impl TabView {
             .on_key_down(on_key_down)
             .on_focus(on_focus)
             .on_blur(on_blur),
-            col![props(max_height!(100.%), height(body_height)), move || {
+            col![props(max_height!(100%), height(body_height)), move || {
                 cur_tab
                     .get()
                     .map(|c| c.0())

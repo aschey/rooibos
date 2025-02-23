@@ -51,7 +51,7 @@ const NUM_COUNTERS: usize = 5;
 
 fn app() -> impl Render {
     col![
-        props(max_width!(20.), padding!(1.)),
+        props(max_width!(20), padding!(1)),
         (0..NUM_COUNTERS).map(|_| counter()).collect::<Vec<_>>()
     ]
 }

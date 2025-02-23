@@ -61,7 +61,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
             show(show_popup),
         ),
         col![
-            props(center_items(), padding!(1.), borders(Borders::all())),
+            props(center_items(), padding!(1), borders(Borders::all())),
             wgt!(line!("popup text")),
             Button::new()
                 .on_click(on_close)
@@ -72,7 +72,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
 }
 
 fn bounds() -> impl FlexProperty {
-    (width!(100.%), height!(100.%))
+    (width!(100%), height!(100%))
 }
 
 fn center_items() -> impl FlexProperty {

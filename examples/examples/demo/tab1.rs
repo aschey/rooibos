@@ -38,9 +38,9 @@ pub(crate) fn tab1() -> impl Render {
     ]);
 
     row![
-        props(width!(100.%), height!(100.%)),
-        col![props(width!(30.%), height!(100.%)), demo_table(servers)],
-        col![props(width!(70.%)), demo_map(servers, true)]
+        props(width!(100%), height!(100%)),
+        col![props(width!(30%), height!(100%)), demo_table(servers)],
+        col![props(width!(70%)), demo_map(servers, true)]
     ]
 }
 
@@ -69,7 +69,7 @@ fn demo_table(servers: StoredValue<Vec<Server<'static>>>) -> impl Render {
     });
 
     wgt!(
-        props(width!(100.%), height!(100.%)),
+        props(width!(100%), height!(100%)),
         Table::new(
             rows.get(),
             [
@@ -130,7 +130,7 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
     };
 
     wgt!(
-        props(width!(100.%), height!(100.%)),
+        props(width!(100%), height!(100%)),
         Canvas::default()
             .block(Block::bordered().title("World"))
             .paint(paint_map)

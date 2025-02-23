@@ -41,11 +41,11 @@ pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -
         props(
             borders(Borders::all().title("Graphs")),
             height(gauge_height),
-            min_height!(7.)
+            min_height!(7)
         ),
-        demo_gauge(enhanced_graphics, progress, chars(2.)),
+        demo_gauge(enhanced_graphics, progress, chars(2)),
         demo_sparkline(enhanced_graphics),
-        demo_line_gauge(enhanced_graphics, progress, chars(2.))
+        demo_line_gauge(enhanced_graphics, progress, chars(2))
     ]
 }
 

@@ -26,7 +26,7 @@ fn app() -> impl Render {
 
     let (notifications, notifier) = use_notifications();
     col![
-        props(width!(100.%), height!(100.%), borders(Borders::all())),
+        props(width!(100%), height!(100%), borders(Borders::all())),
         (0..5).map(|i| task(i + 1, notifier)).collect::<Vec<_>>(),
         notifications.render()
     ]

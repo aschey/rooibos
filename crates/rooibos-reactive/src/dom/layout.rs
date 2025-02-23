@@ -73,38 +73,40 @@ macro_rules! signal_wrapper {
     };
 }
 
-pub fn chars(val: impl Into<Signal<f32>>) -> Signal<taffy::Dimension> {
+pub fn chars(val: impl Into<Signal<u32>>) -> Signal<taffy::Dimension> {
     let val = val.into();
-    derive_signal!(taffy::Dimension::Length(val.get()))
+    derive_signal!(taffy::Dimension::Length(val.get() as f32))
 }
 
-pub fn pct(val: impl Into<Signal<f32>>) -> Signal<taffy::Dimension> {
+pub fn pct(val: impl Into<Signal<u32>>) -> Signal<taffy::Dimension> {
     let val = val.into();
-    derive_signal!(taffy::Dimension::Percent(val.get() / 100.0))
+    derive_signal!(taffy::Dimension::Percent(val.get() as f32 / 100.0))
 }
 
-pub fn length_percentage_pct(val: impl Into<Signal<f32>>) -> Signal<taffy::LengthPercentage> {
+pub fn length_percentage_pct(val: impl Into<Signal<u32>>) -> Signal<taffy::LengthPercentage> {
     let val = val.into();
-    derive_signal!(taffy::LengthPercentage::Percent(val.get() / 100.0))
+    derive_signal!(taffy::LengthPercentage::Percent(val.get() as f32 / 100.0))
 }
 
-pub fn length_percentage_chars(val: impl Into<Signal<f32>>) -> Signal<taffy::LengthPercentage> {
+pub fn length_percentage_chars(val: impl Into<Signal<u32>>) -> Signal<taffy::LengthPercentage> {
     let val = val.into();
-    derive_signal!(taffy::LengthPercentage::Length(val.get()))
+    derive_signal!(taffy::LengthPercentage::Length(val.get() as f32))
 }
 
 pub fn length_percentage_auto_pct(
-    val: impl Into<Signal<f32>>,
+    val: impl Into<Signal<u32>>,
 ) -> Signal<taffy::LengthPercentageAuto> {
     let val = val.into();
-    derive_signal!(taffy::LengthPercentageAuto::Percent(val.get() / 100.0))
+    derive_signal!(taffy::LengthPercentageAuto::Percent(
+        val.get() as f32 / 100.0
+    ))
 }
 
 pub fn length_percentage_auto_chars(
-    val: impl Into<Signal<f32>>,
+    val: impl Into<Signal<u32>>,
 ) -> Signal<taffy::LengthPercentageAuto> {
     let val = val.into();
-    derive_signal!(taffy::LengthPercentageAuto::Length(val.get()))
+    derive_signal!(taffy::LengthPercentageAuto::Length(val.get() as f32))
 }
 
 signal_wrapper!(Show, show, bool, true);

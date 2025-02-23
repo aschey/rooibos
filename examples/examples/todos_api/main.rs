@@ -101,16 +101,16 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     let (notifications, notifier) = use_notifications();
     col![
-        props(padding!(1.), width!(100.%), height!(100.%),),
+        props(padding!(1), width!(100%), height!(100%),),
         row![
-            props(width!(100.%), align_items(AlignItems::Center)),
+            props(width!(100%), align_items(AlignItems::Center)),
             wgt!("Add a Todo"),
             add_todo_input(input_id)
         ],
         col![
             props(
-                width!(100.%),
-                height!(100.%),
+                width!(100%),
+                height!(100%),
                 overflow_y(Overflow::Scroll),
                 borders(Borders::all().title("Todos"))
             ),
@@ -152,7 +152,7 @@ fn add_todo_input(id: NodeId) -> impl Render {
     let focused = use_focus_with_id(id);
 
     row![
-        props(width!(100.%), padding_left!(1.)),
+        props(width!(100%), padding_left!(1)),
         Input::default()
             .borders(derive_signal!(if focused.get() {
                 Borders::all().blue()
@@ -165,8 +165,8 @@ fn add_todo_input(id: NodeId) -> impl Render {
                 input_ref.delete_line();
                 command_context.dispatch(Command::Add { val });
             })
-            .min_width(chars(12.))
-            .max_width(chars(100.))
+            .min_width(chars(12))
+            .max_width(chars(100))
             .id(id)
             .render(input_ref),
         Button::new()
@@ -260,20 +260,15 @@ fn saving_popup() -> impl RenderAny {
 
     row![
         props(
-            width!(100.%),
-            height!(100.%),
+            width!(100%),
+            height!(100%),
             position(Position::Absolute),
             align_items(AlignItems::Center),
             justify_content(JustifyContent::Center),
             show(pending)
         ),
         wgt!(
-            props(
-                clear(true),
-                width!(25.),
-                height!(5.),
-                borders(Borders::all())
-            ),
+            props(clear(true), width!(25), height!(5), borders(Borders::all())),
             line!("Saving...")
         )
     ]
@@ -288,11 +283,11 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_ref = Input::get_ref();
 
     row![
-        col![props(margin!(1.)), format!("{id}.")],
+        col![props(margin!(1)), format!("{id}.")],
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin!(1.)), wgt!(text.get())])
+            .fallback(move || col![props(margin!(1)), wgt!(text.get())])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })
@@ -370,9 +365,9 @@ fn todo_editor(
                 editing_id.set(None);
             }
         })
-        .width(pct(100.))
+        .width(pct(100))
         .grow(1.)
-        .max_width(chars(100.))
+        .max_width(chars(100))
         .id(input_id)
         .render(input_ref)
 }

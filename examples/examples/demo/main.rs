@@ -68,10 +68,10 @@ fn header_tabs() -> impl Render {
     ]));
 
     col![
-        props(width!(100.%), height!(100.%)),
+        props(width!(100%), height!(100%)),
         TabView::new()
-            .header_height(chars(3.))
-            .body_height(pct(100.))
+            .header_height(chars(3))
+            .body_height(pct(100))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .on_title_click(move |_, tab| focused.set(tab.to_string()))

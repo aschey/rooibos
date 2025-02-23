@@ -78,8 +78,8 @@ fn app() -> impl Render {
         state.track();
         RenderTree { tree, state }
     })
-    .width(pct(100.))
-    .height(pct(100.))
+    .width(pct(100))
+    .height(pct(100))
     .on_key_down(key_down)
 }
 

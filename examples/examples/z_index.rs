@@ -24,8 +24,8 @@ fn app() -> impl Render {
             props(
                 clear(true),
                 z_index(z_index1),
-                width!(20.),
-                height!(3.),
+                width!(20),
+                height!(3),
                 borders(Borders::all())
             ),
             text!("block one")
@@ -34,14 +34,9 @@ fn app() -> impl Render {
             set_z_index1.update(|z| *z += 1);
         }),
         col![
-            props(z_index(z_index2), padding_left!(3.), padding_top!(1.)),
+            props(z_index(z_index2), padding_left!(3), padding_top!(1)),
             wgt!(
-                props(
-                    clear(true),
-                    width!(23.),
-                    height!(6.),
-                    borders(Borders::all())
-                ),
+                props(clear(true), width!(23), height!(6), borders(Borders::all())),
                 text!("block two")
             )
             .on_click(move |_| {

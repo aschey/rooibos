@@ -62,8 +62,8 @@ fn app() -> impl Render {
 fn counter_button() -> impl Render {
     let (count, set_count) = signal(0);
     Button::new()
-        .width(chars(20.))
-        .height(chars(3.))
+        .width(chars(20))
+        .height(chars(3))
         .on_click(move || set_count.update(|c| *c += 1))
         .render(derive_signal!(line!("count ", span!(count.get())).into()))
 }

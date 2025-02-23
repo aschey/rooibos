@@ -58,7 +58,7 @@ fn tabs(route_context: RouteContext) -> impl Render {
 
     row![
         TabView::new()
-            .header_height(chars(3.))
+            .header_height(chars(3))
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .fit(true)
@@ -89,16 +89,16 @@ fn tabs(route_context: RouteContext) -> impl Render {
             )
             .render(current_route, tabs),
         Button::new()
-            .width(chars(14.))
-            .height(chars(3.))
+            .width(chars(14))
+            .height(chars(3))
             .on_click(move || {
                 route_context.back();
             })
             .enabled(route_context.can_go_back())
             .render(text!("Previous")),
         Button::new()
-            .width(chars(14.))
-            .height(chars(3.))
+            .width(chars(14))
+            .height(chars(3))
             .on_click(move || {
                 route_context.forward();
             })

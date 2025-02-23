@@ -34,8 +34,8 @@ fn app() -> impl Render {
 
     col![
         props(
-            max_width!(50.),
-            height!(100.%),
+            max_width!(50),
+            height!(100%),
             overflow_y(taffy::Overflow::Scroll)
         ),
         row![
@@ -68,7 +68,7 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
             Borders::all().empty()
         }))),
         wgt!(
-            props(margin_x!(1.)),
+            props(margin_x!(1)),
             line!(
                 format!("{id}. "),
                 "count: ".bold(),

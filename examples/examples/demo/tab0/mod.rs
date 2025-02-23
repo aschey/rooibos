@@ -20,10 +20,10 @@ pub(crate) fn tab0() -> impl Render {
     after_render(move || focus_id(id));
 
     col![
-        props(height!(100.%)),
-        gauges(true, pct(30.)),
-        charts(true, pct(50.), show_chart),
-        footer(pct(20.))
+        props(height!(100%)),
+        gauges(true, pct(30)),
+        charts(true, pct(50), show_chart),
+        footer(pct(20))
     ]
     .focusable(true)
     .id(id)

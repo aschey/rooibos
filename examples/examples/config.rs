@@ -38,15 +38,15 @@ async fn main() -> Result<ExitCode, RuntimeError> {
 fn app() -> impl Render {
     let config = use_config::<AppConfigExample>();
     col![
-        props(padding!(1.)),
+        props(padding!(1)),
         wgt!(
-            props(margin!(1.), height!(1.)),
+            props(margin!(1), height!(1)),
             text!("Update ./.config/config.yml and the changes will render live")
                 .bold()
                 .cyan()
         ),
         col![
-            props(padding!(1.), max_width!(150.), borders(Borders::all())),
+            props(padding!(1), max_width!(150), borders(Borders::all())),
             wgt!(format!("{:?}", config.get().map(|c| c.new)))
         ]
     ]

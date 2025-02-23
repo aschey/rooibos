@@ -65,8 +65,8 @@ fn app(count_tx: watch::Sender<i32>) -> impl Render {
     let count_rx = count_tx.subscribe();
     let count = ReadSignal::from_stream(WatchStream::new(count_rx));
     Button::new()
-        .width(chars(20.))
-        .height(chars(3.))
+        .width(chars(20))
+        .height(chars(3))
         .on_click(move || {
             count_tx.send(count.get().unwrap_or_default() + 1).unwrap();
         })

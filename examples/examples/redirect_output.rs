@@ -42,7 +42,7 @@ fn app() -> impl Render {
     ));
 
     col![
-        wgt!(props(height!(2.)), text!("Select an item".bold())),
+        wgt!(props(height!(2)), text!("Select an item".bold())),
         ListView::new()
             .height(Dimension::Length(3.))
             .on_item_click(move |i, _| {

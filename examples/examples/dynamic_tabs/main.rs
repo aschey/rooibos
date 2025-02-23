@@ -65,9 +65,9 @@ fn app() -> impl Render {
     };
 
     row![
-        props(padding!(1.)),
+        props(padding!(1)),
         TabView::new()
-            .header_height(chars(3.))
+            .header_height(chars(3))
             .block(tabs_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
