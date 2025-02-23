@@ -42,6 +42,7 @@ fn app() -> impl Render {
         router
             .initial(Tabs::new(Tabs::TAB1))
             .routes([Route::new::<Tabs>(move || tabs(route_context))])
+            .render()
     ]
 }
 

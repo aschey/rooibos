@@ -228,7 +228,6 @@ impl Button {
             )
             .alignment(text_alignment.get())
         ]
-        .enabled(enabled)
         .layout_props(layout_props)
         .on_mouse_enter(move |_, _| border_type.set(BorderType::Double))
         .on_mouse_leave(move |_, _| border_type.set(BorderType::Round))

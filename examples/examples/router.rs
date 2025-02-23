@@ -47,6 +47,7 @@ fn app() -> impl Render {
                     Route::new::<BlogPost>(move || blog_post(route_context)),
                 ])
                 .initial(Home)
+                .render()
         ],
         footer(route_context)
     ]

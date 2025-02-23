@@ -74,6 +74,7 @@ fn app(initial_route: impl ToRoute + 'static) -> impl Render {
                     Route::new::<BlogPost>(move || blog_post(route_context))
                 ])
                 .initial(initial_route)
+                .render()
         ],
         footer(route_context)
     ]

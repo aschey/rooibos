@@ -52,6 +52,7 @@ fn app(initial_route: impl ToRoute + 'static) -> impl Render {
                     Route::new(Routes::Blogs, blog_index),
                 ])
                 .initial(initial_route)
+                .render()
         ],
         footer(route_context)
     ]

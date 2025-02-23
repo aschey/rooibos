@@ -1,16 +1,13 @@
 use std::borrow::Cow;
 
-use reactive_graph::effect::RenderEffect;
+use reactive_graph::computed::Memo;
 use reactive_graph::owner::{Owner, StoredValue, provide_context, use_context};
 use reactive_graph::signal::{WriteSignal, signal};
 use reactive_graph::traits::{Get, GetValue, Update, UpdateValue, With};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_reactive::derive_signal;
-use rooibos_reactive::dom::{ChildrenFnMut, DomNode, IntoChildrenFnMut, RooibosDom};
+use rooibos_reactive::dom::{ChildrenFnMut, IntoChildrenFnMut};
 pub use rooibos_router_macros::*;
-use tachys::renderer::Renderer;
-use tachys::view::any_view::AnyViewState;
-use tachys::view::{Mountable, Render};
 use url::Url;
 
 pub trait ToRoute {
@@ -83,7 +80,7 @@ impl ToRouteTemplateStatic for DefaultRoute {
 #[derive(Clone, Copy)]
 pub struct RouteContext {
     set_history: WriteSignal<Vec<Url>>,
-    current_route: Signal<Url>,
+    current_route: Memo<Url>,
     router: StoredValue<matchit::Router<usize>>,
     set_buffer: WriteSignal<Vec<Url>>,
     can_go_forward: Signal<bool>,
@@ -208,10 +205,10 @@ fn init_router(initial: &str) -> RouteContext {
     let context = RouteContext {
         set_history,
         router: StoredValue::new(matchit::Router::new()),
-        current_route: derive_signal!(history.with(|h| h.last().cloned().unwrap())),
+        current_route: Memo::new(move |_| history.with(|h| h.last().cloned().unwrap())),
         set_buffer,
         can_go_forward: derive_signal!(buffer.with(|b| !b.is_empty())),
-        can_go_back: derive_signal!(history.with(|h| h.len() > 1)),
+        can_go_back: derive_signal!(history.with(|h| { h.len() > 1 })),
     };
     context.push_str(initial);
     provide_context(context);
@@ -244,87 +241,28 @@ impl Router {
         self.initial = initial.to_route();
         self
     }
-}
 
-pub struct RouterState {
-    state: AnyViewState<RooibosDom>,
-    parent: Option<DomNode>,
-    index: usize,
-}
-
-impl Mountable<RooibosDom> for RouterState {
-    fn unmount(&mut self) {
-        self.state.unmount();
-    }
-
-    fn mount(
-        &mut self,
-        parent: &<RooibosDom as Renderer>::Element,
-        marker: Option<&<RooibosDom as Renderer>::Node>,
-    ) {
-        self.parent = Some(parent.clone());
-        self.state.mount(parent, marker)
-    }
-
-    fn insert_before_this(&self, child: &mut dyn Mountable<RooibosDom>) -> bool {
-        self.state.insert_before_this(child)
-    }
-}
-
-impl Render<RooibosDom> for Router {
-    type State = RenderEffect<RouterState>;
-
-    fn build(self) -> Self::State {
-        let router_ctx = use_route_context_internal(&self.initial);
-        router_ctx.replace_root(&self.initial);
+    pub fn render(self) -> impl rooibos_reactive::dom::RenderAny {
+        let route_ctx = use_route_context_internal(&self.initial);
+        route_ctx.replace_root(&self.initial);
 
         let mut routes = self.routes;
 
-        router_ctx.router.update_value(|r| {
+        route_ctx.router.update_value(|r| {
             for (i, child) in routes.iter().enumerate() {
                 r.insert(&child.path, i).unwrap();
             }
         });
-
-        let parent = Owner::current().expect("no reactive owner");
-
-        RenderEffect::new(move |prev: Option<RouterState>| {
-            let router = router_ctx.router.get_value();
-            let cur = router_ctx.current_route();
-            let path = cur.path();
-            let index = *router.at(path).unwrap().value;
-
-            if let Some(mut router_state) = prev {
-                if index == router_state.index {
-                    RouterState {
-                        state: router_state.state,
-                        index,
-                        parent: router_state.parent,
-                    }
-                } else {
-                    let view = parent.with(|| (routes[index].children)());
-                    router_state.state.unmount();
-                    let mut new = view.build();
-                    if let Some(parent) = &router_state.parent {
-                        new.mount(parent, None);
-                    }
-
-                    RouterState {
-                        state: new,
-                        index,
-                        parent: router_state.parent,
-                    }
-                }
-            } else {
-                let view = parent.with(|| (routes[index].children)());
-                RouterState {
-                    state: view.build(),
-                    index,
-                    parent: None,
-                }
-            }
-        })
+        let owner = Owner::current().unwrap();
+        let route_index = Memo::new(move |_| {
+            let current_route = route_ctx.current_route();
+            let path = current_route.path();
+            let router = route_ctx.router.get_value();
+            *router.at(path).unwrap().value
+        });
+        move || {
+            let index = route_index.get();
+            owner.with(|| (routes[index].children)())
+        }
     }
-
-    fn rebuild(self, _state: &mut Self::State) {}
 }
