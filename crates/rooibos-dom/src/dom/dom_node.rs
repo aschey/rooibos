@@ -124,8 +124,6 @@ impl Debug for NodeType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
     Layout { block: Option<Block<'static>> },
-    Overlay,
-    Absolute,
     Widget,
     Placeholder,
 }
