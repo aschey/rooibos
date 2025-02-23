@@ -16,3 +16,6 @@ rooibos-terminal = { workspace = true }
 tap = { workspace = true }
 futures-cancel = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
+
+[features]
+scrolling-regions = ["ratatui-xterm-js/scrolling-regions"]

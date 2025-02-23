@@ -59,4 +59,7 @@ spinner = ["rooibos-components/spinner"]
 derive-commands = ["rooibos-keybind?/derive-commands"]
 effects = ["rooibos-reactive/effects"]
 palette = ["ratatui/palette"]
-scrolling-regions = ["rooibos-reactive/scrolling-regions"]
+scrolling-regions = [
+  "rooibos-reactive/scrolling-regions",
+  "rooibos-xterm-js?/scrolling-regions",
+]
