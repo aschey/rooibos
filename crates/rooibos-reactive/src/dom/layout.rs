@@ -6,6 +6,7 @@ use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::NodeId;
 pub use rooibos_dom::{BorderType, Borders};
 use taffy::Display;
+use taffy::prelude::{TaffyAuto, TaffyZero};
 
 use super::{DomNode, with_nodes_mut};
 use crate::derive_signal;
@@ -182,6 +183,7 @@ impl Property for ZIndex {
 #[derive(Default, Clone)]
 pub struct Effect(pub(crate) Option<Signal<rooibos_dom::tachyonfx::Effect>>);
 
+#[cfg(feature = "effects")]
 impl_next_tuple!(Effect);
 
 #[cfg(feature = "effects")]
@@ -611,9 +613,21 @@ macro_rules! margin {
 }
 
 macro_rules! layout_prop {
-    ($struct_name:ident, $fn:ident, $inner:ty, $($($props:ident).+),+) => {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($($props:ident).+),+) => {
         #[derive(Default, Clone)]
         pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
+
+        impl From<Signal<$inner>> for $struct_name {
+            fn from(val: Signal<$inner>) -> Self {
+                $struct_name(Some(val))
+            }
+        }
+
+        impl From<$struct_name> for Signal<$inner> {
+            fn from(val: $struct_name) -> Self {
+                val.0.unwrap_or_else(|| $default.into())
+            }
+        }
 
         impl $struct_name {
             pub fn value(&self) -> Option<Signal<$inner>> {
@@ -639,9 +653,21 @@ macro_rules! layout_prop {
 }
 
 macro_rules! layout_prop_opt {
-    ($struct_name:ident, $fn:ident, $inner:ty, $($prop:ident).*) => {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($prop:ident).*) => {
         #[derive(Default, Clone)]
         pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
+
+        impl From<Signal<$inner>> for $struct_name {
+            fn from(val: Signal<$inner>) -> Self {
+                $struct_name(Some(val))
+            }
+        }
+
+        impl From<$struct_name> for Signal<$inner> {
+            fn from(val: $struct_name) -> Self {
+                val.0.unwrap_or_else(|| $default.into())
+            }
+        }
 
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
@@ -660,43 +686,90 @@ macro_rules! layout_prop_opt {
 }
 
 // Generic properties
-layout_prop!(Width, width, taffy::Dimension, size.width);
-layout_prop!(Height, height, taffy::Dimension, size.height);
-layout_prop!(MinWidth, min_width, taffy::Dimension, min_size.width);
-layout_prop!(MinHeight, min_height, taffy::Dimension, min_size.height);
-layout_prop!(MaxWidth, max_width, taffy::Dimension, max_size.width);
-layout_prop!(MaxHeight, max_height, taffy::Dimension, max_size.height);
-layout_prop_opt!(AspectRatio, aspect_ratio, f32, aspect_ratio);
-layout_prop!(Position, position, taffy::style::Position, position);
+layout_prop!(
+    Width,
+    width,
+    taffy::Dimension,
+    taffy::Dimension::Auto,
+    size.width
+);
+layout_prop!(
+    Height,
+    height,
+    taffy::Dimension,
+    taffy::Dimension::Auto,
+    size.height
+);
+layout_prop!(
+    MinWidth,
+    min_width,
+    taffy::Dimension,
+    taffy::Dimension::Auto,
+    min_size.width
+);
+layout_prop!(
+    MinHeight,
+    min_height,
+    taffy::Dimension,
+    taffy::Dimension::Auto,
+    min_size.height
+);
+layout_prop!(
+    MaxWidth,
+    max_width,
+    taffy::Dimension,
+    taffy::Dimension::Auto,
+    max_size.width
+);
+layout_prop!(
+    MaxHeight,
+    max_height,
+    taffy::Dimension,
+    taffy::Dimension::Auto,
+    max_size.height
+);
+layout_prop_opt!(AspectRatio, aspect_ratio, f32, 0.0, aspect_ratio);
+layout_prop!(
+    Position,
+    position,
+    taffy::style::Position,
+    taffy::style::Position::default(),
+    position
+);
 
 layout_prop!(
     MarginLeft,
     margin_left,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.left
 );
 layout_prop!(
     MarginRight,
     margin_right,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.right
 );
 layout_prop!(
     MarginTop,
     margin_top,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.top
 );
 layout_prop!(
     MarginBottom,
     margin_bottom,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.bottom
 );
 layout_prop!(
     MarginX,
     margin_x,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.left,
     margin.right
 );
@@ -704,6 +777,7 @@ layout_prop!(
     MarginY,
     margin_y,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.top,
     margin.bottom
 );
@@ -711,6 +785,7 @@ layout_prop!(
     Margin,
     margin,
     taffy::LengthPercentageAuto,
+    taffy::LengthPercentageAuto::Auto,
     margin.top,
     margin.bottom,
     margin.left,
@@ -721,30 +796,35 @@ layout_prop!(
     PaddingLeft,
     padding_left,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.left
 );
 layout_prop!(
     PaddingRight,
     padding_right,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.right
 );
 layout_prop!(
     PaddingTop,
     padding_top,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.top
 );
 layout_prop!(
     PaddingBottom,
     padding_bottom,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.bottom
 );
 layout_prop!(
     PaddingX,
     padding_x,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.left,
     padding.right
 );
@@ -752,6 +832,7 @@ layout_prop!(
     PaddingY,
     padding_y,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.top,
     padding.bottom
 );
@@ -759,36 +840,88 @@ layout_prop!(
     Padding,
     padding,
     taffy::LengthPercentage,
+    taffy::LengthPercentage::ZERO,
     padding.top,
     padding.bottom,
     padding.left,
     padding.right
 );
 
-layout_prop!(OverflowX, overflow_x, taffy::Overflow, overflow.x);
-layout_prop!(OverflowY, overflow_y, taffy::Overflow, overflow.y);
-layout_prop!(Overflow, overflow, taffy::Overflow, overflow.x, overflow.y);
+layout_prop!(
+    OverflowX,
+    overflow_x,
+    taffy::Overflow,
+    taffy::Overflow::default(),
+    overflow.x
+);
+layout_prop!(
+    OverflowY,
+    overflow_y,
+    taffy::Overflow,
+    taffy::Overflow::default(),
+    overflow.y
+);
+layout_prop!(
+    Overflow,
+    overflow,
+    taffy::Overflow,
+    taffy::Overflow::default(),
+    overflow.x,
+    overflow.y
+);
 
 // Flex properties
-layout_prop!(Wrap, wrap, taffy::FlexWrap, flex_wrap);
-layout_prop_opt!(AlignItems, align_items, taffy::AlignItems, align_items);
+layout_prop!(
+    Wrap,
+    wrap,
+    taffy::FlexWrap,
+    taffy::FlexWrap::default(),
+    flex_wrap
+);
+layout_prop_opt!(
+    AlignItems,
+    align_items,
+    taffy::AlignItems,
+    taffy::AlignItems::Start,
+    align_items
+);
 layout_prop_opt!(
     AlignContent,
     align_content,
     taffy::AlignContent,
+    taffy::AlignContent::Start,
     align_content
 );
 layout_prop_opt!(
     JustifyContent,
     justify_content,
     taffy::JustifyContent,
+    taffy::JustifyContent::Start,
     justify_content
 );
-layout_prop!(Gap, gap, taffy::Size<taffy::LengthPercentage>, gap);
-layout_prop!(Grow, grow, f32, flex_grow);
-layout_prop!(Shrink, shrink, f32, flex_shrink);
-layout_prop_opt!(AlignSelf, align_self, taffy::AlignSelf, align_self);
-layout_prop!(Basis, basis, taffy::Dimension, flex_basis);
+layout_prop!(
+    Gap,
+    gap,
+    taffy::Size<taffy::LengthPercentage>,
+    taffy::Size::zero(),
+    gap
+);
+layout_prop!(Grow, grow, f32, 0.0, flex_grow);
+layout_prop!(Shrink, shrink, f32, 0.0, flex_shrink);
+layout_prop_opt!(
+    AlignSelf,
+    align_self,
+    taffy::AlignSelf,
+    taffy::AlignSelf::Start,
+    align_self
+);
+layout_prop!(
+    Basis,
+    basis,
+    taffy::Dimension,
+    taffy::Dimension::AUTO,
+    flex_basis
+);
 
 macro_rules! impl_property_for_tuples {
     ($($ty:ident),* $(,)?) => {
