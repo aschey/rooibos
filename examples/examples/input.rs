@@ -4,9 +4,9 @@ use rooibos::components::Input;
 use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, derive_signal, max_width, padding, wgt, width};
-use rooibos::runtime::Runtime;
+use rooibos::reactive::{col, derive_signal, padding, wgt, width};
 use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use taffy::LengthPercentage;
@@ -19,6 +19,8 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    max_viewport_width(100).unwrap();
+
     let textarea = Input::get_ref();
     let (id, focused) = use_focus();
     let text = textarea.text();
@@ -26,7 +28,6 @@ fn app() -> impl Render {
         props(
             padding!(1.),
             width!(100.%),
-            max_width!(100.),
             borders(derive_signal!(if focused.get() {
                 Borders::all().title("Input").blue()
             } else {

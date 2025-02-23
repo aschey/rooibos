@@ -1,12 +1,12 @@
 use std::process::ExitCode;
 
+use rooibos::reactive::dom::Render;
 use rooibos::reactive::dom::layout::{Borders, borders};
-use rooibos::reactive::dom::{Render, use_window_focus, use_window_size};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, height, row, wgt, width};
-use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, max_viewport_width, use_window_focus, use_window_size};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::layout::Rect;
 
@@ -18,13 +18,15 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    max_viewport_width(100).unwrap();
+
     let window_size = use_window_size();
     let window_focused = use_window_focus();
 
     col![
         props(height!(100.%), width!(100.%)),
         wgt![props(borders(Borders::all())), {
-            let window_size = window_size.get();
+            let window_size = window_size.get().viewport();
             format!(
                 "window size width={} height={} focused={}",
                 window_size.width,

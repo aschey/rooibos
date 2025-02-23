@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rooibos-reactive = { workspace = true }
 rooibos-runtime = { workspace = true, optional = true }
+rooibos-reactive = { workspace = true }
 rooibos-reactive-macros = { workspace = true }
 rooibos-components = { workspace = true }
 rooibos-config = { workspace = true, optional = true }
@@ -22,6 +22,7 @@ tokio = "1.43.0"
 insta = "1.42.1"
 
 [features]
+default = ["crossterm", "runtime", "scrolling-regions"]
 nightly = ["rooibos-reactive/nightly"]
 crossterm = [
   "rooibos-runtime/crossterm",
@@ -42,7 +43,6 @@ tester = ["rooibos-tester"]
 runtime = ["rooibos-runtime", "rooibos-keybind?/runtime"]
 xterm-js = ["rooibos-xterm-js"]
 config = ["rooibos-config"]
-default = ["crossterm", "runtime"]
 ssh = ["rooibos-ssh"]
 router = ["rooibos-router"]
 input-search = ["rooibos-components/input-search"]
@@ -59,3 +59,4 @@ spinner = ["rooibos-components/spinner"]
 derive-commands = ["rooibos-keybind?/derive-commands"]
 effects = ["rooibos-reactive/effects"]
 palette = ["ratatui/palette"]
+scrolling-regions = ["rooibos-reactive/scrolling-regions"]

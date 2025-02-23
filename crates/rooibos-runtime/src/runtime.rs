@@ -370,6 +370,12 @@ where
                 terminal
                     .with_terminal_mut(|t| self.backend.set_clipboard(t, content.clone(), kind))?;
             }
+            TerminalCommand::SetViewportWidth(max_width) => {
+                rooibos_dom::max_viewport_width(max_width);
+            }
+            TerminalCommand::SetViewportHeight(max_height) => {
+                rooibos_dom::max_viewport_height(max_height);
+            }
             TerminalCommand::Custom(f) => {
                 let mut terminal_fn = f.lock().expect("lock poisoned");
                 let terminal_fn = terminal_fn

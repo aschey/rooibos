@@ -11,8 +11,8 @@ use rooibos::reactive::graph::traits::{Get, Update, With as _};
 use rooibos::reactive::{col, derive_signal, padding_left, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
-use rooibos::terminal::crossterm::TerminalSettings;
 use rooibos::terminal::DefaultBackend;
+use rooibos::terminal::crossterm::TerminalSettings;
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 

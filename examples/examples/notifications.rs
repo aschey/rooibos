@@ -3,14 +3,14 @@ use std::time::Duration;
 
 use rooibos::components::either_of::Either;
 use rooibos::components::spinner::Spinner;
-use rooibos::components::{Notification, Notifications, Notifier, provide_notifications};
-use rooibos::reactive::dom::layout::{Borders, borders, chars};
+use rooibos::components::{Notification, Notifier, use_notifications};
+use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, RenderAny, delay, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, max_width, wgt, width};
-use rooibos::runtime::Runtime;
+use rooibos::reactive::{col, height, wgt, width};
 use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize as _;
 
@@ -22,22 +22,19 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    provide_notifications();
+    max_viewport_width(100).unwrap();
+
+    let (notifications, notifier) = use_notifications();
     col![
-        props(
-            max_width!(100.),
-            width!(100.%),
-            height!(100.%),
-            borders(Borders::all())
-        ),
-        (0..5).map(|i| task(i + 1)).collect::<Vec<_>>(),
-        Notifications::new().max_layout_width(chars(100.)).render()
+        props(width!(100.%), height!(100.%), borders(Borders::all())),
+        (0..5).map(|i| task(i + 1, notifier)).collect::<Vec<_>>(),
+        notifications.render()
     ]
 }
 
-fn task(id: usize) -> impl RenderAny {
+fn task(id: usize, notifier: Notifier) -> impl RenderAny {
     let (completed, set_completed) = signal(false);
-    let notifier = Notifier::new();
+
     delay(get_random_delay(), async move {
         set_completed.set(true);
         notifier.notify(Notification::new(format!("task {id} completed")));

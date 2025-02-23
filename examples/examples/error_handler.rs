@@ -10,9 +10,11 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Read, Set};
-use rooibos::reactive::{col, derive_signal, height, max_width, padding, row, wgt, width};
+use rooibos::reactive::{col, derive_signal, height, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, exit_with_error};
+use rooibos::runtime::{
+    ExitResult, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
+};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::text::Line;
@@ -27,6 +29,8 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    max_viewport_width(100).unwrap();
+
     let (popup_text, set_popup_text) = signal(None);
 
     before_exit(move |payload| {
@@ -43,7 +47,6 @@ fn app() -> impl Render {
             padding!(1.),
             width!(100.%),
             height!(100.%),
-            max_width!(100.),
             borders(Borders::all())
         ),
         row![

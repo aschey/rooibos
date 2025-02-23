@@ -11,9 +11,9 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get as _, Set};
-use rooibos::reactive::{col, height, max_height, max_width, padding, row, wgt, width};
-use rooibos::runtime::Runtime;
+use rooibos::reactive::{col, height, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::{Runtime, max_viewport_height, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use taffy::{AlignItems, JustifyContent};
 
@@ -26,6 +26,9 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    max_viewport_width(50).unwrap();
+    max_viewport_height(20).unwrap();
+
     let (show_popup, set_show_popup) = signal(false);
     col![
         props(borders(Borders::all()), bounds()),
@@ -69,12 +72,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
 }
 
 fn bounds() -> impl FlexProperty {
-    (
-        width!(100.%),
-        height!(100.%),
-        max_width!(50.),
-        max_height!(20.),
-    )
+    (width!(100.%), height!(100.%))
 }
 
 fn center_items() -> impl FlexProperty {

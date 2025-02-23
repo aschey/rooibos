@@ -9,9 +9,9 @@ use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, max_width, padding, row, wgt, width};
+use rooibos::reactive::{col, height, padding, row, wgt, width};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, before_exit, exit};
+use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use taffy::{AlignItems, JustifyContent, Position};
 
@@ -23,6 +23,8 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
+    max_viewport_width(100).unwrap();
+
     let (show_popup, set_show_popup) = signal(false);
     let (quit_confirmed, set_quit_confirmed) = signal(false);
 
@@ -40,7 +42,6 @@ fn app() -> impl Render {
             padding!(1.),
             width!(100.%),
             height!(100.%),
-            max_width!(100.),
             borders(Borders::all())
         ),
         row![
@@ -85,7 +86,6 @@ fn popup(
             width!(100.%),
             height!(100.%),
             show(show_popup),
-            max_width!(100.),
             position(Position::Absolute),
             align_items(AlignItems::Center),
             justify_content(JustifyContent::Center),

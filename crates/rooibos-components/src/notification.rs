@@ -21,14 +21,8 @@ pub struct NotificationContext {
     tx: broadcast::Sender<Notification>,
 }
 
-impl Default for NotificationContext {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl NotificationContext {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let (tx, _) = broadcast::channel(32);
         Self { tx }
     }
@@ -58,15 +52,19 @@ impl Notification {
     }
 }
 
-pub fn provide_notifications() {
-    provide_context(NotificationContext::new())
+fn get_notification_context() -> NotificationContext {
+    let context = use_context::<NotificationContext>();
+    if let Some(context) = context {
+        context
+    } else {
+        let context = NotificationContext::new();
+        provide_context(context.clone());
+        context
+    }
 }
 
-fn get_notification_context() -> NotificationContext {
-    use_context::<NotificationContext>().expect(
-        "Notification context not found. Ensure provide_notifications() was called at the root of \
-         your application.",
-    )
+pub fn use_notification_context() -> Option<NotificationContext> {
+    use_context::<NotificationContext>()
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -74,16 +72,10 @@ pub struct Notifier {
     context: StoredValue<NotificationContext>,
 }
 
-impl Default for Notifier {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Notifier {
-    pub fn new() -> Self {
+    pub fn new(context: NotificationContext) -> Self {
         Self {
-            context: StoredValue::new(get_notification_context()),
+            context: StoredValue::new(context),
         }
     }
 
@@ -99,15 +91,13 @@ pub struct Notifications {
     rx: broadcast::Receiver<Notification>,
 }
 
-impl Default for Notifications {
-    fn default() -> Self {
-        Self::new()
-    }
+pub fn use_notifications() -> (Notifications, Notifier) {
+    let context = get_notification_context();
+    (Notifications::new(context.clone()), Notifier::new(context))
 }
 
 impl Notifications {
-    pub fn new() -> Self {
-        let context = get_notification_context();
+    fn new(context: NotificationContext) -> Self {
         Self {
             content_width: taffy::Dimension::Auto.into(),
             max_layout_width: taffy::Dimension::Auto.into(),

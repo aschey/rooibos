@@ -6,6 +6,9 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use background_service::{Manager, ServiceContext};
+use rooibos_dom::{ViewportSize, on_window_focus_changed, with_nodes_mut};
+use rooibos_reactive::graph::signal::{ArcReadSignal, ReadSignal, arc_signal};
+use rooibos_reactive::graph::traits::Set;
 use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
@@ -65,6 +68,8 @@ pub(crate) struct RuntimeState {
     pub(crate) context: ServiceContext,
     pub(crate) restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
     pub(crate) before_exit: wasm_compat::Mutex<Box<BeforeExitFn>>,
+    pub(crate) window_size: ArcReadSignal<ViewportSize>,
+    pub(crate) window_focused: ArcReadSignal<bool>,
 }
 
 impl RuntimeState {
@@ -77,6 +82,15 @@ impl RuntimeState {
             cancellation_token.clone(),
             background_service::Settings::default(),
         );
+
+        let (window_size, set_window_size) = arc_signal(ViewportSize::default());
+        with_nodes_mut(|nodes| nodes.on_window_size_change(move |size| set_window_size.set(size)));
+
+        let (window_focused, set_window_focused) = arc_signal(true);
+        on_window_focus_changed(move |focused| {
+            set_window_focused.set(focused);
+        });
+
         Self {
             term_tx,
             term_command_tx,
@@ -87,6 +101,8 @@ impl RuntimeState {
             })),
             context: service_manager.get_context(),
             service_manager: Some(service_manager),
+            window_size,
+            window_focused,
         }
     }
 }
@@ -156,4 +172,12 @@ where
     STATE.with(|s| s.write().insert(id, RuntimeState::new()));
 
     CURRENT_RUNTIME.scope(id, f).await
+}
+
+pub fn use_window_size() -> ReadSignal<ViewportSize> {
+    with_state(|s| ReadSignal::from(s.window_size.clone()))
+}
+
+pub fn use_window_focus() -> ReadSignal<bool> {
+    with_state(|s| ReadSignal::from(s.window_focused.clone()))
 }

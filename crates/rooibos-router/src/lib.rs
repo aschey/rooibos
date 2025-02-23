@@ -92,13 +92,13 @@ pub struct RouteContext {
 
 impl RouteContext {
     pub fn push(&self, route: impl ToRoute) {
-        self.push_str(route.to_route())
+        self.push_str(&route.to_route())
     }
 
-    fn push_str(&self, route: String) {
+    fn push_str(&self, route: &str) {
         let url = Url::options()
             .base_url(Some(&"app://".parse().unwrap()))
-            .parse(&route)
+            .parse(route)
             .unwrap();
         self.push_url(url, true);
     }
@@ -118,7 +118,7 @@ impl RouteContext {
         });
     }
 
-    fn replace_root(&self, new_root: String) {
+    fn replace_root(&self, new_root: &str) {
         self.set_history.update(|h| {
             h.clear();
         });
@@ -190,15 +190,19 @@ impl RouteContext {
     }
 }
 
-pub fn use_router() -> RouteContext {
-    use_context::<RouteContext>().expect("use_router called outside of router context")
+pub fn use_route_context() -> Option<RouteContext> {
+    use_context::<RouteContext>()
 }
 
-pub fn provide_router() {
-    init_router("/".to_string());
+fn use_route_context_internal(initial: &str) -> RouteContext {
+    if let Some(context) = use_context::<RouteContext>() {
+        context
+    } else {
+        init_router(initial)
+    }
 }
 
-fn init_router(initial: String) {
+fn init_router(initial: &str) -> RouteContext {
     let (history, set_history) = signal(vec![]);
     let (buffer, set_buffer) = signal(vec![]);
     let context = RouteContext {
@@ -211,6 +215,11 @@ fn init_router(initial: String) {
     };
     context.push_str(initial);
     provide_context(context);
+    context
+}
+
+pub fn use_router() -> (Router, RouteContext) {
+    (Router::new(), use_route_context_internal("/"))
 }
 
 pub struct Router {
@@ -218,14 +227,8 @@ pub struct Router {
     initial: String,
 }
 
-impl Default for Router {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl Router {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             routes: Vec::default(),
             initial: DefaultRoute.to_route(),
@@ -272,12 +275,8 @@ impl Render<RooibosDom> for Router {
     type State = RenderEffect<RouterState>;
 
     fn build(self) -> Self::State {
-        if let Some(context) = use_context::<RouteContext>() {
-            context.replace_root(self.initial);
-        } else {
-            init_router(self.initial);
-        }
-        let router_ctx = use_router();
+        let router_ctx = use_route_context_internal(&self.initial);
+        router_ctx.replace_root(&self.initial);
 
         let mut routes = self.routes;
 

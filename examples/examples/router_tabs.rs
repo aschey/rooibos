@@ -7,7 +7,7 @@ use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, row};
-use rooibos::router::{Route, RouteFromStatic, Router, use_router};
+use rooibos::router::{Route, RouteContext, RouteFromStatic, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -37,17 +37,17 @@ impl Tabs {
 }
 
 fn app() -> impl Render {
+    let (router, route_context) = use_router();
     col![
-        Router::new()
+        router
             .initial(Tabs::new(Tabs::TAB1))
-            .routes([Route::new::<Tabs>(tabs)])
+            .routes([Route::new::<Tabs>(move || tabs(route_context))])
     ]
 }
 
-fn tabs() -> impl Render {
-    let router = use_router();
+fn tabs(route_context: RouteContext) -> impl Render {
     let count = RwSignal::new(0);
-    let current_route = router.use_param(Tabs::ID);
+    let current_route = route_context.use_param(Tabs::ID);
 
     let tabs = KeyedWrappingList(vec![
         Tab::new(line!("Tab1"), Tabs::TAB1, move || "tab1"),
@@ -63,7 +63,7 @@ fn tabs() -> impl Render {
             .fit(true)
             .on_title_click(move |_, tab| {
                 count.update(|c| *c += 1);
-                router.push(Tabs::new(tab));
+                route_context.push(Tabs::new(tab));
             })
             .on_key_down(
                 [
@@ -71,7 +71,7 @@ fn tabs() -> impl Render {
                         let tabs = tabs.clone();
                         move |_, _| {
                             if let Some(prev) = tabs.prev_item(&current_route.get()) {
-                                router.push(Tabs::new(prev.get_value()));
+                                route_context.push(Tabs::new(prev.get_value()));
                             }
                         }
                     }),
@@ -79,7 +79,7 @@ fn tabs() -> impl Render {
                         let tabs = tabs.clone();
                         move |_, _| {
                             if let Some(next) = tabs.next_item(&current_route.get()) {
-                                router.push(Tabs::new(next.get_value()));
+                                route_context.push(Tabs::new(next.get_value()));
                             }
                         }
                     })
@@ -91,17 +91,17 @@ fn tabs() -> impl Render {
             .width(chars(14.))
             .height(chars(3.))
             .on_click(move || {
-                router.back();
+                route_context.back();
             })
-            .enabled(router.can_go_back())
+            .enabled(route_context.can_go_back())
             .render(text!("Previous")),
         Button::new()
             .width(chars(14.))
             .height(chars(3.))
             .on_click(move || {
-                router.forward();
+                route_context.forward();
             })
-            .enabled(router.can_go_forward())
+            .enabled(route_context.can_go_forward())
             .render(text!("Next"))
     ]
 }

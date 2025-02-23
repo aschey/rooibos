@@ -48,6 +48,24 @@ thread_local! {
     };
 }
 
+pub fn max_viewport_width(max_width: impl Into<Option<u16>>) {
+    with_nodes_mut(|n| {
+        let mut viewport = n.viewport_size();
+        viewport.max_width = max_width.into();
+        n.set_viewport_size(viewport)
+    });
+    refresh_dom();
+}
+
+pub fn max_viewport_height(max_height: impl Into<Option<u16>>) {
+    with_nodes_mut(|n| {
+        let mut viewport = n.viewport_size();
+        viewport.max_height = max_height.into();
+        n.set_viewport_size(viewport)
+    });
+    refresh_dom();
+}
+
 pub fn on_window_focus_changed<F>(f: F)
 where
     F: FnMut(bool) + 'static,
@@ -176,15 +194,23 @@ pub fn unmount() {
 
 pub fn render_dom(frame: &mut Frame) {
     let buf = frame.buffer_mut();
+
     if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
-        with_nodes_mut(|nodes| nodes.set_window_size(buf.area));
+        with_nodes_mut(|nodes| {
+            let mut viewport = nodes.viewport_size();
+            viewport.window_size = buf.area;
+            nodes.set_viewport_size(viewport);
+        });
     }
+
+    let viewport = with_nodes(|n| n.viewport_size());
+    let render_size = viewport.viewport();
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
         print_dom().render_ref(buf.area, buf);
     } else {
         with_nodes_mut(|nodes| {
-            nodes.recompute_full_layout(buf.area);
+            nodes.recompute_full_layout(render_size);
             nodes.clear_focusables();
         });
 

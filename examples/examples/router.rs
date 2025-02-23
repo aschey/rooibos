@@ -5,7 +5,7 @@ use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, height, row, wgt, width};
-use rooibos::router::{Route, RouteFromStatic, Router, provide_router, use_router};
+use rooibos::router::{Route, RouteContext, RouteFromStatic, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -33,28 +33,28 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    provide_router();
+    let (router, route_context) = use_router();
+
     col![
         props(align_items(AlignItems::Center), width!(30.),),
         col![
             props(height!(10.), borders(Borders::all())),
-            Router::new()
+            router
                 .routes([
-                    Route::new::<Home>(home),
+                    Route::new::<Home>(move || home(route_context)),
                     Route::new::<About>(about),
-                    Route::new::<BlogIndex>(blog_index),
-                    Route::new::<BlogPost>(blog_post)
+                    Route::new::<BlogIndex>(move || blog_index(route_context)),
+                    Route::new::<BlogPost>(move || blog_post(route_context)),
                 ])
                 .initial(Home)
         ],
-        footer()
+        footer(route_context)
     ]
 }
 
-fn home() -> impl Render {
-    let router = use_router();
-    let about_click = move || router.push(About);
-    let blog_click = move || router.push(BlogIndex);
+fn home(route_context: RouteContext) -> impl Render {
+    let about_click = move || route_context.push(About);
+    let blog_click = move || route_context.push(BlogIndex);
     col![
         props(align_items(AlignItems::Center)),
         wgt!(props(width!(22.), height!(2.)), "This is the home page"),
@@ -78,9 +78,8 @@ fn about() -> impl Render {
     wgt!("This is the about page")
 }
 
-fn blog_index() -> impl Render {
-    let router = use_router();
-    let route_to_post = move |id: usize| router.push(BlogPost { id });
+fn blog_index(route_context: RouteContext) -> impl Render {
+    let route_to_post = move |id: usize| route_context.push(BlogPost { id });
     col![
         wgt!("This is the blog page"),
         Button::new()
@@ -94,27 +93,25 @@ fn blog_index() -> impl Render {
     ]
 }
 
-fn blog_post() -> impl Render {
-    let router = use_router();
-    let id = router.use_param(BlogPost::ID);
+fn blog_post(route_context: RouteContext) -> impl Render {
+    let id = route_context.use_param(BlogPost::ID);
     wgt!(format!("blog post {}", id.get()))
 }
 
-fn footer() -> impl Render {
-    let router = use_router();
-    let on_forward = move || router.forward();
-    let on_back = move || router.back();
+fn footer(route_context: RouteContext) -> impl Render {
+    let on_forward = move || route_context.forward();
+    let on_back = move || route_context.back();
     row![
         props(width!(10.), height!(3.)),
         Button::new()
             .height(chars(3.))
             .on_click(on_back)
-            .enabled(router.can_go_back())
+            .enabled(route_context.can_go_back())
             .render(text!("←")),
         Button::new()
             .height(chars(3.))
             .on_click(on_forward)
-            .enabled(router.can_go_forward())
+            .enabled(route_context.can_go_forward())
             .render(text!("→"))
     ]
 }

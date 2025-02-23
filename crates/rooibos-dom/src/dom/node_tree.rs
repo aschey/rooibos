@@ -54,7 +54,7 @@ pub(crate) struct ContentRect {
     pub(crate) content_size: Size<u16>,
     border: taffy::Rect<u16>,
     padding: taffy::Rect<u16>,
-    window_size: Rect,
+    viewport_size: ViewportSize,
     scroll_offset: Position,
     max_scroll_offset: Position,
     x: u16,
@@ -72,11 +72,12 @@ impl ContentRect {
     }
 
     pub(crate) fn visible_bounds(&self) -> Rect {
+        let viewport = self.viewport_size.viewport();
         Rect {
             x: self.x,
             y: self.y,
-            width: self.size.width.min(self.window_size.width),
-            height: self.size.height.min(self.window_size.height),
+            width: self.size.width.min(viewport.width),
+            height: self.size.height.min(viewport.height),
         }
     }
 
@@ -236,16 +237,39 @@ impl PartialOrd for RootId {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct ViewportSize {
+    pub(crate) window_size: Rect,
+    pub(crate) max_width: Option<u16>,
+    pub(crate) max_height: Option<u16>,
+}
+
+impl ViewportSize {
+    pub fn window_size(&self) -> Rect {
+        self.window_size
+    }
+
+    pub fn viewport(&self) -> Rect {
+        let Rect { width, height, .. } = self.window_size;
+        Rect {
+            x: self.window_size.x,
+            y: self.window_size.y,
+            width: width.min(self.max_width.unwrap_or(width)),
+            height: height.min(self.max_height.unwrap_or(width)),
+        }
+    }
+}
+
 pub struct NodeTree {
     dom_nodes: SlotMap<DomNodeKey, TreeValue>,
     layout_tree: TaffyTree<Context>,
     roots: BTreeMap<RootId, Box<dyn AsDomNode>>,
-    window_size: Rect,
+    viewport_size: ViewportSize,
     focused: Option<crate::NodeId>,
     focused_key: Option<DomNodeKey>,
     hovered_key: Option<DomNodeKey>,
     focusable_nodes: Rc<RefCell<Vec<DomNodeKey>>>,
-    on_window_size_change: Box<dyn Fn(Rect)>,
+    on_window_size_change: Box<dyn Fn(ViewportSize)>,
     on_focus_change: Box<dyn Fn(Option<crate::NodeId>)>,
 }
 
@@ -272,7 +296,7 @@ impl NodeTree {
             focused_key: None,
             hovered_key: None,
             focusable_nodes: Default::default(),
-            window_size: Rect::default(),
+            viewport_size: ViewportSize::default(),
             on_window_size_change: Box::new(move |_| {}),
             on_focus_change: Box::new(move |_| {}),
         }
@@ -328,7 +352,7 @@ impl NodeTree {
 
     pub fn on_window_size_change<F>(&mut self, f: F)
     where
-        F: Fn(Rect) + 'static,
+        F: Fn(ViewportSize) + 'static,
     {
         self.on_window_size_change = Box::new(f);
     }
@@ -346,9 +370,9 @@ impl NodeTree {
     }
 
     pub fn clear(&mut self) {
-        let window_size = self.window_size;
+        let viewport_size = self.viewport_size;
         *self = Self::new();
-        self.window_size = window_size;
+        self.viewport_size = viewport_size;
     }
 
     pub fn roots_asc(&self) -> Vec<DomNode> {
@@ -387,10 +411,10 @@ impl NodeTree {
         self.hovered_key
     }
 
-    pub(crate) fn set_window_size(&mut self, size: Rect) {
-        if size != self.window_size {
-            self.window_size = size;
-            (self.on_window_size_change)(size);
+    pub(crate) fn set_viewport_size(&mut self, viewport_size: ViewportSize) {
+        if viewport_size != self.viewport_size {
+            self.viewport_size = viewport_size;
+            (self.on_window_size_change)(viewport_size);
         }
     }
 
@@ -402,8 +426,8 @@ impl NodeTree {
         &self.dom_nodes[key].inner.original_display
     }
 
-    pub fn window_size(&self) -> Rect {
-        self.window_size
+    pub fn viewport_size(&self) -> ViewportSize {
+        self.viewport_size
     }
 
     pub fn clear_focusables(&mut self) {
@@ -429,13 +453,14 @@ impl NodeTree {
         let scroll_width =
             (layout.scroll_width() as u16).saturating_sub(layout.scrollbar_size.width as u16);
 
-        if (layout.size.height as u16 > self.window_size.height
+        let viewport = self.viewport_size.viewport();
+        if (layout.size.height as u16 > viewport.height
             && self.style(parent_key).overflow.y == Overflow::Scroll)
-            || (layout.size.width as u16 > self.window_size.width
+            || (layout.size.width as u16 > viewport.width
                 && self.style(parent_key).overflow.x == Overflow::Scroll)
         {
-            let max_x = (layout.size.width as u16).saturating_sub(self.window_size.width);
-            let max_y = (layout.size.height as u16).saturating_sub(self.window_size.height);
+            let max_x = (layout.size.width as u16).saturating_sub(viewport.width);
+            let max_y = (layout.size.height as u16).saturating_sub(viewport.height);
             self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(max_x, max_y);
             let scroll_offset = self.dom_nodes[parent_key].inner.scroll_offset;
             self.dom_nodes[parent_key].inner.scroll_offset.x = scroll_offset.x.min(max_x);
@@ -497,7 +522,7 @@ impl NodeTree {
             y: context.offset.y as u16,
             content_box_size: computed.content_box_size().map(|s| s as u16),
             size: computed.size.map(|s| s as u16),
-            window_size: self.window_size,
+            viewport_size: self.viewport_size,
             content_size: computed.content_size.map(|s| s as u16),
             border: computed.border.map(|s| s as u16),
             padding: computed.padding.map(|s| s as u16),

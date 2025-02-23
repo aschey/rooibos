@@ -5,7 +5,7 @@ use rooibos::components::Button;
 use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::{col, height, row, wgt, width};
-use rooibos::router::{Route, RouteFrom, Router, ToRoute, provide_router, use_router};
+use rooibos::router::{Route, RouteContext, RouteFrom, ToRoute, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -40,27 +40,26 @@ async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
 }
 
 fn app(initial_route: impl ToRoute + 'static) -> impl Render {
-    provide_router();
+    let (router, route_context) = use_router();
     col![
         props(align_items(AlignItems::Center), width!(30.),),
         col![
             props(height!(10.), width!(100.%), borders(Borders::all())),
-            Router::new()
+            router
                 .routes([
-                    Route::new(Routes::Home, home),
+                    Route::new(Routes::Home, move || home(route_context)),
                     Route::new(Routes::About, about),
                     Route::new(Routes::Blogs, blog_index),
                 ])
                 .initial(initial_route)
         ],
-        footer()
+        footer(route_context)
     ]
 }
 
-fn home() -> impl Render {
-    let router = use_router();
-    let about_click = move || router.push(Routes::About);
-    let blog_click = move || router.push(Routes::Blogs);
+fn home(route_context: RouteContext) -> impl Render {
+    let about_click = move || route_context.push(Routes::About);
+    let blog_click = move || route_context.push(Routes::Blogs);
     col![
         props(align_items(AlignItems::Center)),
         wgt!(props(width!(22.), height!(2.)), "This is the home page"),
@@ -88,21 +87,20 @@ fn blog_index() -> impl Render {
     wgt!("This is the blog page")
 }
 
-fn footer() -> impl Render {
-    let router = use_router();
-    let on_forward = move || router.forward();
-    let on_back = move || router.back();
+fn footer(route_context: RouteContext) -> impl Render {
+    let on_forward = move || route_context.forward();
+    let on_back = move || route_context.back();
     row![
         props(width!(10.), height!(3.)),
         Button::new()
             .height(chars(3.))
             .on_click(on_back)
-            .enabled(router.can_go_back())
+            .enabled(route_context.can_go_back())
             .render(text!("←")),
         Button::new()
             .height(chars(3.))
             .on_click(on_forward)
-            .enabled(router.can_go_forward())
+            .enabled(route_context.can_go_forward())
             .render(text!("→"))
     ]
 }

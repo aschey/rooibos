@@ -9,13 +9,12 @@ use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use rooibos::components::{
-    Button, Input, InputRef, Notification, Notifications, Notifier, Show, provide_notifications,
+    Button, Input, InputRef, Notification, Notifier, Show, use_notifications,
 };
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, clear, justify_content, max_width, overflow_y, pct,
-    position, show,
+    Borders, align_items, borders, chars, clear, justify_content, overflow_y, pct, position, show,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -32,7 +31,7 @@ use rooibos::reactive::{
     Errors, col, derive_signal, height, margin, padding, padding_left, row, transition, wgt, width,
 };
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use server::run_server;
@@ -73,7 +72,7 @@ struct TodoContext {
 }
 
 fn app(notification_timeout: Duration) -> impl Render {
-    provide_notifications();
+    max_viewport_width(200).unwrap();
 
     let editing_id = RwSignal::new(None);
 
@@ -99,15 +98,10 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     let command_context = use_command_context();
     let input_id = NodeId::new_auto();
-    let todos_max_width = chars(200.);
 
+    let (notifications, notifier) = use_notifications();
     col![
-        props(
-            padding!(1.),
-            width!(100.%),
-            height!(100.%),
-            max_width(todos_max_width)
-        ),
+        props(padding!(1.), width!(100.%), height!(100.%),),
         row![
             props(width!(100.%), align_items(AlignItems::Center)),
             wgt!("Add a Todo"),
@@ -120,13 +114,11 @@ fn app(notification_timeout: Duration) -> impl Render {
                 overflow_y(Overflow::Scroll),
                 borders(Borders::all().title("Todos"))
             ),
-            todos_body(editing_id, notification_timeout)
+            todos_body(editing_id, notifier, notification_timeout)
         ],
         CommandBar::<Command>::new().render(),
         saving_popup(),
-        Notifications::new()
-            .max_layout_width(todos_max_width)
-            .render()
+        notifications.render()
     ]
     .on_key_down(
         [
@@ -185,7 +177,11 @@ fn add_todo_input(id: NodeId) -> impl Render {
     ]
 }
 
-fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration) -> impl RenderAny {
+fn todos_body(
+    editing_id: RwSignal<Option<u32>>,
+    notifier: Notifier,
+    notification_timeout: Duration,
+) -> impl RenderAny {
     let TodoContext {
         update_todo,
         delete_todo,
@@ -195,7 +191,6 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     let add_version = add_todo.version();
     let update_version = update_todo.version();
     let delete_version = delete_todo.version();
-    let notifier = Notifier::new();
 
     Effect::new({
         move || {

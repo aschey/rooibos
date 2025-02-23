@@ -69,6 +69,8 @@ pub enum TerminalCommand {
     EnterAltScreen,
     LeaveAltScreen,
     SetTitle(String),
+    SetViewportWidth(Option<u16>),
+    SetViewportHeight(Option<u16>),
     Custom(#[educe(Debug(ignore))] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
     #[cfg(feature = "clipboard")]
     SetClipboard(String, rooibos_terminal::ClipboardKind),
@@ -106,6 +108,18 @@ pub fn insert_before(
         height,
         text: text.into(),
     })
+}
+
+pub fn max_viewport_width(
+    max_width: impl Into<Option<u16>>,
+) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::SetViewportWidth(max_width.into()))
+}
+
+pub fn max_viewport_height(
+    max_height: impl Into<Option<u16>>,
+) -> Result<(), broadcast::error::SendError<TerminalCommand>> {
+    send_command(TerminalCommand::SetViewportHeight(max_height.into()))
 }
 
 pub fn enter_alt_screen() -> Result<(), broadcast::error::SendError<TerminalCommand>> {
