@@ -1,3 +1,4 @@
+use next_tuple::NextTuple;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::traits::Get;
@@ -27,6 +28,17 @@ impl Property for () {
 
 pub(crate) trait UpdateLayout {
     fn update_layout(&self, original_display: taffy::Display, style: &mut taffy::Style);
+}
+
+macro_rules! impl_next_tuple {
+    ($struct:ident) => {
+        impl NextTuple for $struct {
+            type Output<Next> = <($struct,) as NextTuple>::Output<Next>;
+            fn next_tuple<Next>(self, next: Next) -> Self::Output<Next> {
+                (self,).next_tuple(next)
+            }
+        }
+    };
 }
 
 pub fn chars(val: impl Into<Signal<f32>>) -> Signal<taffy::Dimension> {
@@ -65,6 +77,8 @@ pub fn length_percentage_auto_chars(
 
 pub struct Show(Signal<bool>);
 
+impl_next_tuple!(Show);
+
 impl Property for Show {
     type State = RenderEffect<()>;
 
@@ -92,18 +106,20 @@ impl Property for Show {
     }
 }
 
-pub fn show(val: impl Into<Signal<bool>>) -> (Show,) {
-    (Show(val.into()),)
+pub fn show(val: impl Into<Signal<bool>>) -> Show {
+    Show(val.into())
 }
 
 #[derive(Clone, Default)]
 pub struct BorderProp(pub(crate) Option<Signal<Borders>>);
 
-pub fn borders<S>(borders: S) -> (BorderProp,)
+impl_next_tuple!(BorderProp);
+
+pub fn borders<S>(borders: S) -> BorderProp
 where
     S: Into<Signal<Borders>>,
 {
-    (BorderProp(Some(borders.into())),)
+    BorderProp(Some(borders.into()))
 }
 
 impl Property for BorderProp {
@@ -135,8 +151,10 @@ impl Property for BorderProp {
 #[derive(Default, Clone)]
 pub struct ZIndex(pub(crate) Option<Signal<i32>>);
 
-pub fn z_index(z_index: impl Into<Signal<i32>>) -> (ZIndex,) {
-    (ZIndex(Some(z_index.into())),)
+impl_next_tuple!(ZIndex);
+
+pub fn z_index(z_index: impl Into<Signal<i32>>) -> ZIndex {
+    ZIndex(Some(z_index.into()))
 }
 
 impl Property for ZIndex {
@@ -164,6 +182,8 @@ impl Property for ZIndex {
 #[derive(Default, Clone)]
 pub struct Effect(pub(crate) Option<Signal<rooibos_dom::tachyonfx::Effect>>);
 
+impl_next_tuple!(Effect);
+
 #[cfg(feature = "effects")]
 impl Effect {
     pub fn value(&self) -> Option<Signal<rooibos_dom::tachyonfx::Effect>> {
@@ -172,8 +192,8 @@ impl Effect {
 }
 
 #[cfg(feature = "effects")]
-pub fn effect(effect: impl Into<Signal<rooibos_dom::tachyonfx::Effect>>) -> (Effect,) {
-    (Effect(Some(effect.into())),)
+pub fn effect(effect: impl Into<Signal<rooibos_dom::tachyonfx::Effect>>) -> Effect {
+    Effect(Some(effect.into()))
 }
 
 #[cfg(feature = "effects")]
@@ -200,14 +220,16 @@ impl Property for Effect {
 #[derive(Default, Clone)]
 pub struct Clear(pub(crate) Option<Signal<bool>>);
 
+impl_next_tuple!(Clear);
+
 impl Clear {
     pub fn value(&self) -> Option<Signal<bool>> {
         self.0
     }
 }
 
-pub fn clear(clear: impl Into<Signal<bool>>) -> (Clear,) {
-    (Clear(Some(clear.into())),)
+pub fn clear(clear: impl Into<Signal<bool>>) -> Clear {
+    Clear(Some(clear.into()))
 }
 
 impl Property for Clear {
@@ -233,14 +255,16 @@ impl Property for Clear {
 #[derive(Default, Clone)]
 pub struct Class(pub(crate) Option<Signal<Vec<String>>>);
 
+impl_next_tuple!(Class);
+
 impl Class {
     pub fn value(&self) -> Option<Signal<Vec<String>>> {
         self.0
     }
 }
 
-pub fn class(class: impl Into<Signal<Vec<String>>>) -> (Class,) {
-    (Class(Some(class.into())),)
+pub fn class(class: impl Into<Signal<Vec<String>>>) -> Class {
+    Class(Some(class.into()))
 }
 
 impl Property for Class {
@@ -266,14 +290,16 @@ impl Property for Class {
 #[derive(Default, Clone)]
 pub struct Id(pub(crate) Option<NodeId>);
 
+impl_next_tuple!(Id);
+
 impl Id {
     pub fn value(&self) -> Option<NodeId> {
         self.0.clone()
     }
 }
 
-pub fn id(id: impl Into<NodeId>) -> (Id,) {
-    (Id(Some(id.into())),)
+pub fn id(id: impl Into<NodeId>) -> Id {
+    Id(Some(id.into()))
 }
 
 impl Property for Id {
@@ -316,14 +342,16 @@ where
 #[derive(Default, Clone)]
 pub struct Focusable(pub(crate) Option<Signal<bool>>);
 
+impl_next_tuple!(Focusable);
+
 impl Focusable {
     pub fn value(&self) -> Option<Signal<bool>> {
         self.0
     }
 }
 
-pub fn focusable(focusable: impl Into<Signal<bool>>) -> (Focusable,) {
-    (Focusable(Some(focusable.into())),)
+pub fn focusable(focusable: impl Into<Signal<bool>>) -> Focusable {
+    Focusable(Some(focusable.into()))
 }
 
 impl Property for Focusable {
@@ -349,14 +377,16 @@ impl Property for Focusable {
 #[derive(Default, Clone)]
 pub struct Enabled(pub(crate) Option<Signal<bool>>);
 
+impl_next_tuple!(Enabled);
+
 impl Enabled {
     pub fn value(&self) -> Option<Signal<bool>> {
         self.0
     }
 }
 
-pub fn enabled(enabled: impl Into<Signal<bool>>) -> (Enabled,) {
-    (Enabled(Some(enabled.into())),)
+pub fn enabled(enabled: impl Into<Signal<bool>>) -> Enabled {
+    Enabled(Some(enabled.into()))
 }
 
 impl Property for Enabled {
@@ -600,8 +630,10 @@ macro_rules! layout_prop {
             }
         }
 
-        pub fn $fn(val: impl Into<Signal<$inner>>) -> ($struct_name,) {
-            ($struct_name(Some(val.into())),)
+        impl_next_tuple!($struct_name);
+
+        pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
+            $struct_name(Some(val.into()))
         }
     };
 }
@@ -619,8 +651,10 @@ macro_rules! layout_prop_opt {
             }
         }
 
-        pub fn $fn(val: impl Into<Signal<$inner>>) -> ($struct_name,) {
-            ($struct_name(Some(val.into())),)
+        impl_next_tuple!($struct_name);
+
+        pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
+            $struct_name(Some(val.into()))
         }
     };
 }

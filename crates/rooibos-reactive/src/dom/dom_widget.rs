@@ -662,7 +662,7 @@ where
     {
         DomWidget {
             inner: self.inner,
-            properties: self.properties.next_tuple(id(val).0),
+            properties: self.properties.next_tuple(id(val)),
         }
     }
 }
@@ -678,7 +678,7 @@ impl LayoutProps {
     where
         S: Into<NodeId>,
     {
-        self.id = id(val).0;
+        self.id = id(val);
         self
     }
 }
@@ -707,7 +707,7 @@ macro_rules! widget_prop {
             {
                 DomWidget {
                     inner: self.inner,
-                    properties: self.properties.next_tuple($fn(val).0),
+                    properties: self.properties.next_tuple($fn(val)),
                 }
             }
         }
@@ -723,7 +723,7 @@ macro_rules! widget_prop {
             where
                 S: Into<Signal<$inner>>,
             {
-                self.$($path).+ = $fn(val).0;
+                self.$($path).+ = $fn(val);
                 self
             }
         }

@@ -150,7 +150,7 @@ where
         FlexNode {
             inner: self.inner,
             children: self.children,
-            properties: self.properties.next_tuple(id(val).0),
+            properties: self.properties.next_tuple(id(val)),
         }
     }
 }
@@ -170,7 +170,7 @@ macro_rules! flex_prop {
                 FlexNode {
                     inner: self.inner,
                     children: self.children,
-                    properties: self.properties.next_tuple($fn(val).0),
+                    properties: self.properties.next_tuple($fn(val)),
                 }
             }
         }

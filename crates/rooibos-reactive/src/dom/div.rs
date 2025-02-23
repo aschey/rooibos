@@ -72,7 +72,7 @@ macro_rules! div_prop {
                 Div {
                     inner: self.inner,
                     children: self.children,
-                    properties: self.properties.next_tuple($fn(val).0),
+                    properties: self.properties.next_tuple($fn(val)),
                 }
             }
         }
