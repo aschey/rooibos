@@ -19,7 +19,7 @@ pub(crate) fn tab0() -> impl Render {
     after_render(move || focus_id(id));
 
     col![
-        props(height(full())),
+       style(height(full())),
         gauges(true, "30%"),
         charts(true, "50%", show_chart),
         footer(val("20%"))
@@ -33,7 +33,7 @@ pub(crate) fn tab0() -> impl Render {
 
 fn footer(footer_height: Signal<Dimension>) -> impl Render {
     wgt![
-        props(
+       style(
             height(footer_height),
             borders(Borders::all().title("Footer".magenta()).bold())
         ),

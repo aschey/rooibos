@@ -24,10 +24,10 @@ fn app() -> impl Render {
     let text = textarea.text();
 
     col![
-        props(padding(1)),
+        style(padding(1)),
         row![
-            props(margin(1)),
-            wgt!(props(padding_right(1)), "Input:".bold().cyan()),
+            style(margin(1)),
+            wgt!(style(padding_right(1)), "Input:".bold().cyan()),
             Input::default()
                 .placeholder_text("Enter some text")
                 .render(textarea),

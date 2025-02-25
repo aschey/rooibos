@@ -41,9 +41,9 @@ fn app() -> impl Render {
     let smaller_ref = ButtonRef::new();
 
     row![
-        props(padding(1)),
+       style(padding(1)),
         col![
-            props(width(15), padding_right(2)),
+           style(width(15), padding_right(2)),
             button(
                 bigger.bold(),
                 derive_signal!(block_height.get() < MAX_SIZE),
@@ -58,7 +58,7 @@ fn app() -> impl Render {
             )
         ],
         wgt!(
-            props(width(block_width), height(block_height)),
+           style(width(block_width), height(block_height)),
             text!(span!("{} x {}", block_width.get(), block_height.get()))
                 .centered()
                 .bg({

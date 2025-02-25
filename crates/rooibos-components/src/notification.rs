@@ -147,7 +147,7 @@ impl Notifications {
         });
 
         col![
-            props(
+           style(
                 z_index(2),
                 width(full()),
                 height(full()),
@@ -157,13 +157,13 @@ impl Notifications {
                 align_items(end()),
             ),
             col![
-                props(width(content_width)),
+               style(width(content_width)),
                 for_each(
                     move || notifications.get(),
                     |n| n.id,
                     move |n| {
                         wgt!(
-                            props(borders(Borders::all().round().blue()), clear(true)),
+                           style(borders(Borders::all().round().blue()), clear(true)),
                             n.content.clone()
                         )
                     }

@@ -39,7 +39,7 @@ fn app() -> impl Render {
     });
 
     col![
-        props(
+        style(
             padding(1),
             width(full()),
             height(full()),
@@ -82,7 +82,7 @@ fn popup(
     });
 
     col![
-        props(
+        style(
             z_index(1),
             width(full()),
             height(full()),
@@ -92,7 +92,7 @@ fn popup(
             justify_content(JustifyContent::Center),
         ),
         wgt!(
-            props(borders(Borders::all())),
+            style(borders(Borders::all())),
             "Are you sure you want to exit? [yN]"
         )
         .id(popup_id)

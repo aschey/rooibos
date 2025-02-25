@@ -31,7 +31,7 @@ fn app() -> impl Render {
 
     let (show_popup, set_show_popup) = signal(false);
     col![
-        props(borders(Borders::all()), bounds()),
+        style(borders(Borders::all()), bounds()),
         row![
             Button::new()
                 .on_click(move || set_show_popup.set(true))
@@ -53,7 +53,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
     });
 
     col![
-        props(
+        style(
             bounds(),
             z_index(2),
             center_items(),
@@ -61,7 +61,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
             show(show_popup),
         ),
         col![
-            props(center_items(), padding(1), borders(Borders::all())),
+            style(center_items(), padding(1), borders(Borders::all())),
             wgt!(line!("popup text")),
             Button::new()
                 .on_click(on_close)

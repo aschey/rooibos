@@ -6,10 +6,10 @@ use crate::dom::DomWidget;
 
 #[macro_export]
 macro_rules! wgt {
-    (props($($properties:expr),+ $(,)?), $state:expr, $($x:tt)*) => {
+    (style($($properties:expr),+ $(,)?), $state:expr, $($x:tt)*) => {
         $crate::stateful_widget(($($properties),+), move || $($x)*, move || $state)
     };
-    (props($($properties:expr),+ $(,)?), $($x:tt)*) => {
+    (style($($properties:expr),+ $(,)?), $($x:tt)*) => {
         $crate::widget(($($properties),+), move || $($x)*)
     };
     ($x:expr) => {
@@ -22,7 +22,7 @@ macro_rules! wgt {
 
 #[macro_export]
 macro_rules! wgt_owned {
-    (props($($properties:expr),+ $(,)?), $($x:tt)*) => {
+    (style($($properties:expr),+ $(,)?), $($x:tt)*) => {
         $crate::widget_owned(($($properties),+), move || $($x)*)
     };
     ($($x:tt)*) => {

@@ -330,13 +330,13 @@ macro_rules! row {
     () => (
         $crate::dom::flex_node::row((), ())
     );
-    (props($($properties:expr),+ $(,)?)) => (
+    (style($($properties:expr),+ $(,)?)) => (
         $crate::dom::flex_node::row(($($properties),+), ())
     );
-    (props($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
+    (style($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
         $crate::dom::flex_node::row(($($properties),+), ($($children),+))
     );
-    (props($($properties:expr),+ $(,)?), $children:expr) => (
+    (style($($properties:expr),+ $(,)?), $children:expr) => (
         $crate::dom::flex_node::row(($($properties),+), ($children,))
     );
     ($($children:expr),+ $(,)?) => (
@@ -349,11 +349,14 @@ macro_rules! col {
     () => (
         $crate::dom::flex_node::col((), ())
     );
-    (props($($properties:expr),+ $(,)?)) => (
+    (style($($properties:expr),+ $(,)?)) => (
         $crate::dom::flex_node::col(($($properties),+), ())
     );
-    (props($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
+    (style($($properties:expr),+ $(,)?), $($children:expr),+ $(,)?) => (
         $crate::dom::flex_node::col(($($properties),+), ($($children),+))
+    );
+    (style($($properties:expr),+ $(,)?), $children:expr) => (
+        $crate::dom::flex_node::col(($($properties),+), ($children,))
     );
     ($($children:expr),+ $(,)?) => (
         $crate::dom::flex_node::col((), ($($children),+))

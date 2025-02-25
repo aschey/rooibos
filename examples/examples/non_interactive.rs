@@ -21,5 +21,5 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn app() -> impl Render {
-    wgt!(props(borders(Borders::all().cyan())), "hello!".reset())
+    wgt!(style(borders(Borders::all().cyan())), "hello!".reset())
 }

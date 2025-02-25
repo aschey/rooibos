@@ -24,10 +24,10 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     col![
-        props(height(full())),
-        row![props(min_height(half())), counter_pane("a")],
+        style(height(full())),
+        row![style(min_height(half())), counter_pane("a")],
         //
-        row![props(min_height(half())), counter_pane("b")]
+        row![style(min_height(half())), counter_pane("b")]
     ]
 }
 
@@ -45,7 +45,7 @@ fn counter_pane(prefix: &'static str) -> impl Render {
     };
 
     col![
-        props(max_width(50), height(full()), overflow_y(scroll())),
+        style(max_width(50), height(full()), overflow_y(scroll())),
         row![
             Button::new()
                 .on_click(add_counter)
@@ -70,13 +70,13 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
     let decrease = move || update_count(-1);
 
     row![
-        props(borders(derive_signal!(if focused.get() {
+        style(borders(derive_signal!(if focused.get() {
             Borders::all()
         } else {
             Borders::all().empty()
         }))),
         wgt!(
-            props(margin_x(1)),
+            style(margin_x(1)),
             line!(
                 format!("{}. ", id.get_value()),
                 "count: ".bold(),

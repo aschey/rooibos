@@ -19,14 +19,14 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     row![
-        props(padding(1)),
+        style(padding(1)),
         col![
-            props(max_width(60)),
+            style(max_width(60)),
             focus_block("item 1"),
             focus_block("item 2")
         ],
         col![
-            props(max_width(60)),
+            style(max_width(60)),
             focus_block("item 3"),
             focus_block("item 4")
         ]
@@ -56,7 +56,7 @@ fn focus_block(title: &'static str) -> impl Render {
         line!(title)
     });
 
-    wgt!(props(borders(Borders::all()), width(30)), title.get())
+    wgt!(style(borders(Borders::all()), width(30)), title.get())
         .id(id)
         .focusable(true)
 }

@@ -5,9 +5,7 @@ use ratatui::widgets::{Block, Tabs};
 use rooibos_dom::events::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
 use rooibos_dom::{IntoSpan, line};
 use rooibos_reactive::any_view::IntoAny as _;
-use rooibos_reactive::dom::layout::{
-    Dimension, IntoDimensionSignal, full, height, max_height,
-};
+use rooibos_reactive::dom::layout::{Dimension, IntoDimensionSignal, full, height, max_height};
 use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
@@ -376,8 +374,8 @@ impl TabView {
         };
 
         col![
-            props(rooibos_reactive::dom::layout::width(width), height(full())),
-            wgt![props(height(header_height)), {
+            style(rooibos_reactive::dom::layout::width(width), height(full())),
+            wgt!(style(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())
                     .style(style.get())
@@ -389,12 +387,12 @@ impl TabView {
                 } else {
                     headers
                 }
-            }]
+            })
             .on_click(on_click)
             .on_key_down(on_key_down)
             .on_focus(on_focus)
             .on_blur(on_blur),
-            col![props(max_height(full()), height(body_height)), move || {
+            col![style(max_height(full()), height(body_height)), move || {
                 cur_tab
                     .get()
                     .map(|c| c.0())

@@ -6,7 +6,7 @@ use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {
-    row![props(width(full()), height(full())), colors_table()]
+    row![style(width(full()), height(full())), colors_table()]
 }
 
 fn colors_table() -> impl Render {
@@ -31,7 +31,7 @@ fn colors_table() -> impl Render {
     ];
 
     wgt![
-        props(width(full()), height(full())),
+        style(width(full()), height(full())),
         Table::new(
             colors.iter().map(|c| {
                 Row::new(vec![

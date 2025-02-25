@@ -24,7 +24,7 @@ fn app() -> impl Render {
     let (id, focused) = use_focus();
     let text = textarea.text();
     col![
-        props(
+        style(
             padding(1),
             width(full()),
             borders(derive_signal!(if focused.get() {

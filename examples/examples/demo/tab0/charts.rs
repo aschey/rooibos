@@ -1,7 +1,5 @@
 use ratatui::text::ToSpan;
-use rooibos::reactive::dom::layout::{
-    IntoDimensionSignal, full, half, height, show, width,
-};
+use rooibos::reactive::dom::layout::{IntoDimensionSignal, full, half, height, show, width};
 use rooibos::reactive::dom::widgets::{Chart, Dataset};
 use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::computed::Memo;
@@ -24,14 +22,14 @@ pub(crate) fn charts(
     show_chart: ReadSignal<bool>,
 ) -> impl Render {
     row![
-        props(height(chart_min_height)),
+        style(height(chart_min_height)),
         col![
-            props(width(full()), height(full())),
-            row![props(width(full()), height(full())), task_list(), logs()],
+            style(width(full()), height(full())),
+            row![style(width(full()), height(full())), task_list(), logs()],
             demo_bar_chart(enhanced_graphics)
         ],
         col![
-            props(width(full()), height(full()), show(show_chart)),
+            style(width(full()), height(full()), show(show_chart)),
             demo_chart(enhanced_graphics)
         ]
     ]
@@ -103,7 +101,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let window_end = Memo::new(move |_| window.get()[1]);
 
     wgt!(
-        props(height(full())),
+        style(height(full())),
         Chart::new(vec![
             Dataset::default()
                 .name("data2")
@@ -190,7 +188,7 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
     });
 
     wgt!(
-        props(width(full()), height(full())),
+        style(width(full()), height(full())),
         BarChart::default()
             .block(Block::bordered().title("Bar chart"))
             .data(&bar_chart_data.get())
@@ -238,7 +236,7 @@ fn task_list() -> impl Render {
     });
 
     wgt!(
-        props(width(half()), height(full())),
+        style(width(half()), height(full())),
         ListState::default().with_selected(selected_task.get()),
         List::new(TASKS.map(ListItem::new))
             .block(Block::bordered().title("List"))
@@ -316,7 +314,7 @@ fn logs() -> impl Render {
     });
 
     wgt!(
-        props(width(half()), height(full())),
+        style(width(half()), height(full())),
         List::new(logs.get().iter().map(|(evt, level, style)| {
             ListItem::new(line!(span!(*style; "{level:<9}"), *evt))
         }))

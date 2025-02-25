@@ -128,7 +128,7 @@ familiar if you've used a Javascript framework such as React or SolidJS, or one
 of the Rust-based frameworks like Leptos or Dioxus. Anything that returns
 `impl Render` can be added to the DOM.
 
-Layout properties can be added using the special `props()` keyword.
+Layout properties can be added using the special `style()` keyword.
 
 ```rust,no_run
 use std::process::ExitCode;
@@ -154,11 +154,11 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     row![
-        // `props()` is a special keyword that sets the layout properties on a widget
+        // `style()` is a special keyword that sets the layout properties on a widget
         // or layout node.
-        props(padding(1)),
+        style(padding(1)),
         col![
-            props(width(20), padding_right(2)),
+            style(width(20), padding_right(2)),
             button("bigger".bold()),
             button("smaller".bold())
         ]
@@ -168,7 +168,7 @@ fn app() -> impl Render {
 // Simple components can be written as functions, while complex ones with optional arguments,
 // such as `Button`, may be written as structs.
 fn button(title: Span<'static>) -> impl Render {
-    row![props(height(3)), Button::new().render(text!(title))]
+    row![style(height(3)), Button::new().render(text!(title))]
 }
 ```
 

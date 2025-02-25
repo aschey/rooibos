@@ -211,7 +211,7 @@ impl Button {
 
         let children: Signal<Text> = children.into();
         wgt![
-            props(borders(button_borders)),
+            style(borders(button_borders)),
             rooibos_dom::widgets::Button::new(
                 children
                     .get()

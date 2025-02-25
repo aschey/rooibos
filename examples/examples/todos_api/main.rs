@@ -100,14 +100,14 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     let (notifications, notifier) = use_notifications();
     col![
-        props(padding(1), width(full()), height(full())),
+        style(padding(1), width(full()), height(full())),
         row![
-            props(width(full()), align_items(AlignItems::Center)),
+            style(width(full()), align_items(AlignItems::Center)),
             wgt!("Add a Todo"),
             add_todo_input(input_id)
         ],
         col![
-            props(
+            style(
                 width(full()),
                 height(full()),
                 overflow_y(scroll()),
@@ -151,7 +151,7 @@ fn add_todo_input(id: NodeId) -> impl Render {
     let focused = use_focus_with_id(id);
 
     row![
-        props(width(full()), padding_left(1)),
+        style(width(full()), padding_left(1)),
         Input::default()
             .borders(derive_signal!(if focused.get() {
                 Borders::all().blue()
@@ -258,7 +258,7 @@ fn saving_popup() -> impl RenderAny {
     let pending = derive_signal!(add_pending.get() || update_pending.get() || delete_pending.get());
 
     row![
-        props(
+        style(
             width(full()),
             height(full()),
             position(absolute()),
@@ -267,7 +267,7 @@ fn saving_popup() -> impl RenderAny {
             show(pending)
         ),
         wgt!(
-            props(clear(true), width(25), height(5), borders(Borders::all())),
+            style(clear(true), width(25), height(5), borders(Borders::all())),
             line!("Saving...")
         )
     ]
@@ -282,11 +282,11 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_ref = Input::get_ref();
 
     row![
-        col![props(margin(1)), format!("{id}.")],
+        col![style(margin(1)), format!("{id}.")],
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin(1)), wgt!(text.get())])
+            .fallback(move || col![style(margin(1)), wgt!(text.get())])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })

@@ -42,9 +42,9 @@ async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
 fn app(initial_route: impl ToRoute + 'static) -> impl Render {
     let (router, route_context) = use_router();
     col![
-        props(align_items(AlignItems::Center), width(30)),
+        style(align_items(AlignItems::Center), width(30)),
         col![
-            props(height(10), width(full()), borders(Borders::all())),
+            style(height(10), width(full()), borders(Borders::all())),
             router
                 .routes([
                     Route::new(Routes::Home, move || home(route_context)),
@@ -62,10 +62,10 @@ fn home(route_context: RouteContext) -> impl Render {
     let about_click = move || route_context.push(Routes::About);
     let blog_click = move || route_context.push(Routes::Blogs);
     col![
-        props(align_items(AlignItems::Center)),
-        wgt!(props(width(22), height(2)), "This is the home page"),
+        style(align_items(AlignItems::Center)),
+        wgt!(style(width(22), height(2)), "This is the home page"),
         row![
-            props(width(18)),
+            style(width(18)),
             Button::new()
                 .width(9)
                 .height(3)
@@ -92,7 +92,7 @@ fn footer(route_context: RouteContext) -> impl Render {
     let on_forward = move || route_context.forward();
     let on_back = move || route_context.back();
     row![
-        props(width(10), height(3)),
+        style(width(10), height(3)),
         Button::new()
             .height(3)
             .on_click(on_back)

@@ -68,7 +68,7 @@ fn header_tabs() -> impl Render {
     ]));
 
     col![
-        props(width(full()), height(full())),
+       style(width(full()), height(full())),
         TabView::new()
             .header_height(3)
             .body_height(full())

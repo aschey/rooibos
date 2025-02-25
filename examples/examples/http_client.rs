@@ -35,7 +35,7 @@ fn app() -> impl Render {
     };
 
     col![
-        props(padding(1)),
+       style(padding(1)),
         Button::new()
             .width(12)
             .on_click(move || {

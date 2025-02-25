@@ -58,7 +58,7 @@ fn app() -> impl Render {
         .into_span_signal();
 
     col![
-        props(padding_left(1)),
+       style(padding_left(1)),
         Show::new()
             .fallback(move || {
                 after_render(exit);
