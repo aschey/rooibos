@@ -2,7 +2,8 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, justify_content, position, show,
+    Borders, absolute, align_items, borders, full, height, justify_content, padding, position,
+    show, width,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
@@ -10,7 +11,7 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Read, Set};
-use rooibos::reactive::{col, derive_signal, height, padding, row, wgt, width};
+use rooibos::reactive::{col, derive_signal, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{
     ExitResult, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
@@ -18,7 +19,7 @@ use rooibos::runtime::{
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::text::Line;
-use taffy::{AlignItems, JustifyContent, LengthPercentage, Position};
+use taffy::{AlignItems, JustifyContent};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -44,9 +45,9 @@ fn app() -> impl Render {
 
     col![
         props(
-            padding!(1),
-            width!(100%),
-            height!(100%),
+            padding(1),
+            width(full()),
+            height(full()),
             borders(Borders::all())
         ),
         row![
@@ -85,10 +86,10 @@ fn popup(
 
     col![
         props(
-            width!(100%),
-            height!(100%),
+            width(full()),
+            height(full()),
             show(show_popup),
-            position(Position::Absolute),
+            position(absolute()),
             align_items(AlignItems::Center),
             justify_content(JustifyContent::Center),
         ),
@@ -98,7 +99,7 @@ fn popup(
             row![
                 Button::new()
                     .centered()
-                    .padding_x(LengthPercentage::Length(1.))
+                    .padding_x(1)
                     .id(button_id)
                     .on_click(move || {
                         on_ok();

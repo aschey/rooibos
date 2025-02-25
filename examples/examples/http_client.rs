@@ -3,12 +3,12 @@ use std::process::ExitCode;
 use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::chars;
+use rooibos::reactive::dom::layout::padding;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span, text};
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::signal::{ArcRwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{Errors, col, padding, suspense, wgt};
+use rooibos::reactive::{Errors, col, suspense, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -35,13 +35,13 @@ fn app() -> impl Render {
     };
 
     col![
-        props(padding!(1)),
+        props(padding(1)),
         Button::new()
-            .width(chars(12))
+            .width(12)
             .on_click(move || {
                 set_id.set(rand::thread_rng().gen_range(1..80));
             })
-            .height(chars(3))
+            .height(3)
             .render(text!("fetch next")),
         suspense!(
             wgt!(line!(" Loading...".gray())),

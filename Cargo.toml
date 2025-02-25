@@ -109,3 +109,4 @@ tui-tree-widget = "0.23.0"
 
 [patch.crates-io]
 crossterm = { git = "https://github.com/aschey/crossterm", rev = "3b6db3586eda31a803a67af7bdb1d0937cf26485" }
+ratatui = { git = "https://github.com/aschey/ratatui", rev = "9c095537802f3bdb7d82b10bda226540f152421e" }

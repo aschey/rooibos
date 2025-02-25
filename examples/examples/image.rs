@@ -4,9 +4,10 @@ use std::process::ExitCode;
 use rooibos::components::Image;
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::Render;
+use rooibos::reactive::dom::layout::{height, padding, padding_top, width};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked, Update};
-use rooibos::reactive::{col, height, padding, padding_top, wgt, width};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -23,13 +24,13 @@ fn app() -> impl Render {
     let image_url = RwSignal::new(PathBuf::from("./examples/assets/cat.jpg"));
 
     col![
-        props(padding!(1)),
+        props(padding(1)),
         wgt!(
-            props(height!(1)),
+            props(height(1)),
             "Press up to increase image size, down to decrease"
         ),
         col![
-            props(width!(image_length), height!(image_length), padding_top!(1)),
+            props(width(image_length), height(image_length), padding_top(1)),
             Image::from_url(image_url).render()
         ]
     ]

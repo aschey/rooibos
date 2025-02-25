@@ -3,13 +3,14 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, justify_content, position, show, z_index,
+    Borders, align_items, borders, full, height, justify_content, padding, position, show, width,
+    z_index,
 };
 use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, padding, row, wgt, width};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -39,9 +40,9 @@ fn app() -> impl Render {
 
     col![
         props(
-            padding!(1),
-            width!(100%),
-            height!(100%),
+            padding(1),
+            width(full()),
+            height(full()),
             borders(Borders::all())
         ),
         row![
@@ -83,8 +84,8 @@ fn popup(
     col![
         props(
             z_index(1),
-            width!(100%),
-            height!(100%),
+            width(full()),
+            height(full()),
             show(show_popup),
             position(Position::Absolute),
             align_items(AlignItems::Center),

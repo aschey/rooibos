@@ -3,14 +3,15 @@ use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
 use rooibos_dom::events::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
-use rooibos_dom::{line, span};
+use rooibos_dom::{IntoSpan, line};
 use rooibos_reactive::any_view::IntoAny as _;
-use rooibos_reactive::dom::div::taffy::Dimension;
-use rooibos_reactive::dom::layout::{height, pct};
+use rooibos_reactive::dom::layout::{
+    Dimension, IntoDimensionSignal, full, height, max_height,
+};
 use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
-use rooibos_reactive::{col, derive_signal, height, max_height, wgt};
+use rooibos_reactive::{col, derive_signal, wgt};
 
 use crate::Keyed;
 use crate::wrapping_list::KeyedWrappingList;
@@ -100,9 +101,9 @@ impl Default for TabView {
             decorator_highlight_style: Default::default(),
             style: Default::default(),
             fit: false.into(),
-            divider: span!(symbols::line::VERTICAL).into(),
-            header_height: Dimension::Length(1.).into(),
-            width: pct(100),
+            divider: symbols::line::VERTICAL.into_span().into(),
+            header_height: 1.into_dimension_signal(),
+            width: full().into(),
             padding_left: line!(" ").into(),
             padding_right: line!(" ").into(),
             body_height: Dimension::Auto.into(),
@@ -120,18 +121,18 @@ impl TabView {
         self
     }
 
-    pub fn header_height(mut self, header_height: impl Into<Signal<Dimension>>) -> Self {
-        self.header_height = header_height.into();
+    pub fn header_height(mut self, header_height: impl IntoDimensionSignal) -> Self {
+        self.header_height = header_height.into_dimension_signal();
         self
     }
 
-    pub fn body_height(mut self, body_height: impl Into<Signal<Dimension>>) -> Self {
-        self.body_height = body_height.into();
+    pub fn body_height(mut self, body_height: impl IntoDimensionSignal) -> Self {
+        self.body_height = body_height.into_dimension_signal();
         self
     }
 
-    pub fn width(mut self, width: impl Into<Signal<Dimension>>) -> Self {
-        self.width = width.into();
+    pub fn width(mut self, width: impl IntoDimensionSignal) -> Self {
+        self.width = width.into_dimension_signal();
         self
     }
 
@@ -270,7 +271,7 @@ impl TabView {
                                         .collect();
                                 }
                             }
-                            line!([spans, vec![span!("  ")], decorator_spans].concat())
+                            line!([spans, vec!["  ".into()], decorator_spans].concat())
                         } else {
                             if i == cur_tab {
                                 let spans: Vec<_> = header
@@ -314,7 +315,7 @@ impl TabView {
 
         let width = derive_signal!({
             if fit.get() {
-                Dimension::Length(headers_len.get() as f32)
+                (headers_len.get() as u32).into()
             } else {
                 width.get()
             }
@@ -375,7 +376,7 @@ impl TabView {
         };
 
         col![
-            props(rooibos_reactive::dom::layout::width(width), height!(100%)),
+            props(rooibos_reactive::dom::layout::width(width), height(full())),
             wgt![props(height(header_height)), {
                 let headers = Tabs::new(headers.get())
                     .divider(divider.get())
@@ -393,7 +394,7 @@ impl TabView {
             .on_key_down(on_key_down)
             .on_focus(on_focus)
             .on_blur(on_blur),
-            col![props(max_height!(100%), height(body_height)), move || {
+            col![props(max_height(full()), height(body_height)), move || {
                 cur_tab
                     .get()
                     .map(|c| c.0())

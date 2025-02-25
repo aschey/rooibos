@@ -3,11 +3,11 @@ use std::process::ExitCode;
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::events::KeyEventProps;
-use rooibos::reactive::dom::layout::{Borders, borders, chars};
+use rooibos::reactive::dom::layout::{Borders, borders, max_height, max_width};
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{KeyCode, col, max_height, max_width, row};
+use rooibos::reactive::{KeyCode, col, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -32,9 +32,9 @@ fn app() -> impl Render {
     ]));
 
     col![
-        props(max_width!(50), max_height!(20), borders(Borders::all())),
+        props(max_width(50), max_height(20), borders(Borders::all())),
         TabView::new()
-            .header_height(chars(3))
+            .header_height(3)
             .block(tab_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
@@ -97,7 +97,7 @@ fn inner_tabs() -> impl Render {
     row![
         props(borders(Borders::all())),
         TabView::new()
-            .header_height(chars(3))
+            .header_height(3)
             .block(tab_block)
             .fit(true)
             .highlight_style(Style::new().yellow())

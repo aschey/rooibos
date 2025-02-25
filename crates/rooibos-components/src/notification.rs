@@ -4,15 +4,15 @@ use std::time::Duration;
 use ratatui::style::Stylize;
 use ratatui::text::Text;
 use rooibos_reactive::dom::Render;
-use rooibos_reactive::dom::div::taffy::{self, AlignItems};
 use rooibos_reactive::dom::layout::{
-    Borders, align_items, borders, clear, max_width, width, z_index,
+    Borders, Dimension, align_items, auto, borders, clear, end, full, height, max_width,
+    padding_right, padding_top, width, z_index,
 };
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use rooibos_reactive::{col, for_each, height, padding_right, padding_top, wgt, width};
+use rooibos_reactive::{col, for_each, wgt};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 
@@ -86,8 +86,8 @@ impl Notifier {
 }
 
 pub struct Notifications {
-    content_width: Signal<taffy::Dimension>,
-    max_layout_width: Signal<taffy::Dimension>,
+    content_width: Signal<Dimension>,
+    max_layout_width: Signal<Dimension>,
     rx: broadcast::Receiver<Notification>,
 }
 
@@ -99,15 +99,15 @@ pub fn use_notifications() -> (Notifications, Notifier) {
 impl Notifications {
     fn new(context: NotificationContext) -> Self {
         Self {
-            content_width: taffy::Dimension::Auto.into(),
-            max_layout_width: taffy::Dimension::Auto.into(),
+            content_width: auto().into(),
+            max_layout_width: auto().into(),
             rx: context.tx.subscribe(),
         }
     }
 
     pub fn content_width<S>(mut self, content_width: S) -> Self
     where
-        S: Into<Signal<taffy::Dimension>>,
+        S: Into<Signal<Dimension>>,
     {
         self.content_width = content_width.into();
         self
@@ -115,7 +115,7 @@ impl Notifications {
 
     pub fn max_layout_width<S>(mut self, max_layout_width: S) -> Self
     where
-        S: Into<Signal<taffy::Dimension>>,
+        S: Into<Signal<Dimension>>,
     {
         self.max_layout_width = max_layout_width.into();
         self
@@ -149,12 +149,12 @@ impl Notifications {
         col![
             props(
                 z_index(2),
-                width!(100%),
-                height!(100%),
+                width(full()),
+                height(full()),
                 max_width(max_layout_width),
-                padding_right!(1),
-                padding_top!(1),
-                align_items(AlignItems::End),
+                padding_right(1),
+                padding_top(1),
+                align_items(end()),
             ),
             col![
                 props(width(content_width)),

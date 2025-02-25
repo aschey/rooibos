@@ -3,12 +3,12 @@ use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::dom::layout::{chars, pct};
+use rooibos::reactive::col;
+use rooibos::reactive::dom::layout::{full, height, width};
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::owner::provide_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, width};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -68,10 +68,10 @@ fn header_tabs() -> impl Render {
     ]));
 
     col![
-        props(width!(100%), height!(100%)),
+        props(width(full()), height(full())),
         TabView::new()
-            .header_height(chars(3))
-            .body_height(pct(100))
+            .header_height(3)
+            .body_height(full())
             .block(Block::bordered().title("Demo"))
             .highlight_style(Style::new().yellow())
             .on_title_click(move |_, tab| focused.set(tab.to_string()))

@@ -2,15 +2,14 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::dom::div::taffy;
-use rooibos::reactive::dom::layout::{Borders, borders, overflow_y};
-use rooibos::reactive::dom::{NodeId, Render, line, span, text, use_focus_with_id};
+use rooibos::reactive::dom::layout::{
+    Borders, borders, full, half, height, margin_x, max_width, min_height, overflow_y, scroll,
+};
+use rooibos::reactive::dom::{NodeId, Render, line, text, use_focus_with_id};
 use rooibos::reactive::graph::owner::StoredValue;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, GetValue, Update};
-use rooibos::reactive::{
-    col, derive_signal, for_each, height, margin_x, max_width, min_height, row, wgt,
-};
+use rooibos::reactive::{col, derive_signal, for_each, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -25,10 +24,10 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     col![
-        props(height!(100%)),
-        row![props(min_height!(50%)), counter_pane("a")],
+        props(height(full())),
+        row![props(min_height(half())), counter_pane("a")],
         //
-        row![props(min_height!(50%)), counter_pane("b")]
+        row![props(min_height(half())), counter_pane("b")]
     ]
 }
 
@@ -46,11 +45,7 @@ fn counter_pane(prefix: &'static str) -> impl Render {
     };
 
     col![
-        props(
-            max_width!(50),
-            height!(100%),
-            overflow_y(taffy::Overflow::Scroll)
-        ),
+        props(max_width(50), height(full()), overflow_y(scroll())),
         row![
             Button::new()
                 .on_click(add_counter)
@@ -81,11 +76,11 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
             Borders::all().empty()
         }))),
         wgt!(
-            props(margin_x!(1)),
+            props(margin_x(1)),
             line!(
                 format!("{}. ", id.get_value()),
                 "count: ".bold(),
-                span!(count.get()).cyan()
+                count.get().cyan()
             )
         )
         .on_click(move |_| increase())

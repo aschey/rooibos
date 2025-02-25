@@ -1,10 +1,10 @@
 use std::process::ExitCode;
 
 use rooibos::reactive::dom::Render;
-use rooibos::reactive::dom::layout::{Borders, borders};
+use rooibos::reactive::dom::layout::{Borders, borders, full, half, height, width};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, row, wgt, width};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width, use_window_focus, use_window_size};
 use rooibos::terminal::DefaultBackend;
@@ -24,7 +24,7 @@ fn app() -> impl Render {
     let window_focused = use_window_focus();
 
     col![
-        props(height!(100%), width!(100%)),
+        props(height(full()), width(full())),
         wgt![props(borders(Borders::all())), {
             let window_size = window_size.get().viewport();
             format!(
@@ -35,12 +35,12 @@ fn app() -> impl Render {
             )
         }],
         row![
-            props(height!(50%), width!(100%)),
+            props(height(half()), width(full())),
             show_size(1),
             show_size(2)
         ],
         row![
-            props(height!(50%), width!(100%)),
+            props(height(half()), width(full())),
             show_size(3),
             show_size(4)
         ]
@@ -49,7 +49,7 @@ fn app() -> impl Render {
 
 fn show_size(id: usize) -> impl Render {
     let widget_size = RwSignal::new(Rect::default());
-    wgt!(props(width!(100%), borders(Borders::all())), {
+    wgt!(props(width(full()), borders(Borders::all())), {
         let widget_size = widget_size.get();
         format!(
             "id:{id} x={} y={} width={} height={}",

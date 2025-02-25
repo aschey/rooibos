@@ -2,17 +2,16 @@ use std::process::ExitCode;
 
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span, text};
+use rooibos::reactive::dom::layout::padding;
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{col, padding, row};
+use rooibos::reactive::{col, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::Block;
-use taffy::LengthPercentage;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -51,7 +50,7 @@ fn app() -> impl Render {
         tabs.update(|t| {
             let num = next_tab.get();
             t.push(
-                Tab::new(line!("Tab", span!(num)), format!("tab{num}"), move || {
+                Tab::new(line!("Tab", num), format!("tab{num}"), move || {
                     format!(" tab{num}")
                 })
                 .decorator(line!("✕".red())),
@@ -65,9 +64,9 @@ fn app() -> impl Render {
     };
 
     row![
-        props(padding!(1)),
+        props(padding(1)),
         TabView::new()
-            .header_height(chars(3))
+            .header_height(3)
             .block(tabs_block)
             .highlight_style(Style::new().yellow())
             .fit(true)
@@ -114,7 +113,7 @@ fn app() -> impl Render {
             .render(focused, tabs),
         col![
             Button::new()
-                .padding_x(LengthPercentage::Length(1.))
+                .padding_x(1)
                 .centered()
                 .on_click(move || {
                     add_tab();

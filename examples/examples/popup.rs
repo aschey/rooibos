@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::reactive::dom::flex_node::FlexProperty;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, justify_content, show, z_index,
+    Borders, align_items, borders, full, height, justify_content, padding, show, width, z_index,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
@@ -11,7 +11,7 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get as _, Set};
-use rooibos::reactive::{col, height, padding, row, wgt, width};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_height, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -61,7 +61,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
             show(show_popup),
         ),
         col![
-            props(center_items(), padding!(1), borders(Borders::all())),
+            props(center_items(), padding(1), borders(Borders::all())),
             wgt!(line!("popup text")),
             Button::new()
                 .on_click(on_close)
@@ -72,7 +72,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
 }
 
 fn bounds() -> impl FlexProperty {
-    (width!(100%), height!(100%))
+    (width(full()), height(full()))
 }
 
 fn center_items() -> impl FlexProperty {

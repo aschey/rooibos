@@ -4,8 +4,7 @@ use rooibos::keybind::{
     Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyActionMap, extract, keys,
     on_command,
 };
-use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, wgt};
@@ -39,7 +38,7 @@ fn app() -> impl Render {
     });
 
     col![
-        wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
+        wgt!(line!("count: ".bold(), count.get().cyan()))
             .on_key_down(
                 [
                     KeyActionMap::action(
@@ -57,7 +56,7 @@ fn app() -> impl Render {
             )
             .on_click(move |_| increase_count())
             .grow(1.),
-        CommandBar::<AppAction>::new().height(chars(1)).render()
+        CommandBar::<AppAction>::new().height(1).render()
     ]
 }
 

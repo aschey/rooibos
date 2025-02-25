@@ -1,10 +1,10 @@
 use std::process::ExitCode;
 
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::{Borders, align_items, borders, chars};
+use rooibos::reactive::dom::layout::{Borders, align_items, borders, height, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, height, row, wgt, width};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::router::{Route, RouteContext, RouteFromStatic, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -36,9 +36,9 @@ fn app() -> impl Render {
     let (router, route_context) = use_router();
 
     col![
-        props(align_items(AlignItems::Center), width!(30),),
+        props(align_items(AlignItems::Center), width(30),),
         col![
-            props(height!(10), borders(Borders::all())),
+            props(height(10), borders(Borders::all())),
             router
                 .routes([
                     Route::new::<Home>(move || home(route_context)),
@@ -58,17 +58,17 @@ fn home(route_context: RouteContext) -> impl Render {
     let blog_click = move || route_context.push(BlogIndex);
     col![
         props(align_items(AlignItems::Center)),
-        wgt!(props(width!(22), height!(2)), "This is the home page"),
+        wgt!(props(width(22), height(2)), "This is the home page"),
         row![
-            props(width!(18)),
+            props(width(18)),
             Button::new()
-                .width(chars(9))
-                .height(chars(3))
+                .width(9)
+                .height(3)
                 .on_click(about_click)
                 .render(text!("About")),
             Button::new()
-                .width(chars(9))
-                .height(chars(3))
+                .width(9)
+                .height(3)
                 .on_click(blog_click)
                 .render(text!("Blog"))
         ]
@@ -84,11 +84,11 @@ fn blog_index(route_context: RouteContext) -> impl Render {
     col![
         wgt!("This is the blog page"),
         Button::new()
-            .height(chars(3))
+            .height(3)
             .on_click(move || route_to_post(1))
             .render(text!("post 1")),
         Button::new()
-            .height(chars(3))
+            .height(3)
             .on_click(move || route_to_post(2))
             .render(text!("post 2"))
     ]
@@ -103,14 +103,14 @@ fn footer(route_context: RouteContext) -> impl Render {
     let on_forward = move || route_context.forward();
     let on_back = move || route_context.back();
     row![
-        props(width!(10), height!(3)),
+        props(width(10), height(3)),
         Button::new()
-            .height(chars(3))
+            .height(3)
             .on_click(on_back)
             .enabled(route_context.can_go_back())
             .render(text!("←")),
         Button::new()
-            .height(chars(3))
+            .height(3)
             .on_click(on_forward)
             .enabled(route_context.can_go_forward())
             .render(text!("→"))

@@ -4,8 +4,7 @@ use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rooibos::components::Button;
 use rooibos::reactive::derive_signal;
-use rooibos::reactive::dom::layout::chars;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::ReadSignal;
 use rooibos::reactive::graph::traits::{FromStream, Get};
 use rooibos::runtime::Runtime;
@@ -65,12 +64,12 @@ fn app(count_tx: watch::Sender<i32>) -> impl Render {
     let count_rx = count_tx.subscribe();
     let count = ReadSignal::from_stream(WatchStream::new(count_rx));
     Button::new()
-        .width(chars(20))
-        .height(chars(3))
+        .width(20)
+        .height(3)
         .on_click(move || {
             count_tx.send(count.get().unwrap_or_default() + 1).unwrap();
         })
         .render(derive_signal!(
-            line!("count ", span!(count.get().unwrap_or_default())).into()
+            line!("count ", count.get().unwrap_or_default()).into()
         ))
 }

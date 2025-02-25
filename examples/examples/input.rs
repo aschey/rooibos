@@ -1,15 +1,14 @@
 use std::process::ExitCode;
 
 use rooibos::components::Input;
-use rooibos::reactive::dom::layout::{Borders, borders};
+use rooibos::reactive::dom::layout::{Borders, borders, full, padding, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, derive_signal, padding, wgt, width};
+use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
-use taffy::LengthPercentage;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -26,8 +25,8 @@ fn app() -> impl Render {
     let text = textarea.text();
     col![
         props(
-            padding!(1),
-            width!(100%),
+            padding(1),
+            width(full()),
             borders(derive_signal!(if focused.get() {
                 Borders::all().title("Input").blue()
             } else {
@@ -36,7 +35,7 @@ fn app() -> impl Render {
         ),
         Input::default()
             .id(id)
-            .padding_bottom(LengthPercentage::Length(1.))
+            .padding_bottom(1)
             .placeholder_text("Enter some text")
             .on_submit(move |_| {
                 textarea.delete_line();

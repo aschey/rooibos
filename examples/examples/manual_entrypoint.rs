@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::keybind::{key, keys};
-use rooibos::reactive::dom::{Render, line, span};
+use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{execute_with_owner, run_with_executor, wgt};
@@ -28,10 +28,7 @@ async fn async_main() -> Result {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
-    wgt!(line!("count: ".bold(), span!(count.get()).cyan())).on_key_down(key(
-        keys::ENTER,
-        move |_, _| {
-            set_count.update(|c| *c += 1);
-        },
-    ))
+    wgt!(line!("count: ".bold(), count.get()).cyan()).on_key_down(key(keys::ENTER, move |_, _| {
+        set_count.update(|c| *c += 1);
+    }))
 }

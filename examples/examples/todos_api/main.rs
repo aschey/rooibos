@@ -14,7 +14,8 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, chars, clear, justify_content, overflow_y, pct, position, show,
+    Borders, absolute, align_items, borders, clear, full, height, justify_content, margin,
+    overflow_y, padding, padding_left, position, scroll, show, width,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -27,15 +28,13 @@ use rooibos::reactive::graph::owner::{provide_context, use_context};
 use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Set, Track, With};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{
-    Errors, col, derive_signal, height, margin, padding, padding_left, row, transition, wgt, width,
-};
+use rooibos::reactive::{Errors, col, derive_signal, row, transition, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use server::run_server;
-use taffy::{AlignItems, JustifyContent, LengthPercentage, Overflow, Position};
+use taffy::{AlignItems, JustifyContent};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -101,17 +100,17 @@ fn app(notification_timeout: Duration) -> impl Render {
 
     let (notifications, notifier) = use_notifications();
     col![
-        props(padding!(1), width!(100%), height!(100%),),
+        props(padding(1), width(full()), height(full())),
         row![
-            props(width!(100%), align_items(AlignItems::Center)),
+            props(width(full()), align_items(AlignItems::Center)),
             wgt!("Add a Todo"),
             add_todo_input(input_id)
         ],
         col![
             props(
-                width!(100%),
-                height!(100%),
-                overflow_y(Overflow::Scroll),
+                width(full()),
+                height(full()),
+                overflow_y(scroll()),
                 borders(Borders::all().title("Todos"))
             ),
             todos_body(editing_id, notifier, notification_timeout)
@@ -152,7 +151,7 @@ fn add_todo_input(id: NodeId) -> impl Render {
     let focused = use_focus_with_id(id);
 
     row![
-        props(width!(100%), padding_left!(1)),
+        props(width(full()), padding_left(1)),
         Input::default()
             .borders(derive_signal!(if focused.get() {
                 Borders::all().blue()
@@ -165,8 +164,8 @@ fn add_todo_input(id: NodeId) -> impl Render {
                 input_ref.delete_line();
                 command_context.dispatch(Command::Add { val });
             })
-            .min_width(chars(12))
-            .max_width(chars(100))
+            .min_width(12)
+            .max_width(100)
             .id(id)
             .render(input_ref),
         Button::new()
@@ -260,15 +259,15 @@ fn saving_popup() -> impl RenderAny {
 
     row![
         props(
-            width!(100%),
-            height!(100%),
-            position(Position::Absolute),
+            width(full()),
+            height(full()),
+            position(absolute()),
             align_items(AlignItems::Center),
             justify_content(JustifyContent::Center),
             show(pending)
         ),
         wgt!(
-            props(clear(true), width!(25), height!(5), borders(Borders::all())),
+            props(clear(true), width(25), height(5), borders(Borders::all())),
             line!("Saving...")
         )
     ]
@@ -283,11 +282,11 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let input_ref = Input::get_ref();
 
     row![
-        col![props(margin!(1)), format!("{id}.")],
+        col![props(margin(1)), format!("{id}.")],
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
         Show::new()
-            .fallback(move || col![props(margin!(1)), wgt!(text.get())])
+            .fallback(move || col![props(margin(1)), wgt!(text.get())])
             .render(editing, move || {
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })
@@ -309,7 +308,7 @@ fn add_edit_button(
 
     Button::new()
         .id(add_edit_id)
-        .padding_x(LengthPercentage::Length(1.))
+        .padding_x(1)
         .centered()
         .on_click(move || {
             if editing.get() {
@@ -325,7 +324,7 @@ fn delete_button(id: u32) -> impl Render {
     let TodoContext { delete_todo, .. } = use_context::<TodoContext>().unwrap();
 
     Button::new()
-        .padding_x(LengthPercentage::Length(1.))
+        .padding_x(1)
         .centered()
         .on_click(move || {
             delete_todo.dispatch(id);
@@ -365,9 +364,9 @@ fn todo_editor(
                 editing_id.set(None);
             }
         })
-        .width(pct(100))
+        .width(full())
         .grow(1.)
-        .max_width(chars(100))
+        .max_width(100)
         .id(input_id)
         .render(input_ref)
 }

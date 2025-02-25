@@ -1,21 +1,24 @@
 use rooibos::reactive::dom::Render;
-use rooibos::reactive::dom::layout::{Borders, borders, chars, grow, height};
+use rooibos::reactive::dom::layout::{
+    Borders, IntoDimensionSignal, borders, grow, height, min_height,
+};
 use rooibos::reactive::dom::widgets::Sparkline;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, min_height, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Block, Gauge, LineGauge};
-use taffy::Dimension;
 
 use crate::Tick;
 use crate::random::{RandomData, RandomDistribution};
 
-pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -> impl Render {
+pub(crate) fn gauges(
+    enhanced_graphics: bool,
+    gauge_height: impl IntoDimensionSignal,
+) -> impl Render {
     let (progress, set_progress) = signal(0.0);
 
     let tick = use_context::<Tick>().unwrap();
@@ -41,18 +44,18 @@ pub(crate) fn gauges(enhanced_graphics: bool, gauge_height: Signal<Dimension>) -
         props(
             borders(Borders::all().title("Graphs")),
             height(gauge_height),
-            min_height!(7)
+            min_height(7)
         ),
-        demo_gauge(enhanced_graphics, progress, chars(2)),
+        demo_gauge(enhanced_graphics, progress, 2),
         demo_sparkline(enhanced_graphics),
-        demo_line_gauge(enhanced_graphics, progress, chars(2))
+        demo_line_gauge(enhanced_graphics, progress, 2)
     ]
 }
 
 fn demo_gauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
-    gauge_height: Signal<Dimension>,
+    gauge_height: impl IntoDimensionSignal,
 ) -> impl Render {
     wgt![
         props(height(gauge_height)),
@@ -68,7 +71,7 @@ fn demo_gauge(
 fn demo_line_gauge(
     enhanced_graphics: bool,
     progress: ReadSignal<f64>,
-    gauge_height: Signal<Dimension>,
+    gauge_height: impl IntoDimensionSignal,
 ) -> impl Render {
     wgt![
         props(height(gauge_height)),

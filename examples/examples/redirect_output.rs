@@ -4,16 +4,16 @@ use std::process::ExitCode;
 
 use rooibos::components::{ListView, WrappingList};
 use rooibos::keybind::{Bind, key, keys};
+use rooibos::reactive::dom::layout::height;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{col, height, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
-use taffy::Dimension;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 
@@ -42,9 +42,9 @@ fn app() -> impl Render {
     ));
 
     col![
-        wgt!(props(height!(2)), text!("Select an item".bold())),
+        wgt!(props(height(2)), text!("Select an item".bold())),
         ListView::new()
-            .height(Dimension::Length(3.))
+            .height(3)
             .on_item_click(move |i, _| {
                 selected.set(Some(i));
             })

@@ -1,11 +1,12 @@
 use rooibos::reactive::dom::Render;
-use rooibos::reactive::{height, row, wgt, width};
+use rooibos::reactive::dom::layout::{full, height, width};
+use rooibos::reactive::{row, wgt};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {
-    row![props(width!(100%), height!(100%)), colors_table()]
+    row![props(width(full()), height(full())), colors_table()]
 }
 
 fn colors_table() -> impl Render {
@@ -30,7 +31,7 @@ fn colors_table() -> impl Render {
     ];
 
     wgt![
-        props(width!(100%), height!(100%)),
+        props(width(full()), height(full())),
         Table::new(
             colors.iter().map(|c| {
                 Row::new(vec![

@@ -8,16 +8,16 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Gap, Grow,
-    Height, Id, JustifyContent, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX,
-    MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
-    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
-    Show, Shrink, Width, Wrap, ZIndex, align_content, align_items, align_self, aspect_ratio, basis,
-    borders, class, clear, focusable, gap, grow, height, id, justify_content, margin,
-    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
-    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, position, show, shrink, width,
-    wrap, z_index,
+    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Dimension,
+    Gap, Grow, Height, Id, JustifyContent, JustifyItems, Margin, MarginBottom, MarginLeft,
+    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow,
+    OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
+    PaddingY, Position, Property, Show, Shrink, Width, Wrap, ZIndex, align_content, align_items,
+    align_self, aspect_ratio, basis, borders, class, clear, focusable, gap, grow, height, id,
+    justify_content, justify_items, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, overflow, overflow_x,
+    overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
+    padding_y, position, show, shrink, width, wrap, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -177,30 +177,52 @@ macro_rules! flex_prop {
     };
 }
 
-flex_prop!(Width, width, taffy::Dimension);
-flex_prop!(Height, height, taffy::Dimension);
-flex_prop!(MinWidth, min_width, taffy::Dimension);
-flex_prop!(MinHeight, min_height, taffy::Dimension);
-flex_prop!(MaxWidth, max_width, taffy::Dimension);
-flex_prop!(MaxHeight, max_height, taffy::Dimension);
+macro_rules! dimension_flex_prop {
+    ($struct_name:ident, $fn:ident) => {
+        impl FlexProperty for $struct_name {}
+
+        impl<C, P> FlexNode<C, P>
+        where
+            P: NextTuple,
+        {
+            pub fn $fn<S>(self, val: S) -> FlexNode<C, P::Output<$struct_name>>
+            where
+                S: $crate::dom::layout::IntoDimensionSignal,
+            {
+                FlexNode {
+                    inner: self.inner,
+                    children: self.children,
+                    properties: self.properties.next_tuple($fn(val)),
+                }
+            }
+        }
+    };
+}
+
+dimension_flex_prop!(Width, width);
+dimension_flex_prop!(Height, height);
+dimension_flex_prop!(MinWidth, min_width);
+dimension_flex_prop!(MinHeight, min_height);
+dimension_flex_prop!(MaxWidth, max_width);
+dimension_flex_prop!(MaxHeight, max_height);
 flex_prop!(AspectRatio, aspect_ratio, f32);
 flex_prop!(Position, position, taffy::style::Position);
 
-flex_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
-flex_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
-flex_prop!(MarginTop, margin_top, taffy::LengthPercentageAuto);
-flex_prop!(MarginBottom, margin_bottom, taffy::LengthPercentageAuto);
-flex_prop!(MarginX, margin_x, taffy::LengthPercentageAuto);
-flex_prop!(MarginY, margin_y, taffy::LengthPercentageAuto);
-flex_prop!(Margin, margin, taffy::LengthPercentageAuto);
+dimension_flex_prop!(MarginLeft, margin_left);
+dimension_flex_prop!(MarginRight, margin_right);
+dimension_flex_prop!(MarginTop, margin_top);
+dimension_flex_prop!(MarginBottom, margin_bottom);
+dimension_flex_prop!(MarginX, margin_x);
+dimension_flex_prop!(MarginY, margin_y);
+dimension_flex_prop!(Margin, margin);
 
-flex_prop!(PaddingLeft, padding_left, taffy::LengthPercentage);
-flex_prop!(PaddingRight, padding_right, taffy::LengthPercentage);
-flex_prop!(PaddingTop, padding_top, taffy::LengthPercentage);
-flex_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
-flex_prop!(PaddingX, padding_x, taffy::LengthPercentage);
-flex_prop!(PaddingY, padding_y, taffy::LengthPercentage);
-flex_prop!(Padding, padding, taffy::LengthPercentage);
+dimension_flex_prop!(PaddingLeft, padding_left);
+dimension_flex_prop!(PaddingRight, padding_right);
+dimension_flex_prop!(PaddingTop, padding_top);
+dimension_flex_prop!(PaddingBottom, padding_bottom);
+dimension_flex_prop!(PaddingX, padding_x);
+dimension_flex_prop!(PaddingY, padding_y);
+dimension_flex_prop!(Padding, padding);
 
 flex_prop!(BorderProp, borders, Borders);
 flex_prop!(Focusable, focusable, bool);
@@ -214,12 +236,13 @@ flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
 flex_prop!(Wrap, wrap, taffy::FlexWrap);
 flex_prop!(AlignItems, align_items, taffy::AlignItems);
 flex_prop!(AlignContent, align_content, taffy::AlignContent);
+flex_prop!(JustifyItems, justify_items, taffy::JustifyItems);
 flex_prop!(JustifyContent, justify_content, taffy::JustifyContent);
 flex_prop!(Gap, gap, taffy::Size<taffy::LengthPercentage>);
 flex_prop!(Grow, grow, f32);
 flex_prop!(Shrink, shrink, f32);
 flex_prop!(AlignSelf, align_self, taffy::AlignSelf);
-flex_prop!(Basis, basis, taffy::Dimension);
+flex_prop!(Basis, basis, Dimension);
 
 flex_prop!(OverflowX, overflow_x, taffy::Overflow);
 flex_prop!(OverflowY, overflow_y, taffy::Overflow);

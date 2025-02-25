@@ -1,12 +1,11 @@
 use rooibos::keybind::key;
-use rooibos::reactive::dom::layout::{Borders, borders, height, pct};
-use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, line, span, text};
+use rooibos::reactive::dom::layout::{Borders, Dimension, borders, full, height, val};
+use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, line, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Update;
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, height, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::tui::style::Stylize;
-use taffy::Dimension;
 
 use crate::tab0::charts::charts;
 use crate::tab0::gauges::gauges;
@@ -20,10 +19,10 @@ pub(crate) fn tab0() -> impl Render {
     after_render(move || focus_id(id));
 
     col![
-        props(height!(100%)),
-        gauges(true, pct(30)),
-        charts(true, pct(50), show_chart),
-        footer(pct(20))
+        props(height(full())),
+        gauges(true, "30%"),
+        charts(true, "50%", show_chart),
+        footer(val("20%"))
     ]
     .focusable(true)
     .id(id)
@@ -44,24 +43,24 @@ fn footer(footer_height: Signal<Dimension>) -> impl Render {
             ),
             line!(""),
             line!(
-                span!("For example: "),
-                span!("under").red(),
-                span!(" "),
-                span!("the").green(),
-                span!(" "),
-                span!("rainbow").blue(),
-                span!(".")
+                "For example: ",
+                "under".red(),
+                " ",
+                "the".green(),
+                " ",
+                "rainbow".blue(),
+                "."
             ),
             line!(
-                span!("Oh and if you didn't "),
-                span!("notice").italic(),
-                span!(" you can "),
-                span!("automatically").bold(),
-                span!(" "),
-                span!("wrap").reversed(),
-                span!(" your "),
-                span!("text").underlined(),
-                span!(".")
+                "Oh and if you didn't ",
+                "notice".italic(),
+                " you can ",
+                "automatically".bold(),
+                " ",
+                "wrap".reversed(),
+                " your ",
+                "text".underlined(),
+                "."
             ),
             line!("One more thing is that it should display unicode characters: 10€")
         ] //        .wrap(Wrap { trim: true })

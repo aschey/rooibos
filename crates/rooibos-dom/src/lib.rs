@@ -8,6 +8,7 @@ mod nonblocking_terminal;
 mod nonblocking_terminal_wasm;
 pub mod widgets;
 
+use std::borrow::Cow;
 use std::cell::{LazyCell, OnceCell};
 use std::future::Future;
 use std::ops::Deref;
@@ -25,6 +26,7 @@ use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
+use ratatui::text::Span;
 #[cfg(feature = "effects")]
 pub use tachyonfx;
 pub use terminput::*;
@@ -76,3 +78,58 @@ pub fn is_editing() -> bool {
 pub fn editing() -> Arc<AtomicBool> {
     EDITING.with(|e| e.deref().clone())
 }
+
+pub trait IntoSpan<'a> {
+    fn into_span(self) -> Span<'a>;
+}
+
+impl<'a> IntoSpan<'a> for Span<'a> {
+    fn into_span(self) -> Span<'a> {
+        self
+    }
+}
+
+impl<'a> IntoSpan<'a> for &'a str {
+    fn into_span(self) -> Span<'a> {
+        Span::raw(self)
+    }
+}
+
+impl<'a> IntoSpan<'a> for Cow<'a, str> {
+    fn into_span(self) -> Span<'a> {
+        Span::raw(self)
+    }
+}
+
+impl IntoSpan<'static> for String {
+    fn into_span(self) -> Span<'static> {
+        Span::raw(self)
+    }
+}
+
+macro_rules! span_primitive {
+    ($impl_type:ty) => {
+        impl IntoSpan<'static> for $impl_type {
+            fn into_span(self) -> Span<'static> {
+                Span::raw(self.to_string())
+            }
+        }
+    };
+}
+
+span_primitive!(bool);
+span_primitive!(char);
+span_primitive!(f32);
+span_primitive!(f64);
+span_primitive!(i8);
+span_primitive!(i16);
+span_primitive!(i32);
+span_primitive!(i64);
+span_primitive!(i128);
+span_primitive!(isize);
+span_primitive!(u8);
+span_primitive!(u16);
+span_primitive!(u32);
+span_primitive!(u64);
+span_primitive!(u128);
+span_primitive!(usize);

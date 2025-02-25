@@ -6,12 +6,13 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AspectRatio, BorderProp, Clear, Height, Margin, MarginBottom, MarginLeft, MarginRight,
-    MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding, PaddingBottom,
-    PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Width,
-    ZIndex, aspect_ratio, height, margin, margin_bottom, margin_left, margin_right, margin_top,
-    margin_x, margin_y, max_height, max_width, min_height, min_width, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, position, show, width,
+    AspectRatio, BorderProp, Clear, Height, Margin, MarginBottom, MarginLeft,
+    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Padding,
+    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
+    Show, Width, ZIndex, aspect_ratio, height, margin, margin_bottom, margin_left, margin_right,
+    margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width, padding,
+    padding_bottom, padding_left, padding_right, padding_top, padding_x, padding_y, position, show,
+    width,
 };
 use super::{DomNode, RenderAny, RooibosDom};
 
@@ -79,30 +80,52 @@ macro_rules! div_prop {
     };
 }
 
-div_prop!(Width, width, taffy::Dimension);
-div_prop!(Height, height, taffy::Dimension);
-div_prop!(MinWidth, min_width, taffy::Dimension);
-div_prop!(MinHeight, min_height, taffy::Dimension);
-div_prop!(MaxWidth, max_width, taffy::Dimension);
-div_prop!(MaxHeight, max_height, taffy::Dimension);
+macro_rules! dimension_div_prop {
+    ($struct_name:ident, $fn:ident) => {
+        impl DivProperty for $struct_name {}
+
+        impl<C, P> Div<C, P>
+        where
+            P: NextTuple,
+        {
+            pub fn $fn<S>(self, val: S) -> Div<C, P::Output<$struct_name>>
+            where
+                S: $crate::dom::layout::IntoDimensionSignal,
+            {
+                Div {
+                    inner: self.inner,
+                    children: self.children,
+                    properties: self.properties.next_tuple($fn(val)),
+                }
+            }
+        }
+    };
+}
+
+dimension_div_prop!(Width, width);
+dimension_div_prop!(Height, height);
+dimension_div_prop!(MinWidth, min_width);
+dimension_div_prop!(MinHeight, min_height);
+dimension_div_prop!(MaxWidth, max_width);
+dimension_div_prop!(MaxHeight, max_height);
 div_prop!(AspectRatio, aspect_ratio, f32);
 div_prop!(Position, position, taffy::style::Position);
 
-div_prop!(MarginLeft, margin_left, taffy::LengthPercentageAuto);
-div_prop!(MarginRight, margin_right, taffy::LengthPercentageAuto);
-div_prop!(MarginTop, margin_top, taffy::LengthPercentageAuto);
-div_prop!(MarginBottom, margin_bottom, taffy::LengthPercentageAuto);
-div_prop!(MarginX, margin_x, taffy::LengthPercentageAuto);
-div_prop!(MarginY, margin_y, taffy::LengthPercentageAuto);
-div_prop!(Margin, margin, taffy::LengthPercentageAuto);
+dimension_div_prop!(MarginLeft, margin_left);
+dimension_div_prop!(MarginRight, margin_right);
+dimension_div_prop!(MarginTop, margin_top);
+dimension_div_prop!(MarginBottom, margin_bottom);
+dimension_div_prop!(MarginX, margin_x);
+dimension_div_prop!(MarginY, margin_y);
+dimension_div_prop!(Margin, margin);
 
-div_prop!(PaddingLeft, padding_left, taffy::LengthPercentage);
-div_prop!(PaddingRight, padding_right, taffy::LengthPercentage);
-div_prop!(PaddingTop, padding_top, taffy::LengthPercentage);
-div_prop!(PaddingBottom, padding_bottom, taffy::LengthPercentage);
-div_prop!(PaddingX, padding_x, taffy::LengthPercentage);
-div_prop!(PaddingY, padding_y, taffy::LengthPercentage);
-div_prop!(Padding, padding, taffy::LengthPercentage);
+dimension_div_prop!(PaddingLeft, padding_left);
+dimension_div_prop!(PaddingRight, padding_right);
+dimension_div_prop!(PaddingTop, padding_top);
+dimension_div_prop!(PaddingBottom, padding_bottom);
+dimension_div_prop!(PaddingX, padding_x);
+dimension_div_prop!(PaddingY, padding_y);
+dimension_div_prop!(Padding, padding);
 
 div_prop!(Show, show, bool);
 

@@ -2,7 +2,6 @@ use std::process::ExitCode;
 
 use rooibos::reactive::KeyEvent;
 use rooibos::reactive::dom::events::KeyEventProps;
-use rooibos::reactive::dom::layout::chars;
 use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked as _, Track as _, Update as _, With as _};
@@ -39,7 +38,7 @@ fn app() -> impl Render {
 
     text_area(text_area_widget)
         .on_key_down(key_down)
-        .min_width(chars(9))
+        .min_width(9)
 }
 
 fn text_area(text_area: RwSignal<TextArea<'static>>) -> DomWidget<()> {

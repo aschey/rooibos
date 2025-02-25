@@ -1,4 +1,7 @@
-use rooibos::reactive::dom::layout::{height, show};
+use ratatui::text::ToSpan;
+use rooibos::reactive::dom::layout::{
+    IntoDimensionSignal, full, half, height, show, width,
+};
 use rooibos::reactive::dom::widgets::{Chart, Dataset};
 use rooibos::reactive::dom::{Render, line, span};
 use rooibos::reactive::graph::computed::Memo;
@@ -6,31 +9,29 @@ use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{KeyCode, col, height, row, wgt, width};
+use rooibos::reactive::{IntoSpan, KeyCode, col, row, wgt};
 use rooibos::runtime::use_keypress;
 use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
-use taffy::Dimension;
 
 use crate::Tick;
 use crate::random::RandomData;
 
 pub(crate) fn charts(
     enhanced_graphics: bool,
-    chart_min_height: Signal<Dimension>,
+    chart_min_height: impl IntoDimensionSignal,
     show_chart: ReadSignal<bool>,
 ) -> impl Render {
     row![
         props(height(chart_min_height)),
         col![
-            props(width!(100%), height!(100%)),
-            row![props(width!(100%), height!(100%)), task_list(), logs()],
+            props(width(full()), height(full())),
+            row![props(width(full()), height(full())), task_list(), logs()],
             demo_bar_chart(enhanced_graphics)
         ],
         col![
-            props(width!(100%), height!(100%), show(show_chart)),
+            props(width(full()), height(full()), show(show_chart)),
             demo_chart(enhanced_graphics)
         ]
     ]
@@ -102,7 +103,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
     let window_end = Memo::new(move |_| window.get()[1]);
 
     wgt!(
-        props(height!(100%)),
+        props(height(full())),
         Chart::new(vec![
             Dataset::default()
                 .name("data2")
@@ -119,16 +120,16 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
                 .yellow()
                 .data(sin2.get().points)
         ])
-        .block(Block::bordered().title(span!("Chart").cyan().bold()))
+        .block(Block::bordered().title("Chart".cyan().bold()))
         .x_axis(
             Axis::default()
                 .title("X Axis")
                 .gray()
                 .bounds(window.get())
                 .labels(vec![
-                    span!(window_start.get()),
-                    span!(((window_start.get() + window_end.get()) / 2.0)),
-                    span!(window_end.get())
+                    window_start.get().into_span(),
+                    ((window_start.get() + window_end.get()) / 2.0).into_span(),
+                    window_end.get().into_span()
                 ])
                 .bold()
         )
@@ -137,7 +138,7 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
                 .title("Y Axis")
                 .gray()
                 .bounds([-20.0, 20.0])
-                .labels(vec![span!("-20").bold(), span!("  0"), span!(" 20").bold()])
+                .labels(vec!["-20".bold(), "  0".to_span(), " 20".bold()])
         )
     )
 }
@@ -189,7 +190,7 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
     });
 
     wgt!(
-        props(width!(100%), height!(100%)),
+        props(width(full()), height(full())),
         BarChart::default()
             .block(Block::bordered().title("Bar chart"))
             .data(&bar_chart_data.get())
@@ -237,9 +238,9 @@ fn task_list() -> impl Render {
     });
 
     wgt!(
-        props(width!(50%), height!(100%)),
+        props(width(half()), height(full())),
         ListState::default().with_selected(selected_task.get()),
-        List::new(TASKS.map(|t| ListItem::new(span!(t))))
+        List::new(TASKS.map(ListItem::new))
             .block(Block::bordered().title("List"))
             .highlight_style(Style::new().bold())
             .highlight_symbol("> ")
@@ -315,9 +316,9 @@ fn logs() -> impl Render {
     });
 
     wgt!(
-        props(width!(50%), height!(100%)),
+        props(width(half()), height(full())),
         List::new(logs.get().iter().map(|(evt, level, style)| {
-            ListItem::new(line!(span!(*style; "{level:<9}"), span!(*evt)))
+            ListItem::new(line!(span!(*style; "{level:<9}"), *evt))
         }))
         .block(Block::bordered().title("Logs"))
     )

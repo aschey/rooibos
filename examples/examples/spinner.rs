@@ -2,7 +2,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use rooibos::components::spinner::{Spinner, SpinnerDisplay};
-use rooibos::reactive::dom::{Render, span};
+use rooibos::reactive::dom::Render;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Set;
 use rooibos::runtime::error::RuntimeError;
@@ -20,12 +20,12 @@ async fn main() -> Result {
 
 fn app() -> impl Render {
     let (spinner_display, set_spinner_display) = signal(SpinnerDisplay::Spin);
-    let (label, set_label) = signal(span!("loading..."));
+    let (label, set_label) = signal("loading...".into());
 
     spawn_local(async move {
         sleep(Duration::from_secs(3)).await;
         set_spinner_display.set(SpinnerDisplay::Full);
-        set_label.set(span!("Done"));
+        set_label.set("Done".into());
         sleep(Duration::from_secs(2)).await;
         exit();
     });

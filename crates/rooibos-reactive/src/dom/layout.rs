@@ -1,12 +1,12 @@
 use next_tuple::NextTuple;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
+use reactive_graph::signal::{ReadSignal, RwSignal};
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::NodeId;
 pub use rooibos_dom::{BorderType, Borders};
 use taffy::Display;
-use taffy::prelude::{TaffyAuto, TaffyZero};
 
 use super::{DomNode, with_nodes_mut};
 use crate::derive_signal;
@@ -73,40 +73,35 @@ macro_rules! signal_wrapper {
     };
 }
 
-pub fn chars(val: impl Into<Signal<u32>>) -> Signal<taffy::Dimension> {
-    let val = val.into();
-    derive_signal!(taffy::Dimension::Length(val.get() as f32))
-}
+macro_rules! dimension_signal_wrapper {
+    ($struct_name:ident, $fn:ident, $default:expr) => {
+        #[derive(Default, Clone)]
+        pub struct $struct_name(pub(crate) Option<Signal<$crate::dom::layout::Dimension>>);
 
-pub fn pct(val: impl Into<Signal<u32>>) -> Signal<taffy::Dimension> {
-    let val = val.into();
-    derive_signal!(taffy::Dimension::Percent(val.get() as f32 / 100.0))
-}
+        impl_next_tuple!($struct_name);
 
-pub fn length_percentage_pct(val: impl Into<Signal<u32>>) -> Signal<taffy::LengthPercentage> {
-    let val = val.into();
-    derive_signal!(taffy::LengthPercentage::Percent(val.get() as f32 / 100.0))
-}
+        impl From<Signal<$crate::dom::layout::Dimension>> for $struct_name {
+            fn from(val: Signal<Dimension>) -> Self {
+                $struct_name(Some(val))
+            }
+        }
 
-pub fn length_percentage_chars(val: impl Into<Signal<u32>>) -> Signal<taffy::LengthPercentage> {
-    let val = val.into();
-    derive_signal!(taffy::LengthPercentage::Length(val.get() as f32))
-}
+        impl From<$struct_name> for Signal<$crate::dom::layout::Dimension> {
+            fn from(val: $struct_name) -> Self {
+                val.0.unwrap_or_else(|| $default.into())
+            }
+        }
 
-pub fn length_percentage_auto_pct(
-    val: impl Into<Signal<u32>>,
-) -> Signal<taffy::LengthPercentageAuto> {
-    let val = val.into();
-    derive_signal!(taffy::LengthPercentageAuto::Percent(
-        val.get() as f32 / 100.0
-    ))
-}
+        impl $struct_name {
+            pub fn value(&self) -> Option<Signal<$crate::dom::layout::Dimension>> {
+                self.0.clone()
+            }
+        }
 
-pub fn length_percentage_auto_chars(
-    val: impl Into<Signal<u32>>,
-) -> Signal<taffy::LengthPercentageAuto> {
-    let val = val.into();
-    derive_signal!(taffy::LengthPercentageAuto::Length(val.get() as f32))
+        pub fn $fn(val: impl IntoDimensionSignal) -> $struct_name {
+            $struct_name(Some(val.into_dimension_signal()))
+        }
+    };
 }
 
 signal_wrapper!(Show, show, bool, true);
@@ -359,206 +354,6 @@ impl Property for Enabled {
     }
 }
 
-#[macro_export]
-macro_rules! width {
-    ($val:tt %) => {
-        $crate::dom::layout::width($crate::dom::layout::pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::width($crate::dom::layout::chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! height {
-    ($val:tt %) => {
-        $crate::dom::layout::height($crate::dom::layout::pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::height($crate::dom::layout::chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! min_width {
-    ($val:tt %) => {
-        $crate::dom::layout::min_width($crate::dom::layout::pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::min_width($crate::dom::layout::chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! min_height {
-    ($val:tt %) => {
-        $crate::dom::layout::min_height($crate::dom::layout::pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::min_height($crate::dom::layout::chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! max_width {
-    ($val:tt %) => {
-        $crate::dom::layout::max_width($crate::dom::layout::pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::max_width($crate::dom::layout::chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! max_height {
-    ($val:tt %) => {
-        $crate::dom::layout::max_height($crate::dom::layout::pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::max_height($crate::dom::layout::chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding_left {
-    ($val:tt %) => {
-        $crate::dom::layout::padding_left($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding_left($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding_right {
-    ($val:tt %) => {
-        $crate::dom::layout::padding_right($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding_right($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding_top {
-    ($val:tt %) => {
-        $crate::dom::layout::padding_top($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding_top($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding_bottom {
-    ($val:tt %) => {
-        $crate::dom::layout::padding_bottom($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding_bottom($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding_x {
-    ($val:tt %) => {
-        $crate::dom::layout::padding_x($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding_x($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding_y {
-    ($val:tt %) => {
-        $crate::dom::layout::padding_y($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding_y($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! padding {
-    ($val:tt %) => {
-        $crate::dom::layout::padding($crate::dom::layout::length_percentage_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::padding($crate::dom::layout::length_percentage_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin_left {
-    ($val:tt %) => {
-        $crate::dom::layout::margin_left($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin_left($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin_right {
-    ($val:tt %) => {
-        $crate::dom::layout::margin_right($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin_right($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin_top {
-    ($val:tt %) => {
-        $crate::dom::layout::margin_top($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin_top($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin_bottom {
-    ($val:tt %) => {
-        $crate::dom::layout::margin_bottom($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin_bottom($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin_x {
-    ($val:tt %) => {
-        $crate::dom::layout::margin_x($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin_x($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin_y {
-    ($val:tt %) => {
-        $crate::dom::layout::margin_y($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin_y($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
-#[macro_export]
-macro_rules! margin {
-    ($val:tt %) => {
-        $crate::dom::layout::margin($crate::dom::layout::length_percentage_auto_pct($val))
-    };
-    ($val:tt) => {
-        $crate::dom::layout::margin($crate::dom::layout::length_percentage_auto_chars($val))
-    };
-}
-
 macro_rules! layout_prop {
     ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($($props:ident).+),+) => {
         signal_wrapper!($struct_name, $fn, $inner, $default);
@@ -566,7 +361,22 @@ macro_rules! layout_prop {
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
                 if let Some(inner) = self.0 {
-                    $(style.$($props).* = inner.get();)+
+                    $(style.$($props).* = inner.get().into();)+
+                }
+
+            }
+        }
+    };
+}
+
+macro_rules! dimension_layout_prop {
+    ($struct_name:ident, $fn:ident, $default:expr, $($($props:ident).+),+) => {
+        dimension_signal_wrapper!($struct_name, $fn, $default);
+
+        impl UpdateLayout for $struct_name {
+            fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
+                if let Some(inner) = self.0 {
+                    $(style.$($props).* = inner.get().into();)+
                 }
 
             }
@@ -594,7 +404,7 @@ macro_rules! layout_prop_opt {
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
                 if let Some(inner) = self.0 {
-                    style.$($prop).* = Some(inner.get());
+                    style.$($prop).* = Some(inner.get().into());
                 }
             }
         }
@@ -607,49 +417,443 @@ macro_rules! layout_prop_opt {
     };
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Dimension {
+    Chars(u32),
+    Percent(u32),
+    Auto,
+}
+
+impl From<taffy::Dimension> for Dimension {
+    fn from(value: taffy::Dimension) -> Self {
+        match value {
+            taffy::Dimension::Auto => Dimension::Auto,
+            taffy::Dimension::Length(val) => Dimension::Chars(val as u32),
+            taffy::Dimension::Percent(val) => Dimension::Percent((val * 100.0) as u32),
+        }
+    }
+}
+
+impl From<Dimension> for taffy::Dimension {
+    fn from(value: Dimension) -> Self {
+        match value {
+            Dimension::Auto => taffy::Dimension::Auto,
+            Dimension::Chars(val) => taffy::Dimension::Length(val as f32),
+            Dimension::Percent(val) => taffy::Dimension::Percent(val as f32 / 100.0),
+        }
+    }
+}
+
+impl From<taffy::LengthPercentageAuto> for Dimension {
+    fn from(value: taffy::LengthPercentageAuto) -> Self {
+        match value {
+            taffy::LengthPercentageAuto::Auto => Dimension::Auto,
+            taffy::LengthPercentageAuto::Length(val) => Dimension::Chars(val as u32),
+            taffy::LengthPercentageAuto::Percent(val) => Dimension::Percent((val * 100.0) as u32),
+        }
+    }
+}
+
+impl From<Dimension> for taffy::LengthPercentageAuto {
+    fn from(value: Dimension) -> Self {
+        match value {
+            Dimension::Auto => taffy::LengthPercentageAuto::Auto,
+            Dimension::Chars(val) => taffy::LengthPercentageAuto::Length(val as f32),
+            Dimension::Percent(val) => taffy::LengthPercentageAuto::Percent(val as f32 / 100.0),
+        }
+    }
+}
+
+impl From<taffy::LengthPercentage> for Dimension {
+    fn from(value: taffy::LengthPercentage) -> Self {
+        match value {
+            taffy::LengthPercentage::Length(val) => Dimension::Chars(val as u32),
+            taffy::LengthPercentage::Percent(val) => Dimension::Percent((val * 100.0) as u32),
+        }
+    }
+}
+
+impl From<Dimension> for taffy::LengthPercentage {
+    fn from(value: Dimension) -> Self {
+        match value {
+            Dimension::Auto => taffy::LengthPercentage::Length(0.0),
+            Dimension::Chars(val) => taffy::LengthPercentage::Length(val as f32),
+            Dimension::Percent(val) => taffy::LengthPercentage::Percent(val as f32 / 100.0),
+        }
+    }
+}
+
+impl From<u32> for Dimension {
+    fn from(value: u32) -> Self {
+        Dimension::Chars(value)
+    }
+}
+
+impl From<&str> for Dimension {
+    fn from(value: &str) -> Self {
+        if value.ends_with("%") {
+            Dimension::Percent(value.strip_suffix("%").unwrap().parse().unwrap())
+        } else if value.eq_ignore_ascii_case("auto") {
+            Dimension::Auto
+        } else {
+            Dimension::Chars(value.parse().unwrap())
+        }
+    }
+}
+
+impl From<String> for Dimension {
+    fn from(value: String) -> Self {
+        Self::from(value.as_str())
+    }
+}
+
+pub const fn pct(val: u32) -> Dimension {
+    Dimension::Percent(val)
+}
+
+pub const fn full() -> Dimension {
+    Dimension::Percent(100)
+}
+
+pub const fn half() -> Dimension {
+    Dimension::Percent(50)
+}
+
+pub fn chars(val: impl Into<Signal<u32>>) -> Signal<Dimension> {
+    let val = val.into();
+    derive_signal!(Dimension::Chars(val.get()))
+}
+
+pub trait IntoDimensionSignal {
+    fn into_dimension_signal(self) -> Signal<Dimension>;
+}
+
+impl IntoDimensionSignal for Signal<Dimension> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        self
+    }
+}
+
+impl IntoDimensionSignal for ReadSignal<Dimension> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        self.into()
+    }
+}
+
+impl IntoDimensionSignal for Memo<Dimension> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        self.into()
+    }
+}
+
+impl IntoDimensionSignal for RwSignal<Dimension> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        self.into()
+    }
+}
+
+impl IntoDimensionSignal for Signal<u32> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for ReadSignal<u32> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for RwSignal<u32> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for Memo<u32> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for Signal<&'static str> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for ReadSignal<&'static str> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for RwSignal<&'static str> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for Memo<&'static str> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for Signal<String> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for ReadSignal<String> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for RwSignal<String> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for Memo<String> {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        derive_signal!(self.get().into())
+    }
+}
+
+impl IntoDimensionSignal for u32 {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        let dim: Dimension = self.into();
+        dim.into()
+    }
+}
+
+impl IntoDimensionSignal for &str {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        let dim: Dimension = self.into();
+        dim.into()
+    }
+}
+
+impl IntoDimensionSignal for String {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        let dim: Dimension = self.into();
+        dim.into()
+    }
+}
+
+impl IntoDimensionSignal for Dimension {
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        self.into()
+    }
+}
+
+pub fn val(val: impl IntoDimensionSignal) -> Signal<Dimension> {
+    val.into_dimension_signal()
+}
+
+pub const fn auto() -> Dimension {
+    Dimension::Auto
+}
+
+pub const fn scroll() -> taffy::Overflow {
+    taffy::Overflow::Scroll
+}
+
+pub const fn clip() -> taffy::Overflow {
+    taffy::Overflow::Clip
+}
+
+pub const fn visible() -> taffy::Overflow {
+    taffy::Overflow::Visible
+}
+
+pub const fn hidden() -> taffy::Overflow {
+    taffy::Overflow::Hidden
+}
+
+pub const fn absolute() -> taffy::Position {
+    taffy::Position::Absolute
+}
+
+pub struct Start;
+
+pub const fn start() -> Start {
+    Start
+}
+
+impl From<Start> for taffy::AlignItems {
+    fn from(_value: Start) -> Self {
+        taffy::AlignItems::Start
+    }
+}
+
+impl From<Start> for taffy::AlignContent {
+    fn from(_value: Start) -> Self {
+        taffy::AlignContent::Start
+    }
+}
+
+pub struct End;
+
+pub const fn end() -> End {
+    End
+}
+
+impl From<End> for taffy::AlignItems {
+    fn from(_value: End) -> Self {
+        taffy::AlignItems::End
+    }
+}
+
+impl From<End> for Signal<taffy::AlignItems> {
+    fn from(_value: End) -> Self {
+        taffy::AlignItems::End.into()
+    }
+}
+
+impl From<End> for taffy::AlignContent {
+    fn from(_value: End) -> Self {
+        taffy::AlignContent::End
+    }
+}
+
+impl From<End> for Signal<taffy::AlignContent> {
+    fn from(_value: End) -> Self {
+        taffy::AlignContent::End.into()
+    }
+}
+
+pub struct FlexStart;
+
+pub const fn flex_start() -> FlexStart {
+    FlexStart
+}
+
+impl From<FlexStart> for taffy::AlignItems {
+    fn from(_value: FlexStart) -> Self {
+        taffy::AlignItems::FlexStart
+    }
+}
+
+impl From<FlexStart> for taffy::AlignContent {
+    fn from(_value: FlexStart) -> Self {
+        taffy::AlignContent::FlexStart
+    }
+}
+
+pub struct FlexEnd;
+
+pub const fn flex_end() -> FlexEnd {
+    FlexEnd
+}
+
+impl From<FlexEnd> for taffy::AlignItems {
+    fn from(_value: FlexEnd) -> Self {
+        taffy::AlignItems::FlexEnd
+    }
+}
+
+impl From<FlexEnd> for taffy::AlignContent {
+    fn from(_value: FlexEnd) -> Self {
+        taffy::AlignContent::FlexEnd
+    }
+}
+
+pub struct Center;
+
+pub const fn center() -> Center {
+    Center
+}
+
+impl From<Center> for taffy::AlignItems {
+    fn from(_value: Center) -> Self {
+        taffy::AlignItems::Center
+    }
+}
+
+impl From<Center> for taffy::AlignContent {
+    fn from(_value: Center) -> Self {
+        taffy::AlignContent::Center
+    }
+}
+
+pub struct Baseline;
+
+pub const fn baseline() -> Baseline {
+    Baseline
+}
+
+impl From<Baseline> for taffy::AlignItems {
+    fn from(_value: Baseline) -> Self {
+        taffy::AlignItems::Baseline
+    }
+}
+
+pub struct Stretch;
+
+pub const fn stretch() -> Stretch {
+    Stretch
+}
+
+impl From<Stretch> for taffy::AlignItems {
+    fn from(_value: Stretch) -> Self {
+        taffy::AlignItems::Stretch
+    }
+}
+
+impl From<Stretch> for taffy::AlignContent {
+    fn from(_value: Stretch) -> Self {
+        taffy::AlignContent::Stretch
+    }
+}
+
+pub struct SpaceBetween;
+
+pub const fn space_between() -> SpaceBetween {
+    SpaceBetween
+}
+
+impl From<SpaceBetween> for taffy::AlignContent {
+    fn from(_value: SpaceBetween) -> Self {
+        taffy::AlignContent::SpaceBetween
+    }
+}
+
+pub struct SpaceEvenly;
+
+pub const fn space_evenly() -> SpaceEvenly {
+    SpaceEvenly
+}
+
+impl From<SpaceEvenly> for taffy::AlignContent {
+    fn from(_value: SpaceEvenly) -> Self {
+        taffy::AlignContent::SpaceEvenly
+    }
+}
+
+pub struct SpaceAround;
+
+pub const fn space_around() -> SpaceAround {
+    SpaceAround
+}
+
+impl From<SpaceAround> for taffy::AlignContent {
+    fn from(_value: SpaceAround) -> Self {
+        taffy::AlignContent::SpaceAround
+    }
+}
+
 // Generic properties
-layout_prop!(
-    Width,
-    width,
-    taffy::Dimension,
-    taffy::Dimension::Auto,
-    size.width
-);
-layout_prop!(
-    Height,
-    height,
-    taffy::Dimension,
-    taffy::Dimension::Auto,
-    size.height
-);
-layout_prop!(
-    MinWidth,
-    min_width,
-    taffy::Dimension,
-    taffy::Dimension::Auto,
-    min_size.width
-);
-layout_prop!(
-    MinHeight,
-    min_height,
-    taffy::Dimension,
-    taffy::Dimension::Auto,
-    min_size.height
-);
-layout_prop!(
-    MaxWidth,
-    max_width,
-    taffy::Dimension,
-    taffy::Dimension::Auto,
-    max_size.width
-);
-layout_prop!(
-    MaxHeight,
-    max_height,
-    taffy::Dimension,
-    taffy::Dimension::Auto,
-    max_size.height
-);
+dimension_layout_prop!(Width, width, Dimension::Auto, size.width);
+dimension_layout_prop!(Height, height, Dimension::Auto, size.height);
+dimension_layout_prop!(MinWidth, min_width, Dimension::Auto, min_size.width);
+dimension_layout_prop!(MinHeight, min_height, Dimension::Auto, min_size.height);
+dimension_layout_prop!(MaxWidth, max_width, Dimension::Auto, max_size.width);
+dimension_layout_prop!(MaxHeight, max_height, Dimension::Auto, max_size.height);
 layout_prop_opt!(AspectRatio, aspect_ratio, f32, 0.0, aspect_ratio);
 layout_prop!(
     Position,
@@ -659,110 +863,66 @@ layout_prop!(
     position
 );
 
-layout_prop!(
-    MarginLeft,
-    margin_left,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
-    margin.left
-);
-layout_prop!(
-    MarginRight,
-    margin_right,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
-    margin.right
-);
-layout_prop!(
-    MarginTop,
-    margin_top,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
-    margin.top
-);
-layout_prop!(
-    MarginBottom,
-    margin_bottom,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
-    margin.bottom
-);
-layout_prop!(
+dimension_layout_prop!(MarginLeft, margin_left, Dimension::Auto, margin.left);
+dimension_layout_prop!(MarginRight, margin_right, Dimension::Auto, margin.right);
+dimension_layout_prop!(MarginTop, margin_top, Dimension::Auto, margin.top);
+dimension_layout_prop!(MarginBottom, margin_bottom, Dimension::Auto, margin.bottom);
+dimension_layout_prop!(
     MarginX,
     margin_x,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
+    Dimension::Auto,
     margin.left,
     margin.right
 );
-layout_prop!(
+dimension_layout_prop!(
     MarginY,
     margin_y,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
+    Dimension::Auto,
     margin.top,
     margin.bottom
 );
-layout_prop!(
+dimension_layout_prop!(
     Margin,
     margin,
-    taffy::LengthPercentageAuto,
-    taffy::LengthPercentageAuto::Auto,
+    Dimension::Auto,
     margin.top,
     margin.bottom,
     margin.left,
     margin.right
 );
 
-layout_prop!(
-    PaddingLeft,
-    padding_left,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
-    padding.left
-);
-layout_prop!(
+dimension_layout_prop!(PaddingLeft, padding_left, Dimension::Chars(0), padding.left);
+dimension_layout_prop!(
     PaddingRight,
     padding_right,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
+    Dimension::Chars(0),
     padding.right
 );
-layout_prop!(
-    PaddingTop,
-    padding_top,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
-    padding.top
-);
-layout_prop!(
+dimension_layout_prop!(PaddingTop, padding_top, Dimension::Chars(0), padding.top);
+dimension_layout_prop!(
     PaddingBottom,
     padding_bottom,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
+    Dimension::Chars(0),
     padding.bottom
 );
-layout_prop!(
+dimension_layout_prop!(
     PaddingX,
     padding_x,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
+    Dimension::Chars(0),
     padding.left,
     padding.right
 );
-layout_prop!(
+dimension_layout_prop!(
     PaddingY,
     padding_y,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
+    Dimension::Chars(0),
     padding.top,
     padding.bottom
 );
-layout_prop!(
+dimension_layout_prop!(
     Padding,
     padding,
-    taffy::LengthPercentage,
-    taffy::LengthPercentage::ZERO,
+    Dimension::Chars(0),
     padding.top,
     padding.bottom,
     padding.left,
@@ -791,6 +951,25 @@ layout_prop!(
     overflow.x,
     overflow.y
 );
+
+// align items - aligns items along cross axis
+// align content - distribution of space around content
+// justify items -
+// justify content - align items along main axis
+// align self - align self along cross axis
+// justify self - ignored in flexbox
+
+pub fn align_cross(val: impl Into<Signal<taffy::AlignItems>>) -> AlignItems {
+    align_items(val)
+}
+
+pub fn align_main(val: impl Into<Signal<taffy::JustifyContent>>) -> JustifyContent {
+    justify_content(val)
+}
+
+pub fn align_container(val: impl Into<Signal<taffy::AlignContent>>) -> AlignContent {
+    align_content(val)
+}
 
 // Flex properties
 layout_prop!(
@@ -821,6 +1000,13 @@ layout_prop_opt!(
     taffy::JustifyContent::Start,
     justify_content
 );
+layout_prop_opt!(
+    JustifyItems,
+    justify_items,
+    taffy::JustifyItems,
+    taffy::JustifyItems::Start,
+    justify_items
+);
 layout_prop!(
     Gap,
     gap,
@@ -837,13 +1023,14 @@ layout_prop_opt!(
     taffy::AlignSelf::Start,
     align_self
 );
-layout_prop!(
-    Basis,
-    basis,
-    taffy::Dimension,
-    taffy::Dimension::AUTO,
-    flex_basis
+layout_prop_opt!(
+    JustifySelf,
+    justify_self,
+    taffy::JustifySelf,
+    taffy::JustifySelf::Start,
+    align_self
 );
+layout_prop!(Basis, basis, Dimension, Dimension::Auto, flex_basis);
 
 macro_rules! impl_property_for_tuples {
     ($($ty:ident),* $(,)?) => {

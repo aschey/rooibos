@@ -4,11 +4,12 @@ use std::time::Duration;
 
 use rooibos::components::Show;
 use rooibos::components::spinner::Spinner;
+use rooibos::reactive::dom::layout::padding_left;
 use rooibos::reactive::dom::{Render, after_render, line};
 use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
-use rooibos::reactive::{col, derive_signal, padding_left, wgt};
+use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
 use rooibos::terminal::DefaultBackend;
@@ -57,7 +58,7 @@ fn app() -> impl Render {
         .into_span_signal();
 
     col![
-        props(padding_left!(1)),
+        props(padding_left(1)),
         Show::new()
             .fallback(move || {
                 after_render(exit);

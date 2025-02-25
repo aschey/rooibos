@@ -10,12 +10,12 @@ macro_rules! line {
         $crate::__text::Line::from($span)
     };
     ($span:expr; $n:expr) => {
-        $crate::__text::Line::from(vec![$span.into(); $n])
+        $crate::__text::Line::from(vec![$crate::IntoSpan::into_span($span); $n])
     };
     ($($span:expr),+ $(,)?) => {{
         $crate::__text::Line::from(vec![
         $(
-            $span.into(),
+            $crate::IntoSpan::into_span($span),
         )+
         ])
     }};

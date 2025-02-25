@@ -127,18 +127,14 @@ impl ContentRect {
     }
 
     pub(crate) fn resize_for_render(&self, buf: &mut Buffer) {
-        if self.content_size.width > buf.area.width || self.content_size.height > buf.area.height {
-            let mut new = buf.area;
-            new.width = new.width.max(self.content_size.width).max(self.size.width);
-            new.height = new
-                .height
-                .max(self.content_size.height)
-                .max(self.size.height);
+        let mut new = buf.area;
+        new.width = new.width.max(self.content_size.width).max(self.size.width);
+        new.height = new
+            .height
+            .max(self.content_size.height)
+            .max(self.size.height);
 
-            buf.resize(new);
-            // self.size.width = new.width;
-            // self.size.height = new.height;
-        }
+        buf.resize(new);
     }
 
     pub(crate) fn apply_scroll(&self, rect: Rect, buf: &mut Buffer) {

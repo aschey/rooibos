@@ -48,9 +48,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {
@@ -58,7 +56,7 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
+    wgt!(line!("count: ".bold(), count.get().cyan()))
         .on_key_down(key(keys::ENTER, move |_, _| update_count()))
         .on_click(move |_| update_count())
 }
@@ -103,9 +101,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {
@@ -117,7 +113,7 @@ fn app() -> impl Render {
     col![
         // Reading a signal inside a widget will cause the widget to re-render
         // when the signal updates.
-        wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
+        wgt!(line!("count: ".bold(), count.get().cyan()))
             .on_key_down(key(keys::ENTER, move |_, _| update_count()))
             .on_click(move |_| update_count()),
         wgt!(format!("doubled count: {}", doubled_count.get()))
@@ -138,9 +134,10 @@ Layout properties can be added using the special `props()` keyword.
 use std::process::ExitCode;
 
 use rooibos::components::Button;
+use rooibos::reactive::dom::layout::{height, padding, padding_right, width};
 use rooibos::reactive::dom::{Render, mount, text};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, derive_signal, height, padding, padding_right, row, wgt, width};
+use rooibos::reactive::{col, derive_signal, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -152,18 +149,16 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {
     row![
         // `props()` is a special keyword that sets the layout properties on a widget
         // or layout node.
-        props(padding!(1)),
+        props(padding(1)),
         col![
-            props(width!(20), padding_right!(2)),
+            props(width(20), padding_right(2)),
             button("bigger".bold()),
             button("smaller".bold())
         ]
@@ -173,7 +168,7 @@ fn app() -> impl Render {
 // Simple components can be written as functions, while complex ones with optional arguments,
 // such as `Button`, may be written as structs.
 fn button(title: Span<'static>) -> impl Render {
-    row![props(height!(3)), Button::new().render(text!(title))]
+    row![props(height(3)), Button::new().render(text!(title))]
 }
 ```
 
@@ -204,9 +199,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto())
-        .run(app)
-        .await
+    Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {
@@ -223,7 +216,7 @@ fn app() -> impl Render {
         }
     });
 
-    wgt!(line!("count: ".bold(), span!(count.get()).cyan()))
+    wgt!(line!("count: ".bold(), count.get().cyan()))
 }
 ```
 
@@ -249,7 +242,7 @@ fn app() -> impl Render {
 
     let update_count = move || set_count.update(|c| *c += 1);
 
-    wgt!(dom::line!("count: ".bold(), span!(count.get()).cyan()))
+    wgt!(dom::line!("count: ".bold(), count.get().cyan()))
         .on_key_down(key(keys::ENTER, move |_, _| update_count()))
         .on_click(move |_| update_count())
 }

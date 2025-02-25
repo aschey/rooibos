@@ -2,11 +2,13 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::dom::layout::{Borders, borders, overflow_y};
+use rooibos::reactive::dom::layout::{
+    Borders, borders, full, height, margin_x, max_width, overflow_y, scroll,
+};
 use rooibos::reactive::dom::{NodeId, Render, line, span, text, use_focus_with_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, Update};
-use rooibos::reactive::{col, derive_signal, for_each, height, margin_x, max_width, row, wgt};
+use rooibos::reactive::{col, derive_signal, for_each, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -33,11 +35,7 @@ fn app() -> impl Render {
     };
 
     col![
-        props(
-            max_width!(50),
-            height!(100%),
-            overflow_y(taffy::Overflow::Scroll)
-        ),
+        props(max_width(50), height(full()), overflow_y(scroll())),
         row![
             Button::new()
                 .on_click(add_counter)
@@ -68,12 +66,8 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
             Borders::all().empty()
         }))),
         wgt!(
-            props(margin_x!(1)),
-            line!(
-                format!("{id}. "),
-                "count: ".bold(),
-                span!(count.get()).cyan()
-            )
+            props(margin_x(1)),
+            line!(span!("{id}. "), "count: ".bold(), count.get().cyan())
         )
         .on_click(move |_| increase())
         .on_right_click(move |_| decrease())

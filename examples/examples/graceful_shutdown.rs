@@ -3,10 +3,11 @@ use std::time::Duration;
 
 use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
-use rooibos::reactive::dom::{Render, line, span};
+use rooibos::reactive::dom::layout::padding;
+use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, padding, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, ServiceContext, spawn_service, wasm_compat};
 use rooibos::terminal::DefaultBackend;
@@ -39,14 +40,11 @@ fn app() -> impl Render {
         }),
     );
 
-    col![props(padding!(1)), move || {
+    col![props(padding(1)), move || {
         if cancelled.get() {
             Either::Left(wgt!("App is shutting down..."))
         } else {
-            Either::Right(wgt!(line!(
-                "timer: ".bold(),
-                span!(elapsed.get().to_string()).cyan()
-            )))
+            Either::Right(wgt!(line!("timer: ".bold(), elapsed.get().cyan())))
         }
     }]
 }

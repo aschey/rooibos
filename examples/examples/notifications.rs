@@ -4,11 +4,11 @@ use std::time::Duration;
 use rooibos::components::either_of::Either;
 use rooibos::components::spinner::Spinner;
 use rooibos::components::{Notification, Notifier, use_notifications};
-use rooibos::reactive::dom::layout::{Borders, borders};
+use rooibos::reactive::dom::layout::{Borders, borders, full, height, width};
 use rooibos::reactive::dom::{Render, RenderAny, delay, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, height, wgt, width};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -26,7 +26,7 @@ fn app() -> impl Render {
 
     let (notifications, notifier) = use_notifications();
     col![
-        props(width!(100%), height!(100%), borders(Borders::all())),
+        props(width(full()), height(full()), borders(Borders::all())),
         (0..5).map(|i| task(i + 1, notifier)).collect::<Vec<_>>(),
         notifications.render()
     ]
