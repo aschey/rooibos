@@ -1,5 +1,5 @@
-use rooibos::reactive::dom::Render;
 use rooibos::reactive::dom::layout::{full, height, width};
+use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::{row, wgt};
 use rooibos::tui::layout::Constraint;
 use rooibos::tui::style::{Color, Stylize};
@@ -35,7 +35,7 @@ fn colors_table() -> impl Render {
         Table::new(
             colors.iter().map(|c| {
                 Row::new(vec![
-                    Cell::new(format!("{c:?}: ")),
+                    Cell::new(span!("{c:?}: ")),
                     Cell::new("Foreground".fg(*c)),
                     Cell::new("Background".bg(*c)),
                 ])

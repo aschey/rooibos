@@ -1,8 +1,8 @@
-use rooibos::reactive::dom::Render;
 use rooibos::reactive::dom::layout::{
     Borders, IntoDimensionSignal, borders, grow, height, min_height,
 };
 use rooibos::reactive::dom::widgets::Sparkline;
+use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
@@ -63,7 +63,7 @@ fn demo_gauge(
             .block(Block::new().title("Gauge:"))
             .gauge_style(Style::new().magenta().on_black().italic().bold())
             .use_unicode(enhanced_graphics)
-            .label(format!("{:.2}%", progress.get() * 100.0))
+            .label(span!("{:.2}%", progress.get() * 100.0))
             .ratio(progress.get())
     ]
 }

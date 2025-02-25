@@ -5,7 +5,7 @@ use rooibos::config::watch_config::schematic::Config;
 use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::dom::layout::{Borders, borders, height, margin, max_width, padding};
-use rooibos::reactive::dom::{Render, text};
+use rooibos::reactive::dom::{Render, span, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::Runtime;
@@ -47,7 +47,7 @@ fn app() -> impl Render {
         ),
         col![
             props(padding(1), max_width(150), borders(Borders::all())),
-            wgt!(format!("{:?}", config.get().map(|c| c.new)))
+            wgt!(span!("{:?}", config.get().map(|c| c.new)))
         ]
     ]
 }

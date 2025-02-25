@@ -4,7 +4,7 @@ use ratatui::palette::Hsl;
 use rooibos::components::{Button, ButtonRef};
 use rooibos::keybind::{Bind, KeybindContext, key, keys};
 use rooibos::reactive::dom::layout::{height, padding, padding_right, width};
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, text, try_focus_id};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, span, text, try_focus_id};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -59,7 +59,7 @@ fn app() -> impl Render {
         ],
         wgt!(
             props(width(block_width), height(block_height)),
-            text!(format!("{} x {}", block_width.get(), block_height.get()))
+            text!(span!("{} x {}", block_width.get(), block_height.get()))
                 .centered()
                 .bg({
                     let height = block_height.get() as f32;

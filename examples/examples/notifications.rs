@@ -37,7 +37,7 @@ fn task(id: usize, notifier: Notifier) -> impl RenderAny {
 
     delay(get_random_delay(), async move {
         set_completed.set(true);
-        notifier.notify(Notification::new(format!("task {id} completed")));
+        notifier.notify(Notification::new(span!("task {id} completed")));
     });
 
     move || {

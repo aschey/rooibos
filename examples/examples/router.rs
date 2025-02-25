@@ -2,7 +2,7 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::{Borders, align_items, borders, height, width};
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, text};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, row, wgt};
 use rooibos::router::{Route, RouteContext, RouteFromStatic, use_router};
@@ -96,7 +96,7 @@ fn blog_index(route_context: RouteContext) -> impl Render {
 
 fn blog_post(route_context: RouteContext) -> impl Render {
     let id = route_context.use_param(BlogPost::ID);
-    wgt!(format!("blog post {}", id.get()))
+    wgt!(line!("blog post ", id.get()))
 }
 
 fn footer(route_context: RouteContext) -> impl Render {

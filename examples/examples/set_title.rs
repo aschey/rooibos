@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use rooibos::keybind::{key, keys};
-use rooibos::reactive::dom::Render;
+use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -34,7 +34,7 @@ fn app() -> impl Render {
         }
     });
 
-    wgt!(format!("count {}", count.get()))
+    wgt!(line!("count ", count.get()))
         .on_key_down(key(keys::ENTER, move |_, _| {
             update_count();
         }))

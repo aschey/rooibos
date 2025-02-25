@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
-use rooibos::reactive::dom::Render;
 use rooibos::reactive::dom::layout::{Borders, borders, full, half, height, width};
+use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, row, wgt};
@@ -27,7 +27,7 @@ fn app() -> impl Render {
         props(height(full()), width(full())),
         wgt![props(borders(Borders::all())), {
             let window_size = window_size.get().viewport();
-            format!(
+            span!(
                 "window size width={} height={} focused={}",
                 window_size.width,
                 window_size.height,
@@ -51,9 +51,12 @@ fn show_size(id: usize) -> impl Render {
     let widget_size = RwSignal::new(Rect::default());
     wgt!(props(width(full()), borders(Borders::all())), {
         let widget_size = widget_size.get();
-        format!(
+        span!(
             "id:{id} x={} y={} width={} height={}",
-            widget_size.x, widget_size.y, widget_size.width, widget_size.height
+            widget_size.x,
+            widget_size.y,
+            widget_size.width,
+            widget_size.height
         )
     })
     .on_size_change(move |rect| widget_size.set(rect))
