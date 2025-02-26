@@ -8,6 +8,8 @@ use async_signal::{Signal, Signals};
 use background_service::Manager;
 use futures::{Future, StreamExt};
 use futures_cancel::FutureExt;
+use ratatui::backend::WindowSize;
+use ratatui::layout::Size;
 use rooibos_dom::Event;
 use rooibos_reactive::graph::owner::Owner;
 use rooibos_reactive::init_executor;
@@ -56,7 +58,7 @@ impl std::io::Write for TerminalHandle {
         futures::executor::block_on(async move {
             let result = handle.data(channel_id, data).await;
             if result.is_err() {
-                eprintln!("Failed to send data: {:?}", result);
+                warn!("Failed to send data: {result:?}");
             }
         });
 
@@ -82,7 +84,7 @@ pub struct AppServer<T>
 where
     T: SshHandler,
 {
-    clients: Arc<RwLock<HashMap<u32, mpsc::Sender<Event>>>>,
+    clients: Arc<RwLock<HashMap<u32, SshEventSender>>>,
     handler: Arc<T>,
     config: Arc<SshConfig>,
     service_manager: Option<Manager>,
@@ -153,9 +155,19 @@ pub trait SshHandler: Send + Sync + 'static {
         &self,
         client_id: u32,
         handle: ArcHandle,
-        event_rx: mpsc::Receiver<Event>,
+        events: SshEventReceiver,
         client_addr: Option<std::net::SocketAddr>,
     ) -> impl Future + Send;
+}
+
+pub struct SshEventSender {
+    events: mpsc::Sender<Event>,
+    window_size: Arc<std::sync::RwLock<WindowSize>>,
+}
+
+pub struct SshEventReceiver {
+    events: mpsc::Receiver<Event>,
+    window_size: Arc<std::sync::RwLock<WindowSize>>,
 }
 
 pub struct AppHandler<T>
@@ -163,10 +175,30 @@ where
     T: SshHandler,
 {
     client_id: u32,
-    clients: Arc<RwLock<HashMap<u32, mpsc::Sender<Event>>>>,
+    clients: Arc<RwLock<HashMap<u32, SshEventSender>>>,
     handler: Arc<T>,
     socket_addr: Option<std::net::SocketAddr>,
     service_context: ServiceContext,
+}
+
+impl<T> AppHandler<T>
+where
+    T: SshHandler,
+{
+    async fn handle_terminal_size(&self, window_size: WindowSize) {
+        let clients = self.clients.read().await;
+        if let Some(sender) = clients.get(&self.client_id) {
+            *sender.window_size.write().unwrap() = window_size;
+            let _ = sender
+                .events
+                .send(Event::Resize {
+                    rows: window_size.columns_rows.height as u32,
+                    cols: window_size.columns_rows.width as u32,
+                })
+                .await
+                .tap_err(|e| warn!("error sending data: {e:?}"));
+        }
+    }
 }
 
 impl<T> Server for AppServer<T>
@@ -195,9 +227,20 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
         let (event_tx, event_rx) = mpsc::channel(32);
+
         let clients = self.clients.clone();
         let client_id = self.client_id;
-        clients.write().await.insert(client_id, event_tx);
+        let window_size = Arc::new(std::sync::RwLock::new(WindowSize {
+            columns_rows: Size::default(),
+            pixels: Size::default(),
+        }));
+        clients.write().await.insert(
+            client_id,
+            SshEventSender {
+                events: event_tx,
+                window_size: window_size.clone(),
+            },
+        );
 
         let handler = self.handler.clone();
         let client_id = self.client_id;
@@ -221,7 +264,10 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                                         ArcHandle(Arc::new(std::sync::RwLock::new(
                                             terminal_handle,
                                         ))),
-                                        event_rx,
+                                        SshEventReceiver {
+                                            events: event_rx,
+                                            window_size,
+                                        },
                                         socket_addr,
                                     )
                                     .await;
@@ -267,12 +313,63 @@ impl<T: SshHandler> Handler for AppHandler<T> {
             let clients = self.clients.read().await;
             if let Some(client_tx) = clients.get(&self.client_id) {
                 let _ = client_tx
+                    .events
                     .send(event)
                     .await
                     .tap_err(|e| warn!("error sending data: {e:?}"));
             }
         }
 
+        Ok(())
+    }
+
+    async fn pty_request(
+        &mut self,
+        channel: ChannelId,
+        _term: &str,
+        col_width: u32,
+        row_height: u32,
+        pix_width: u32,
+        pix_height: u32,
+        _modes: &[(russh::Pty, u32)],
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        self.handle_terminal_size(WindowSize {
+            columns_rows: Size {
+                width: col_width as u16,
+                height: row_height as u16,
+            },
+            pixels: Size {
+                width: pix_width as u16,
+                height: pix_height as u16,
+            },
+        })
+        .await;
+        session.channel_success(channel)?;
+        Ok(())
+    }
+
+    async fn window_change_request(
+        &mut self,
+        channel: ChannelId,
+        col_width: u32,
+        row_height: u32,
+        pix_width: u32,
+        pix_height: u32,
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        self.handle_terminal_size(WindowSize {
+            columns_rows: Size {
+                width: col_width as u16,
+                height: row_height as u16,
+            },
+            pixels: Size {
+                width: pix_width as u16,
+                height: pix_height as u16,
+            },
+        })
+        .await;
+        session.channel_success(channel)?;
         Ok(())
     }
 }

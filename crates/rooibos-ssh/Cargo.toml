@@ -23,3 +23,4 @@ tokio-stream = { workspace = true, features = ["sync"] }
 
 [features]
 clipboard = ["rooibos-runtime/clipboard"]
+scrolling-regions = ["ratatui/scrolling-regions"]

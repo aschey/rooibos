@@ -12,7 +12,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::keys::PrivateKey;
 use rooibos::ssh::keys::ssh_key::private::{Ed25519Keypair, KeypairData};
-use rooibos::ssh::{AppServer, ArcHandle, SshConfig, SshHandler};
+use rooibos::ssh::{AppServer, ArcHandle, SshConfig, SshEventReceiver, SshHandler};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -44,7 +44,7 @@ impl SshHandler for SshApp {
         &self,
         _client_id: u32,
         handle: ArcHandle,
-        event_rx: tokio::sync::mpsc::Receiver<rooibos::reactive::Event>,
+        event_rx: SshEventReceiver,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         Runtime::initialize(SshBackend::new(handle, event_rx))

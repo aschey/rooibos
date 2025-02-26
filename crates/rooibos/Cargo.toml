@@ -62,4 +62,5 @@ palette = ["ratatui/palette"]
 scrolling-regions = [
   "rooibos-reactive/scrolling-regions",
   "rooibos-xterm-js?/scrolling-regions",
+  "rooibos-ssh?/scrolling-regions",
 ]
