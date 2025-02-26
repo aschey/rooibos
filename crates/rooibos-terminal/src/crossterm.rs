@@ -12,7 +12,6 @@ use crossterm::terminal::{
     supports_keyboard_enhancement,
 };
 use crossterm::{execute, queue};
-use ratatui::Terminal;
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 use tokio_stream::StreamExt as _;
@@ -215,34 +214,34 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         })
     }
 
-    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn setup_terminal(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
         if self.settings.raw_mode {
             enable_raw_mode()?;
         }
 
-        queue!(terminal.backend_mut(), Hide)?;
+        queue!(backend, Hide)?;
         if self.settings.alternate_screen {
-            queue!(terminal.backend_mut(), EnterAlternateScreen)?;
+            queue!(backend, EnterAlternateScreen)?;
         }
         if self.settings.mouse_capture {
-            queue!(terminal.backend_mut(), EnableMouseCapture)?;
+            queue!(backend, EnableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(terminal.backend_mut(), EnableFocusChange)?;
+            queue!(backend, EnableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(terminal.backend_mut(), EnableBracketedPaste)?;
+            queue!(backend, EnableBracketedPaste)?;
         }
         if self.supports_keyboard_enhancement {
             queue!(
-                terminal.backend_mut(),
+                backend,
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
         }
         if let Some(title) = &self.settings.title {
-            queue!(terminal.backend_mut(), SetTitle(title))?;
+            queue!(backend, SetTitle(title))?;
         }
-        terminal.backend_mut().flush()?;
+        backend.flush()?;
         Ok(())
     }
 
@@ -273,31 +272,31 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         Ok(())
     }
 
-    fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        execute!(terminal.backend_mut(), EnterAlternateScreen)
+    fn enter_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        execute!(backend, EnterAlternateScreen)
     }
 
-    fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        execute!(terminal.backend_mut(), LeaveAlternateScreen)
+    fn leave_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        execute!(backend, LeaveAlternateScreen)
     }
 
     fn set_title<T: std::fmt::Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         title: T,
     ) -> io::Result<()> {
-        execute!(terminal.backend_mut(), SetTitle(title))
+        execute!(backend, SetTitle(title))
     }
 
     fn set_clipboard<T: Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         content: T,
         clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {
         #[cfg(feature = "clipboard")]
         return execute!(
-            terminal.backend_mut(),
+            backend,
             SetClipboard::new(&content.to_string(), clipboard_kind)
         );
         #[cfg(not(feature = "clipboard"))]

@@ -2,19 +2,9 @@ use std::fmt::Display;
 use std::io;
 use std::sync::{Arc, Mutex, RwLock};
 
-use crossterm::cursor::Hide;
-use crossterm::event::{
-    EnableBracketedPaste, EnableFocusChange, EnableMouseCapture, KeyboardEnhancementFlags,
-    PushKeyboardEnhancementFlags,
-};
-use crossterm::terminal::{
-    EnterAlternateScreen, LeaveAlternateScreen, SetTitle, disable_raw_mode,
-    supports_keyboard_enhancement,
-};
-use crossterm::{execute, queue};
+use crossterm::terminal::disable_raw_mode;
+use ratatui::Viewport;
 use ratatui::backend::WindowSize;
-use ratatui::prelude::Backend as _;
-use ratatui::{Terminal, Viewport};
 use rooibos_dom::Event;
 use rooibos_terminal::crossterm::CrosstermBackend;
 use rooibos_terminal::{self, AsyncInputStream, Backend};
@@ -92,11 +82,9 @@ impl TerminalSettings {
 }
 
 pub struct SshBackend {
-    settings: TerminalSettings,
     event_rx: Mutex<Option<mpsc::Receiver<Event>>>,
     window_size: Arc<RwLock<WindowSize>>,
     inner: CrosstermBackend<ArcHandle>,
-    supports_keyboard_enhancement: bool,
 }
 
 impl SshBackend {
@@ -117,7 +105,7 @@ impl SshBackend {
                 .focus_change(settings.focus_change)
                 .keyboard_enhancement(settings.keyboard_enhancement)
                 .mouse_capture(settings.mouse_capture);
-        if let Some(title) = &settings.title {
+        if let Some(title) = settings.title {
             crossterm_settings = crossterm_settings.title(title);
         }
         let inner = CrosstermBackend::new(crossterm_settings);
@@ -126,22 +114,10 @@ impl SshBackend {
         // force ANSI escape codes on windows because SSH on Windows uses Unix-style escape codes
         #[cfg(windows)]
         crossterm::ansi_support::force_ansi(true);
-        let mut this = Self {
-            settings,
+        Self {
             event_rx: Mutex::new(Some(events.events)),
             window_size,
             inner,
-            supports_keyboard_enhancement: false,
-        };
-        this.set_keyboard_enhancement();
-        this
-    }
-
-    fn set_keyboard_enhancement(&mut self) {
-        self.supports_keyboard_enhancement = if self.settings.keyboard_enhancement {
-            supports_keyboard_enhancement().unwrap_or(false)
-        } else {
-            false
         }
     }
 }
@@ -161,31 +137,8 @@ impl Backend for SshBackend {
         Ok(*self.window_size.read().unwrap())
     }
 
-    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        queue!(terminal.backend_mut().inner, Hide)?;
-        if self.settings.alternate_screen {
-            queue!(terminal.backend_mut().inner, EnterAlternateScreen)?;
-        }
-        if self.settings.mouse_capture {
-            queue!(terminal.backend_mut().inner, EnableMouseCapture)?;
-        }
-        if self.settings.focus_change {
-            queue!(terminal.backend_mut().inner, EnableFocusChange)?;
-        }
-        if self.settings.bracketed_paste {
-            queue!(terminal.backend_mut().inner, EnableBracketedPaste)?;
-        }
-        if self.supports_keyboard_enhancement {
-            queue!(
-                terminal.backend_mut().inner,
-                PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
-            )?;
-        }
-        if let Some(title) = &self.settings.title {
-            queue!(terminal.backend_mut().inner, SetTitle(title))?;
-        }
-        terminal.backend_mut().flush()?;
-        Ok(())
+    fn setup_terminal(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        self.inner.setup_terminal(&mut backend.inner)
     }
 
     fn restore_terminal(&self) -> io::Result<()> {
@@ -193,12 +146,12 @@ impl Backend for SshBackend {
         self.inner.restore_terminal()
     }
 
-    fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        execute!(terminal.backend_mut().inner, EnterAlternateScreen)
+    fn enter_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        self.inner.enter_alt_screen(&mut backend.inner)
     }
 
-    fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        execute!(terminal.backend_mut().inner, LeaveAlternateScreen)
+    fn leave_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        self.inner.leave_alt_screen(&mut backend.inner)
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
@@ -211,25 +164,21 @@ impl Backend for SshBackend {
 
     fn set_title<T: std::fmt::Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         title: T,
     ) -> io::Result<()> {
-        execute!(terminal.backend_mut().inner, SetTitle(title))
+        self.inner.set_title(&mut backend.inner, title)
     }
 
     #[cfg(feature = "clipboard")]
     fn set_clipboard<T: std::fmt::Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         content: T,
         clipboard_kind: rooibos_terminal::ClipboardKind,
     ) -> io::Result<()> {
-        use rooibos_terminal::crossterm::SetClipboard;
-
-        execute!(
-            terminal.backend_mut().inner,
-            SetClipboard::new(&content.to_string(), clipboard_kind)
-        )
+        self.inner
+            .set_clipboard(&mut backend.inner, content, clipboard_kind)
     }
 
     fn supports_async_input(&self) -> bool {

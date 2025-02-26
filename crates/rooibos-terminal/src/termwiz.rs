@@ -161,8 +161,8 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
         })
     }
 
-    fn setup_terminal(&self, terminal: &mut ratatui::Terminal<Self::TuiBackend>) -> io::Result<()> {
-        let terminal = terminal.backend_mut().buffered_terminal_mut();
+    fn setup_terminal(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        let terminal = backend.buffered_terminal_mut();
 
         terminal.terminal().set_raw_mode().map_err(into_io_error)?;
 
@@ -192,12 +192,8 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    fn enter_alt_screen(
-        &self,
-        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
-    ) -> io::Result<()> {
-        terminal
-            .backend_mut()
+    fn enter_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        backend
             .buffered_terminal_mut()
             .terminal()
             .enter_alternate_screen()
@@ -205,12 +201,8 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
         Ok(())
     }
 
-    fn leave_alt_screen(
-        &self,
-        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
-    ) -> io::Result<()> {
-        terminal
-            .backend_mut()
+    fn leave_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        backend
             .buffered_terminal_mut()
             .terminal()
             .enter_alternate_screen()
@@ -220,11 +212,10 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
     fn set_title<T: std::fmt::Display>(
         &self,
-        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         title: T,
     ) -> io::Result<()> {
-        terminal
-            .backend_mut()
+        backend
             .buffered_terminal_mut()
             .add_change(Change::Title(title.to_string()));
         Ok(())
@@ -232,7 +223,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
     fn set_clipboard<T: Display>(
         &self,
-        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         content: T,
         clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {
@@ -249,8 +240,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
                     content.to_string(),
                 ),
             ));
-            terminal
-                .backend_mut()
+            backend
                 .buffered_terminal_mut()
                 .add_change(action.to_string());
             Ok(())
@@ -268,11 +258,10 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 
     fn poll_input(
         &self,
-        terminal: &mut ratatui::Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         term_tx: &broadcast::Sender<rooibos_dom::Event>,
     ) -> io::Result<()> {
-        if let Ok(Some(event)) = terminal
-            .backend_mut()
+        if let Ok(Some(event)) = backend
             .buffered_terminal_mut()
             .terminal()
             .poll_input(Some(Duration::ZERO))

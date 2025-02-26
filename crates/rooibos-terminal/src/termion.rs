@@ -1,7 +1,6 @@
 use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsFd;
 
-use ratatui::Terminal;
 use ratatui::backend::WindowSize;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
@@ -107,7 +106,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         })
     }
 
-    fn setup_terminal(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn setup_terminal(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Ok(())
     }
 
@@ -123,14 +122,14 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         (self.settings.get_writer)().write_all(buf)
     }
 
-    fn enter_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn enter_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "termion backend does not support alt screen toggle",
         ))
     }
 
-    fn leave_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn leave_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "termion backend does not support alt screen toggle",
@@ -139,7 +138,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
 
     fn set_title<T: std::fmt::Display>(
         &self,
-        _terminal: &mut Terminal<Self::TuiBackend>,
+        _backend: &mut Self::TuiBackend,
         _title: T,
     ) -> io::Result<()> {
         Err(io::Error::new(
@@ -150,7 +149,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
 
     fn set_clipboard<T: std::fmt::Display>(
         &self,
-        _terminal: &mut Terminal<Self::TuiBackend>,
+        _backend: &mut Self::TuiBackend,
         _content: T,
         _clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {

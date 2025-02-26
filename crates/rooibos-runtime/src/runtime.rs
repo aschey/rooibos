@@ -152,7 +152,7 @@ where
                 viewport: self.settings.viewport.clone(),
             },
         )?;
-        self.backend.setup_terminal(&mut terminal)?;
+        self.backend.setup_terminal(terminal.backend_mut())?;
         let terminal = NonblockingTerminal::new(terminal);
 
         if self.settings.enable_input_reader {
@@ -352,23 +352,30 @@ where
                 terminal.insert_before(height, text).await;
             }
             TerminalCommand::EnterAltScreen => {
-                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t))?;
+                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t.backend_mut()))?;
                 terminal.clear().await;
             }
             TerminalCommand::LeaveAltScreen => {
-                terminal.with_terminal_mut(|t| self.backend.leave_alt_screen(t))?;
+                terminal.with_terminal_mut(|t| self.backend.leave_alt_screen(t.backend_mut()))?;
                 terminal.clear().await;
             }
             TerminalCommand::SetTitle(title) => {
-                terminal.with_terminal_mut(|t| self.backend.set_title(t, title.clone()))?;
+                terminal.with_terminal_mut(|t| {
+                    self.backend.set_title(t.backend_mut(), title.clone())
+                })?;
             }
             TerminalCommand::Poll => {
-                terminal.with_terminal_mut(|t| self.backend.poll_input(t, &self.term_parser_tx))?;
+                terminal.with_terminal_mut(|t| {
+                    self.backend
+                        .poll_input(t.backend_mut(), &self.term_parser_tx)
+                })?;
             }
             #[cfg(feature = "clipboard")]
             TerminalCommand::SetClipboard(content, kind) => {
-                terminal
-                    .with_terminal_mut(|t| self.backend.set_clipboard(t, content.clone(), kind))?;
+                terminal.with_terminal_mut(|t| {
+                    self.backend
+                        .set_clipboard(t.backend_mut(), content.clone(), kind)
+                })?;
             }
             TerminalCommand::SetViewportWidth(max_width) => {
                 rooibos_dom::max_viewport_width(max_width);
@@ -419,7 +426,7 @@ where
 
         restore_terminal()?;
         // enter alt screen to prevent flickering before the new command is shown
-        terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t))?;
+        terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t.backend_mut()))?;
 
         let mut child = command.lock().expect("lock poisoned").spawn()?;
 
@@ -429,7 +436,7 @@ where
         tokio::select! {
             status = child.wait() => {
                 // prevent flickering
-                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t))?;
+                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t.backend_mut()))?;
                 let status = status?;
                 let on_finish = (*on_finish.lock().expect("lock poisoned")).take().expect("on_finish missing");
                 on_finish(status, child_stdout, child_stderr);

@@ -26,7 +26,7 @@ async fn main() -> Result<()> {
     let backend = Arc::new(DefaultBackend::auto());
     let tui_backend = backend.create_tui_backend()?;
     let mut terminal = rooibos::tui::Terminal::new(tui_backend)?;
-    backend.setup_terminal(&mut terminal)?;
+    backend.setup_terminal(terminal.backend_mut())?;
 
     let mut terminal = NonblockingTerminal::new(terminal);
     let window_size = terminal.window_size().await.ok();

@@ -11,7 +11,6 @@ use std::fmt::Display;
 use std::io;
 
 use futures_util::Stream;
-use ratatui::Terminal;
 pub use stream::*;
 use tokio::sync::broadcast;
 
@@ -52,27 +51,23 @@ pub trait Backend: Send + Sync {
 
     fn create_tui_backend(&self) -> io::Result<Self::TuiBackend>;
 
-    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
+    fn setup_terminal(&self, backend: &mut Self::TuiBackend) -> io::Result<()>;
 
     fn restore_terminal(&self) -> io::Result<()>;
 
     fn supports_keyboard_enhancement(&self) -> bool;
 
-    fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
+    fn enter_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()>;
 
-    fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()>;
+    fn leave_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()>;
 
     fn window_size(&self) -> io::Result<ratatui::backend::WindowSize>;
 
-    fn set_title<T: Display>(
-        &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
-        title: T,
-    ) -> io::Result<()>;
+    fn set_title<T: Display>(&self, backend: &mut Self::TuiBackend, title: T) -> io::Result<()>;
 
     fn set_clipboard<T: Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         content: T,
         clipboard_kind: ClipboardKind,
     ) -> io::Result<()>;
@@ -81,10 +76,11 @@ pub trait Backend: Send + Sync {
         true
     }
 
+    #[allow(unused)]
     fn poll_input(
         &self,
-        _terminal: &mut Terminal<Self::TuiBackend>,
-        _term_tx: &broadcast::Sender<rooibos_dom::Event>,
+        terminal: &mut Self::TuiBackend,
+        term_tx: &broadcast::Sender<rooibos_dom::Event>,
     ) -> io::Result<()> {
         Ok(())
     }

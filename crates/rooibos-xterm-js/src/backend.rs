@@ -143,30 +143,28 @@ impl Backend for WasmBackend {
         })
     }
 
-    fn setup_terminal(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        queue!(terminal.backend_mut(), Hide)?;
+    fn setup_terminal(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        queue!(backend, Hide)?;
         if self.settings.alternate_screen {
-            queue!(terminal.backend_mut(), EnterAlternateScreen)?;
+            queue!(backend, EnterAlternateScreen)?;
         }
         if self.settings.mouse_capture {
-            queue!(terminal.backend_mut(), EnableMouseCapture)?;
+            queue!(backend, EnableMouseCapture)?;
         }
         if self.settings.focus_change {
-            queue!(terminal.backend_mut(), EnableFocusChange)?;
+            queue!(backend, EnableFocusChange)?;
         }
         if self.settings.bracketed_paste {
-            queue!(terminal.backend_mut(), EnableBracketedPaste)?;
+            queue!(backend, EnableBracketedPaste)?;
         }
 
         if self.supports_keyboard_enhancement {
             queue!(
-                terminal.backend_mut(),
+                backend,
                 PushKeyboardEnhancementFlags(KeyboardEnhancementFlags::all())
             )?;
         }
-        terminal.backend_mut().flush()?;
-
-        terminal.clear()?;
+        backend.flush()?;
         Ok(())
     }
 
@@ -194,20 +192,20 @@ impl Backend for WasmBackend {
         Ok(())
     }
 
-    fn enter_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        execute!(terminal.backend_mut(), EnterAlternateScreen)
+    fn enter_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        execute!(backend, EnterAlternateScreen)
     }
 
-    fn leave_alt_screen(&self, terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
-        execute!(terminal.backend_mut(), LeaveAlternateScreen)
+    fn leave_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
+        execute!(backend, LeaveAlternateScreen)
     }
 
     fn set_title<T: std::fmt::Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         title: T,
     ) -> io::Result<()> {
-        execute!(terminal.backend_mut(), SetTitle(title))
+        execute!(backend, SetTitle(title))
     }
 
     fn supports_keyboard_enhancement(&self) -> bool {
@@ -216,7 +214,7 @@ impl Backend for WasmBackend {
 
     fn set_clipboard<T: Display>(
         &self,
-        terminal: &mut Terminal<Self::TuiBackend>,
+        backend: &mut Self::TuiBackend,
         content: T,
         clipboard_kind: ClipboardKind,
     ) -> io::Result<()> {

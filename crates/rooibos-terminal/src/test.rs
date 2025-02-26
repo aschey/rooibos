@@ -1,6 +1,5 @@
 use std::io;
 
-use ratatui::Terminal;
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 use tokio::sync::broadcast;
@@ -37,7 +36,7 @@ impl Backend for TestBackend {
         Ok(ratatui::backend::TestBackend::new(self.width, self.height))
     }
 
-    fn setup_terminal(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn setup_terminal(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Ok(())
     }
 
@@ -61,7 +60,7 @@ impl Backend for TestBackend {
 
     fn set_title<T: std::fmt::Display>(
         &self,
-        _terminal: &mut Terminal<Self::TuiBackend>,
+        _backend: &mut Self::TuiBackend,
         _title: T,
     ) -> io::Result<()> {
         Ok(())
@@ -69,7 +68,7 @@ impl Backend for TestBackend {
 
     fn set_clipboard<T: std::fmt::Display>(
         &self,
-        _terminal: &mut Terminal<Self::TuiBackend>,
+        _backend: &mut Self::TuiBackend,
         _content: T,
         _clipboard_kind: super::ClipboardKind,
     ) -> io::Result<()> {
@@ -80,11 +79,11 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    fn enter_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn enter_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Ok(())
     }
 
-    fn leave_alt_screen(&self, _terminal: &mut Terminal<Self::TuiBackend>) -> io::Result<()> {
+    fn leave_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Ok(())
     }
 
