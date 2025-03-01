@@ -107,3 +107,15 @@ fn color_override() -> Option<bool> {
         None
     }
 }
+
+#[cfg(feature = "crossterm")]
+fn adjust_color_output<T>(writer: &T)
+where
+    T: std::io::IsTerminal,
+{
+    if let Some(set_override) = color_override() {
+        ::crossterm::style::force_color_output(set_override);
+    } else if !writer.is_terminal() {
+        ::crossterm::style::force_color_output(false);
+    }
+}
