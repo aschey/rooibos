@@ -165,13 +165,24 @@ pub(crate) fn with_state_mut<F: FnOnce(&mut RuntimeState) -> T, T>(f: F) -> T {
     STATE.with(|s| f(s.write().get_mut(&current_runtime()).unwrap()))
 }
 
-pub async fn with_runtime<Fut, T>(id: u32, f: Fut) -> T
+pub async fn with_runtime_async<Fut, T>(id: u32, f: Fut) -> T
 where
     Fut: Future<Output = T>,
 {
-    STATE.with(|s| s.write().insert(id, RuntimeState::new()));
-
+    STATE.with(|s| {
+        s.write().entry(id).or_insert_with(RuntimeState::new);
+    });
     CURRENT_RUNTIME.scope(id, f).await
+}
+
+pub fn with_runtime<F, T>(id: u32, f: F) -> T
+where
+    F: FnOnce() -> T,
+{
+    STATE.with(|s| {
+        s.write().entry(id).or_insert_with(RuntimeState::new);
+    });
+    CURRENT_RUNTIME.sync_scope(id, f)
 }
 
 pub fn use_window_size() -> ReadSignal<ViewportSize> {

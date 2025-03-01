@@ -14,7 +14,8 @@ use rooibos_dom::Event;
 use rooibos_reactive::graph::owner::Owner;
 use rooibos_reactive::init_executor;
 use rooibos_runtime::{
-    CancellationToken, ServiceContext, restore_terminal, set_external_signal_source, with_runtime,
+    CancellationToken, ServiceContext, restore_terminal, set_external_signal_source,
+    with_runtime_async,
 };
 pub use russh::keys;
 use russh::keys::PublicKey;
@@ -25,7 +26,7 @@ use tap::TapFallible;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::{RwLock, broadcast, mpsc};
 use tokio::task::LocalSet;
-use tracing::warn;
+use tracing::{error, warn};
 
 pub struct TerminalHandle {
     handle: Handle,
@@ -216,6 +217,10 @@ where
             service_context: self.service_context.clone(),
         }
     }
+
+    fn handle_session_error(&mut self, error: <Self::Handler as Handler>::Error) {
+        error!("session error: {error:?}");
+    }
 }
 
 impl<T: SshHandler> Handler for AppHandler<T> {
@@ -243,7 +248,6 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         );
 
         let handler = self.handler.clone();
-        let client_id = self.client_id;
         let channel_id = channel.id();
         let terminal_handle = TerminalHandle::new(session.handle(), channel_id);
         let handle = session.handle();
@@ -257,7 +261,7 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                     let local_set = LocalSet::new();
                     local_set
                         .run_until(async move {
-                            with_runtime(client_id, async move {
+                            with_runtime_async(client_id, async move {
                                 handler
                                     .run_terminal(
                                         client_id,
@@ -277,7 +281,10 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                         })
                         .await;
                     clients.write().await.remove(&client_id);
-                    handle.close(channel_id).await.unwrap();
+                    let _ = handle
+                        .close(channel_id)
+                        .await
+                        .inspect_err(|e| warn!("error closing channel: {e:?}"));
                 });
             });
             Ok(())

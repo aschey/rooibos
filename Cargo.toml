@@ -63,7 +63,7 @@ tokio-util = "0.7"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 getrandom = "0.3"
 derive_more = "2"
-watch-config = { git = "https://github.com/aschey/watch-config", rev = "ca03ba579b645ff6c147339b66095cb688ff1a46" }
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "d90d15ff301da443c17b4da6c34413d67413883b" }
 slotmap = "1"
 bitflags = "2"
 futures = "0.3"
@@ -81,7 +81,7 @@ clap_complete = "4.5.44"
 wasm-bindgen = "0.2"
 matchit = "0.8"
 url = "2"
-convert_case = "0.7"
+convert_case = "0.8"
 futures-util = "0.3"
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "27c1c31b5d96707c835871984ede8de38b66e1ed" }
 proc-exit = "2.0.2"
@@ -102,7 +102,7 @@ rand = "0.8.5"
 reqwest = "0.12.12"
 serde = "1.0.217"
 axum = "0.8.1"
-schematic = { version = "0.17.11" }
+schematic = { version = "0.18" }
 color-eyre = "0.6.3"
 insta = "1.42.1"
 tui-tree-widget = "0.23.0"

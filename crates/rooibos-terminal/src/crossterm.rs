@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
+use std::io::{self, IsTerminal, Stderr, Stdout, Write, stderr, stdout};
 
 use crossterm::cursor::{Hide, Show};
 use crossterm::event::{
@@ -17,7 +17,7 @@ use ratatui::layout::Size;
 use tokio_stream::StreamExt as _;
 
 use super::Backend;
-use crate::{AsyncInputStream, AutoStream};
+use crate::{AsyncInputStream, AutoStream, color_override};
 
 pub struct TerminalSettings<W> {
     alternate_screen: bool,
@@ -48,14 +48,27 @@ impl Default for TerminalSettings<AutoStream> {
     }
 }
 
+pub(super) fn adjust_color_output<T>(writer: &T)
+where
+    T: IsTerminal,
+{
+    if let Some(set_override) = color_override() {
+        crossterm::style::force_color_output(set_override);
+    } else if !writer.is_terminal() {
+        crossterm::style::force_color_output(false);
+    }
+}
+
 impl TerminalSettings<Stdout> {
     pub fn stdout() -> Self {
+        adjust_color_output(&stdout());
         Self::from_writer(stdout)
     }
 }
 
 impl TerminalSettings<Stderr> {
     pub fn stderr() -> Self {
+        adjust_color_output(&stderr());
         Self::from_writer(stderr)
     }
 }

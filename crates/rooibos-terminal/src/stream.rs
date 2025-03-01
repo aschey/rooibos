@@ -19,8 +19,12 @@ impl AutoStream {
         let stdout = stdout();
         let stderr = stderr();
         if !stdout.is_terminal() && stderr.is_terminal() {
+            #[cfg(feature = "crossterm")]
+            super::crossterm::adjust_color_output(&stderr);
             Self(StreamImpl::Stderr(stderr))
         } else {
+            #[cfg(feature = "crossterm")]
+            super::crossterm::adjust_color_output(&stdout);
             Self(StreamImpl::Stdout(stdout))
         }
     }

@@ -8,7 +8,7 @@ pub mod termwiz;
 pub mod test;
 
 use std::fmt::Display;
-use std::io;
+use std::{env, io};
 
 use futures_util::Stream;
 pub use stream::*;
@@ -88,4 +88,22 @@ pub trait Backend: Send + Sync {
     fn async_input_stream(&self) -> impl AsyncInputStream;
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()>;
+}
+
+fn parse_env_var(var_name: &str) -> bool {
+    let Ok(env_var) = env::var(var_name) else {
+        return false;
+    };
+    let env_var = env_var.to_ascii_lowercase();
+    env_var == "1" || env_var == "true"
+}
+
+fn color_override() -> Option<bool> {
+    if parse_env_var("NO_COLOR") {
+        Some(false)
+    } else if parse_env_var("CLICOLOR_FORCE") || parse_env_var("FORCE_COLOR") {
+        Some(true)
+    } else {
+        None
+    }
 }
