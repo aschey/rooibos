@@ -41,7 +41,7 @@ pub(crate) fn gauges(
     });
 
     col![
-       style(
+        style(
             borders(Borders::all().title("Graphs")),
             height(gauge_height),
             min_height(7)
@@ -58,7 +58,7 @@ fn demo_gauge(
     gauge_height: impl IntoDimensionSignal,
 ) -> impl Render {
     wgt![
-       style(height(gauge_height)),
+        style(height(gauge_height)),
         Gauge::default()
             .block(Block::new().title("Gauge:"))
             .gauge_style(Style::new().magenta().on_black().italic().bold())
@@ -74,7 +74,7 @@ fn demo_line_gauge(
     gauge_height: impl IntoDimensionSignal,
 ) -> impl Render {
     wgt![
-       style(height(gauge_height)),
+        style(height(gauge_height)),
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
             .filled_style(Style::new().magenta())
@@ -110,7 +110,7 @@ fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
     });
 
     wgt![
-       style(grow(1.)),
+        style(grow(1.)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()

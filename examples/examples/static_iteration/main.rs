@@ -27,7 +27,7 @@ fn counter() -> impl Render {
     let decrease = move || update_count(-1);
 
     wgt![
-       style(borders(border_block)),
+        style(borders(border_block)),
         line!("count: ".bold().reset(), count.get().cyan())
     ]
     .on_focus(move |_, _| set_border_block.set(Borders::all().blue()))
@@ -51,7 +51,7 @@ const NUM_COUNTERS: usize = 5;
 
 fn app() -> impl Render {
     col![
-       style(max_width(20), padding(1)),
+        style(max_width(20), padding(1)),
         (0..NUM_COUNTERS).map(|_| counter()).collect::<Vec<_>>()
     ]
 }

@@ -44,7 +44,7 @@ fn app() -> impl Render {
     });
 
     col![
-       style(
+        style(
             padding(1),
             width(full()),
             height(full()),
@@ -85,7 +85,7 @@ fn popup(
     });
 
     col![
-       style(
+        style(
             width(full()),
             height(full()),
             show(show_popup),
@@ -94,7 +94,7 @@ fn popup(
             justify_content(JustifyContent::Center),
         ),
         col![
-           style(borders(Borders::all()), align_items(AlignItems::Center)),
+            style(borders(Borders::all()), align_items(AlignItems::Center)),
             wgt!(text.get().unwrap_or_default()),
             row![
                 Button::new()

@@ -64,7 +64,7 @@ fn app() -> impl Render {
     };
 
     row![
-       style(padding(1)),
+        style(padding(1)),
         TabView::new()
             .header_height(3)
             .block(tabs_block)

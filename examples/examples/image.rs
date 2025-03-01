@@ -24,13 +24,13 @@ fn app() -> impl Render {
     let image_url = RwSignal::new(PathBuf::from("./examples/assets/cat.jpg"));
 
     col![
-       style(padding(1)),
+        style(padding(1)),
         wgt!(
-           style(height(1)),
+            style(height(1)),
             "Press up to increase image size, down to decrease"
         ),
         col![
-           style(width(image_length), height(image_length), padding_top(1)),
+            style(width(image_length), height(image_length), padding_top(1)),
             Image::from_url(image_url).render()
         ]
     ]

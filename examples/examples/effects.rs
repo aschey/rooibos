@@ -43,7 +43,7 @@ fn app() -> impl Render {
     });
 
     row![
-       style(effect(current_effect)),
+        style(effect(current_effect)),
         wgt!(text!("my super cool effect"))
     ]
 }

@@ -23,7 +23,7 @@ fn app() -> impl Render {
     let (z_index2, set_z_index2) = signal(2);
     col![
         wgt!(
-           style(
+            style(
                 clear(true),
                 z_index(z_index1),
                 width(20),
@@ -36,9 +36,9 @@ fn app() -> impl Render {
             set_z_index1.update(|z| *z += 1);
         }),
         col![
-           style(z_index(z_index2), padding_left(3), padding_top(1)),
+            style(z_index(z_index2), padding_left(3), padding_top(1)),
             wgt!(
-               style(clear(true), width(23), height(6), borders(Borders::all())),
+                style(clear(true), width(23), height(6), borders(Borders::all())),
                 text!("block two")
             )
             .on_click(move |_| {
