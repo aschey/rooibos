@@ -55,6 +55,10 @@ pub fn supports_keyboard_enhancement() -> bool {
     SUPPORTS_KEYBOARD_ENHANCEMENT.with(|s| *s.get().unwrap())
 }
 
+pub fn supports_key_up() -> bool {
+    cfg!(windows) || supports_keyboard_enhancement()
+}
+
 pub fn set_pixel_size(window_size: Option<WindowSize>) -> Result<(), Option<Size>> {
     let pixel_size = window_size.map(|s| ratatui::layout::Size {
         width: s.pixels.width / s.columns_rows.width,

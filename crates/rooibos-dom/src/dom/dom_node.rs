@@ -6,12 +6,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use ratatui::Frame;
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::Block;
-use terminput::{Event, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use terminput::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
 use super::{DomNodeKey, NodeProperties, RenderProps, unmount_child};
 use crate::events::{
-    BlurEvent, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
-    IntoDragHandler, IntoKeyHandler, dispatch_event, reset_mouse_position,
+    BlurEvent, Event, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
+    IntoDragHandler, IntoKeyHandler, NodeState, dispatch_event, reset_mouse_position,
 };
 use crate::widgets::Role;
 use crate::{
@@ -121,6 +121,7 @@ impl Debug for NodeType {
     }
 }
 
+#[expect(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
     Layout { block: Option<Block<'static>> },
@@ -533,6 +534,14 @@ impl DomNode {
         self
     }
 
+    pub fn on_state_change<F>(self, handler: F) -> Self
+    where
+        F: FnMut(NodeState, EventData) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_state_change(handler));
+        self
+    }
+
     pub fn id(self, id: impl Into<NodeId>) -> Self {
         with_nodes_mut(|n| {
             n.set_id(self.key, id);
@@ -647,7 +656,6 @@ impl DomNode {
                 parent_scroll_offset: Position::ORIGIN,
                 key: self.key,
                 dom_nodes: nodes,
-                // using_temp_buf: false,
             });
         });
         reset_mouse_position();

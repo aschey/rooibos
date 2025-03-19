@@ -1,14 +1,13 @@
 ---
 source: examples/examples/dynamic_iteration/tests.rs
 expression: harness.buffer()
-snapshot_kind: text
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 40, height: 20 },
     content: [
-        "╭───────────╮                           ",
-        "│Add Counter│                           ",
-        "╰───────────╯                           ",
+        "╔═══════════╗                           ",
+        "║Add Counter║                           ",
+        "╚═══════════╝                           ",
         "┌─────────────┐                         ",
         "│ 0. count: 1 │                         ",
         "└─────────────┘                         ",

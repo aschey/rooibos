@@ -13,6 +13,7 @@ pub mod stores {
 }
 use std::future::Future;
 use std::panic::{set_hook, take_hook};
+use std::sync::Arc;
 
 use any_spawner::Executor;
 pub use error_boundary::*;
@@ -21,6 +22,10 @@ pub use provider::*;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
 use reactive_graph::owner::Owner;
+use reactive_graph::signal::signal;
+use reactive_graph::traits::{Get, Set};
+use reactive_graph::wrappers::read::Signal;
+use rooibos_dom::events::{EventData, NodeState};
 #[cfg(feature = "effects")]
 pub use rooibos_dom::tachyonfx;
 pub use rooibos_dom::{IntoSpan, NonblockingTerminal};
@@ -93,4 +98,91 @@ pub fn init_executor() {
 
 pub async fn tick() {
     Executor::tick().await;
+}
+
+#[derive(Clone)]
+pub struct StateProp<T> {
+    pub focused: Arc<dyn Fn(T) -> T + Send + Sync>,
+    pub disabled: Arc<dyn Fn(T) -> T + Send + Sync>,
+    pub hovered: Arc<dyn Fn(T) -> T + Send + Sync>,
+    pub normal: T,
+}
+
+impl<T> Default for StateProp<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        Self {
+            focused: Arc::new(|t| t),
+            disabled: Arc::new(|t| t),
+            hovered: Arc::new(|t| t),
+            normal: T::default(),
+        }
+    }
+}
+
+impl<T> StateProp<T> {
+    pub fn new(normal: T) -> Self {
+        Self {
+            normal,
+            focused: Arc::new(|t| t),
+            disabled: Arc::new(|t| t),
+            hovered: Arc::new(|t| t),
+        }
+    }
+}
+
+impl<T> StateProp<T>
+where
+    T: Clone,
+{
+    pub fn focused(mut self, focused: impl Fn(T) -> T + Send + Sync + 'static) -> Self {
+        self.focused = Arc::new(focused);
+        self
+    }
+
+    pub fn disabled(mut self, disabled: impl Fn(T) -> T + Send + Sync + 'static) -> Self {
+        self.disabled = Arc::new(disabled);
+        self
+    }
+
+    pub fn hovered(mut self, hovered: impl Fn(T) -> T + Send + Sync + 'static) -> Self {
+        self.hovered = Arc::new(hovered);
+        self
+    }
+
+    pub fn normal(mut self, normal: T) -> Self {
+        self.normal = normal;
+        self
+    }
+
+    fn apply_state(&self, node_state: NodeState) -> T {
+        let mut value = self.normal.clone();
+        if node_state.intersects(NodeState::HOVERED) {
+            value = (self.hovered)(value);
+        }
+        if node_state.intersects(NodeState::FOCUSED) {
+            value = (self.focused)(value);
+        }
+        if node_state.intersects(NodeState::DISABLED) {
+            value = (self.disabled)(value);
+        }
+        value
+    }
+}
+
+pub fn use_state_prop<T>(
+    state_prop: impl Into<Signal<StateProp<T>>>,
+) -> (Signal<T>, impl Fn(NodeState, EventData))
+where
+    T: Clone + Send + Sync + 'static,
+{
+    let (widget_state, set_widget_state) = signal(NodeState::empty());
+    let state_prop = state_prop.into();
+    let prop = derive_signal!({
+        let state_prop = state_prop.get();
+        state_prop.apply_state(widget_state.get())
+    });
+    (prop, move |state: NodeState, _| set_widget_state.set(state))
 }

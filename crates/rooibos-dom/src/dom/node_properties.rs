@@ -310,7 +310,7 @@ impl NodeProperties {
 
         *self.rect.borrow_mut() = render_bounds;
         if render_bounds != prev_rect {
-            if let Some(on_size_change) = &dom_nodes[key].event_handlers.on_size_change {
+            for on_size_change in &dom_nodes[key].event_handlers.on_size_change {
                 on_size_change.borrow_mut()(render_bounds);
             }
         }

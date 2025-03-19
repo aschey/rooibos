@@ -505,7 +505,7 @@ where
             }
             term_event = self.term_event_rx.recv() => {
                 if let Ok(term_event) = term_event {
-                    dispatch_event(term_event);
+                    dispatch_event(term_event.into());
                 }
                 Ok(TickResult::Continue)
             }

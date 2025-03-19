@@ -6,7 +6,7 @@ use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
     BlurEvent, ClickHandler, DragHandler, EventData, EventHandle, FocusEvent, IntoClickHandler,
-    IntoDragHandler, IntoKeyHandler, KeyHandler,
+    IntoDragHandler, IntoKeyHandler, KeyHandler, NodeState,
 };
 use rooibos_dom::{AsDomNode, Borders, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
@@ -164,6 +164,22 @@ where
             .inner
             .0
             .on_focus(move |event, data| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data);
+            })
+            .focusable(true);
+        self
+    }
+
+    pub fn on_state_change<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(NodeState, EventData) + 'static,
+    {
+        self.inner.0 = self
+            .inner
+            .0
+            .on_state_change(move |event, data| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
                 handler(event, data);

@@ -64,7 +64,7 @@ async fn main() -> Result<()> {
                         break;
                     }
 
-                    dispatch_event(event)
+                    dispatch_event(event.into())
                 }
             else => {
                 break;

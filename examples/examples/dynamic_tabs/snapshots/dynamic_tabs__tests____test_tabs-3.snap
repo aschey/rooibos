@@ -1,14 +1,14 @@
 ---
 source: examples/examples/dynamic_tabs/tests.rs
-expression: harness.terminal().backend().buffer()
+expression: harness.buffer()
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 40, height: 10 },
     content: [
         "                                        ",
-        " ┌Demo─────────────────────────┐╭───╮   ",
-        " │ Tab1  ✕ │ Tab2  ✕ │ Tab3  ✕ ││ + │   ",
-        " └─────────────────────────────┘╰───╯   ",
+        " ┌Demo─────────────────────────┐╔═══╗   ",
+        " │ Tab1  ✕ │ Tab2  ✕ │ Tab3  ✕ │║ + ║   ",
+        " └─────────────────────────────┘╚═══╝   ",
         "  tab2                                  ",
         "                                        ",
         "                                        ",

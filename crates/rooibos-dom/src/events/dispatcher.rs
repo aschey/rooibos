@@ -2,16 +2,18 @@ use std::cell::RefCell;
 
 use ratatui::layout::{Position, Rect};
 use terminput::{
-    Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
+    KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseButton, MouseEvent, MouseEventKind,
     ScrollDirection,
 };
 
 use super::{
-    ClickEvent, ClickEventFn, ClickEventProps, EventData, EventHandle, EventHandlers, KeyEventProps,
+    ClickEvent, ClickEventFn, ClickEventProps, Event, EventData, EventHandle, EventHandlers,
+    KeyEventProps,
 };
 use crate::{
     DomNodeKey, MatchBehavior, NodeId, NodeProperties, NodeType, focus_next, focus_prev,
-    set_pending_resize, toggle_print_dom, trigger_window_focus_changed, with_nodes, with_nodes_mut,
+    push_pending_event, refresh_dom, set_pending_resize, toggle_print_dom,
+    trigger_window_focus_changed, with_nodes, with_nodes_mut,
 };
 
 thread_local! {
@@ -24,6 +26,11 @@ struct EventDispatcher {
 
 pub fn dispatch_event(event: Event) {
     EVENT_DISPATCHER.with(|e| e.borrow_mut().dispatch(event))
+}
+
+pub fn queue_event(event: Event) {
+    push_pending_event(event);
+    refresh_dom();
 }
 
 pub(crate) fn reset_mouse_position() {
@@ -54,10 +61,10 @@ impl EventDispatcher {
             Event::Key(key_event) => {
                 dispatch_key_event(key_event);
             }
-            Event::FocusGained => {
+            Event::WindowFocusGained => {
                 trigger_window_focus_changed(true);
             }
-            Event::FocusLost => {
+            Event::WindowFocusLost => {
                 trigger_window_focus_changed(false);
             }
             Event::Mouse(mouse_event) => {
@@ -66,8 +73,14 @@ impl EventDispatcher {
             Event::Paste(val) => {
                 dispatch_paste(val);
             }
-            Event::Resize { .. } => {
+            Event::Resize => {
                 set_pending_resize();
+            }
+            Event::NodeEnable(key) => {
+                dispatch_node_enable(key);
+            }
+            Event::NodeDisable(key) => {
+                dispatch_node_disable(key);
             }
         };
     }
@@ -100,11 +113,10 @@ impl EventDispatcher {
         for root in roots {
             let found = root.get_key().traverse(
                 |key, inner| {
-                    if !inner.enabled() {
-                        return None;
-                    }
-
-                    if inner.focusable() && inner.visible() && inner.position().contains(position) {
+                    if matches!(inner.node_type, NodeType::Widget(_))
+                        && inner.visible()
+                        && inner.position().contains(position)
+                    {
                         Some(key)
                     } else {
                         None
@@ -126,14 +138,20 @@ impl EventDispatcher {
                         hovered_key,
                         |props| props.event_handlers.on_mouse_leave.clone(),
                         |event, node_id, rect, handle| {
-                            event.borrow_mut()(
-                                EventData {
-                                    target: node_id,
-                                    rect,
-                                },
-                                handle,
-                            );
+                            for handler in event {
+                                handler.borrow_mut()(
+                                    EventData {
+                                        target: node_id.clone(),
+                                        rect,
+                                    },
+                                    handle.clone(),
+                                );
+                            }
                         },
+                        // Still run mouse move events on disabled nodes because we may need to
+                        // remove some hover state and if the node loses hover while disabled,
+                        // these events would never fire
+                        AllowDisabled::Allow,
                     );
                 }
             }
@@ -143,14 +161,17 @@ impl EventDispatcher {
                     current,
                     |props| props.event_handlers.on_mouse_enter.clone(),
                     |event, node_id, rect, handle| {
-                        event.borrow_mut()(
-                            EventData {
-                                target: node_id,
-                                rect,
-                            },
-                            handle,
-                        );
+                        for handler in event {
+                            handler.borrow_mut()(
+                                EventData {
+                                    target: node_id.clone(),
+                                    rect,
+                                },
+                                handle.clone(),
+                            );
+                        }
                     },
+                    AllowDisabled::Allow,
                 );
             }
         } else {
@@ -160,14 +181,17 @@ impl EventDispatcher {
                     hovered_key,
                     |props| props.event_handlers.on_mouse_leave.clone(),
                     |event, node_id, rect, handle| {
-                        event.borrow_mut()(
-                            EventData {
-                                target: node_id,
-                                rect,
-                            },
-                            handle,
-                        );
+                        for handler in event {
+                            handler.borrow_mut()(
+                                EventData {
+                                    target: node_id.clone(),
+                                    rect,
+                                },
+                                handle.clone(),
+                            );
+                        }
                     },
+                    AllowDisabled::Allow,
                 );
                 with_nodes_mut(|nodes| {
                     nodes.remove_hovered();
@@ -189,15 +213,18 @@ impl EventDispatcher {
                 *current_hovered,
                 |props| props.event_handlers.on_scroll.clone(),
                 |event, node_id, rect, handle| {
-                    (event.borrow_mut())(
-                        direction,
-                        EventData {
-                            rect,
-                            target: node_id,
-                        },
-                        handle,
-                    );
+                    for handler in event {
+                        (handler.borrow_mut())(
+                            direction,
+                            EventData {
+                                rect,
+                                target: node_id.clone(),
+                            },
+                            handle.clone(),
+                        );
+                    }
                 },
+                AllowDisabled::Disallow,
             );
         }
     }
@@ -228,49 +255,106 @@ fn dispatch_key_event(key_event: KeyEvent) {
     }
 }
 
+fn dispatch_node_enable(key: DomNodeKey) {
+    bubble_event(
+        key,
+        |props| props.event_handlers.on_enable.clone(),
+        |event, node_id, rect, handle| {
+            for on_enable in event {
+                on_enable.borrow_mut()(
+                    EventData {
+                        rect,
+                        target: node_id.clone(),
+                    },
+                    handle.clone(),
+                );
+            }
+        },
+        AllowDisabled::Disallow,
+    );
+}
+
+fn dispatch_node_disable(key: DomNodeKey) {
+    bubble_event(
+        key,
+        |props| props.event_handlers.on_disable.clone(),
+        |event, node_id, rect, handle| {
+            for on_enable in event {
+                on_enable.borrow_mut()(
+                    EventData {
+                        rect,
+                        target: node_id.clone(),
+                    },
+                    handle.clone(),
+                );
+            }
+        },
+        AllowDisabled::Disallow,
+    );
+}
+
 fn bubble_key_event(key: DomNodeKey, key_event: KeyEvent) -> bool {
     match key_event.kind {
         KeyEventKind::Press | KeyEventKind::Repeat => bubble_event(
             key,
             |props| props.event_handlers.on_key_down.clone(),
             |event, node_id, rect, handle| {
-                event.borrow_mut().handle(KeyEventProps {
-                    event: key_event,
-                    data: EventData {
-                        rect,
-                        target: node_id,
-                    },
-                    handle,
-                });
+                for handler in event {
+                    handler.borrow_mut().handle(KeyEventProps {
+                        event: key_event,
+                        data: EventData {
+                            rect,
+                            target: node_id.clone(),
+                        },
+                        handle: handle.clone(),
+                    });
+                }
             },
+            AllowDisabled::Disallow,
         ),
         KeyEventKind::Release => bubble_event(
             key,
             |props| props.event_handlers.on_key_up.clone(),
             |event, node_id, rect, handle| {
-                event.borrow_mut().handle(KeyEventProps {
-                    event: key_event,
-                    data: EventData {
-                        rect,
-                        target: node_id,
-                    },
-                    handle,
-                });
+                for handler in event {
+                    handler.borrow_mut().handle(KeyEventProps {
+                        event: key_event,
+                        data: EventData {
+                            rect,
+                            target: node_id.clone(),
+                        },
+                        handle: handle.clone(),
+                    });
+                }
             },
+            AllowDisabled::Disallow,
         ),
     }
 }
 
-fn bubble_event<GE, EF, E>(key: DomNodeKey, get_event: GE, event_fn: EF) -> bool
+#[derive(PartialEq, Eq)]
+pub(crate) enum AllowDisabled {
+    Allow,
+    Disallow,
+}
+
+pub(crate) fn bubble_event<GE, EF, E>(
+    key: DomNodeKey,
+    get_event: GE,
+    event_fn: EF,
+    allow_disabled: AllowDisabled,
+) -> bool
 where
-    GE: Fn(&NodeProperties) -> Option<E>,
-    EF: Fn(&mut E, Option<NodeId>, Rect, EventHandle),
+    GE: Fn(&NodeProperties) -> Vec<E>,
+    EF: Fn(&mut Vec<E>, Option<NodeId>, Rect, EventHandle),
 {
-    let enabled = with_nodes(|nodes| nodes[key].enabled());
-    if !enabled {
-        return false;
+    if allow_disabled == AllowDisabled::Disallow {
+        let enabled = with_nodes(|nodes| nodes[key].enabled());
+        if !enabled {
+            return false;
+        }
     }
-    let (rect, node_id, event) = with_nodes(|nodes| {
+    let (rect, node_id, mut event) = with_nodes(|nodes| {
         (
             *nodes[key].rect.borrow(),
             nodes[key].id.clone(),
@@ -278,7 +362,7 @@ where
         )
     });
     let mut handled = false;
-    if let Some(mut event) = event {
+    if !event.is_empty() {
         handled = true;
         let handle = EventHandle::default();
         event_fn(&mut event, node_id, rect, handle.clone());
@@ -287,7 +371,7 @@ where
         }
     }
     if let Some(parent) = with_nodes(|nodes| nodes[key].parent) {
-        let child_handled = bubble_event(parent, get_event, event_fn);
+        let child_handled = bubble_event(parent, get_event, event_fn, allow_disabled);
         handled = handled || child_handled;
     }
     handled
@@ -335,7 +419,7 @@ fn dispatch_mouse_down(position: Position, modifiers: KeyModifiers, mouse_button
 
 fn dispatch_mouse_button<GE>(position: Position, modifiers: KeyModifiers, get_event: GE)
 where
-    GE: Fn(&EventHandlers) -> &Option<ClickEventFn>,
+    GE: Fn(&EventHandlers) -> &Vec<ClickEventFn>,
 {
     let found = hit_test(
         position,
@@ -358,11 +442,12 @@ where
                     }
                 }
                 if !stop_propagation {
-                    if let Some(on_click) = get_event(&nodes[key].event_handlers) {
-                        let handle = EventHandle::default();
-                        let rect = nodes[key].rect.borrow();
-                        let node_id = nodes[key].id.clone();
-                        on_click.borrow_mut().handle(ClickEventProps {
+                    let on_click = get_event(&nodes[key].event_handlers);
+                    let handle = EventHandle::default();
+                    let rect = nodes[key].rect.borrow();
+                    let node_id = nodes[key].id.clone();
+                    for handler in on_click {
+                        handler.borrow_mut().handle(ClickEventProps {
                             event: ClickEvent {
                                 column: position.x,
                                 row: position.y,
@@ -370,18 +455,19 @@ where
                             },
                             data: EventData {
                                 rect: *rect,
-                                target: node_id,
+                                target: node_id.clone(),
                             },
                             handle: handle.clone(),
                         });
-                        if !stop_propagation {
-                            stop_propagation = handle.get_stop_propagation();
-                        }
-                        if focus_set && stop_propagation {
-                            return false;
-                        }
+                    }
+                    if !stop_propagation {
+                        stop_propagation = handle.get_stop_propagation();
+                    }
+                    if focus_set && stop_propagation {
+                        return false;
                     }
                 }
+
                 true
             });
             if !continue_iter {
@@ -397,15 +483,18 @@ fn dispatch_paste(val: String) {
             key,
             |props| props.event_handlers.on_paste.clone(),
             |event, node_id, rect, handle| {
-                event.borrow_mut()(
-                    val.clone(),
-                    EventData {
-                        rect,
-                        target: node_id,
-                    },
-                    handle,
-                );
+                for handler in event {
+                    handler.borrow_mut()(
+                        val.clone(),
+                        EventData {
+                            rect,
+                            target: node_id.clone(),
+                        },
+                        handle.clone(),
+                    );
+                }
             },
+            AllowDisabled::Disallow,
         );
     }
 }

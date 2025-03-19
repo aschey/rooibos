@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         break;
                     }
 
-                    dispatch_event(event)
+                    dispatch_event(event.into())
                 }
             }
             else => {

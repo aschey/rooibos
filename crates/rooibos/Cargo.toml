@@ -18,8 +18,8 @@ rooibos-keybind = { path = "../rooibos-keybind", optional = true }
 ratatui = { workspace = true, default-features = false }
 
 [dev-dependencies]
-tokio = "1.43.0"
-insta = "1.42.1"
+tokio = { workspace = true }
+insta = { workspace = true }
 
 [features]
 default = ["crossterm", "runtime", "scrolling-regions"]

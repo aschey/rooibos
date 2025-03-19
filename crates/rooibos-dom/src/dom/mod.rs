@@ -13,6 +13,7 @@ use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
 use tokio::sync::watch;
 
 use crate::NonblockingTerminal;
+use crate::events::{Event, dispatch_event};
 
 mod dom_node;
 mod dom_widget;
@@ -43,6 +44,7 @@ thread_local! {
     };
     static PRINT_DOM: AtomicBool = const { AtomicBool::new(false) };
     static PENDING_RESIZE: AtomicBool = const { AtomicBool::new(true) };
+    static PENDING_EVENTS: RefCell<Vec<Event>> = const { RefCell::new(Vec::new()) };
     static ON_WINDOW_FOCUS_CHANGE: RefCell<Box<dyn FnMut(bool)>> = {
         RefCell::new(Box::new(|_focused| {}))
     };
@@ -85,6 +87,10 @@ pub(crate) fn toggle_print_dom() {
 pub(crate) fn set_pending_resize() {
     PENDING_RESIZE.with(|p| p.store(true, Ordering::Relaxed));
     refresh_dom();
+}
+
+pub(crate) fn push_pending_event(event: Event) {
+    PENDING_EVENTS.with(|e| e.borrow_mut().push(event));
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {
@@ -202,6 +208,11 @@ pub fn render_dom(frame: &mut Frame) {
             nodes.set_viewport_size(viewport);
         });
     }
+    PENDING_EVENTS.with(|e| {
+        for event in e.borrow_mut().drain(..) {
+            dispatch_event(event);
+        }
+    });
 
     let viewport = with_nodes(|n| n.viewport_size());
     let render_size = viewport.viewport();

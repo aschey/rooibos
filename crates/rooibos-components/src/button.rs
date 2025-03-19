@@ -3,17 +3,17 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use ratatui::layout::Alignment;
-use ratatui::style::{Color, Stylize};
+use ratatui::style::{Style, Stylize};
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
-use rooibos_dom::{KeyCode, delay, supports_keyboard_enhancement};
-use rooibos_reactive::dom::layout::{BorderType, Borders, borders};
+use rooibos_dom::{KeyCode, delay, supports_key_up};
+use rooibos_reactive::dom::layout::{Borders, borders};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use rooibos_reactive::{derive_signal, wgt};
+use rooibos_reactive::{StateProp, derive_signal, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
 
@@ -40,19 +40,13 @@ impl ButtonRef {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum WidgetState {
-    Focused,
-    Active,
-    Default,
-}
-
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
     layout_props: LayoutProps,
-    border_color: Signal<Color>,
-    focused_border_color: Signal<Color>,
-    active_border_color: Signal<Color>,
+    button_style: Signal<StateProp<Style>>,
+    active_button_style: Signal<Style>,
+    button_borders: Signal<StateProp<Borders>>,
+    active_button_borders: Signal<Borders>,
     element_ref: Option<ButtonRef>,
     text_alignment: Signal<Alignment>,
 }
@@ -79,9 +73,16 @@ impl Button {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
-            focused_border_color: Color::Blue.into(),
-            active_border_color: Color::Green.into(),
-            border_color: Color::Gray.into(),
+            button_style: StateProp::new(Style::default())
+                .disabled(|s| s.gray().on_dark_gray())
+                .into(),
+            active_button_style: Style::new().into(),
+            button_borders: StateProp::new(Borders::all().outer().round().gray())
+                .focused(|b| b.blue())
+                .hovered(|b| b.double())
+                .disabled(|b| b.inner().dark_gray())
+                .into(),
+            active_button_borders: Borders::all().double().green().into(),
             text_alignment: Alignment::Left.into(),
             element_ref: None,
         }
@@ -92,18 +93,23 @@ impl Button {
         self
     }
 
-    pub fn border_color(mut self, border_color: impl Into<Signal<Color>>) -> Self {
-        self.border_color = border_color.into();
+    pub fn button_style(mut self, button_style: impl Into<Signal<StateProp<Style>>>) -> Self {
+        self.button_style = button_style.into();
         self
     }
 
-    pub fn focused_border_color(mut self, focused_border_color: impl Into<Signal<Color>>) -> Self {
-        self.focused_border_color = focused_border_color.into();
+    pub fn active_button_style(mut self, active_button_style: impl Into<Signal<Style>>) -> Self {
+        self.active_button_style = active_button_style.into();
         self
     }
 
-    pub fn active_border_color(mut self, active_border_color: impl Into<Signal<Color>>) -> Self {
-        self.active_border_color = active_border_color.into();
+    pub fn borders(mut self, borders: impl Into<Signal<StateProp<Borders>>>) -> Self {
+        self.button_borders = borders.into();
+        self
+    }
+
+    pub fn active_borders(mut self, active_borders: impl Into<Signal<Borders>>) -> Self {
+        self.active_button_borders = active_borders.into();
         self
     }
 
@@ -139,37 +145,31 @@ impl Button {
         let Self {
             on_click,
             layout_props,
-            border_color,
-            focused_border_color,
-            active_border_color,
+            button_borders,
+            active_button_borders,
+            button_style,
+            active_button_style,
             element_ref,
             text_alignment,
         } = self;
         let enabled = layout_props.enabled.value().unwrap_or(true.into());
 
-        let border_type = RwSignal::new(BorderType::Round);
-        let focused = RwSignal::new(false);
         let active = RwSignal::new(false);
 
-        let widget_state = derive_signal!(if active.get() {
-            WidgetState::Active
-        } else if focused.get() {
-            WidgetState::Focused
-        } else {
-            WidgetState::Default
-        });
+        let (button_style, set_button_state) = use_state_prop(button_style);
+        let (button_borders, set_border_state) = use_state_prop(button_borders);
 
-        let current_border_color = derive_signal!({
-            match widget_state.get() {
-                WidgetState::Default => border_color.get(),
-                WidgetState::Focused => focused_border_color.get(),
-                WidgetState::Active => active_border_color.get(),
+        let current_button_style = derive_signal!({
+            if active.get() {
+                active_button_style.get()
+            } else {
+                button_style.get()
             }
         });
 
         let on_enter = move || {
             active.set(true);
-            if !supports_keyboard_enhancement() {
+            if !supports_key_up() {
                 delay(Duration::from_millis(50), async move {
                     // Need to use try_set here in case the button was already disposed
                     active.try_set(false);
@@ -191,57 +191,32 @@ impl Button {
             });
         }
 
-        let key_up = move |props: KeyEventProps| {
-            if !supports_keyboard_enhancement() {
-                return;
-            }
-            if props.event.code == KeyCode::Enter {
-                focused.set(true);
-            }
-        };
-
-        let button_borders = derive_signal!(if enabled.get() {
-            Borders::all()
-                .outer()
-                .border_type(border_type.get())
-                .fg(current_border_color.get())
+        let button_borders = derive_signal!(if active.get() {
+            active_button_borders.get()
         } else {
-            Borders::all().inner().fg(Color::DarkGray)
+            button_borders.get()
         });
 
         let children: Signal<Text> = children.into();
         wgt![
             style(borders(button_borders)),
-            rooibos_dom::widgets::Button::new(
-                children
-                    .get()
-                    .fg(if enabled.get() {
-                        Color::Reset
-                    } else {
-                        Color::Gray
-                    })
-                    .bg(if enabled.get() {
-                        Color::Reset
-                    } else {
-                        Color::DarkGray
-                    })
-            )
-            .alignment(text_alignment.get())
+            rooibos_dom::widgets::Button::new(children.get().style(current_button_style.get()))
+                .alignment(text_alignment.get())
         ]
         .layout_props(layout_props)
-        .on_mouse_enter(move |_, _| border_type.set(BorderType::Double))
-        .on_mouse_leave(move |_, _| border_type.set(BorderType::Round))
         .on_click({
             let on_enter = on_enter.clone();
             move |_| on_enter()
         })
-        .on_focus(move |_, _| focused.set(true))
-        .on_blur(move |_, _| focused.set(false))
+        .on_state_change(set_button_state)
+        .on_state_change(set_border_state)
         .on_key_down(move |props: KeyEventProps| {
             if props.event.code == KeyCode::Enter {
                 on_enter()
             }
         })
-        .on_key_up(key_up)
+        .on_key_up(move |_| {
+            active.set(false);
+        })
     }
 }
