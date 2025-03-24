@@ -125,7 +125,7 @@ fn app(notification_timeout: Duration) -> impl Render {
             }),
             // {dec+}e
             key(
-                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('e')]),
+                keys::combine([keys::Key::decimal('+'), 'e'.into()]),
                 move |_, context: KeybindContext| {
                     let id = context.keys[0].get_numeric();
                     command_context.dispatch(Command::Edit { id });
@@ -133,7 +133,7 @@ fn app(notification_timeout: Duration) -> impl Render {
             ),
             // {dec+}d
             key(
-                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('d')]),
+                keys::combine([keys::Key::decimal('+'), 'd'.into()]),
                 move |_, context: KeybindContext| {
                     let id = context.keys[0].get_numeric();
                     command_context.dispatch(Command::Delete { id });

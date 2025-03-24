@@ -27,11 +27,18 @@ impl fmt::Display for Key<'_> {
     }
 }
 
-pub fn combine<'a, I>(iter: I) -> String
+impl From<char> for Key<'_> {
+    fn from(value: char) -> Self {
+        Self::Literal(value)
+    }
+}
+
+pub fn combine<'a, I, K>(iter: I) -> String
 where
-    I: IntoIterator<Item = Key<'a>>,
+    I: IntoIterator<Item = K>,
+    K: Into<Key<'a>>,
 {
-    let keys: Vec<_> = iter.into_iter().collect();
+    let keys: Vec<_> = iter.into_iter().map(|k| k.into()).collect();
     let all_literals = keys
         .iter()
         .all(|k| matches!(k, Key::Literal(_) | Key::Class(_)));

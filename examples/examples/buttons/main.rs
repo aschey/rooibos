@@ -85,7 +85,7 @@ fn app() -> impl Render {
             }),
             //"{dec+}+"
             key(
-                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('+')]),
+                keys::combine([keys::Key::decimal('+'), '+'.into()]),
                 move |_, context: KeybindContext| {
                     if try_focus_id(bigger).is_ok() {
                         adjust_size(context.keys[0].get_numeric() as i32);
@@ -94,7 +94,7 @@ fn app() -> impl Render {
             ),
             //"{dec+}-"
             key(
-                keys::combine([keys::Key::decimal('+'), keys::Key::Literal('-')]),
+                keys::combine([keys::Key::decimal('+'), '-'.into()]),
                 move |_, context: KeybindContext| {
                     if try_focus_id(smaller).is_ok() {
                         adjust_size(-(context.keys[0].get_numeric() as i32));
