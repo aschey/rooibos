@@ -9,15 +9,16 @@ pub use taffy;
 
 use super::layout::{
     AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Dimension,
-    Gap, Grow, Height, Id, JustifyContent, JustifyItems, Margin, MarginBottom, MarginLeft,
-    MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow,
-    OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX,
-    PaddingY, Position, Property, Show, Shrink, Width, Wrap, ZIndex, align_content, align_items,
-    align_self, aspect_ratio, basis, borders, class, clear, focusable, gap, grow, height, id,
-    justify_content, justify_items, margin, margin_bottom, margin_left, margin_right, margin_top,
-    margin_x, margin_y, max_height, max_width, min_height, min_width, overflow, overflow_x,
-    overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
-    padding_y, position, show, shrink, width, wrap, z_index,
+    Gap, Grow, Height, Id, IntoAlignContentSignal, IntoAlignItemsSignal, IntoAlignSelfSignal,
+    IntoJustifyContentSignal, IntoJustifyItemsSignal, JustifyContent, JustifyItems, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
+    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Shrink, Width, Wrap,
+    ZIndex, align_content, align_items, align_self, aspect_ratio, basis, borders, class, clear,
+    focusable, gap, grow, height, id, justify_content, justify_items, margin, margin_bottom,
+    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
+    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
+    padding_right, padding_top, padding_x, padding_y, position, show, shrink, width, wrap, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -177,8 +178,8 @@ macro_rules! flex_prop {
     };
 }
 
-macro_rules! dimension_flex_prop {
-    ($struct_name:ident, $fn:ident) => {
+macro_rules! custom_flex_prop {
+    ($struct_name:ident, $fn:ident, $bound:path) => {
         impl FlexProperty for $struct_name {}
 
         impl<C, P> FlexNode<C, P>
@@ -187,7 +188,7 @@ macro_rules! dimension_flex_prop {
         {
             pub fn $fn<S>(self, val: S) -> FlexNode<C, P::Output<$struct_name>>
             where
-                S: $crate::dom::layout::IntoDimensionSignal,
+                S: $bound,
             {
                 FlexNode {
                     inner: self.inner,
@@ -196,6 +197,12 @@ macro_rules! dimension_flex_prop {
                 }
             }
         }
+    };
+}
+
+macro_rules! dimension_flex_prop {
+    ($struct_name:ident, $fn:ident) => {
+        custom_flex_prop!($struct_name, $fn, $crate::dom::layout::IntoDimensionSignal);
     };
 }
 
@@ -234,14 +241,14 @@ flex_prop!(ZIndex, z_index, i32);
 flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
 
 flex_prop!(Wrap, wrap, taffy::FlexWrap);
-flex_prop!(AlignItems, align_items, taffy::AlignItems);
-flex_prop!(AlignContent, align_content, taffy::AlignContent);
-flex_prop!(JustifyItems, justify_items, taffy::JustifyItems);
-flex_prop!(JustifyContent, justify_content, taffy::JustifyContent);
+custom_flex_prop!(AlignItems, align_items, IntoAlignItemsSignal);
+custom_flex_prop!(AlignContent, align_content, IntoAlignContentSignal);
+custom_flex_prop!(JustifyItems, justify_items, IntoJustifyItemsSignal);
+custom_flex_prop!(JustifyContent, justify_content, IntoJustifyContentSignal);
 flex_prop!(Gap, gap, taffy::Size<taffy::LengthPercentage>);
 flex_prop!(Grow, grow, f32);
 flex_prop!(Shrink, shrink, f32);
-flex_prop!(AlignSelf, align_self, taffy::AlignSelf);
+custom_flex_prop!(AlignSelf, align_self, IntoAlignSelfSignal);
 flex_prop!(Basis, basis, Dimension);
 
 flex_prop!(OverflowX, overflow_x, taffy::Overflow);

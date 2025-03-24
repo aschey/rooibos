@@ -3,7 +3,8 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::reactive::dom::flex_node::FlexProperty;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, full, height, justify_content, padding, show, width, z_index,
+    Borders, align_items, borders, center, full, height, justify_content, padding, show, width,
+    z_index,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
@@ -15,7 +16,6 @@ use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_height, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
-use taffy::{AlignItems, JustifyContent};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -57,7 +57,7 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
             bounds(),
             z_index(2),
             center_items(),
-            justify_content(JustifyContent::Center),
+            justify_content(center()),
             show(show_popup),
         ),
         col![
@@ -76,8 +76,5 @@ fn bounds() -> impl FlexProperty {
 }
 
 fn center_items() -> impl FlexProperty {
-    (
-        align_items(AlignItems::Center),
-        justify_content(JustifyContent::Center),
-    )
+    (align_items(center()), justify_content(center()))
 }

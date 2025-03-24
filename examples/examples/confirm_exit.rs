@@ -3,8 +3,8 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, full, height, justify_content, padding, position, show, width,
-    z_index,
+    Borders, align_items, borders, center, full, height, justify_content, padding, position, show,
+    width, z_index,
 };
 use rooibos::reactive::dom::{NodeId, Render, after_render, focus_id, text};
 use rooibos::reactive::graph::effect::Effect;
@@ -14,7 +14,7 @@ use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
-use taffy::{AlignItems, JustifyContent, Position};
+use taffy::Position;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -88,8 +88,8 @@ fn popup(
             height(full()),
             show(show_popup),
             position(Position::Absolute),
-            align_items(AlignItems::Center),
-            justify_content(JustifyContent::Center),
+            align_items(center()),
+            justify_content(center()),
         ),
         wgt!(
             style(borders(Borders::all())),

@@ -15,14 +15,15 @@ use wasm_compat::sync::RwLock;
 use super::dom_node::DomNode;
 use super::layout::{
     AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Dimension, Enabled, Focusable, Grow,
-    Height, Id, JustifySelf, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX,
-    MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
-    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
-    Shrink, UpdateLayout, Width, ZIndex, align_self, aspect_ratio, basis, borders, class, clear,
-    enabled, focusable, grow, height, id, justify_self, margin, margin_bottom, margin_left,
-    margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width,
-    overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right,
-    padding_top, padding_x, padding_y, position, shrink, width, z_index,
+    Height, Id, IntoAlignSelfSignal, IntoJustifySelfSignal, JustifySelf, Margin, MarginBottom,
+    MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth,
+    Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
+    PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width, ZIndex, align_self,
+    aspect_ratio, basis, borders, class, clear, enabled, focusable, grow, height, id, justify_self,
+    margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
+    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
+    z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -610,15 +611,21 @@ macro_rules! update_props {
     };
 }
 
-macro_rules! update_dimension_props {
-    ($fn:ident) => {
+macro_rules! update_custom_props {
+    ($fn:ident, $bound:path) => {
         fn $fn<S>(self, val: S) -> Self
         where
-            S: $crate::dom::layout::IntoDimensionSignal,
+            S: $bound,
         {
             let props = self.layout_props().$fn(val);
             self.update_props(props)
         }
+    };
+}
+
+macro_rules! update_dimension_props {
+    ($fn:ident) => {
+        update_custom_props!($fn, $crate::dom::layout::IntoDimensionSignal);
     };
 }
 
@@ -660,8 +667,8 @@ where
 
     update_props!(grow, f32);
     update_props!(shrink, f32);
-    update_props!(align_self, taffy::AlignSelf);
-    update_props!(justify_self, taffy::JustifySelf);
+    update_custom_props!(align_self, IntoAlignSelfSignal);
+    update_custom_props!(justify_self, IntoJustifySelfSignal);
     update_props!(basis, Dimension);
 
     update_props!(borders, Borders);
@@ -762,8 +769,8 @@ macro_rules! widget_prop {
     };
 }
 
-macro_rules! dimension_widget_prop {
-    ($struct_name:ident, $fn:ident, $($path:ident).+) => {
+macro_rules! custom_widget_prop {
+    ($struct_name:ident, $fn:ident, $bound:path, $($path:ident).+) => {
         impl WidgetProperty for $struct_name {}
 
         impl<P> DomWidget<P>
@@ -772,7 +779,7 @@ macro_rules! dimension_widget_prop {
         {
             pub fn $fn<S>(self, val: S) -> DomWidget<P::Output<$struct_name>>
             where
-                S: $crate::dom::layout::IntoDimensionSignal,
+                S: $bound,
             {
                 DomWidget {
                     inner: self.inner,
@@ -790,13 +797,19 @@ macro_rules! dimension_widget_prop {
         impl LayoutProps {
             pub fn $fn<S>(mut self, val: S) -> Self
             where
-                S: $crate::dom::layout::IntoDimensionSignal,
+                S: $bound,
             {
                 self.$($path).+ = $fn(val);
                 self
             }
         }
     };
+}
+
+macro_rules! dimension_widget_prop {
+    ($struct_name:ident, $fn:ident, $($path:tt)+) => {
+        custom_widget_prop!($struct_name, $fn, $crate::dom::layout::IntoDimensionSignal, $($path)+);
+    }
 }
 
 dimension_widget_prop!(Width, width, simple.width);
@@ -830,11 +843,16 @@ dimension_widget_prop!(Padding, padding, simple.padding);
 
 widget_prop!(Grow, grow, f32, simple.grow);
 widget_prop!(Shrink, shrink, f32, simple.shrink);
-widget_prop!(AlignSelf, align_self, taffy::AlignSelf, simple.align_self);
-widget_prop!(
+custom_widget_prop!(
+    AlignSelf,
+    align_self,
+    IntoAlignSelfSignal,
+    simple.align_self
+);
+custom_widget_prop!(
     JustifySelf,
     justify_self,
-    taffy::JustifySelf,
+    IntoJustifySelfSignal,
     simple.justify_self
 );
 widget_prop!(Basis, basis, Dimension, simple.basis);

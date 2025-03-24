@@ -2,8 +2,8 @@ use std::process::ExitCode;
 
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::{
-    Borders, absolute, align_items, borders, full, height, justify_content, padding, position,
-    show, width,
+    Borders, absolute, align_items, borders, center, full, height, justify_content, padding,
+    position, show, width,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
@@ -19,7 +19,6 @@ use rooibos::runtime::{
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use rooibos::tui::text::Line;
-use taffy::{AlignItems, JustifyContent};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -90,11 +89,11 @@ fn popup(
             height(full()),
             show(show_popup),
             position(absolute()),
-            align_items(AlignItems::Center),
-            justify_content(JustifyContent::Center),
+            align_items(center()),
+            justify_content(center()),
         ),
         col![
-            style(borders(Borders::all()), align_items(AlignItems::Center)),
+            style(borders(Borders::all()), align_items(center())),
             wgt!(text.get().unwrap_or_default()),
             row![
                 Button::new()

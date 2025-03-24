@@ -14,7 +14,7 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, absolute, align_items, borders, clear, full, height, justify_content, margin,
+    Borders, absolute, align_items, borders, center, clear, full, height, justify_content, margin,
     overflow_y, padding, padding_left, position, scroll, show, width,
 };
 use rooibos::reactive::dom::{
@@ -34,7 +34,6 @@ use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
 use server::run_server;
-use taffy::{AlignItems, JustifyContent};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -102,7 +101,7 @@ fn app(notification_timeout: Duration) -> impl Render {
     col![
         style(padding(1), width(full()), height(full())),
         row![
-            style(width(full()), align_items(AlignItems::Center)),
+            style(width(full()), align_items(center())),
             wgt!("Add a Todo"),
             add_todo_input(input_id)
         ],
@@ -262,8 +261,8 @@ fn saving_popup() -> impl RenderAny {
             width(full()),
             height(full()),
             position(absolute()),
-            align_items(AlignItems::Center),
-            justify_content(JustifyContent::Center),
+            align_items(center()),
+            justify_content(center()),
             show(pending)
         ),
         wgt!(

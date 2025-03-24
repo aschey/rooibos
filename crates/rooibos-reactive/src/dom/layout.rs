@@ -42,7 +42,7 @@ macro_rules! impl_next_tuple {
     };
 }
 
-macro_rules! signal_wrapper {
+macro_rules! signal_wrapper_inner {
     ($struct_name:ident, $fn:ident, $inner:ty, $default:expr) => {
         #[derive(Default, Clone)]
         pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
@@ -66,6 +66,12 @@ macro_rules! signal_wrapper {
                 self.0.clone()
             }
         }
+    };
+}
+
+macro_rules! signal_wrapper {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr) => {
+        signal_wrapper_inner!($struct_name, $fn, $inner, $default);
 
         pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
             $struct_name(Some(val.into()))
@@ -73,33 +79,12 @@ macro_rules! signal_wrapper {
     };
 }
 
-macro_rules! dimension_signal_wrapper {
-    ($struct_name:ident, $fn:ident, $default:expr) => {
-        #[derive(Default, Clone)]
-        pub struct $struct_name(pub(crate) Option<Signal<$crate::dom::layout::Dimension>>);
+macro_rules! custom_signal_wrapper {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $impl_trait:ident, $f:expr) => {
+        signal_wrapper_inner!($struct_name, $fn, $inner, $default);
 
-        impl_next_tuple!($struct_name);
-
-        impl From<Signal<$crate::dom::layout::Dimension>> for $struct_name {
-            fn from(val: Signal<Dimension>) -> Self {
-                $struct_name(Some(val))
-            }
-        }
-
-        impl From<$struct_name> for Signal<$crate::dom::layout::Dimension> {
-            fn from(val: $struct_name) -> Self {
-                val.0.unwrap_or_else(|| $default.into())
-            }
-        }
-
-        impl $struct_name {
-            pub fn value(&self) -> Option<Signal<$crate::dom::layout::Dimension>> {
-                self.0.clone()
-            }
-        }
-
-        pub fn $fn(val: impl IntoDimensionSignal) -> $struct_name {
-            $struct_name(Some(val.into_dimension_signal()))
+        pub fn $fn(val: impl $impl_trait) -> $struct_name {
+            $struct_name(Some($f(val)))
         }
     };
 }
@@ -354,10 +339,8 @@ impl Property for Enabled {
     }
 }
 
-macro_rules! layout_prop {
-    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($($props:ident).+),+) => {
-        signal_wrapper!($struct_name, $fn, $inner, $default);
-
+macro_rules! update_layout {
+    ($struct_name:ident, $($($props:ident).+),+) => {
         impl UpdateLayout for $struct_name {
             fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
                 if let Some(inner) = self.0 {
@@ -366,26 +349,113 @@ macro_rules! layout_prop {
 
             }
         }
+    }
+}
+
+macro_rules! update_layout_opt {
+    ($struct_name:ident, $($($props:ident).+),+) => {
+        impl UpdateLayout for $struct_name {
+            fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
+                if let Some(inner) = self.0 {
+                    $(style.$($props).* = Some(inner.get().into());)+
+                }
+            }
+        }
+    };
+}
+
+macro_rules! layout_prop {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($props:tt)+) => {
+        signal_wrapper!($struct_name, $fn, $inner, $default);
+        update_layout!($struct_name, $($props)+);
     };
 }
 
 macro_rules! dimension_layout_prop {
-    ($struct_name:ident, $fn:ident, $default:expr, $($($props:ident).+),+) => {
-        dimension_signal_wrapper!($struct_name, $fn, $default);
+    ($struct_name:ident, $fn:ident, $default:expr, $($props:tt)+) => {
+        custom_signal_wrapper!($struct_name, $fn, $crate::dom::layout::Dimension, $default, IntoDimensionSignal, IntoDimensionSignal::into_dimension_signal);
+        update_layout!($struct_name, $($props)+);
+    };
+}
 
-        impl UpdateLayout for $struct_name {
-            fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
-                if let Some(inner) = self.0 {
-                    $(style.$($props).* = inner.get().into();)+
-                }
+macro_rules! custom_layout_prop_opt {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $impl_trait:ident, $f:expr,$($props:tt)+) => {
+        custom_signal_wrapper!($struct_name, $fn, $inner, $default, $impl_trait, $f);
+        update_layout_opt!($struct_name, $($props)+);
+    };
+}
 
+macro_rules! impl_signal_into {
+    ($trait_name:ident, $trait_fn:ident, $impl_ty:ty) => {
+        impl $trait_name for Signal<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$impl_ty> {
+                self
+            }
+        }
+
+        impl $trait_name for ReadSignal<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$impl_ty> {
+                self.into()
+            }
+        }
+
+        impl $trait_name for RwSignal<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$impl_ty> {
+                self.into()
+            }
+        }
+
+        impl $trait_name for Memo<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$impl_ty> {
+                self.into()
             }
         }
     };
 }
 
+macro_rules! impl_signal_derives {
+    ($trait_name:ident, $trait_fn:ident, $ret_ty:ty, $impl_ty:ty) => {
+        impl $trait_name for Signal<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$ret_ty> {
+                derive_signal!(self.get().into())
+            }
+        }
+
+        impl $trait_name for ReadSignal<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$ret_ty> {
+                derive_signal!(self.get().into())
+            }
+        }
+
+        impl $trait_name for RwSignal<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$ret_ty> {
+                derive_signal!(self.get().into())
+            }
+        }
+
+        impl $trait_name for Memo<$impl_ty> {
+            fn $trait_fn(self) -> Signal<$ret_ty> {
+                derive_signal!(self.get().into())
+            }
+        }
+    };
+}
+
+macro_rules! impl_trait_into {
+    ($trait_name:ident, $trait_fn:ident, $ret_ty:ty, $impl_ty:ty) => {
+        impl $trait_name for $impl_ty {
+            fn $trait_fn(self) -> Signal<$ret_ty> {
+                let val: $ret_ty = self.into();
+                val.into()
+            }
+        }
+
+        impl_signal_derives!($trait_name, $trait_fn, $ret_ty, $impl_ty);
+    };
+}
+
 macro_rules! layout_prop_opt {
-    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($prop:ident).*) => {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $($prop:tt)+) => {
         #[derive(Default, Clone)]
         pub struct $struct_name(pub(crate) Option<Signal<$inner>>);
 
@@ -401,13 +471,7 @@ macro_rules! layout_prop_opt {
             }
         }
 
-        impl UpdateLayout for $struct_name {
-            fn update_layout(&self, _: taffy::Display, style: &mut taffy::Style) {
-                if let Some(inner) = self.0 {
-                    style.$($prop).* = Some(inner.get().into());
-                }
-            }
-        }
+        update_layout_opt!($struct_name, $($prop)+);
 
         impl_next_tuple!($struct_name);
 
@@ -528,101 +592,23 @@ pub trait IntoDimensionSignal {
     fn into_dimension_signal(self) -> Signal<Dimension>;
 }
 
-impl IntoDimensionSignal for Signal<Dimension> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        self
-    }
-}
+impl_signal_into!(IntoDimensionSignal, into_dimension_signal, Dimension);
 
-impl IntoDimensionSignal for ReadSignal<Dimension> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        self.into()
-    }
-}
+impl_signal_derives!(IntoDimensionSignal, into_dimension_signal, Dimension, u32);
 
-impl IntoDimensionSignal for Memo<Dimension> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        self.into()
-    }
-}
+impl_signal_derives!(
+    IntoDimensionSignal,
+    into_dimension_signal,
+    Dimension,
+    &'static str
+);
 
-impl IntoDimensionSignal for RwSignal<Dimension> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        self.into()
-    }
-}
-
-impl IntoDimensionSignal for Signal<u32> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for ReadSignal<u32> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for RwSignal<u32> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for Memo<u32> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for Signal<&'static str> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for ReadSignal<&'static str> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for RwSignal<&'static str> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for Memo<&'static str> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for Signal<String> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for ReadSignal<String> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for RwSignal<String> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
-
-impl IntoDimensionSignal for Memo<String> {
-    fn into_dimension_signal(self) -> Signal<Dimension> {
-        derive_signal!(self.get().into())
-    }
-}
+impl_signal_derives!(
+    IntoDimensionSignal,
+    into_dimension_signal,
+    Dimension,
+    String
+);
 
 impl IntoDimensionSignal for u32 {
     fn into_dimension_signal(self) -> Signal<Dimension> {
@@ -679,6 +665,247 @@ pub const fn absolute() -> taffy::Position {
     taffy::Position::Absolute
 }
 
+pub trait IntoAlignItemsSignal {
+    fn into_align_items_signal(self) -> Signal<taffy::AlignItems>;
+}
+
+pub trait IntoJustifyContentSignal {
+    fn into_justify_content_signal(self) -> Signal<taffy::JustifyContent>;
+}
+
+pub trait IntoJustifyItemsSignal {
+    fn into_justify_items_signal(self) -> Signal<taffy::JustifyItems>;
+}
+
+pub trait IntoJustifySelfSignal {
+    fn into_justify_self_signal(self) -> Signal<taffy::JustifySelf>;
+}
+
+pub trait IntoAlignSelfSignal {
+    fn into_align_self_signal(self) -> Signal<taffy::AlignSelf>;
+}
+
+pub trait IntoAlignContentSignal {
+    fn into_align_content_signal(self) -> Signal<taffy::AlignContent>;
+}
+
+impl_signal_into!(
+    IntoAlignItemsSignal,
+    into_align_items_signal,
+    taffy::AlignItems
+);
+impl_signal_into!(
+    IntoAlignContentSignal,
+    into_align_content_signal,
+    taffy::AlignContent
+);
+impl_signal_into!(
+    IntoJustifyItemsSignal,
+    into_justify_items_signal,
+    taffy::JustifyItems
+);
+impl_signal_into!(
+    IntoJustifyContentSignal,
+    into_justify_content_signal,
+    taffy::JustifyContent
+);
+impl_signal_into!(
+    IntoAlignSelfSignal,
+    into_align_self_signal,
+    taffy::AlignSelf
+);
+impl_signal_into!(
+    IntoJustifySelfSignal,
+    into_justify_self_signal,
+    taffy::JustifySelf
+);
+
+impl_trait_into!(
+    IntoAlignItemsSignal,
+    into_align_items_signal,
+    taffy::AlignItems,
+    Start
+);
+impl_trait_into!(
+    IntoAlignContentSignal,
+    into_align_content_signal,
+    taffy::AlignContent,
+    Start
+);
+impl_trait_into!(
+    IntoJustifyItemsSignal,
+    into_justify_items_signal,
+    taffy::JustifyItems,
+    Start
+);
+impl_trait_into!(
+    IntoJustifyContentSignal,
+    into_justify_content_signal,
+    taffy::JustifyContent,
+    Start
+);
+impl_trait_into!(
+    IntoAlignSelfSignal,
+    into_align_self_signal,
+    taffy::AlignSelf,
+    Start
+);
+impl_trait_into!(
+    IntoJustifySelfSignal,
+    into_justify_self_signal,
+    taffy::JustifySelf,
+    Start
+);
+
+impl_trait_into!(
+    IntoAlignItemsSignal,
+    into_align_items_signal,
+    taffy::AlignItems,
+    End
+);
+impl_trait_into!(
+    IntoAlignContentSignal,
+    into_align_content_signal,
+    taffy::AlignContent,
+    End
+);
+impl_trait_into!(
+    IntoJustifyItemsSignal,
+    into_justify_items_signal,
+    taffy::JustifyItems,
+    End
+);
+impl_trait_into!(
+    IntoJustifyContentSignal,
+    into_justify_content_signal,
+    taffy::JustifyContent,
+    End
+);
+impl_trait_into!(
+    IntoAlignSelfSignal,
+    into_align_self_signal,
+    taffy::AlignSelf,
+    End
+);
+impl_trait_into!(
+    IntoJustifySelfSignal,
+    into_justify_self_signal,
+    taffy::JustifySelf,
+    End
+);
+
+impl_trait_into!(
+    IntoAlignItemsSignal,
+    into_align_items_signal,
+    taffy::AlignItems,
+    Center
+);
+impl_trait_into!(
+    IntoAlignContentSignal,
+    into_align_content_signal,
+    taffy::AlignContent,
+    Center
+);
+impl_trait_into!(
+    IntoJustifyItemsSignal,
+    into_justify_items_signal,
+    taffy::JustifyItems,
+    Center
+);
+impl_trait_into!(
+    IntoJustifyContentSignal,
+    into_justify_content_signal,
+    taffy::JustifyContent,
+    Center
+);
+impl_trait_into!(
+    IntoAlignSelfSignal,
+    into_align_self_signal,
+    taffy::AlignSelf,
+    Center
+);
+impl_trait_into!(
+    IntoJustifySelfSignal,
+    into_justify_self_signal,
+    taffy::JustifySelf,
+    Center
+);
+
+impl_trait_into!(
+    IntoAlignItemsSignal,
+    into_align_items_signal,
+    taffy::AlignItems,
+    FlexStart
+);
+impl_trait_into!(
+    IntoAlignContentSignal,
+    into_align_content_signal,
+    taffy::AlignContent,
+    FlexStart
+);
+impl_trait_into!(
+    IntoJustifyItemsSignal,
+    into_justify_items_signal,
+    taffy::JustifyItems,
+    FlexStart
+);
+impl_trait_into!(
+    IntoJustifyContentSignal,
+    into_justify_content_signal,
+    taffy::JustifyContent,
+    FlexStart
+);
+impl_trait_into!(
+    IntoAlignSelfSignal,
+    into_align_self_signal,
+    taffy::AlignSelf,
+    FlexStart
+);
+impl_trait_into!(
+    IntoJustifySelfSignal,
+    into_justify_self_signal,
+    taffy::JustifySelf,
+    FlexStart
+);
+
+impl_trait_into!(
+    IntoAlignItemsSignal,
+    into_align_items_signal,
+    taffy::AlignItems,
+    FlexEnd
+);
+impl_trait_into!(
+    IntoAlignContentSignal,
+    into_align_content_signal,
+    taffy::AlignContent,
+    FlexEnd
+);
+impl_trait_into!(
+    IntoJustifyItemsSignal,
+    into_justify_items_signal,
+    taffy::JustifyItems,
+    FlexEnd
+);
+impl_trait_into!(
+    IntoJustifyContentSignal,
+    into_justify_content_signal,
+    taffy::JustifyContent,
+    FlexEnd
+);
+impl_trait_into!(
+    IntoAlignSelfSignal,
+    into_align_self_signal,
+    taffy::AlignSelf,
+    FlexEnd
+);
+impl_trait_into!(
+    IntoJustifySelfSignal,
+    into_justify_self_signal,
+    taffy::JustifySelf,
+    FlexEnd
+);
+
+#[derive(Clone, Copy)]
 pub struct Start;
 
 pub const fn start() -> Start {
@@ -697,6 +924,7 @@ impl From<Start> for taffy::AlignContent {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct End;
 
 pub const fn end() -> End {
@@ -727,6 +955,7 @@ impl From<End> for Signal<taffy::AlignContent> {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct FlexStart;
 
 pub const fn flex_start() -> FlexStart {
@@ -745,6 +974,7 @@ impl From<FlexStart> for taffy::AlignContent {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct FlexEnd;
 
 pub const fn flex_end() -> FlexEnd {
@@ -763,6 +993,7 @@ impl From<FlexEnd> for taffy::AlignContent {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Center;
 
 pub const fn center() -> Center {
@@ -959,15 +1190,15 @@ layout_prop!(
 // align self - align self along cross axis
 // justify self - ignored in flexbox
 
-pub fn align_cross(val: impl Into<Signal<taffy::AlignItems>>) -> AlignItems {
+pub fn align_cross(val: impl IntoAlignItemsSignal) -> AlignItems {
     align_items(val)
 }
 
-pub fn align_main(val: impl Into<Signal<taffy::JustifyContent>>) -> JustifyContent {
+pub fn align_main(val: impl IntoJustifyContentSignal) -> JustifyContent {
     justify_content(val)
 }
 
-pub fn align_container(val: impl Into<Signal<taffy::AlignContent>>) -> AlignContent {
+pub fn align_container(val: impl IntoAlignContentSignal) -> AlignContent {
     align_content(val)
 }
 
@@ -979,32 +1210,40 @@ layout_prop!(
     taffy::FlexWrap::default(),
     flex_wrap
 );
-layout_prop_opt!(
+custom_layout_prop_opt!(
     AlignItems,
     align_items,
     taffy::AlignItems,
     taffy::AlignItems::Start,
+    IntoAlignItemsSignal,
+    IntoAlignItemsSignal::into_align_items_signal,
     align_items
 );
-layout_prop_opt!(
+custom_layout_prop_opt!(
     AlignContent,
     align_content,
     taffy::AlignContent,
     taffy::AlignContent::Start,
+    IntoAlignContentSignal,
+    IntoAlignContentSignal::into_align_content_signal,
     align_content
 );
-layout_prop_opt!(
+custom_layout_prop_opt!(
     JustifyContent,
     justify_content,
     taffy::JustifyContent,
     taffy::JustifyContent::Start,
+    IntoJustifyContentSignal,
+    IntoJustifyContentSignal::into_justify_content_signal,
     justify_content
 );
-layout_prop_opt!(
+custom_layout_prop_opt!(
     JustifyItems,
     justify_items,
     taffy::JustifyItems,
     taffy::JustifyItems::Start,
+    IntoJustifyItemsSignal,
+    IntoJustifyItemsSignal::into_justify_items_signal,
     justify_items
 );
 layout_prop!(
@@ -1016,19 +1255,23 @@ layout_prop!(
 );
 layout_prop!(Grow, grow, f32, 0.0, flex_grow);
 layout_prop!(Shrink, shrink, f32, 0.0, flex_shrink);
-layout_prop_opt!(
+custom_layout_prop_opt!(
     AlignSelf,
     align_self,
     taffy::AlignSelf,
     taffy::AlignSelf::Start,
+    IntoAlignSelfSignal,
+    IntoAlignSelfSignal::into_align_self_signal,
     align_self
 );
-layout_prop_opt!(
+custom_layout_prop_opt!(
     JustifySelf,
     justify_self,
     taffy::JustifySelf,
     taffy::JustifySelf::Start,
-    align_self
+    IntoJustifySelfSignal,
+    IntoJustifySelfSignal::into_justify_self_signal,
+    justify_self
 );
 layout_prop!(Basis, basis, Dimension, Dimension::Auto, flex_basis);
 

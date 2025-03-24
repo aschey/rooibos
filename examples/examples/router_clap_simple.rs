@@ -2,14 +2,13 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 use rooibos::components::Button;
-use rooibos::reactive::dom::layout::{Borders, align_items, borders, full, height, width};
+use rooibos::reactive::dom::layout::{Borders, align_items, borders, center, full, height, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
 use rooibos::reactive::{col, row, wgt};
 use rooibos::router::{Route, RouteContext, RouteFrom, ToRoute, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use taffy::AlignItems;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -42,7 +41,7 @@ async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
 fn app(initial_route: impl ToRoute + 'static) -> impl Render {
     let (router, route_context) = use_router();
     col![
-        style(align_items(AlignItems::Center), width(30)),
+        style(align_items(center()), width(30)),
         col![
             style(height(10), width(full()), borders(Borders::all())),
             router
@@ -62,7 +61,7 @@ fn home(route_context: RouteContext) -> impl Render {
     let about_click = move || route_context.push(Routes::About);
     let blog_click = move || route_context.push(Routes::Blogs);
     col![
-        style(align_items(AlignItems::Center)),
+        style(align_items(center())),
         wgt!(style(width(22), height(2)), "This is the home page"),
         row![
             style(width(18)),
