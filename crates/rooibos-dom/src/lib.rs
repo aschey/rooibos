@@ -7,6 +7,7 @@ mod nonblocking_terminal;
 #[cfg(target_arch = "wasm32")]
 mod nonblocking_terminal_wasm;
 pub mod widgets;
+mod wrap;
 
 use std::borrow::Cow;
 use std::cell::{LazyCell, OnceCell};

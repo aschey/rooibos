@@ -121,7 +121,7 @@ impl Debug for NodeType {
     }
 }
 
-#[expect(clippy::large_enum_variant)]
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
     Layout { block: Option<Block<'static>> },

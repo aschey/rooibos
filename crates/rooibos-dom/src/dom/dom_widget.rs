@@ -196,6 +196,22 @@ impl MeasureNode for Text<'_> {
         _available_space: Size<AvailableSpace>,
         _style: &Style,
     ) -> Size<f32> {
+        // TODO: figure out wrapping
+        // if let Some(width) = available_space.width.into_option() {
+        //     let wrapped = wrap_text(
+        //         self,
+        //         wrap::Options {
+        //             width: width as usize,
+        //             initial_indent: Span::default(),
+        //             subsequent_indent: Span::default(),
+        //             break_words: true,
+        //         },
+        //     );
+        //     return Size {
+        //         width: wrapped.width() as f32,
+        //         height: wrapped.height() as f32,
+        //     };
+        // }
         Size {
             width: self.width() as f32,
             height: self.height() as f32,

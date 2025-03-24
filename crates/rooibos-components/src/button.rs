@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use ratatui::layout::Alignment;
-use ratatui::style::{Style, Stylize};
+use ratatui::style::Style;
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
 use rooibos_dom::{KeyCode, delay, supports_key_up};
@@ -16,6 +16,8 @@ use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{StateProp, derive_signal, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
+
+use crate::{ColorThemeStyle, with_theme};
 
 #[derive(Clone, Copy)]
 pub struct ButtonRef {
@@ -73,16 +75,29 @@ impl Button {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
-            button_style: StateProp::new(Style::default())
-                .disabled(|s| s.gray().on_dark_gray())
-                .into(),
+            button_style: with_theme(|_| {
+                StateProp::new(Style::default()).disabled(|s| s.disabled_fg().on_disabled_bg())
+            }),
             active_button_style: Style::new().into(),
-            button_borders: StateProp::new(Borders::all().outer().round().gray())
-                .focused(|b| b.blue())
-                .hovered(|b| b.double())
-                .disabled(|b| b.inner().dark_gray())
-                .into(),
-            active_button_borders: Borders::all().double().green().into(),
+            button_borders: with_theme(|theme| {
+                let app_properties = theme.app_properties;
+                StateProp::new(
+                    Borders::all()
+                        .border_type(app_properties.button_borders)
+                        .border(),
+                )
+                .focused(move |b| b.focused_border())
+                .hovered(move |b| b.border_type(app_properties.hovered_button_borders))
+                .disabled(move |b| {
+                    b.border_type(app_properties.disabled_button_borders)
+                        .disabled_border()
+                })
+            }),
+            active_button_borders: with_theme(|theme| {
+                Borders::all()
+                    .border_type(theme.app_properties.active_button_borders)
+                    .active_highlight()
+            }),
             text_alignment: Alignment::Left.into(),
             element_ref: None,
         }

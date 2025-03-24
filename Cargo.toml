@@ -45,6 +45,7 @@ termwiz = "0.22"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "591652f5e43347c30f847826088b75b9675508e3" }
 
 # proc macros
 manyhow = "0.11"
@@ -94,6 +95,7 @@ tokio-stream = "0.1.17"
 base64 = "0.22.1"
 clipboard-win = "5.4"
 web-sys = "0.3.77"
+itertools = "0.14"
 
 # examples/testing
 tracing-subscriber = "0.3.19"

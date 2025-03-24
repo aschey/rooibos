@@ -289,7 +289,7 @@ fn dispatch_node_disable(key: DomNodeKey) {
                 );
             }
         },
-        AllowDisabled::Disallow,
+        AllowDisabled::Allow,
     );
 }
 

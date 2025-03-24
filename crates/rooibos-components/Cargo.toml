@@ -24,6 +24,7 @@ tokio-util = { workspace = true }
 futures-cancel = { workspace = true }
 getrandom = { workspace = true, features = ["wasm_js"], optional = true }
 derive_more = { workspace = true, features = ["deref", "deref_mut"] }
+tui-theme = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tui-term = { workspace = true, optional = true }
