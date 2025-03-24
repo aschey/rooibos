@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use next_tuple::NextTuple;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
@@ -7,6 +9,7 @@ use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::NodeId;
 pub use rooibos_dom::{BorderType, Borders};
 use taffy::Display;
+use wasm_compat::sync::Mutex;
 
 use super::{DomNode, with_nodes_mut};
 use crate::derive_signal;
@@ -170,11 +173,31 @@ impl Property for ZIndex {
 }
 
 #[cfg(feature = "effects")]
+#[derive(Clone)]
+pub struct SyncEffect(Arc<Mutex<rooibos_dom::tachyonfx::Effect>>);
+
+#[cfg(feature = "effects")]
+impl SyncEffect {
+    pub fn new(effect: rooibos_dom::tachyonfx::Effect) -> Self {
+        Self(Arc::new(Mutex::new(effect)))
+    }
+}
+
+#[cfg(feature = "effects")]
+impl From<rooibos_dom::tachyonfx::Effect> for SyncEffect {
+    fn from(value: rooibos_dom::tachyonfx::Effect) -> Self {
+        Self::new(value)
+    }
+}
+
+#[cfg(feature = "effects")]
 signal_wrapper!(
     Effect,
     effect,
-    rooibos_dom::tachyonfx::Effect,
-    rooibos_dom::tachyonfx::Effect::new(rooibos_dom::tachyonfx::fx::sequence(&[]))
+    SyncEffect,
+    SyncEffect(Arc::new(Mutex::new(rooibos_dom::tachyonfx::Effect::new(
+        rooibos_dom::tachyonfx::fx::sequence(&[])
+    ))))
 );
 
 #[cfg(feature = "effects")]
@@ -186,7 +209,7 @@ impl Property for Effect {
         RenderEffect::new(move |_| {
             if let Some(effect) = self.0 {
                 with_nodes_mut(|nodes| {
-                    nodes.set_effect(key, effect.get());
+                    nodes.set_effect(key, effect.get().0.lock().clone());
                 });
             }
         })

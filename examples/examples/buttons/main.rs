@@ -31,8 +31,7 @@ fn app() -> impl Render {
 
     let adjust_size = move |adjustment: i32| {
         set_block_height.update(|b| {
-            *b = (*b as i32 + adjustment) as u32;
-            *b = (*b).clamp(MIN_SIZE, MAX_SIZE);
+            *b = ((*b as i32 + adjustment) as u32).clamp(MIN_SIZE, MAX_SIZE);
         });
     };
     let bigger = "bigger";

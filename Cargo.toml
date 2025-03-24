@@ -75,7 +75,7 @@ taffy = "0.7.7"
 thiserror = "2"
 textwrap = "0.16.2"
 unicode-width = "0.2.0"
-tachyonfx = { git = "https://github.com/aschey/tachyonfx", rev = "96fdf27fe17bfe1f0c678750d7554a502943cef2", default-features = false }
+tachyonfx = { version = "0.11.1", default-features = false }
 clap = "4.5.32"
 shlex = "1.3.0"
 clap_complete = "4.5.46"

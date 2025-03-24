@@ -1,3 +1,4 @@
+
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::Signal;
@@ -13,12 +14,13 @@ use super::layout::{
     IntoJustifyContentSignal, IntoJustifyItemsSignal, JustifyContent, JustifyItems, Margin,
     MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
     MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
-    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Shrink, Width, Wrap,
-    ZIndex, align_content, align_items, align_self, aspect_ratio, basis, borders, class, clear,
-    focusable, gap, grow, height, id, justify_content, justify_items, margin, margin_bottom,
-    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
-    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, show, shrink, width, wrap, z_index,
+    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Shrink, SyncEffect,
+    Width, Wrap, ZIndex, align_content, align_items, align_self, aspect_ratio, basis, borders,
+    class, clear, focusable, gap, grow, height, id, justify_content, justify_items, margin,
+    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
+    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, show, shrink, width,
+    wrap, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -238,7 +240,7 @@ flex_prop!(Clear, clear, bool);
 flex_prop!(Class, class, Vec<String>);
 flex_prop!(ZIndex, z_index, i32);
 #[cfg(feature = "effects")]
-flex_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect);
+flex_prop!(Effect, effect, SyncEffect);
 
 flex_prop!(Wrap, wrap, taffy::FlexWrap);
 custom_flex_prop!(AlignItems, align_items, IntoAlignItemsSignal);

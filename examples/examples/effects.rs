@@ -1,7 +1,7 @@
 use std::process::ExitCode;
 
 use ratatui::style::Color;
-use rooibos::reactive::dom::layout::effect;
+use rooibos::reactive::dom::layout::{SyncEffect, effect};
 use rooibos::reactive::dom::{Render, text};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Set;
@@ -20,7 +20,7 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    let (current_effect, set_current_effect) = signal(fx::sequence(&[
+    let (current_effect, set_current_effect) = signal(SyncEffect::new(fx::sequence(&[
         fx::ping_pong(fx::sweep_in(
             Motion::LeftToRight,
             10,
@@ -29,7 +29,7 @@ fn app() -> impl Render {
             EffectTimer::from_ms(2000, Interpolation::QuadIn),
         )),
         fx::coalesce((800, Interpolation::SineOut)),
-    ]));
+    ])));
     wasm_compat::spawn_local(async move {
         wasm_compat::sleep(std::time::Duration::from_secs(7)).await;
         let glitch = Glitch::builder()
@@ -39,7 +39,7 @@ fn app() -> impl Render {
             .cell_glitch_ratio(1.0)
             .build()
             .into_effect();
-        set_current_effect.set(glitch);
+        set_current_effect.set(glitch.into());
     });
 
     row![

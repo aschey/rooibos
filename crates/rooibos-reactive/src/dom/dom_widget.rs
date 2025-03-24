@@ -18,12 +18,12 @@ use super::layout::{
     Height, Id, IntoAlignSelfSignal, IntoJustifySelfSignal, JustifySelf, Margin, MarginBottom,
     MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth,
     Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
-    PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width, ZIndex, align_self,
-    aspect_ratio, basis, borders, class, clear, enabled, focusable, grow, height, id, justify_self,
-    margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
-    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
-    z_index,
+    PaddingX, PaddingY, Position, Property, Shrink, SyncEffect, UpdateLayout, Width, ZIndex,
+    align_self, aspect_ratio, basis, borders, class, clear, enabled, focusable, grow, height, id,
+    justify_self, margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y,
+    max_height, max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding,
+    padding_bottom, padding_left, padding_right, padding_top, padding_x, padding_y, position,
+    shrink, width, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -678,7 +678,7 @@ where
     update_props!(class, Vec<String>);
     update_props!(z_index, i32);
     #[cfg(feature = "effects")]
-    update_props!(effect, rooibos_dom::tachyonfx::Effect);
+    update_props!(effect, SyncEffect);
 
     fn id<S>(self, val: S) -> Self
     where
@@ -864,7 +864,7 @@ widget_prop!(Enabled, enabled, bool, enabled);
 widget_prop!(Class, class, Vec<String>, class);
 widget_prop!(ZIndex, z_index, i32, z_index);
 #[cfg(feature = "effects")]
-widget_prop!(Effect, effect, rooibos_dom::tachyonfx::Effect, effect);
+widget_prop!(Effect, effect, SyncEffect, effect);
 
 macro_rules! impl_widget_property_for_tuples {
     ($($ty:ident),* $(,)?) => {
