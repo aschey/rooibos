@@ -56,6 +56,7 @@ pub struct Options<'a> {
 /// Wraps a [`Text`] block.
 ///
 /// `text` should be broken up into lines at the time it's passed in.
+#[expect(unused)]
 pub(crate) fn wrap_text<'a>(text: &'a Text<'_>, options: Options<'a>) -> Text<'a> {
     let mut lines = Vec::new();
     // We currently assume that lines in text don't have embedded newlines in
@@ -70,6 +71,7 @@ pub(crate) fn wrap_text<'a>(text: &'a Text<'_>, options: Options<'a>) -> Text<'a
 /// Wraps a [`Line`] representing a single line.
 ///
 /// If the text contains multiple lines, use [`wrap_text`] instead.
+#[expect(unused)]
 pub(crate) fn wrap_line<'a>(line: &'a Line<'_>, options: Options<'a>) -> Text<'a> {
     let mut lines = Vec::new();
     wrap_single_line(line, &options, &mut lines);
@@ -111,7 +113,7 @@ fn wrap_single_line_slow_path<'a>(
         .saturating_sub(options.subsequent_indent.width());
     let line_widths = [initial_width, subsequent_width];
 
-    let split_words = find_words_in_line(&line);
+    let split_words = find_words_in_line(line);
 
     // We don't perform any word splitting.
     let broken_words = if options.break_words {
@@ -145,7 +147,7 @@ fn wrap_single_line_slow_path<'a>(
             output_line.push(options.subsequent_indent.clone());
         }
 
-        for (position, word) in words.into_iter().with_position() {
+        for (position, word) in words.iter().with_position() {
             match position {
                 Position::First | Position::Middle => {
                     output_line.extend(word.word_span());
@@ -296,7 +298,7 @@ impl<'a> StyledWord<'a> {
     }
 }
 
-impl<'a> Fragment for StyledWord<'a> {
+impl Fragment for StyledWord<'_> {
     fn width(&self) -> f64 {
         // self.width is the display width, which is what we care about here.
         self.width as f64

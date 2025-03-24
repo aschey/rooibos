@@ -146,9 +146,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             rows,
             xpixel,
             ypixel,
-        } = terminal
-            .get_screen_size()
-            .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        } = terminal.get_screen_size().map_err(io::Error::other)?;
         Ok(WindowSize {
             columns_rows: Size {
                 width: cols as u16,
@@ -281,5 +279,5 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
 }
 
 fn into_io_error(error: termwiz::Error) -> io::Error {
-    io::Error::new(io::ErrorKind::Other, error.to_string())
+    io::Error::other(error.to_string())
 }
