@@ -11,6 +11,7 @@ use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
+use rooibos_dom::Event;
 use rooibos_dom::events::{IntoKeyHandler, KeyEventProps, KeyHandler};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::graph::computed::Memo;
@@ -18,6 +19,7 @@ use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::{WriteSignal, signal};
 use rooibos_reactive::graph::traits::{Get, Update, With, WriteValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
+use terminput_crossterm::to_crossterm;
 use wasm_compat::sync::Mutex;
 
 use crate::{
@@ -365,8 +367,9 @@ where
     }
 
     fn read(&mut self, props: KeyEventProps) {
-        let crossterm_event: Result<crossterm::event::KeyEvent, _> = props.event.try_into();
-        let Ok(crossterm_event) = crossterm_event else {
+        let Ok(crossterm::event::Event::Key(crossterm_event)) =
+            to_crossterm(Event::Key(props.event))
+        else {
             return;
         };
 

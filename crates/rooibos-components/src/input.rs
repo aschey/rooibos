@@ -3,7 +3,7 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::Widget;
 use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
-use rooibos_dom::{KeyCode, KeyEvent, MeasureNode, RenderNode, set_editing};
+use rooibos_dom::{Event, KeyCode, MeasureNode, RenderNode, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
@@ -265,9 +265,7 @@ impl Input {
 
                 text_area.update(|t| {
                     #[cfg(feature = "crossterm")]
-                    if let Ok(event) =
-                        <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
-                    {
+                    if let Ok(event) = terminput_crossterm::to_crossterm(Event::Key(props.event)) {
                         t.input(event);
                     }
                 });

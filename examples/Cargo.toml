@@ -39,6 +39,7 @@ tracing-appender = { workspace = true }
 shlex = { workspace = true }
 color-eyre = { workspace = true }
 ratatui = { workspace = true, features = ["palette"] }
+terminput-crossterm = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }

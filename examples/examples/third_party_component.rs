@@ -1,16 +1,17 @@
 use std::process::ExitCode;
 
-use rooibos::reactive::KeyEvent;
 use rooibos::reactive::dom::events::KeyEventProps;
 use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked as _, Track as _, Update as _, With as _};
+use rooibos::reactive::Event;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::Frame;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::widgets::{Block, Widget};
+use terminput_crossterm::to_crossterm;
 use tui_textarea::TextArea;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -28,9 +29,7 @@ fn app() -> impl Render {
 
     let key_down = move |props: KeyEventProps| {
         text_area_widget.update(|t| {
-            if let Ok(event) =
-                <KeyEvent as TryInto<crossterm::event::KeyEvent>>::try_into(props.event)
-            {
+            if let Ok(crossterm::event::Event::Key(event)) = to_crossterm(Event::Key(props.event)) {
                 t.input(event);
             }
         });

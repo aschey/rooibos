@@ -21,6 +21,7 @@ clap_complete = { workspace = true, features = [
   "unstable-dynamic",
 ], optional = true }
 unicode-width = { workspace = true }
+terminput-crossterm = { workspace = true }
 
 [features]
 runtime = ["rooibos-runtime"]

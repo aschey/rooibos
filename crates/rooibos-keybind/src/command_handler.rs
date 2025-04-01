@@ -31,6 +31,7 @@ use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, u
 use rooibos_reactive::graph::traits::{ReadValue, WriteValue};
 use rooibos_runtime::InputMode;
 use terminput::Event;
+use terminput_crossterm::to_crossterm;
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
 use wasm_compat::sync::Mutex;
@@ -372,11 +373,7 @@ where
             return Some(event);
         }
 
-        let Event::Key(key_event) = event else {
-            return Some(event);
-        };
-        let key_event: Result<crossterm::event::KeyEvent, _> = key_event.try_into();
-        let Ok(key_event) = key_event else {
+        let Ok(crossterm::event::Event::Key(key_event)) = to_crossterm(event.clone()) else {
             return Some(event);
         };
 

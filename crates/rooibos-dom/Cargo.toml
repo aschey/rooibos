@@ -31,14 +31,15 @@ tui-theme = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
+terminput-crossterm = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true, features = ["enable-interning"] }
 
 [features]
-crossterm = ["terminput/crossterm", "tui-textarea?/crossterm"]
-termion = ["terminput/termion", "tui-textarea?/termion"]
-termwiz = ["terminput/termwiz", "tui-textarea?/termwiz"]
+crossterm = ["tui-textarea?/crossterm"]
+termion = ["tui-textarea?/termion"]
+termwiz = ["tui-textarea?/termwiz"]
 input = ["tui-textarea"]
 default = ["crossterm"]
 effects = ["dep:tachyonfx"]

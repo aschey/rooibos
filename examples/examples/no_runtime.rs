@@ -11,7 +11,8 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{
-    Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers, NonblockingTerminal, wgt,
+    CTRL, Event, KeyCode, NonblockingTerminal, Repeats, key,
+    wgt,
 };
 use rooibos::terminal::{Backend, DefaultBackend};
 use rooibos::tui::style::Stylize;
@@ -78,15 +79,11 @@ async fn main() -> Result<()> {
 }
 
 fn should_exit(event: &Event) -> bool {
-    matches!(
-        event,
-        Event::Key(KeyEvent {
-            code: KeyCode::Char('c'),
-            modifiers: KeyModifiers::CTRL,
-            kind: KeyEventKind::Press,
-            ..
-        }),
-    )
+    if let Some(key_event) = event.as_key_press(Repeats::Include) {
+        matches!(key_event, key!(CTRL, KeyCode::Char('c')))
+    } else {
+        false
+    }
 }
 
 fn app() -> impl Render {

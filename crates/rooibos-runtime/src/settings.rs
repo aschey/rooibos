@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use educe::Educe;
 use ratatui::Viewport;
-use rooibos_dom::{Event, KeyCode, KeyEvent, KeyModifiers};
+use rooibos_dom::{CTRL, Event, KeyCode, KeyEvent, key};
 use wasm_compat::sync::Mutex;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -43,22 +43,8 @@ impl Default for RuntimeSettings {
             hover_debounce: Duration::from_millis(20),
             resize_debounce: Duration::from_millis(20),
             is_quit_event: Arc::new(|key_event| {
-                let ctrl_c = matches!(
-                    key_event,
-                    KeyEvent {
-                        code: KeyCode::Char('c'),
-                        modifiers: KeyModifiers::CTRL,
-                        ..
-                    }
-                );
-                let q = matches!(
-                    key_event,
-                    KeyEvent {
-                        code: KeyCode::Char('q'),
-                        modifiers: KeyModifiers::NONE,
-                        ..
-                    }
-                );
+                let ctrl_c = matches!(key_event, key!(CTRL, KeyCode::Char('c')));
+                let q = matches!(key_event, key!(KeyCode::Char('q')));
                 ctrl_c || q
             }),
             event_filter: Arc::new(Mutex::new(Box::new(|event, _| Some(event)))),

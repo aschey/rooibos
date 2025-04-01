@@ -14,6 +14,7 @@ use crossterm::terminal::{
 use crossterm::{execute, queue};
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
+use terminput_crossterm::to_terminput;
 use tokio_stream::StreamExt as _;
 
 use super::Backend;
@@ -320,7 +321,7 @@ impl<W: Write> Backend for CrosstermBackend<W> {
         let event_reader = EventStream::new().fuse();
         event_reader.filter_map(move |e| {
             if let Ok(e) = e {
-                let e: Result<rooibos_dom::Event, _> = e.try_into();
+                let e: Result<rooibos_dom::Event, _> = to_terminput(e);
                 return e.ok();
             }
             None

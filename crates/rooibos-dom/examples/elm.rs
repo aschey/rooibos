@@ -19,7 +19,8 @@ use rooibos_dom::{
     render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
-use terminput::{Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use terminput::{CTRL, Event, KeyCode, Repeats, key};
+use terminput_crossterm::to_terminput;
 use tokio::sync::mpsc;
 
 #[tokio::main(flavor = "current_thread")]
@@ -59,7 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 render_terminal(&mut terminal).await?;
             }
             Some(Ok(event)) = event_reader.next() => {
-                if let Ok(event) = event.try_into() {
+                if let Ok(event) = to_terminput(event) {
                     if should_exit(&event) {
                         break;
                     }
@@ -78,15 +79,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn should_exit(event: &Event) -> bool {
-    matches!(
-        event,
-        Event::Key(KeyEvent {
-            code: KeyCode::Char('c'),
-            modifiers: KeyModifiers::CTRL,
-            kind: KeyEventKind::Press,
-            ..
-        })
-    )
+    if let Some(key_event) = event.as_key_press(Repeats::Include) {
+        matches!(key_event, key!(CTRL, KeyCode::Char('c')))
+    } else {
+        false
+    }
 }
 fn setup_terminal() -> Result<NonblockingTerminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
     enable_raw_mode()?;

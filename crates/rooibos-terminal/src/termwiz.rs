@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
+use terminput_termwiz::to_terminput;
 use termwiz::caps::Capabilities;
 use termwiz::surface::Change;
 use termwiz::terminal::buffered::BufferedTerminal;
@@ -264,7 +265,7 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             .terminal()
             .poll_input(Some(Duration::ZERO))
         {
-            if let Ok(event) = event.try_into() {
+            if let Ok(event) = to_terminput(event) {
                 let _ = term_tx
                     .send(event)
                     .inspect_err(|e| warn!("error sending input: {e:?}"));

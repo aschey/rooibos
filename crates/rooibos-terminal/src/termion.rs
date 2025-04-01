@@ -2,6 +2,7 @@ use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
 use std::os::fd::AsFd;
 
 use ratatui::backend::WindowSize;
+use terminput_termion::to_terminput;
 use termion::input::{MouseTerminal, TermRead};
 use termion::raw::{IntoRawMode, RawTerminal};
 use termion::screen::{AlternateScreen, IntoAlternateScreen};
@@ -164,7 +165,7 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
         spawn_blocking(move || {
             let stdin = io::stdin();
             for event in stdin.events().flatten() {
-                let event: Result<rooibos_dom::Event, _> = event.try_into();
+                let event: Result<rooibos_dom::Event, _> = to_terminput(event);
                 if let Ok(event) = event {
                     if let Err(TrySendError::Closed(_)) = tx.try_send(event) {
                         return;
