@@ -421,12 +421,9 @@ fn dispatch_mouse_button<GE>(position: Position, modifiers: KeyModifiers, get_ev
 where
     GE: Fn(&EventHandlers) -> &Vec<ClickEventFn>,
 {
-    let found = hit_test(
-        position,
-        // Only widgets are actually drawn on the screen, layout types or placeholders
-        // can't have click events
-        |props| matches!(props.node_type, NodeType::Widget(_)),
-    );
+    let found = hit_test(position, |props| {
+        props.focusable() || !get_event(&props.event_handlers).is_empty()
+    });
     if !found.is_empty() {
         let mut focus_set = false;
         let mut stop_propagation = false;

@@ -4,7 +4,7 @@ use rooibos::keybind::{
     Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyActionMap, extract, keys,
     on_command,
 };
-use rooibos::reactive::dom::layout::flex_grow;
+use rooibos::reactive::dom::layout::{full, height, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -39,25 +39,25 @@ fn app() -> impl Render {
     });
 
     col![
-        wgt!(line!("count: ".bold(), count.get().cyan()))
-            .on_key_down(
-                [
-                    KeyActionMap::action(
-                        keys::combine([keys::CTRL, keys::UP]),
-                        AppAction::Count { val: 1 }
-                    ),
-                    KeyActionMap::action(
-                        keys::combine([keys::CTRL, keys::DOWN]),
-                        AppAction::Count { val: -1 }
-                    ),
-                    KeyActionMap::handler(keys::UP, move |_, _| increase_count()),
-                    KeyActionMap::handler(keys::DOWN, move |_, _| decrease_count()),
-                ]
-                .bind()
-            )
-            .on_click(move |_| increase_count()),
+        style(width(full()), height(full())),
+        wgt!(line!("count: ".bold(), count.get().cyan())).on_key_down(
+            [
+                KeyActionMap::action(
+                    keys::combine([keys::CTRL, keys::UP]),
+                    AppAction::Count { val: 1 }
+                ),
+                KeyActionMap::action(
+                    keys::combine([keys::CTRL, keys::DOWN]),
+                    AppAction::Count { val: -1 }
+                ),
+                KeyActionMap::handler(keys::UP, move |_, _| increase_count()),
+                KeyActionMap::handler(keys::DOWN, move |_, _| decrease_count()),
+            ]
+            .bind()
+        ),
         CommandBar::<AppAction>::new().height(1).render()
     ]
+    .on_click(move |_| increase_count())
 }
 
 #[derive(clap::Parser, Commands, Clone, Debug, PartialEq, Eq)]

@@ -1,7 +1,9 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, IntoKeyHandler, KeyHandler};
+use rooibos_dom::events::{
+    BlurEvent, ClickHandler, EventData, FocusEvent, IntoClickHandler, IntoKeyHandler, KeyHandler,
+};
 use rooibos_dom::{AsDomNode, Borders, NodeId};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
@@ -114,6 +116,45 @@ impl<C, P> FlexNode<C, P> {
             #[cfg(debug_assertions)]
             let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
             handler(size);
+        });
+        self
+    }
+
+    pub fn on_click<H>(mut self, handler: H) -> Self
+    where
+        H: IntoClickHandler + 'static,
+    {
+        let mut handler = handler.into_click_handler();
+        self.inner.0 = self.inner.0.on_click(move |props| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler.handle(props)
+        });
+        self
+    }
+
+    pub fn on_right_click<H>(mut self, handler: H) -> Self
+    where
+        H: IntoClickHandler + 'static,
+    {
+        let mut handler = handler.into_click_handler();
+        self.inner.0 = self.inner.0.on_right_click(move |props| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler.handle(props)
+        });
+        self
+    }
+
+    pub fn on_middle_click<H>(mut self, handler: H) -> Self
+    where
+        H: IntoClickHandler + 'static,
+    {
+        let mut handler = handler.into_click_handler();
+        self.inner.0 = self.inner.0.on_middle_click(move |props| {
+            #[cfg(debug_assertions)]
+            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+            handler.handle(props);
         });
         self
     }
