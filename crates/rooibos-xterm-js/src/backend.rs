@@ -20,6 +20,7 @@ use ratatui_xterm_js::xterm::Theme;
 use ratatui_xterm_js::{EventStream, TerminalHandle, XtermJsBackend, init_terminal};
 use rooibos_terminal::{AsyncInputStream, Backend, ClipboardKind};
 use tap::TapFallible;
+use terminput_crossterm::to_terminput;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
 use tracing::warn;
@@ -230,7 +231,7 @@ impl Backend for WasmBackend {
         let event_reader = EventStream::new().fuse();
         event_reader.filter_map(move |e| {
             if let Ok(e) = e {
-                let e: Result<rooibos_dom::Event, _> = e.try_into();
+                let e: Result<rooibos_dom::Event, _> = to_terminput(e);
                 return e.ok();
             }
             None

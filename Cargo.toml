@@ -36,7 +36,7 @@ ratatui-image = "4"
 throbber-widgets-tui = "0.8.0"
 tui-term = "0.2.0"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "39806e8f1d3454b3ae0769accf7761e05563fe79" }
+ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "498d59992d0da77bc96f7fc698303e22ae84d143" }
 
 # other TUI things
 crossterm = "0.28.1"

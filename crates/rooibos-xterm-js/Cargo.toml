@@ -13,6 +13,7 @@ tracing = { workspace = true }
 web-sys = { workspace = true, features = ["console", "Window", "Document"] }
 rooibos-dom = { workspace = true }
 rooibos-terminal = { workspace = true }
+terminput-crossterm = { workspace = true }
 tap = { workspace = true }
 futures-cancel = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
