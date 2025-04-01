@@ -199,7 +199,7 @@ impl Borders {
     }
 
     pub fn to_rect(&self) -> taffy::Rect<LengthPercentage> {
-        let set = LengthPercentage::Length(1.0);
+        let set = LengthPercentage::length(1.0);
         let mut rect = taffy::Rect::zero();
         let borders = self.borders;
         if borders.intersects(ratatui::widgets::Borders::TOP) {

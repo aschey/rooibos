@@ -8,17 +8,18 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Dimension,
-    Gap, Grow, Height, Id, IntoAlignContentSignal, IntoAlignItemsSignal, IntoAlignSelfSignal,
-    IntoJustifyContentSignal, IntoJustifyItemsSignal, JustifyContent, JustifyItems, Margin,
-    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
-    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, Show, Shrink, Width, Wrap,
-    ZIndex, align_content, align_items, align_self, aspect_ratio, basis, borders, class, clear,
-    focusable, gap, grow, height, id, justify_content, justify_items, margin, margin_bottom,
-    margin_left, margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height,
-    min_width, overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left,
-    padding_right, padding_top, padding_x, padding_y, position, show, shrink, width, wrap, z_index,
+    AlignContent, AlignItems, AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, ColumnGap,
+    Dimension, Gap, Grow, Height, Id, IntoAlignContentSignal, IntoAlignItemsSignal,
+    IntoAlignSelfSignal, IntoJustifyContentSignal, IntoJustifyItemsSignal, JustifyContent,
+    JustifyItems, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY,
+    MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
+    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
+    RowGap, Show, Shrink, Width, Wrap, ZIndex, align_content, align_items, align_self,
+    aspect_ratio, basis, borders, class, clear, column_gap, focusable, gap, grow, height, id,
+    justify_content, justify_items, margin, margin_bottom, margin_left, margin_right, margin_top,
+    margin_x, margin_y, max_height, max_width, min_height, min_width, overflow, overflow_x,
+    overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top, padding_x,
+    padding_y, position, row_gap, show, shrink, width, wrap, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -231,6 +232,10 @@ dimension_flex_prop!(PaddingX, padding_x);
 dimension_flex_prop!(PaddingY, padding_y);
 dimension_flex_prop!(Padding, padding);
 
+dimension_flex_prop!(RowGap, row_gap);
+dimension_flex_prop!(ColumnGap, column_gap);
+dimension_flex_prop!(Gap, gap);
+
 flex_prop!(BorderProp, borders, Borders);
 flex_prop!(Focusable, focusable, bool);
 flex_prop!(Show, show, bool);
@@ -245,7 +250,6 @@ custom_flex_prop!(AlignItems, align_items, IntoAlignItemsSignal);
 custom_flex_prop!(AlignContent, align_content, IntoAlignContentSignal);
 custom_flex_prop!(JustifyItems, justify_items, IntoJustifyItemsSignal);
 custom_flex_prop!(JustifyContent, justify_content, IntoJustifyContentSignal);
-flex_prop!(Gap, gap, taffy::Size<taffy::LengthPercentage>);
 flex_prop!(Grow, grow, f32);
 flex_prop!(Shrink, shrink, f32);
 custom_flex_prop!(AlignSelf, align_self, IntoAlignSelfSignal);

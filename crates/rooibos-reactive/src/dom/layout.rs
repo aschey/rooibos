@@ -511,61 +511,62 @@ pub enum Dimension {
     Auto,
 }
 
+impl From<taffy::CompactLength> for Dimension {
+    fn from(value: taffy::CompactLength) -> Self {
+        if value.is_auto() {
+            Dimension::Auto
+        } else if let Some(v) = value.resolved_percentage_size(1.0, |_, v| v) {
+            Dimension::Percent((v * 100.0) as u32)
+        } else {
+            Dimension::Chars(value.value() as u32)
+        }
+    }
+}
+
 impl From<taffy::Dimension> for Dimension {
     fn from(value: taffy::Dimension) -> Self {
-        match value {
-            taffy::Dimension::Auto => Dimension::Auto,
-            taffy::Dimension::Length(val) => Dimension::Chars(val as u32),
-            taffy::Dimension::Percent(val) => Dimension::Percent((val * 100.0) as u32),
-        }
+        value.into_raw().into()
     }
 }
 
 impl From<Dimension> for taffy::Dimension {
     fn from(value: Dimension) -> Self {
         match value {
-            Dimension::Auto => taffy::Dimension::Auto,
-            Dimension::Chars(val) => taffy::Dimension::Length(val as f32),
-            Dimension::Percent(val) => taffy::Dimension::Percent(val as f32 / 100.0),
+            Dimension::Auto => taffy::Dimension::auto(),
+            Dimension::Chars(val) => taffy::Dimension::length(val as f32),
+            Dimension::Percent(val) => taffy::Dimension::percent(val as f32 / 100.0),
         }
     }
 }
 
 impl From<taffy::LengthPercentageAuto> for Dimension {
     fn from(value: taffy::LengthPercentageAuto) -> Self {
-        match value {
-            taffy::LengthPercentageAuto::Auto => Dimension::Auto,
-            taffy::LengthPercentageAuto::Length(val) => Dimension::Chars(val as u32),
-            taffy::LengthPercentageAuto::Percent(val) => Dimension::Percent((val * 100.0) as u32),
-        }
+        value.into_raw().into()
     }
 }
 
 impl From<Dimension> for taffy::LengthPercentageAuto {
     fn from(value: Dimension) -> Self {
         match value {
-            Dimension::Auto => taffy::LengthPercentageAuto::Auto,
-            Dimension::Chars(val) => taffy::LengthPercentageAuto::Length(val as f32),
-            Dimension::Percent(val) => taffy::LengthPercentageAuto::Percent(val as f32 / 100.0),
+            Dimension::Auto => taffy::LengthPercentageAuto::auto(),
+            Dimension::Chars(val) => taffy::LengthPercentageAuto::length(val as f32),
+            Dimension::Percent(val) => taffy::LengthPercentageAuto::percent(val as f32 / 100.0),
         }
     }
 }
 
 impl From<taffy::LengthPercentage> for Dimension {
     fn from(value: taffy::LengthPercentage) -> Self {
-        match value {
-            taffy::LengthPercentage::Length(val) => Dimension::Chars(val as u32),
-            taffy::LengthPercentage::Percent(val) => Dimension::Percent((val * 100.0) as u32),
-        }
+        value.into_raw().into()
     }
 }
 
 impl From<Dimension> for taffy::LengthPercentage {
     fn from(value: Dimension) -> Self {
         match value {
-            Dimension::Auto => taffy::LengthPercentage::Length(0.0),
-            Dimension::Chars(val) => taffy::LengthPercentage::Length(val as f32),
-            Dimension::Percent(val) => taffy::LengthPercentage::Percent(val as f32 / 100.0),
+            Dimension::Auto => taffy::LengthPercentage::length(0.0),
+            Dimension::Chars(val) => taffy::LengthPercentage::length(val as f32),
+            Dimension::Percent(val) => taffy::LengthPercentage::percent(val as f32 / 100.0),
         }
     }
 }
@@ -1182,6 +1183,9 @@ dimension_layout_prop!(
     padding.left,
     padding.right
 );
+dimension_layout_prop!(ColumnGap, column_gap, Dimension::Chars(0), gap.width);
+dimension_layout_prop!(RowGap, row_gap, Dimension::Chars(0), gap.height);
+dimension_layout_prop!(Gap, gap, Dimension::Chars(0), gap.width, gap.height);
 
 layout_prop!(
     OverflowX,
@@ -1268,13 +1272,6 @@ custom_layout_prop_opt!(
     IntoJustifyItemsSignal,
     IntoJustifyItemsSignal::into_justify_items_signal,
     justify_items
-);
-layout_prop!(
-    Gap,
-    gap,
-    taffy::Size<taffy::LengthPercentage>,
-    taffy::Size::zero(),
-    gap
 );
 layout_prop!(Grow, grow, f32, 0.0, flex_grow);
 layout_prop!(Shrink, shrink, f32, 0.0, flex_shrink);
