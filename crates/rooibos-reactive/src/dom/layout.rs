@@ -689,6 +689,18 @@ pub const fn absolute() -> taffy::Position {
     taffy::Position::Absolute
 }
 
+pub const fn wrap() -> taffy::FlexWrap {
+    taffy::FlexWrap::Wrap
+}
+
+pub const fn no_wrap() -> taffy::FlexWrap {
+    taffy::FlexWrap::NoWrap
+}
+
+pub const fn wrap_reverse() -> taffy::FlexWrap {
+    taffy::FlexWrap::WrapReverse
+}
+
 pub trait IntoAlignItemsSignal {
     fn into_align_items_signal(self) -> Signal<taffy::AlignItems>;
 }
@@ -1187,6 +1199,8 @@ dimension_layout_prop!(ColumnGap, column_gap, Dimension::Chars(0), gap.width);
 dimension_layout_prop!(RowGap, row_gap, Dimension::Chars(0), gap.height);
 dimension_layout_prop!(Gap, gap, Dimension::Chars(0), gap.width, gap.height);
 
+dimension_layout_prop!(FlexBasis, flex_basis, Dimension::Auto, flex_basis);
+
 layout_prop!(
     OverflowX,
     overflow_x,
@@ -1231,8 +1245,8 @@ pub fn align_container(val: impl IntoAlignContentSignal) -> AlignContent {
 
 // Flex properties
 layout_prop!(
-    Wrap,
-    wrap,
+    FlexWrap,
+    flex_wrap,
     taffy::FlexWrap,
     taffy::FlexWrap::default(),
     flex_wrap
@@ -1273,8 +1287,8 @@ custom_layout_prop_opt!(
     IntoJustifyItemsSignal::into_justify_items_signal,
     justify_items
 );
-layout_prop!(Grow, grow, f32, 0.0, flex_grow);
-layout_prop!(Shrink, shrink, f32, 0.0, flex_shrink);
+layout_prop!(FlexGrow, flex_grow, f32, 0.0, flex_grow);
+layout_prop!(FlexShrink, flex_shrink, f32, 0.0, flex_shrink);
 custom_layout_prop_opt!(
     AlignSelf,
     align_self,
@@ -1293,7 +1307,6 @@ custom_layout_prop_opt!(
     IntoJustifySelfSignal::into_justify_self_signal,
     justify_self
 );
-layout_prop!(Basis, basis, Dimension, Dimension::Auto, flex_basis);
 
 macro_rules! impl_property_for_tuples {
     ($($ty:ident),* $(,)?) => {

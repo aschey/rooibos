@@ -1,5 +1,5 @@
 use rooibos::reactive::dom::layout::{
-    Borders, IntoDimensionSignal, borders, grow, height, min_height,
+    Borders, IntoDimensionSignal, borders, flex_grow, height, min_height,
 };
 use rooibos::reactive::dom::widgets::Sparkline;
 use rooibos::reactive::dom::{Render, span};
@@ -110,7 +110,7 @@ fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
     });
 
     wgt![
-        style(grow(1.)),
+        style(flex_grow(1.)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()

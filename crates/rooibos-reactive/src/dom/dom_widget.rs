@@ -14,16 +14,16 @@ use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, Basis, BorderProp, Class, Clear, Dimension, Enabled, Focusable, Grow,
-    Height, Id, IntoAlignSelfSignal, IntoJustifySelfSignal, JustifySelf, Margin, MarginBottom,
-    MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth,
-    Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop,
-    PaddingX, PaddingY, Position, Property, Shrink, UpdateLayout, Width, ZIndex, align_self,
-    aspect_ratio, basis, borders, class, clear, enabled, focusable, grow, height, id, justify_self,
-    margin, margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
-    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
-    padding_left, padding_right, padding_top, padding_x, padding_y, position, shrink, width,
-    z_index,
+    AlignSelf, AspectRatio, BorderProp, Class, Clear, Enabled, FlexBasis, FlexGrow, FlexShrink,
+    Focusable, Height, Id, IntoAlignSelfSignal, IntoJustifySelfSignal, JustifySelf, Margin,
+    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
+    MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
+    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, UpdateLayout, Width, ZIndex,
+    align_self, aspect_ratio, borders, class, clear, enabled, flex_basis, flex_grow, flex_shrink,
+    focusable, height, id, justify_self, margin, margin_bottom, margin_left, margin_right,
+    margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width, overflow,
+    overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top,
+    padding_x, padding_y, position, width, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -517,9 +517,9 @@ pub struct SimpleLayoutProps {
     pub overflow_x: OverflowX,
     pub overflow_y: OverflowY,
 
-    pub grow: Grow,
-    pub shrink: Shrink,
-    pub basis: Basis,
+    pub flex_grow: FlexGrow,
+    pub flex_shrink: FlexShrink,
+    pub flex_basis: FlexBasis,
     pub align_self: AlignSelf,
     pub justify_self: JustifySelf,
 }
@@ -536,9 +536,9 @@ impl UpdateLayout for SimpleLayoutProps {
             max_width,
             max_height,
             aspect_ratio,
-            grow,
-            shrink,
-            basis,
+            flex_grow,
+            flex_shrink,
+            flex_basis,
             align_self,
             justify_self,
             position,
@@ -570,9 +570,9 @@ impl UpdateLayout for SimpleLayoutProps {
         max_width.update_layout(original_display, style);
         max_height.update_layout(original_display, style);
         aspect_ratio.update_layout(original_display, style);
-        grow.update_layout(original_display, style);
-        shrink.update_layout(original_display, style);
-        basis.update_layout(original_display, style);
+        flex_grow.update_layout(original_display, style);
+        flex_shrink.update_layout(original_display, style);
+        flex_basis.update_layout(original_display, style);
         align_self.update_layout(original_display, style);
         justify_self.update_layout(original_display, style);
         position.update_layout(original_display, style);
@@ -665,11 +665,11 @@ where
     update_props!(overflow_x, taffy::Overflow);
     update_props!(overflow_y, taffy::Overflow);
 
-    update_props!(grow, f32);
-    update_props!(shrink, f32);
+    update_props!(flex_grow, f32);
+    update_props!(flex_shrink, f32);
     update_custom_props!(align_self, IntoAlignSelfSignal);
     update_custom_props!(justify_self, IntoJustifySelfSignal);
-    update_props!(basis, Dimension);
+    update_dimension_props!(flex_basis);
 
     update_props!(borders, Borders);
     update_props!(focusable, bool);
@@ -841,8 +841,8 @@ dimension_widget_prop!(PaddingX, padding_x, simple.padding_x);
 dimension_widget_prop!(PaddingY, padding_y, simple.padding_y);
 dimension_widget_prop!(Padding, padding, simple.padding);
 
-widget_prop!(Grow, grow, f32, simple.grow);
-widget_prop!(Shrink, shrink, f32, simple.shrink);
+widget_prop!(FlexGrow, flex_grow, f32, simple.flex_grow);
+widget_prop!(FlexShrink, flex_shrink, f32, simple.flex_shrink);
 custom_widget_prop!(
     AlignSelf,
     align_self,
@@ -855,7 +855,7 @@ custom_widget_prop!(
     IntoJustifySelfSignal,
     simple.justify_self
 );
-widget_prop!(Basis, basis, Dimension, simple.basis);
+dimension_widget_prop!(FlexBasis, flex_basis, simple.flex_basis);
 
 widget_prop!(BorderProp, borders, Borders, borders);
 widget_prop!(Focusable, focusable, bool, focusable);

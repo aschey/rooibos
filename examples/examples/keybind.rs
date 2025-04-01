@@ -4,6 +4,7 @@ use rooibos::keybind::{
     Bind, CommandBar, CommandFilter, CommandHandler, Commands, KeyActionMap, extract, keys,
     on_command,
 };
+use rooibos::reactive::dom::layout::flex_grow;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
@@ -54,8 +55,7 @@ fn app() -> impl Render {
                 ]
                 .bind()
             )
-            .on_click(move |_| increase_count())
-            .grow(1.),
+            .on_click(move |_| increase_count()),
         CommandBar::<AppAction>::new().height(1).render()
     ]
 }

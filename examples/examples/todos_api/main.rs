@@ -158,7 +158,7 @@ fn add_todo_input(id: NodeId) -> impl Render {
                 Borders::all()
             }))
             .placeholder_text("Add a todo")
-            .grow(1.)
+            .flex_grow(1.)
             .on_submit(move |val| {
                 input_ref.delete_line();
                 command_context.dispatch(Command::Add { val });
@@ -364,7 +364,7 @@ fn todo_editor(
             }
         })
         .width(full())
-        .grow(1.)
+        .flex_grow(1.)
         .max_width(100)
         .id(input_id)
         .render(input_ref)
