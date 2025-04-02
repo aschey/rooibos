@@ -147,6 +147,12 @@ impl Notifications {
             }
         });
 
+        let border = with_theme(|t| {
+            Borders::all()
+                .border_type(t.app_properties.border_type_primary)
+                .fg_border_focused()
+        });
+
         col![
             style(
                 z_index(2),
@@ -162,17 +168,7 @@ impl Notifications {
                 for_each(
                     move || notifications.get(),
                     |n| n.id,
-                    move |n| {
-                        wgt!(
-                            style(
-                                borders(with_theme(|t| Borders::all()
-                                    .border_type(t.app_properties.border_type_primary)
-                                    .fg_border_focused())),
-                                clear(true)
-                            ),
-                            n.content.clone()
-                        )
-                    }
+                    move |n| { wgt!(style(borders(border), clear(true)), n.content.clone()) }
                 )
             ]
         ]

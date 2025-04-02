@@ -81,22 +81,23 @@ impl Button {
             }),
             active_button_style: Style::new().into(),
             button_borders: with_theme(|theme| {
-                let app_properties = theme.app_properties;
+                let props = theme.app_properties;
                 StateProp::new(
                     Borders::all()
-                        .border_type(app_properties.border_type_primary)
+                        .border_type(props.border_type_primary)
                         .fg_border(),
                 )
-                .focused(move |b| b.fg_border_focused())
-                .hovered(move |b| b.border_type(app_properties.border_type_hovered))
+                .focused(|b| b.fg_border_focused())
+                .hovered(move |b| b.border_type(props.border_type_hovered))
                 .disabled(move |b| {
-                    b.border_type(app_properties.border_type_disabled)
+                    b.border_type(props.border_type_disabled)
                         .fg_disabled_light()
                 })
             }),
             active_button_borders: with_theme(|theme| {
+                let props = theme.app_properties;
                 Borders::all()
-                    .border_type(theme.app_properties.border_type_active)
+                    .border_type(props.border_type_active)
                     .fg_active()
             }),
             text_alignment: Alignment::Left.into(),
