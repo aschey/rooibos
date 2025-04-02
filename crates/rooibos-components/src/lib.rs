@@ -39,21 +39,21 @@ pub use wrapping_list::*;
 
 #[derive(ColorTheme, SubTheme, SetTheme, Clone, Copy, Default, Debug)]
 pub struct ColorTheme {
-    primary: tui_theme::Color,
-    active_highlight: tui_theme::Color,
-    disabled_fg: tui_theme::Color,
-    disabled_bg: tui_theme::Color,
+    text_primary: tui_theme::Color,
+    active: tui_theme::Color,
+    disabled_light: tui_theme::Color,
+    disabled_dark: tui_theme::Color,
     border: tui_theme::Color,
-    focused_border: tui_theme::Color,
-    disabled_border: tui_theme::Color,
+    border_focused: tui_theme::Color,
+    border_disabled: tui_theme::Color,
 }
 
 #[derive(SubTheme, SetTheme, Clone, Copy, Default, Debug)]
 pub struct AppProperties {
-    button_borders: BorderType,
-    active_button_borders: BorderType,
-    hovered_button_borders: BorderType,
-    disabled_button_borders: BorderType,
+    border_type_primary: BorderType,
+    border_type_active: BorderType,
+    border_type_hovered: BorderType,
+    border_type_disabled: BorderType,
 }
 
 #[derive(Theme, Clone, Copy, Default, Debug)]
@@ -70,19 +70,19 @@ thread_local! {
     static THEME: LazyCell<ThemeSignal> = LazyCell::new(|| {
         let theme = AppTheme {
             color_theme: ColorTheme {
-                primary: tui_theme::Color::Reset,
-                active_highlight: tui_theme::Color::Green,
-                disabled_fg: tui_theme::Color::Gray,
-                disabled_bg: tui_theme::Color::DarkGray,
+                text_primary: tui_theme::Color::Reset,
+                active: tui_theme::Color::Green,
+                disabled_light: tui_theme::Color::Gray,
+                disabled_dark: tui_theme::Color::DarkGray,
                 border: tui_theme::Color::Gray,
-                focused_border: tui_theme::Color::Blue,
-                disabled_border: tui_theme::Color::DarkGray,
+                border_focused: tui_theme::Color::Blue,
+                border_disabled: tui_theme::Color::DarkGray,
             },
             app_properties: AppProperties {
-                button_borders: BorderType::Round,
-                active_button_borders: BorderType::Double,
-                hovered_button_borders: BorderType::Double,
-                disabled_button_borders: BorderType::Inner,
+                border_type_primary: BorderType::Round,
+                border_type_active: BorderType::Double,
+                border_type_hovered: BorderType::Double,
+                border_type_disabled: BorderType::Inner,
             }
         };
         theme.set_global();

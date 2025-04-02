@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
-use ratatui::style::Stylize;
 use ratatui::text::Text;
 use rooibos_reactive::dom::Render;
 use rooibos_reactive::dom::layout::{
@@ -15,6 +14,8 @@ use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{col, for_each, wgt};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
+
+use crate::{ColorThemeStyle, with_theme};
 
 #[derive(Clone, Debug)]
 pub struct NotificationContext {
@@ -163,7 +164,12 @@ impl Notifications {
                     |n| n.id,
                     move |n| {
                         wgt!(
-                            style(borders(Borders::all().round().blue()), clear(true)),
+                            style(
+                                borders(with_theme(|t| Borders::all()
+                                    .border_type(t.app_properties.border_type_primary)
+                                    .fg_border_focused())),
+                                clear(true)
+                            ),
                             n.content.clone()
                         )
                     }

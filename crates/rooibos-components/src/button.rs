@@ -76,27 +76,28 @@ impl Button {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
             button_style: with_theme(|_| {
-                StateProp::new(Style::default()).disabled(|s| s.disabled_fg().on_disabled_bg())
+                StateProp::new(Style::default())
+                    .disabled(|s| s.fg_disabled_light().bg_disabled_dark())
             }),
             active_button_style: Style::new().into(),
             button_borders: with_theme(|theme| {
                 let app_properties = theme.app_properties;
                 StateProp::new(
                     Borders::all()
-                        .border_type(app_properties.button_borders)
-                        .border(),
+                        .border_type(app_properties.border_type_primary)
+                        .fg_border(),
                 )
-                .focused(move |b| b.focused_border())
-                .hovered(move |b| b.border_type(app_properties.hovered_button_borders))
+                .focused(move |b| b.fg_border_focused())
+                .hovered(move |b| b.border_type(app_properties.border_type_hovered))
                 .disabled(move |b| {
-                    b.border_type(app_properties.disabled_button_borders)
-                        .disabled_border()
+                    b.border_type(app_properties.border_type_disabled)
+                        .fg_disabled_light()
                 })
             }),
             active_button_borders: with_theme(|theme| {
                 Borders::all()
-                    .border_type(theme.app_properties.active_button_borders)
-                    .active_highlight()
+                    .border_type(theme.app_properties.border_type_active)
+                    .fg_active()
             }),
             text_alignment: Alignment::Left.into(),
             element_ref: None,

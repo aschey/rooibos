@@ -45,7 +45,7 @@ termwiz = "0.22"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "591652f5e43347c30f847826088b75b9675508e3" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "b58f9290da8d30ab3dc4e8bba7c34f417c96fef4" }
 
 # proc macros
 manyhow = "0.11"
