@@ -8,7 +8,7 @@ use rooibos_reactive::dom::layout::{
     padding_right, padding_top, width, z_index,
 };
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
-use rooibos_reactive::graph::signal::RwSignal;
+use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{col, for_each, wgt};
@@ -128,16 +128,16 @@ impl Notifications {
             max_layout_width,
             mut rx,
         } = self;
-        let notifications: RwSignal<Vec<Notification>> = RwSignal::new(vec![]);
+        let (notifications, set_notifications) = signal(vec![]);
 
         spawn(async move {
             while let Ok(notification) = rx.recv().await {
                 let id = notification.id;
                 let timeout = notification.timeout;
-                notifications.update(|n| n.push(notification));
+                set_notifications.update(|n| n.push(notification));
                 spawn(async move {
                     sleep(timeout).await;
-                    notifications.update(|n| {
+                    set_notifications.update(|n| {
                         let idx = n.iter().position(|n| n.id == id);
                         if let Some(idx) = idx {
                             n.remove(idx);

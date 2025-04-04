@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 use std::thread;
 
+use image::DynamicImage;
 pub use image::ImageReader;
-use image::{DynamicImage, Rgba};
 use ratatui::Frame;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
@@ -94,7 +94,7 @@ impl Image {
 
                 async_state.set(Some(ThreadProtocol::new(
                     tx_worker.clone(),
-                    picker.new_resize_protocol(image),
+                    Some(picker.new_resize_protocol(image)),
                 )));
                 Some(picker)
             } else {
@@ -104,13 +104,14 @@ impl Image {
 
         thread::spawn(move || {
             loop {
-                if let Ok((mut protocol, resize, area)) = rec_worker.recv() {
-                    protocol.resize_encode(&resize, Rgba([0, 0, 0, 0]), area);
-                    async_state.update(|s| {
-                        if let Some(s) = s {
-                            s.set_protocol(protocol);
-                        }
-                    });
+                if let Ok(request) = rec_worker.recv() {
+                    if let Ok(res) = request.resize_encode() {
+                        async_state.update(|s| {
+                            if let Some(s) = s {
+                                s.update_resized_protocol(res);
+                            }
+                        });
+                    }
                 }
             }
         });

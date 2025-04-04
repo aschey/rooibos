@@ -32,7 +32,7 @@ any_spawner = "0.2.0"
 # ratatui
 ratatui = { version = "0.29", default-features = false }
 tui-textarea = { version = "0.7", default-features = false }
-ratatui-image = "4"
+ratatui-image = "5"
 throbber-widgets-tui = "0.8.0"
 tui-term = "0.2.0"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
