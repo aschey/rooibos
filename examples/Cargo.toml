@@ -12,6 +12,8 @@ rooibos = { workspace = true, features = [
   "image",
   "clipboard",
   "config",
+  "config-confique",
+  "config-yaml",
   "router",
   "spinner",
   "keybind",
@@ -31,7 +33,7 @@ serde = { workspace = true }
 axum = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
 clap = { workspace = true, features = ["derive"] }
-schematic = { workspace = true }
+confique = { workspace = true }
 futures-cancel = { workspace = true }
 taffy = { workspace = true }
 tokio-util = { workspace = true }

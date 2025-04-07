@@ -8,3 +8,11 @@ watch-config = { workspace = true }
 reactive_graph = { workspace = true, features = ["tracing", "effects"] }
 rooibos-runtime = { workspace = true }
 futures-cancel = { workspace = true }
+
+[features]
+schematic = ["watch-config/schematic"]
+confique = ["watch-config/confique"]
+json = ["watch-config/json"]
+toml = ["watch-config/toml"]
+yaml = ["watch-config/yaml"]
+pkl = ["watch-config/pkl"]

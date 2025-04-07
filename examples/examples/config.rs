@@ -1,8 +1,8 @@
 use std::process::ExitCode;
 
-use rooibos::config::watch_config::backend::schematic::AppConfig;
-use rooibos::config::watch_config::schematic::Config;
-use rooibos::config::watch_config::{ConfigDir, ConfigSettings};
+use rooibos::config::watch_config::ConfigDir;
+use rooibos::config::watch_config::backend::confique::{AppConfig, ConfigSettings};
+use rooibos::config::watch_config::confique::Config;
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::dom::layout::{Borders, borders, height, margin, max_width, padding};
 use rooibos::reactive::dom::{Render, span, text};
@@ -12,9 +12,9 @@ use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
 use rooibos::tui::style::Stylize;
-use schematic::Format;
 
 #[derive(Config, PartialEq, Eq, Clone, Debug)]
+#[config(partial_attr(derive(Clone)))]
 struct AppConfigExample {
     pub number: usize,
     pub string: String,
@@ -27,16 +27,16 @@ struct AppConfigExample {
 async fn main() -> Result<ExitCode, RuntimeError> {
     let config = AppConfig::<AppConfigExample>::new(ConfigSettings::new(
         ConfigDir::Custom("./.config".into()),
-        Format::Yaml,
         "config.yml".to_owned(),
-    ));
+    ))
+    .unwrap();
     provide_config(config);
 
     Runtime::initialize(DefaultBackend::auto()).run(app).await
 }
 
 fn app() -> impl Render {
-    let config = use_config::<AppConfigExample>();
+    let config = use_config::<AppConfig<AppConfigExample>>();
     col![
         style(padding(1)),
         wgt!(

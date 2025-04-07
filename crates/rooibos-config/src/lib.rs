@@ -1,5 +1,4 @@
 use std::ops::{Deref, DerefMut};
-use std::sync::Arc;
 
 use futures_cancel::FutureExt;
 use reactive_graph::owner::{provide_context, use_context};
@@ -7,16 +6,20 @@ use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::Set;
 use rooibos_runtime::{ServiceContext, spawn_service};
 pub use watch_config;
-use watch_config::backend::schematic::AppConfig;
-use watch_config::schematic::{Config, ConfigError};
 use watch_config::{ConfigUpdate, ConfigWatcherService, LoadConfig};
 
-pub type ConfigResult<T> = Result<ConfigUpdate<Arc<T>>, Arc<ConfigError>>;
+pub type ConfigResult<T> =
+    Result<ConfigUpdate<<T as LoadConfig>::Config>, <T as LoadConfig>::Error>;
 
 #[derive(Clone)]
-pub struct ConfigSignal<T>(ReadSignal<ConfigResult<T>>);
+pub struct ConfigSignal<T>(ReadSignal<ConfigResult<T>>)
+where
+    T: LoadConfig;
 
-impl<T> Deref for ConfigSignal<T> {
+impl<T> Deref for ConfigSignal<T>
+where
+    T: LoadConfig,
+{
     type Target = ReadSignal<ConfigResult<T>>;
 
     fn deref(&self) -> &Self::Target {
@@ -24,13 +27,21 @@ impl<T> Deref for ConfigSignal<T> {
     }
 }
 
-impl<T> DerefMut for ConfigSignal<T> {
+impl<T> DerefMut for ConfigSignal<T>
+where
+    T: LoadConfig,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
 
-pub fn provide_config<T: Config + PartialEq + Send + Sync + 'static>(config: AppConfig<T>) {
+pub fn provide_config<T>(config: T)
+where
+    T: LoadConfig + Send + Sync + 'static,
+    T::Config: PartialEq + Clone + Send + Sync + 'static,
+    T::Error: Clone + Send + Sync + 'static,
+{
     let initial = config.reload();
     let (config_signal, set_config_signal) = signal(initial.map(|i| ConfigUpdate {
         old: i.clone(),
@@ -58,9 +69,12 @@ pub fn provide_config<T: Config + PartialEq + Send + Sync + 'static>(config: App
         },
     ));
 
-    provide_context(ConfigSignal(config_signal))
+    provide_context(ConfigSignal::<T>(config_signal))
 }
 
-pub fn use_config<T: Clone + 'static>() -> ConfigSignal<T> {
+pub fn use_config<T>() -> ConfigSignal<T>
+where
+    T: LoadConfig + Clone + 'static,
+{
     use_context::<ConfigSignal<T>>().unwrap()
 }

@@ -64,7 +64,7 @@ tokio-util = "0.7"
 futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
 getrandom = "0.3"
 derive_more = "2"
-watch-config = { git = "https://github.com/aschey/watch-config", rev = "d90d15ff301da443c17b4da6c34413d67413883b" }
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "6fe1f5b2a815a7bd0305b83875570bb4ee9d851c" }
 slotmap = "1"
 bitflags = "2"
 futures = "0.3"
@@ -107,7 +107,7 @@ rand = "0.8.5"
 reqwest = "0.12.15"
 serde = "1.0.219"
 axum = "0.8.1"
-schematic = { version = "0.18" }
+confique = { version = "0.3" }
 color-eyre = "0.6.3"
 insta = "1.42.2"
 tui-tree-widget = "0.23.0"
