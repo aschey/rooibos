@@ -24,6 +24,8 @@ tokio-stream = { workspace = true, features = ["sync"] }
 terminput-crossterm = { workspace = true, optional = true }
 terminput-termion = { workspace = true, optional = true }
 terminput-termwiz = { workspace = true, optional = true }
+terminput-termina = { workspace = true }
+termina = { workspace = true }
 
 [target.'cfg(unix)'.dependencies]
 termion = { workspace = true, optional = true }

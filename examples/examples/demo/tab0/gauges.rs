@@ -1,7 +1,7 @@
+use ratatui::widgets::Sparkline;
 use rooibos::reactive::dom::layout::{
     Borders, IntoDimensionSignal, borders, flex_grow, height, min_height,
 };
-use rooibos::reactive::dom::widgets::Sparkline;
 use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;

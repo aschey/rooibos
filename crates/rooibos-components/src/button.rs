@@ -89,10 +89,7 @@ impl Button {
                 )
                 .focused(|b| b.fg_border_focused())
                 .hovered(move |b| b.border_type(props.border_type_hovered))
-                .disabled(move |b| {
-                    b.border_type(props.border_type_disabled)
-                        .fg_disabled_light()
-                })
+                .disabled(move |b| b.border_type(props.border_type_disabled).fg_disabled_dark())
             }),
             active_button_borders: with_theme(|theme| {
                 let props = theme.app_properties;

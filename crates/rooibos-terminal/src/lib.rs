@@ -1,10 +1,5 @@
-#[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
-pub mod crossterm;
 mod stream;
-#[cfg(all(feature = "termion", not(target_arch = "wasm32")))]
-pub mod termion;
-#[cfg(all(feature = "termwiz", not(target_arch = "wasm32")))]
-pub mod termwiz;
+pub mod termina;
 pub mod test;
 
 use std::fmt::Display;
@@ -15,7 +10,7 @@ pub use stream::*;
 use tokio::sync::broadcast;
 
 #[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
-pub type DefaultBackend<T> = crossterm::CrosstermBackend<T>;
+pub type DefaultBackend<T> = termina::TerminaBackend<T>;
 
 // From https://github.com/crossterm-rs/crossterm/pull/697
 /// Which selection to set. Only affects X11. See
@@ -105,17 +100,5 @@ fn color_override() -> Option<bool> {
         Some(true)
     } else {
         None
-    }
-}
-
-#[cfg(feature = "crossterm")]
-fn adjust_color_output<T>(writer: &T)
-where
-    T: std::io::IsTerminal,
-{
-    if let Some(set_override) = color_override() {
-        ::crossterm::style::force_color_output(set_override);
-    } else if !writer.is_terminal() {
-        ::crossterm::style::force_color_output(false);
     }
 }

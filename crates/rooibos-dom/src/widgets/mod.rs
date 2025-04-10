@@ -1,6 +1,5 @@
 mod button;
 mod chart;
-mod sparkline;
 
 use std::any::{Any, TypeId};
 
@@ -9,7 +8,6 @@ pub use chart::*;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{List, StatefulWidget, Tabs, Widget, WidgetRef};
-pub use sparkline::*;
 use taffy::Size;
 
 use crate::{MeasureNode, RenderNode};
@@ -63,6 +61,36 @@ impl MeasureNode for List<'_> {
         _known_dimensions: taffy::Size<Option<f32>>,
         _available_space: taffy::Size<taffy::AvailableSpace>,
         _style: &taffy::Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl MeasureNode for ratatui::widgets::Sparkline<'_> {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<taffy::AvailableSpace>,
+        style: &taffy::Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl MeasureNode for ratatui::widgets::Chart<'_> {
+    fn measure(
+        &self,
+        known_dimensions: Size<Option<f32>>,
+        available_space: Size<taffy::AvailableSpace>,
+        style: &taffy::Style,
     ) -> Size<f32> {
         Size::zero()
     }

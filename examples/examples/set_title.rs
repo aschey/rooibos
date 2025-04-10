@@ -9,7 +9,7 @@ use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_title};
 use rooibos::terminal::DefaultBackend;
-use rooibos::terminal::crossterm::TerminalSettings;
+use rooibos::terminal::termina::TerminalSettings;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

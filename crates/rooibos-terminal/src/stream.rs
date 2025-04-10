@@ -8,23 +8,20 @@ enum StreamImpl {
 
 pub struct AutoStream(StreamImpl);
 
-impl Default for AutoStream {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl AutoStream {
-    pub fn new() -> Self {
+    pub fn new<F>(f: F) -> Self
+    where
+        F: FnOnce(&dyn IsTerminal),
+    {
         let stdout = stdout();
         let stderr = stderr();
         if !stdout.is_terminal() && stderr.is_terminal() {
-            #[cfg(feature = "crossterm")]
-            super::adjust_color_output(&stderr);
+            f(&stderr);
             Self(StreamImpl::Stderr(stderr))
         } else {
-            #[cfg(feature = "crossterm")]
-            super::adjust_color_output(&stdout);
+            //#[cfg(feature = "crossterm")]
+            //super::adjust_color_output(&stdout);
+            f(&stdout);
             Self(StreamImpl::Stdout(stdout))
         }
     }

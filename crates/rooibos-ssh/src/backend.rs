@@ -6,7 +6,7 @@ use crossterm::terminal::disable_raw_mode;
 use ratatui::Viewport;
 use ratatui::backend::WindowSize;
 use rooibos_dom::Event;
-use rooibos_terminal::crossterm::CrosstermBackend;
+use rooibos_terminal::termina::{TerminaBackend, TerminaTuiBackend};
 use rooibos_terminal::{self, AsyncInputStream, Backend};
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
@@ -84,7 +84,7 @@ impl TerminalSettings {
 pub struct SshBackend {
     event_rx: Mutex<Option<mpsc::Receiver<Event>>>,
     window_size: Arc<RwLock<WindowSize>>,
-    inner: CrosstermBackend<ArcHandle>,
+    inner: TerminaBackend<ArcHandle>,
 }
 
 impl SshBackend {
@@ -98,7 +98,7 @@ impl SshBackend {
         settings: TerminalSettings,
     ) -> Self {
         let mut crossterm_settings =
-            rooibos_terminal::crossterm::TerminalSettings::from_writer(move || handle.clone())
+            rooibos_terminal::termina::TerminalSettings::from_writer(move || handle.clone())
                 .raw_mode(false)
                 .alternate_screen(settings.alternate_screen)
                 .bracketed_paste(settings.bracketed_paste)
@@ -108,12 +108,12 @@ impl SshBackend {
         if let Some(title) = settings.title {
             crossterm_settings = crossterm_settings.title(title);
         }
-        let inner = CrosstermBackend::new(crossterm_settings);
+        let inner = TerminaBackend::new(crossterm_settings);
         let window_size = events.window_size;
 
         // force ANSI escape codes on windows because SSH on Windows uses Unix-style escape codes
-        #[cfg(windows)]
-        crossterm::ansi_support::force_ansi(true);
+        //#[cfg(windows)]
+        // crossterm::ansi_support::force_ansi(true);
         Self {
             event_rx: Mutex::new(Some(events.events)),
             window_size,
@@ -192,7 +192,7 @@ impl Backend for SshBackend {
 }
 
 pub struct SshTuiBackend {
-    inner: ratatui::backend::CrosstermBackend<ArcHandle>,
+    inner: TerminaTuiBackend<ArcHandle>,
     window_size: Arc<RwLock<WindowSize>>,
 }
 

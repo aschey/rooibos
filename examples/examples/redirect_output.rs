@@ -10,7 +10,7 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
-use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::terminal::termina::{TerminaBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::ListItem;
@@ -27,7 +27,7 @@ async fn main() -> Result {
         RuntimeSettings::default()
             .viewport(Viewport::Inline(6))
             .show_final_output(false),
-        CrosstermBackend::new(TerminalSettings::auto().alternate_screen(false)),
+        TerminaBackend::new(TerminalSettings::auto().alternate_screen(false)),
     )
     .run(app)
     .await?;
