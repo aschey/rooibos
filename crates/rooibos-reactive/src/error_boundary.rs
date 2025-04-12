@@ -16,10 +16,10 @@ use crate::dom::{DomNode, IntoView, RenderAny, RooibosDom};
 pub fn error_boundary<FalFn, Fal, F, R>(children: F, fallback: FalFn) -> impl IntoView
 where
     F: Fn() -> R + Send + 'static,
-    R: RenderAny + 'static,
+    R: RenderAny,
     R::State: 'static,
     FalFn: FnMut(ArcRwSignal<Errors>) -> Fal + Clone + Send + 'static,
-    Fal: RenderAny + 'static,
+    Fal: RenderAny,
 {
     let hook = Arc::new(ErrorBoundaryErrorHook::new([]));
     let errors = hook.errors.clone();
@@ -100,9 +100,9 @@ where
 
 impl<Chil, FalFn, Fal> Render<RooibosDom> for ErrorBoundaryView<Chil, FalFn>
 where
-    Chil: RenderAny + 'static,
+    Chil: RenderAny,
     FalFn: FnMut(ArcRwSignal<Errors>) -> Fal + Send + 'static,
-    Fal: RenderAny + 'static,
+    Fal: RenderAny,
 {
     type State = RenderEffect<ErrorBoundaryViewState<Chil::State, Fal::State>>;
 

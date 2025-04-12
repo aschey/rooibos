@@ -22,11 +22,11 @@ rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
 
 # leptos
 next_tuple = "0.1.0"
-either_of = "0.1.5"
-reactive_graph = "0.1.7"
-tachys = { git = "https://github.com/aschey/leptos", rev = "bff886ea6e10eb6b6c5368f911d1f5f24389c55b" }
-throw_error = "0.2.0"
-reactive_stores = "0.1.7"
+either_of = "0.1.6"
+reactive_graph = "0.1.8"
+tachys = { git = "https://github.com/aschey/leptos", rev = "7564e80e342f435c03187b10b8dc42d8084cd312" }
+throw_error = "0.3.0"
+reactive_stores = "0.1.8"
 any_spawner = "0.2.0"
 
 # ratatui

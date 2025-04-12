@@ -344,8 +344,8 @@ where
 
 impl<C, P> Render<RooibosDom> for FlexNode<C, P>
 where
-    C: RenderAny + 'static,
-    P: FlexProperty,
+    C: RenderAny,
+    P: FlexProperty + 'static,
 {
     type State = FlexNodeState<C, P>;
 

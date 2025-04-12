@@ -56,7 +56,7 @@ pub trait IntoChildren {
 impl<F, C> IntoChildren for F
 where
     F: FnOnce() -> C + Send + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + Send + 'static,
 {
     fn into_children(self) -> Children {
         Box::new(move || self().into_any())
@@ -66,7 +66,7 @@ where
 impl<F, C> ToChildren<F> for Children
 where
     F: FnOnce() -> C + Send + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -77,7 +77,7 @@ where
 impl<F, C> ToChildren<F> for ChildrenFn
 where
     F: Fn() -> C + Send + Sync + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -108,7 +108,7 @@ where
 impl<F, C> ToChildren<F> for ChildrenFnMut
 where
     F: Fn() -> C + Send + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -119,7 +119,7 @@ where
 impl<F, C> ToChildren<F> for BoxedChildrenFn
 where
     F: Fn() -> C + Send + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + Send + 'static,
 {
     #[inline]
     fn to_children(f: F) -> Self {
@@ -174,7 +174,7 @@ impl Default for ViewFn {
 impl<F, C> From<F> for ViewFn
 where
     F: Fn() -> C + Send + Sync + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + Send + 'static,
 {
     fn from(value: F) -> Self {
         Self(Arc::new(move || value().into_any()))
@@ -202,7 +202,7 @@ impl Default for ViewFnOnce {
 impl<F, C> From<F> for ViewFnOnce
 where
     F: FnOnce() -> C + Send + 'static,
-    C: RenderAny + Send + 'static,
+    C: IntoAny<RooibosDom> + 'static,
 {
     fn from(value: F) -> Self {
         Self(Box::new(move || value().into_any()))

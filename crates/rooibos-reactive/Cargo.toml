@@ -7,7 +7,11 @@ edition = "2024"
 
 [dependencies]
 reactive_graph = { workspace = true, features = ["tracing", "effects"] }
-tachys = { workspace = true, features = ["reactive_graph", "tracing"] }
+tachys = { workspace = true, features = [
+  "reactive_graph",
+  "tracing",
+  "reactive_stores",
+] }
 throw_error = { workspace = true }
 next_tuple = { workspace = true }
 reactive_stores = { workspace = true }

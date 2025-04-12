@@ -7,7 +7,7 @@ pub fn provider<T, F, R>(value: T, children: F) -> impl RenderAny
 where
     T: Send + Sync + 'static,
     F: FnOnce() -> R,
-    R: RenderAny + 'static,
+    R: RenderAny,
 {
     let owner = Owner::current()
         .expect("no current reactive Owner found")

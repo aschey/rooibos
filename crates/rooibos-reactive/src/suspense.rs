@@ -6,11 +6,10 @@ use reactive_graph::signal::ArcRwSignal;
 use reactive_graph::traits::{Get, Track, With};
 use slotmap::{DefaultKey, SlotMap};
 use tachys::reactive_graph::{OwnedView, OwnedViewState};
-use tachys::view::any_view::AnyView;
 use tachys::view::either::{EitherKeepAlive, EitherKeepAliveState};
 use tachys::view::{Mountable, Render};
 
-use crate::dom::{IntoView, RenderAny, RooibosDom, ViewFnOnce};
+use crate::dom::{RenderAny, RooibosDom, ViewFnOnce};
 
 #[macro_export]
 macro_rules! suspense {
@@ -42,11 +41,32 @@ macro_rules! transition {
     };
 }
 
-pub fn suspense<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl IntoView
+pub fn suspense<F, VF, R>(fallback: VF, children: F) -> impl RenderAny
 where
     F: Fn() -> R,
+    F: RenderAny,
+    VF: Into<ViewFnOnce>,
     R: RenderAny,
-    SuspenseBoundary<false, AnyView<RooibosDom>, F>: IntoView,
+{
+    suspense_internal(fallback, children, false)
+}
+
+pub fn transition<F, VF, R>(fallback: VF, children: F) -> impl RenderAny
+where
+    F: Fn() -> R,
+    F: RenderAny,
+    VF: Into<ViewFnOnce>,
+    R: RenderAny,
+{
+    suspense_internal(fallback, children, true)
+}
+
+fn suspense_internal<F, VF, R>(fallback: VF, children: F, transition: bool) -> impl RenderAny
+where
+    F: Fn() -> R,
+    F: RenderAny,
+    VF: Into<ViewFnOnce>,
+    R: RenderAny,
 {
     let owner = Owner::new();
     owner.with(|| {
@@ -65,51 +85,26 @@ where
             }
         });
 
-        OwnedView::new(SuspenseBoundary::<false, _, _> {
+        OwnedView::new(SuspenseBoundary {
             none_pending,
             fallback,
             children,
+            transition,
         })
     })
 }
 
-pub fn transition<F, R>(fallback: impl Into<ViewFnOnce>, children: F) -> impl RenderAny
-where
-    F: Fn() -> R,
-    R: RenderAny,
-    SuspenseBoundary<true, AnyView<RooibosDom>, F>: IntoView,
-{
-    let fallback = fallback.into().run();
-    let tasks = ArcRwSignal::new(SlotMap::<DefaultKey, ()>::new());
-    provide_context(SuspenseContext {
-        tasks: tasks.clone(),
-    });
-    let none_pending = ArcMemo::new(move |prev| {
-        tasks.track();
-        if prev.is_none() {
-            false
-        } else {
-            tasks.with(SlotMap::is_empty)
-        }
-    });
-    OwnedView::new(SuspenseBoundary::<true, _, _> {
-        none_pending,
-        fallback,
-        children,
-    })
-}
-
-pub struct SuspenseBoundary<const TRANSITION: bool, Fal, Chil> {
+pub struct SuspenseBoundary<Fal, Chil> {
     pub none_pending: ArcMemo<bool>,
     pub fallback: Fal,
     pub children: Chil,
+    transition: bool,
 }
 
-impl<const TRANSITION: bool, Fal, Chil> Render<RooibosDom>
-    for SuspenseBoundary<TRANSITION, Fal, Chil>
+impl<Fal, Chil> Render<RooibosDom> for SuspenseBoundary<Fal, Chil>
 where
-    Fal: RenderAny + Send + 'static,
-    Chil: RenderAny + Send + 'static,
+    Fal: RenderAny,
+    Chil: RenderAny,
 {
     type State =
         RenderEffect<OwnedViewState<EitherKeepAliveState<Chil::State, Fal::State>, RooibosDom>>;
@@ -120,6 +115,7 @@ where
         let none_pending = self.none_pending;
         let mut nth_run = 0;
         let outer_owner = Owner::new();
+        let transition = self.transition;
 
         RenderEffect::new(move |prev| {
             // show the fallback if
@@ -127,7 +123,7 @@ where
             // 2) we are either in a Suspense (not Transition), or it's the first fallback (because
             //    we initially render the children to register Futures, the "first fallback" is
             //    probably the 2nd run
-            let show_b = !none_pending.get() && (!TRANSITION || nth_run < 2);
+            let show_b = !none_pending.get() && (!transition || nth_run < 2);
             nth_run += 1;
             let this = OwnedView::new_with_owner(
                 EitherKeepAlive {

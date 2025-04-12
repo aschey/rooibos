@@ -172,8 +172,8 @@ where
 
 impl<C, P> Render<RooibosDom> for Div<C, P>
 where
-    C: RenderAny + 'static,
-    P: Property + DivProperty,
+    C: RenderAny,
+    P: Property + DivProperty + 'static,
 {
     type State = DivState<C, P>;
 

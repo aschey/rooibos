@@ -11,7 +11,7 @@ use crate::dom::IntoView;
 pub fn for_each<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
 where
     IF: Fn() -> I + Send + 'static,
-    I: IntoIterator<Item = T>,
+    I: IntoIterator<Item = T> + 'static,
     EF: Fn(T) -> N + Clone + Send + 'static,
     N: IntoView + 'static,
     KF: Fn(&T) -> K + Clone + Send + 'static,
@@ -38,7 +38,7 @@ where
 pub fn for_enumerate<IF, I, T, EF, N, KF, K>(each: IF, key: KF, children: EF) -> impl IntoView
 where
     IF: Fn() -> I + Send + 'static,
-    I: IntoIterator<Item = T>,
+    I: IntoIterator<Item = T> + 'static,
     EF: Fn(ReadSignal<usize>, T) -> N + Send + Clone + 'static,
     N: IntoView + 'static,
     KF: Fn(&T) -> K + Clone + Send + 'static,

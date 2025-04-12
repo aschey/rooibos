@@ -360,7 +360,7 @@ where
 
 impl<P> Render<RooibosDom> for DomWidget<P>
 where
-    P: WidgetProperty,
+    P: WidgetProperty + 'static,
 {
     type State = DomWidgetState<P>;
 
