@@ -145,7 +145,7 @@ where
             end.duration_since(start)
         );
 
-        terminal.reset_mode()?;
+        terminal.enter_cooked_mode()?;
 
         Ok(capabilities)
     }
@@ -698,7 +698,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
         let mut terminal = PlatformTerminal::new()?;
         let mut writer = (self.settings.get_writer)();
         if self.settings.raw_mode {
-            terminal.reset_mode()?;
+            terminal.enter_cooked_mode()?;
         }
         let mut s = String::new();
 
