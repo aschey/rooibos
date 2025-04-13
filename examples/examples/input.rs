@@ -27,10 +27,13 @@ fn app() -> impl Render {
         style(
             padding(1),
             width(full()),
-            borders(derive_signal!(if focused.get() {
-                Borders::all().title("Input").blue()
-            } else {
-                Borders::all().title("Input")
+            borders(derive_signal!({
+                let borders = Borders::all().title("Input");
+                if focused.get() {
+                    borders.blue()
+                } else {
+                    borders
+                }
             }))
         ),
         Input::default()

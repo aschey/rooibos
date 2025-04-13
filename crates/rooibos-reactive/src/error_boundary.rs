@@ -49,6 +49,18 @@ where
     )
 }
 
+pub fn error_map<F, T>(errors: &ArcRwSignal<Errors>, f: F) -> Vec<T>
+where
+    F: Fn(&ErrorId, &Error) -> T,
+{
+    errors.with(|errors| {
+        errors
+            .iter()
+            .map(|(id, err)| f(id, err))
+            .collect::<Vec<_>>()
+    })
+}
+
 struct ErrorBoundaryView<Chil, FalFn> {
     hook: Arc<dyn ErrorHook>,
     errors_empty: ArcMemo<bool>,

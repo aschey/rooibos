@@ -164,8 +164,8 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
     if let Some(attrs) = attrs {
         line += &format!(" {attrs}");
     }
-    line += &format!(" display={:?}", dom_ref.style(key).display);
-    line += &format!(" layout={:?}>", dom_ref.rect(key));
+    line += &format!(" display={:?}", dom_ref.try_style(key).map(|s| s.display));
+    line += &format!(" layout={:?}>", dom_ref.try_rect(key));
     // line += &format!(" constraint={}>", node.constraint.borrow().clone());
 
     let mut lines = vec![crate::line!(line)];

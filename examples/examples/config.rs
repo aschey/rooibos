@@ -5,7 +5,7 @@ use rooibos::config::watch_config::backend::confique::{AppConfig, ConfigSettings
 use rooibos::config::watch_config::confique::Config;
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::dom::layout::{Borders, borders, height, margin, max_width, padding};
-use rooibos::reactive::dom::{Render, span, text};
+use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::traits::Get;
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::Runtime;
@@ -41,7 +41,7 @@ fn app() -> impl Render {
         style(padding(1)),
         wgt!(
             style(margin(1), height(1)),
-            text!("Update ./.config/config.yml and the changes will render live")
+            "Update ./.config/config.yml and the changes will render live"
                 .bold()
                 .cyan()
         ),

@@ -3,10 +3,10 @@ use std::process::ExitCode;
 use rooibos::components::{Button, KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::padding;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{col, row};
+use rooibos::reactive::{IntoText, col, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -118,7 +118,7 @@ fn app() -> impl Render {
                 .on_click(move || {
                     add_tab();
                 })
-                .render(text!("+".green()))
+                .render("+".green().into_text())
         ]
     ]
 }

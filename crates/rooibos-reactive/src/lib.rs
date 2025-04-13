@@ -28,7 +28,7 @@ use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{EventData, NodeState};
 #[cfg(feature = "effects")]
 pub use rooibos_dom::tachyonfx;
-pub use rooibos_dom::{IntoSpan, NonblockingTerminal};
+pub use rooibos_dom::{IntoLine, IntoSpan, IntoText, NonblockingTerminal};
 pub use suspense::*;
 pub use tachys::reactive_graph as __tachys_reactive;
 pub use tachys::view::any_view;

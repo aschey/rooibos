@@ -8,7 +8,7 @@ use rooibos::reactive::dom::{Render, UpdateLayoutProps, span, text, try_focus_id
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, derive_signal, row, wgt};
+use rooibos::reactive::{IntoText, col, derive_signal, focus_scope, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -56,9 +56,10 @@ fn app() -> impl Render {
                 move || adjust_size(-1)
             )
         ],
-        wgt!(
+        focus_scope!(wgt!(
             style(width(block_width), height(block_height)),
-            text!(span!("{} x {}", block_width.get(), block_height.get()))
+            span!("{} x {}", block_width.get(), block_height.get())
+                .into_text()
                 .centered()
                 .bg({
                     let height = block_height.get() as f32;
@@ -68,7 +69,7 @@ fn app() -> impl Render {
                         5.0 * height / 100.,
                     ))
                 })
-        )
+        ))
     ]
     .on_key_down(
         [

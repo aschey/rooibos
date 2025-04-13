@@ -25,10 +25,12 @@ use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::{provide_context, use_context};
-use rooibos::reactive::graph::signal::{ArcRwSignal, RwSignal};
-use rooibos::reactive::graph::traits::{Get, Set, Track, With};
+use rooibos::reactive::graph::signal::RwSignal;
+use rooibos::reactive::graph::traits::{Get, Set, Track};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{Errors, col, derive_signal, row, transition, wgt};
+use rooibos::reactive::{
+    IntoText, col, derive_signal, error_map, focus_scope, row, transition, wgt,
+};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -100,20 +102,22 @@ fn app(notification_timeout: Duration) -> impl Render {
     let (notifications, notifier) = use_notifications();
     col![
         style(padding(1), width(full()), height(full())),
-        row![
-            style(width(full()), align_items(center())),
-            wgt!("Add a Todo"),
-            add_todo_input(input_id)
-        ],
-        col![
-            style(
-                width(full()),
-                height(full()),
-                overflow_y(scroll()),
-                borders(Borders::all().title("Todos"))
-            ),
-            todos_body(editing_id, notifier, notification_timeout)
-        ],
+        focus_scope!(
+            row![
+                style(width(full()), align_items(center())),
+                wgt!("Add a Todo"),
+                add_todo_input(input_id)
+            ],
+            col![
+                style(
+                    width(full()),
+                    height(full()),
+                    overflow_y(scroll()),
+                    borders(Borders::all().title("Todos"))
+                ),
+                todos_body(editing_id, notifier, notification_timeout)
+            ],
+        ),
         CommandBar::<Command>::new().render(),
         saving_popup(),
         notifications.render()
@@ -219,10 +223,8 @@ fn todos_body(
         fetch_todos()
     });
 
-    let fallback = move |errors: ArcRwSignal<Errors>| {
-        let error_list =
-            move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
-
+    let fallback = move |errors| {
+        let error_list = move || error_map(&errors, |_, e| span!(e));
         wgt!(line!(error_list()))
     };
 
@@ -232,11 +234,13 @@ fn todos_body(
             if todos.is_empty() {
                 wgt!("No todos".gray()).into_any()
             } else {
-                todos
-                    .into_iter()
-                    .map(|t| todo_item(t.id, t.text, editing_id))
-                    .collect::<Vec<_>>()
-                    .into_any()
+                focus_scope!(
+                    todos
+                        .into_iter()
+                        .map(|t| todo_item(t.id, t.text, editing_id))
+                        .collect::<Vec<_>>()
+                )
+                .into_any()
             }
         }),
         fallback
@@ -299,11 +303,11 @@ fn add_edit_button(
     editing_id: RwSignal<Option<u32>>,
     input_ref: InputRef,
 ) -> impl Render {
-    let edit_save_text = derive_signal!(text!(if editing.get() {
-        "󱣪".green()
+    let edit_save_text = derive_signal!(if editing.get() {
+        "󱣪".green().into_text()
     } else {
-        "󱞁".blue()
-    }));
+        "󱞁".blue().into_text()
+    });
 
     Button::new()
         .id(add_edit_id)

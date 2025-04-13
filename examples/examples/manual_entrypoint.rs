@@ -28,7 +28,8 @@ async fn async_main() -> Result {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
 
-    wgt!(line!("count: ".bold(), count.get()).cyan()).on_key_down(key(keys::ENTER, move |_, _| {
-        set_count.update(|c| *c += 1);
-    }))
+    wgt!(line!("count: ".bold(), count.get()).cyan()) //
+        .on_key_down(key(keys::ENTER, move |_, _| {
+            set_count.update(|c| *c += 1);
+        }))
 }

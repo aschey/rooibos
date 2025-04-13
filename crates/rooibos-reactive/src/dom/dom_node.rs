@@ -61,6 +61,7 @@ impl Render<RooibosDom> for NodeType {
     fn build(self) -> Self::State {
         match self.0 {
             rooibos_dom::NodeType::Layout => None,
+            rooibos_dom::NodeType::FocusScope(_) => None,
             rooibos_dom::NodeType::Widget(node) => Some(DomWidgetNode(node).build()),
             rooibos_dom::NodeType::Placeholder => None,
         }
@@ -69,6 +70,7 @@ impl Render<RooibosDom> for NodeType {
     fn rebuild(self, state: &mut Self::State) {
         match self.0 {
             rooibos_dom::NodeType::Layout => {}
+            rooibos_dom::NodeType::FocusScope(_) => {}
             rooibos_dom::NodeType::Widget(node) => {
                 if let Some(s) = state.as_mut() {
                     DomWidgetNode(node).rebuild(s)

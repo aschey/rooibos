@@ -3,8 +3,8 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::reactive::dom::flex_node::FlexProperty;
 use rooibos::reactive::dom::layout::{
-    Borders, align_items, borders, center, full, height, justify_content, padding, show, width,
-    z_index,
+    Borders, align_items, borders, center, clear, full, height, justify_content, padding, show,
+    width, z_index,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, UpdateLayoutProps, after_render, focus_id, line, text,
@@ -37,7 +37,8 @@ fn app() -> impl Render {
                 .on_click(move || set_show_popup.set(true))
                 .render(text!("Open Popup")),
         ],
-        popup(show_popup, move || set_show_popup.set(false))
+        popup(show_popup, move || set_show_popup.set(false)),
+        Button::new().render(text!("bottom text"))
     ]
 }
 
@@ -61,7 +62,12 @@ fn popup(show_popup: ReadSignal<bool>, on_close: impl Fn() + Clone + 'static) ->
             show(show_popup),
         ),
         col![
-            style(center_items(), padding(1), borders(Borders::all())),
+            style(
+                center_items(),
+                clear(true),
+                padding(1),
+                borders(Borders::all())
+            ),
             wgt!(line!("popup text")),
             Button::new()
                 .on_click(on_close)

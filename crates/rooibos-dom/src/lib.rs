@@ -27,7 +27,7 @@ use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 #[doc(hidden)]
 pub use ratatui::text as __text;
-use ratatui::text::Span;
+use ratatui::text::{Line, Span, Text};
 #[cfg(feature = "effects")]
 pub use tachyonfx;
 pub use terminput::*;
@@ -112,29 +112,115 @@ impl IntoSpan<'static> for String {
     }
 }
 
-macro_rules! span_primitive {
+pub trait IntoText<'a> {
+    fn into_text(self) -> Text<'a>;
+}
+
+impl<'a> IntoText<'a> for Text<'a> {
+    fn into_text(self) -> Text<'a> {
+        self
+    }
+}
+
+impl<'a> IntoText<'a> for Span<'a> {
+    fn into_text(self) -> Text<'a> {
+        self.into()
+    }
+}
+
+impl<'a> IntoText<'a> for Line<'a> {
+    fn into_text(self) -> Text<'a> {
+        self.into()
+    }
+}
+
+impl<'a> IntoText<'a> for &'a str {
+    fn into_text(self) -> Text<'a> {
+        Text::raw(self)
+    }
+}
+
+impl<'a> IntoText<'a> for Cow<'a, str> {
+    fn into_text(self) -> Text<'a> {
+        Text::raw(self)
+    }
+}
+
+impl IntoText<'static> for String {
+    fn into_text(self) -> Text<'static> {
+        Text::raw(self)
+    }
+}
+
+pub trait IntoLine<'a> {
+    fn into_line(self) -> Line<'a>;
+}
+
+impl<'a> IntoLine<'a> for Span<'a> {
+    fn into_line(self) -> Line<'a> {
+        self.into()
+    }
+}
+
+impl<'a> IntoLine<'a> for Line<'a> {
+    fn into_line(self) -> Line<'a> {
+        self
+    }
+}
+
+impl<'a> IntoLine<'a> for &'a str {
+    fn into_line(self) -> Line<'a> {
+        Line::raw(self)
+    }
+}
+
+impl<'a> IntoLine<'a> for Cow<'a, str> {
+    fn into_line(self) -> Line<'a> {
+        Line::raw(self)
+    }
+}
+
+impl IntoLine<'static> for String {
+    fn into_line(self) -> Line<'static> {
+        Line::raw(self)
+    }
+}
+
+macro_rules! impl_primitive {
     ($impl_type:ty) => {
         impl IntoSpan<'static> for $impl_type {
             fn into_span(self) -> Span<'static> {
                 Span::raw(self.to_string())
             }
         }
+
+        impl IntoLine<'static> for $impl_type {
+            fn into_line(self) -> Line<'static> {
+                Line::raw(self.to_string())
+            }
+        }
+
+        impl IntoText<'static> for $impl_type {
+            fn into_text(self) -> Text<'static> {
+                Text::raw(self.to_string())
+            }
+        }
     };
 }
 
-span_primitive!(bool);
-span_primitive!(char);
-span_primitive!(f32);
-span_primitive!(f64);
-span_primitive!(i8);
-span_primitive!(i16);
-span_primitive!(i32);
-span_primitive!(i64);
-span_primitive!(i128);
-span_primitive!(isize);
-span_primitive!(u8);
-span_primitive!(u16);
-span_primitive!(u32);
-span_primitive!(u64);
-span_primitive!(u128);
-span_primitive!(usize);
+impl_primitive!(bool);
+impl_primitive!(char);
+impl_primitive!(f32);
+impl_primitive!(f64);
+impl_primitive!(i8);
+impl_primitive!(i16);
+impl_primitive!(i32);
+impl_primitive!(i64);
+impl_primitive!(i128);
+impl_primitive!(isize);
+impl_primitive!(u8);
+impl_primitive!(u16);
+impl_primitive!(u32);
+impl_primitive!(u64);
+impl_primitive!(u128);
+impl_primitive!(usize);

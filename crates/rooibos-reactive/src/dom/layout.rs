@@ -6,8 +6,8 @@ use reactive_graph::effect::RenderEffect;
 use reactive_graph::signal::{ReadSignal, RwSignal};
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::NodeId;
 pub use rooibos_dom::{BorderType, Borders};
+use rooibos_dom::{FocusMode, NodeId};
 use taffy::Display;
 use wasm_compat::sync::Mutex;
 
@@ -327,7 +327,14 @@ impl Property for Focusable {
         RenderEffect::new(move |_| {
             if let Some(focusable) = self.0 {
                 with_nodes_mut(|nodes| {
-                    nodes.set_focusable(key, focusable.get());
+                    nodes.set_focus_mode(
+                        key,
+                        if focusable.get() {
+                            FocusMode::Tab
+                        } else {
+                            FocusMode::None
+                        },
+                    );
                 });
             }
         })

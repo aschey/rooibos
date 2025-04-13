@@ -12,7 +12,7 @@ use slotmap::{SlotMap, new_key_type};
 use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
 use terminput::ScrollDirection;
 
-use super::{MeasureNode, NodeProperties, dom_node, refresh_dom};
+use super::{FocusMode, MeasureNode, NodeProperties, dom_node, refresh_dom};
 use crate::events::{BlurEvent, Event, EventData, EventHandlers, FocusEvent, queue_event};
 use crate::{AsDomNode, DomNode, NodeType};
 
@@ -191,7 +191,7 @@ impl DomNodeKey {
 
 pub(crate) struct TreeValue {
     pub(crate) inner: NodeProperties,
-    layout_id: NodeId,
+    layout_id: Option<NodeId>,
 }
 
 #[derive(Clone, Default)]
@@ -271,6 +271,7 @@ pub struct NodeTree {
 
 impl Index<DomNodeKey> for NodeTree {
     type Output = NodeProperties;
+
     fn index(&self, index: DomNodeKey) -> &Self::Output {
         &self.dom_nodes[index].inner
     }
@@ -305,40 +306,52 @@ impl NodeTree {
             .map(|r| r.as_dom_node().get_key())
             .collect();
         for root_key in root_keys {
-            let node = &self.dom_nodes[root_key];
-            self.layout_tree
-                .compute_layout_with_measure(
-                    node.layout_id,
-                    Size::<AvailableSpace> {
-                        width: AvailableSpace::Definite(rect.width.into()),
-                        height: AvailableSpace::Definite(rect.height.into()),
-                    },
-                    |known_dimensions, available_space, _node_id, node_context, style| {
-                        if let Some(node_context) = node_context {
-                            let node = &self.dom_nodes[node_context.key];
-                            if let NodeType::Widget(widget) = &node.inner.node_type {
-                                return widget.measure(known_dimensions, available_space, style);
+            let child_keys = if self.dom_nodes[root_key].layout_id.is_none() {
+                self.child_layout_keys(root_key)
+            } else {
+                vec![root_key]
+            };
+            for child_key in child_keys {
+                let node = &self.dom_nodes[child_key];
+                self.layout_tree
+                    .compute_layout_with_measure(
+                        node.layout_id.unwrap(),
+                        Size::<AvailableSpace> {
+                            width: AvailableSpace::Definite(rect.width.into()),
+                            height: AvailableSpace::Definite(rect.height.into()),
+                        },
+                        |known_dimensions, available_space, _node_id, node_context, style| {
+                            if let Some(node_context) = node_context {
+                                let node = &self.dom_nodes[node_context.key];
+                                if let NodeType::Widget(widget) = &node.inner.node_type {
+                                    return widget.measure(
+                                        known_dimensions,
+                                        available_space,
+                                        style,
+                                    );
+                                }
                             }
-                        }
-                        Size::zero()
+                            Size::zero()
+                        },
+                    )
+                    .unwrap();
+                // self.layout_tree.print_tree(node.layout_id.unwrap());
+                self.recompute_offsets(
+                    node.layout_id.unwrap(),
+                    Point {
+                        // inline viewports will likely have an initial offset relative to the total
+                        // size of the terminal
+                        x: rect.x as f32,
+                        y: rect.y as f32,
                     },
-                )
-                .unwrap();
-            self.recompute_offsets(
-                root_key,
-                Point {
-                    // inline viewports will likely have an initial offset relative to the total
-                    // size of the terminal
-                    x: rect.x as f32,
-                    y: rect.y as f32,
-                },
-            );
+                );
+            }
         }
     }
 
     pub fn force_recompute_layout(&mut self, key: DomNodeKey) {
         self.layout_tree
-            .mark_dirty(self.dom_nodes[key].layout_id)
+            .mark_dirty(self.dom_nodes[key].layout_id.unwrap())
             .unwrap();
     }
 
@@ -430,19 +443,32 @@ impl NodeTree {
         self.focusable_nodes.borrow_mut().clear();
     }
 
-    fn recompute_offsets(&mut self, root_key: DomNodeKey, root_offset: Point<f32>) {
-        let root = self.dom_nodes[root_key].layout_id;
-        let root_context = self.layout_tree.get_node_context_mut(root).unwrap();
-        root_context.offset.x = root_offset.x;
-        root_context.offset.y = root_offset.y;
-        self.recompute_offset(root_key);
+    pub(crate) fn child_layout_keys(&self, key: DomNodeKey) -> Vec<DomNodeKey> {
+        let mut keys = Vec::new();
+        for child in &self.dom_nodes[key].inner.children {
+            if self.dom_nodes[*child].layout_id.is_none() {
+                for child in &self.dom_nodes[*child].inner.children {
+                    keys.append(&mut self.child_layout_keys(*child));
+                }
+            } else {
+                keys.push(*child);
+            }
+        }
+        keys
     }
 
-    fn recompute_offset(&mut self, parent_key: DomNodeKey) {
-        let parent = self.dom_nodes[parent_key].layout_id;
-        let parent_context = self.layout_tree.get_node_context(parent).unwrap().clone();
-        let children = self.dom_nodes[parent_key].inner.children.clone();
-        let layout = self.layout_tree.layout(parent).unwrap();
+    fn recompute_offsets(&mut self, root_layout: NodeId, root_offset: Point<f32>) {
+        let root_context = self.layout_tree.get_node_context_mut(root_layout).unwrap();
+        root_context.offset.x = root_offset.x;
+        root_context.offset.y = root_offset.y;
+
+        self.recompute_offset(root_layout);
+    }
+
+    fn recompute_offset(&mut self, layout_node: NodeId) {
+        let context = self.layout_tree.get_node_context(layout_node).unwrap();
+        let key = context.key;
+        let layout = self.layout_tree.layout(layout_node).unwrap();
 
         let scroll_height =
             (layout.scroll_height() as u16).saturating_sub(layout.scrollbar_size.height as u16);
@@ -451,41 +477,47 @@ impl NodeTree {
 
         let viewport = self.viewport_size.viewport();
         if (layout.size.height as u16 > viewport.height
-            && self.style(parent_key).overflow.y == Overflow::Scroll)
+            && self.style(key).overflow.y == Overflow::Scroll)
             || (layout.size.width as u16 > viewport.width
-                && self.style(parent_key).overflow.x == Overflow::Scroll)
+                && self.style(key).overflow.x == Overflow::Scroll)
         {
             let max_x = (layout.size.width as u16).saturating_sub(viewport.width);
             let max_y = (layout.size.height as u16).saturating_sub(viewport.height);
-            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::new(max_x, max_y);
-            let scroll_offset = self.dom_nodes[parent_key].inner.scroll_offset;
-            self.dom_nodes[parent_key].inner.scroll_offset.x = scroll_offset.x.min(max_x);
-            self.dom_nodes[parent_key].inner.scroll_offset.y = scroll_offset.y.min(max_y);
-        } else if (scroll_height > 0 && self.style(parent_key).overflow.y == Overflow::Scroll)
-            || (scroll_width > 0 && self.style(parent_key).overflow.x == Overflow::Scroll)
+            self.dom_nodes[key].inner.max_scroll_offset = Position::new(max_x, max_y);
+            let scroll_offset = self.dom_nodes[key].inner.scroll_offset;
+            self.dom_nodes[key].inner.scroll_offset.x = scroll_offset.x.min(max_x);
+            self.dom_nodes[key].inner.scroll_offset.y = scroll_offset.y.min(max_y);
+        } else if (scroll_height > 0 && self.style(key).overflow.y == Overflow::Scroll)
+            || (scroll_width > 0 && self.style(key).overflow.x == Overflow::Scroll)
         {
-            self.dom_nodes[parent_key].inner.max_scroll_offset =
+            self.dom_nodes[key].inner.max_scroll_offset =
                 Position::new(scroll_width, scroll_height);
-            let scroll_offset = self.dom_nodes[parent_key].inner.scroll_offset;
-            self.dom_nodes[parent_key].inner.scroll_offset.x = scroll_offset.x.min(scroll_width);
-            self.dom_nodes[parent_key].inner.scroll_offset.y = scroll_offset.y.min(scroll_height);
+            let scroll_offset = self.dom_nodes[key].inner.scroll_offset;
+            self.dom_nodes[key].inner.scroll_offset.x = scroll_offset.x.min(scroll_width);
+            self.dom_nodes[key].inner.scroll_offset.y = scroll_offset.y.min(scroll_height);
         } else {
-            self.dom_nodes[parent_key].inner.max_scroll_offset = Position::default();
-            self.dom_nodes[parent_key].inner.scroll_offset = Position::default();
+            self.dom_nodes[key].inner.max_scroll_offset = Position::default();
+            self.dom_nodes[key].inner.scroll_offset = Position::default();
         }
+        let context = self
+            .layout_tree
+            .get_node_context(layout_node)
+            .unwrap()
+            .offset;
+        for child_node in self.layout_tree.children(layout_node).unwrap() {
+            self.compute_location(child_node, &context);
+            self.recompute_offset(child_node);
+        }
+    }
 
-        for child_key in children {
-            let child = self.dom_nodes[child_key].layout_id;
-            let child_layout = *self.layout_tree.layout(child).unwrap();
-            let context = self.layout_tree.get_node_context_mut(child).unwrap();
-            let new_x = child_layout.location.x + parent_context.offset.x;
-            let new_y = child_layout.location.y + parent_context.offset.y;
-            // if context.0.x != new_x || context.0.y != new_y {
-            context.offset.x = new_x;
-            context.offset.y = new_y;
-            self.recompute_offset(child_key);
-            // }
-        }
+    fn compute_location(&mut self, child: NodeId, parent_offset: &Point<f32>) {
+        let child_layout = *self.layout_tree.layout(child).unwrap();
+        let context = self.layout_tree.get_node_context_mut(child).unwrap();
+        let new_x = child_layout.location.x + parent_offset.x;
+        let new_y = child_layout.location.y + parent_offset.y;
+        // if context.0.x != new_x || context.0.y != new_y {
+        context.offset.x = new_x;
+        context.offset.y = new_y;
     }
 
     pub fn update_layout<F>(&mut self, node: DomNodeKey, mut f: F)
@@ -493,27 +525,33 @@ impl NodeTree {
         F: FnMut(&mut Style),
     {
         let value = &self.dom_nodes[node];
-        let mut style = self.layout_tree.style(value.layout_id).unwrap().clone();
+        let mut style = self
+            .layout_tree
+            .style(value.layout_id.unwrap())
+            .unwrap()
+            .clone();
 
         f(&mut style);
 
         self.layout_tree
-            .set_style(value.layout_id, style.clone())
+            .set_style(value.layout_id.unwrap(), style.clone())
             .unwrap();
 
         refresh_dom();
     }
 
     pub(crate) fn rect(&self, key: DomNodeKey) -> ContentRect {
-        let context = self
-            .layout_tree
-            .get_node_context(self.dom_nodes[key].layout_id)
-            .unwrap();
+        self.try_rect(key).unwrap()
+    }
+
+    pub(crate) fn try_rect(&self, key: DomNodeKey) -> Option<ContentRect> {
+        let layout_id = self.dom_nodes[key].layout_id?;
+        let context = self.layout_tree.get_node_context(layout_id).unwrap();
         let computed = self.get_computed(key);
         let scroll_offset = self.dom_nodes[key].inner.scroll_offset;
         let max_scroll_offset = self.dom_nodes[key].inner.max_scroll_offset;
 
-        ContentRect {
+        Some(ContentRect {
             x: context.offset.x as u16,
             y: context.offset.y as u16,
             content_box_size: computed.content_box_size().map(|s| s as u16),
@@ -524,19 +562,25 @@ impl NodeTree {
             padding: computed.padding.map(|s| s as u16),
             scroll_offset,
             max_scroll_offset,
-        }
+        })
     }
 
     fn get_computed(&self, key: DomNodeKey) -> &taffy::Layout {
         self.layout_tree
-            .layout(self.dom_nodes[key].layout_id)
+            .layout(self.dom_nodes[key].layout_id.unwrap())
             .unwrap()
     }
 
+    pub(crate) fn try_style(&self, key: DomNodeKey) -> Option<&taffy::Style> {
+        if let Some(layout_id) = self.dom_nodes[key].layout_id {
+            Some(self.layout_tree.style(layout_id).unwrap())
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn style(&self, key: DomNodeKey) -> &taffy::Style {
-        self.layout_tree
-            .style(self.dom_nodes[key].layout_id)
-            .unwrap()
+        self.try_style(key).unwrap()
     }
 
     pub(crate) fn iter_nodes(&self) -> slotmap::basic::Iter<'_, DomNodeKey, TreeValue> {
@@ -548,6 +592,13 @@ impl NodeTree {
     }
 
     pub(crate) fn insert(&mut self, val: NodeProperties) -> DomNodeKey {
+        if matches!(val.node_type, NodeType::FocusScope(_)) {
+            let key = self.dom_nodes.insert(TreeValue {
+                inner: val,
+                layout_id: None,
+            });
+            return key;
+        }
         let style = Style {
             scrollbar_width: 1.0,
             // overflow: Point {
@@ -556,14 +607,13 @@ impl NodeTree {
             // },
             ..Default::default()
         };
-
         let layout_node = self
             .layout_tree
             .new_leaf_with_context(style, Context::default())
             .unwrap();
         let key = self.dom_nodes.insert(TreeValue {
             inner: val,
-            layout_id: layout_node,
+            layout_id: Some(layout_node),
         });
         if let NodeType::Widget(widget) = &mut self.dom_nodes[key].inner.node_type {
             widget.set_key(key);
@@ -598,24 +648,49 @@ impl NodeTree {
                     .children
                     .insert(reference_pos, child_key);
                 self.dom_nodes[child_key].inner.parent = Some(parent_key);
-                let parent_node = &self.dom_nodes[parent_key];
-                let child_node = &self.dom_nodes[child_key];
-                self.layout_tree
-                    .insert_child_at_index(
-                        parent_node.layout_id,
-                        reference_pos,
-                        child_node.layout_id,
-                    )
-                    .unwrap();
+                let layout_parent_key = self.nearest_layout_parent(parent_key);
+                if let Some(layout_parent_key) = layout_parent_key {
+                    let parent_node = &self.dom_nodes[layout_parent_key];
+                    let child_nodes = self.nearest_layout_children(child_key);
+                    // Insert in reverse to preserve index ordering
+                    for child_key in child_nodes.iter().rev() {
+                        let child_node = &self.dom_nodes[*child_key];
+                        if layout_parent_key == parent_key {
+                            self.layout_tree
+                                .insert_child_at_index(
+                                    parent_node.layout_id.unwrap(),
+                                    reference_pos,
+                                    child_node.layout_id.unwrap(),
+                                )
+                                .unwrap();
+                        } else {
+                            self.layout_tree
+                                .add_child(
+                                    parent_node.layout_id.unwrap(),
+                                    child_node.layout_id.unwrap(),
+                                )
+                                .unwrap();
+                        }
+                    }
+                }
             }
         } else {
             self.dom_nodes[parent_key].inner.children.push(child_key);
             self.dom_nodes[child_key].inner.parent = Some(parent_key);
-            let parent_node = &self.dom_nodes[parent_key];
-            let child_node = &self.dom_nodes[child_key];
-            self.layout_tree
-                .add_child(parent_node.layout_id, child_node.layout_id)
-                .unwrap();
+            let layout_parent_key = self.nearest_layout_parent(parent_key);
+            if let Some(layout_parent_key) = layout_parent_key {
+                let child_nodes = self.nearest_layout_children(child_key);
+                for child_key in child_nodes {
+                    let parent_node = &self.dom_nodes[layout_parent_key];
+                    let child_node = &self.dom_nodes[child_key];
+                    self.layout_tree
+                        .add_child(
+                            parent_node.layout_id.unwrap(),
+                            child_node.layout_id.unwrap(),
+                        )
+                        .unwrap();
+                }
+            }
         }
         let parent_node = &self.dom_nodes[parent_key];
         // If the parent is disabled, the child should also be disabled
@@ -626,11 +701,30 @@ impl NodeTree {
         refresh_dom();
     }
 
+    fn nearest_layout_parent(&self, key: DomNodeKey) -> Option<DomNodeKey> {
+        if self.dom_nodes[key].layout_id.is_none() {
+            let parent = self.dom_nodes[key].inner.parent?;
+            return self.nearest_layout_parent(parent);
+        }
+        Some(key)
+    }
+
+    fn nearest_layout_children(&self, key: DomNodeKey) -> Vec<DomNodeKey> {
+        if self.dom_nodes[key].layout_id.is_none() {
+            self.child_layout_keys(key)
+        } else {
+            vec![key]
+        }
+    }
+
     pub(crate) fn remove(&mut self, node: DomNodeKey) -> Option<TreeValue> {
-        let layout_id = self.dom_nodes[node].layout_id;
-        self.layout_tree.remove(layout_id).unwrap();
+        if let Some(layout_id) = self.dom_nodes[node].layout_id {
+            self.layout_tree.remove(layout_id).unwrap();
+        }
+
+        let removed = self.dom_nodes.remove(node);
         refresh_dom();
-        self.dom_nodes.remove(node)
+        removed
     }
 
     pub(crate) fn unmount_child(&mut self, child: DomNodeKey) {
@@ -644,11 +738,14 @@ impl NodeTree {
                 .unwrap();
             self.dom_nodes[parent].inner.children.remove(child_pos);
             self.dom_nodes[child].inner.parent = None;
-            let parent_node = &self.dom_nodes[parent];
+
             let child_node = &self.dom_nodes[child];
-            self.layout_tree
-                .remove_child(parent_node.layout_id, child_node.layout_id)
-                .unwrap();
+            if let Some(layout_id) = child_node.layout_id {
+                let parent_layout = self.nearest_layout_parent(parent).unwrap();
+                let parent_id = self.dom_nodes[parent_layout].layout_id.unwrap();
+                self.layout_tree.remove_child(parent_id, layout_id).unwrap();
+            }
+
             refresh_dom();
         }
     }
@@ -676,8 +773,8 @@ impl NodeTree {
         refresh_dom();
     }
 
-    pub fn set_focusable(&mut self, node: DomNodeKey, focusable: bool) {
-        self.dom_nodes[node].inner.set_focusable(focusable);
+    pub fn set_focus_mode(&mut self, node: DomNodeKey, focus_mode: FocusMode) {
+        self.dom_nodes[node].inner.set_focus_mode(focus_mode);
         refresh_dom();
     }
 
@@ -777,6 +874,7 @@ impl NodeTree {
     pub fn set_z_index(&mut self, key: DomNodeKey, z_index: i32) {
         self.unmount_child(key);
         self.dom_nodes[key].inner.z_index = Some(z_index);
+
         let unmounted = self.dom_nodes[key].inner.unmounted.clone();
         let node = DomNode::from_existing(key, unmounted);
         self.roots.insert(RootId::new(z_index), Box::new(node));

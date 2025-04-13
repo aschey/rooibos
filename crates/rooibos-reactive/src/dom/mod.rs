@@ -8,12 +8,12 @@ pub use focus::*;
 pub use into_view::*;
 use ratatui::backend::WindowSize;
 pub use renderer::*;
+use rooibos_dom::{render_dom, with_nodes, with_nodes_mut};
 pub use rooibos_dom::{
     DomNodeRepr, MeasureNode, RenderNode, clear_focus, delay, dom_update_receiver, events,
     focus_id, focus_next, focus_prev, line, render_terminal, root, set_pixel_size,
     set_supports_keyboard_enhancement, span, text, try_focus_id, widgets,
 };
-use rooibos_dom::{render_dom, with_nodes, with_nodes_mut};
 
 mod children;
 pub mod div;
@@ -21,6 +21,7 @@ mod dom_node;
 mod dom_widget;
 pub mod flex_node;
 mod focus;
+pub mod focus_scope;
 mod into_view;
 pub mod layout;
 mod renderer;

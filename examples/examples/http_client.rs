@@ -6,9 +6,9 @@ use rooibos::components::Button;
 use rooibos::reactive::dom::layout::padding;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span, text};
 use rooibos::reactive::graph::computed::AsyncDerived;
-use rooibos::reactive::graph::signal::{ArcRwSignal, signal};
-use rooibos::reactive::graph::traits::{Get, Set, With};
-use rooibos::reactive::{Errors, col, suspense, wgt};
+use rooibos::reactive::graph::signal::signal;
+use rooibos::reactive::graph::traits::{Get, Set};
+use rooibos::reactive::{col, error_map, suspense, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -27,10 +27,8 @@ fn app() -> impl Render {
 
     let character = AsyncDerived::new(move || fetch_next(id.get()));
 
-    let fallback = move |errors: ArcRwSignal<Errors>| {
-        let error_list =
-            move || errors.with(|errors| errors.iter().map(|(_, e)| span!(e)).collect::<Vec<_>>());
-
+    let fallback = move |errors| {
+        let error_list = move || error_map(&errors, |_, e| span!(e));
         wgt!(line!(error_list()))
     };
 
@@ -41,10 +39,9 @@ fn app() -> impl Render {
             .on_click(move || {
                 set_id.set(rand::thread_rng().gen_range(1..80));
             })
-            .height(3)
             .render(text!("fetch next")),
         suspense!(
-            wgt!(line!(" Loading...".gray())),
+            wgt!(" Loading...".gray()),
             character.await.map(|c| wgt!(line!(" ", c.clone().green()))),
             fallback
         )

@@ -8,7 +8,7 @@ use ratatui::layout::{Position, Rect};
 use ratatui::widgets::Block;
 use terminput::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::{DomNodeKey, NodeProperties, RenderProps, unmount_child};
+use super::{DomNodeKey, FocusMode, FocusScope, NodeProperties, RenderProps, unmount_child};
 use crate::events::{
     BlurEvent, Event, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
     IntoDragHandler, IntoKeyHandler, NodeState, dispatch_event, reset_mouse_position,
@@ -85,6 +85,7 @@ pub(crate) struct NodeTypeStructure {
 #[derive(Clone, PartialEq, Eq, Default)]
 pub enum NodeType {
     Layout,
+    FocusScope(FocusScope),
     Widget(DomWidgetNode),
     #[default]
     Placeholder,
@@ -95,6 +96,10 @@ impl NodeType {
         match self {
             NodeType::Layout => NodeTypeStructure {
                 name: "Layout",
+                attrs: None,
+            },
+            NodeType::FocusScope(_) => NodeTypeStructure {
+                name: "FocusScope",
                 attrs: None,
             },
             NodeType::Widget(_) => NodeTypeStructure {
@@ -115,6 +120,9 @@ impl Debug for NodeType {
             NodeType::Layout => {
                 write!(f, "Layout")
             }
+            NodeType::FocusScope(_) => {
+                write!(f, "FocusScope")
+            }
             NodeType::Widget(widget) => write!(f, "Widget({widget:?})"),
             NodeType::Placeholder => write!(f, "Placeholder"),
         }
@@ -125,6 +133,7 @@ impl Debug for NodeType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
     Layout { block: Option<Block<'static>> },
+    FocusScope,
     Widget,
     Placeholder,
 }
@@ -145,6 +154,7 @@ impl DomNodeRepr {
                 NodeType::Layout => NodeTypeRepr::Layout {
                     block: node.block.clone(),
                 },
+                NodeType::FocusScope(_) => NodeTypeRepr::FocusScope,
                 NodeType::Widget(_) => NodeTypeRepr::Widget,
                 NodeType::Placeholder => NodeTypeRepr::Placeholder,
             },
@@ -406,6 +416,20 @@ impl DomNode {
         Self { key, unmounted }
     }
 
+    pub fn focus_scope() -> Self {
+        let unmounted = Arc::new(AtomicBool::new(false));
+        let inner = NodeProperties {
+            name: "focus_scope".to_string(),
+            node_type: NodeType::FocusScope(FocusScope::new()),
+            original_display: taffy::Display::Block,
+            unmounted: unmounted.clone(),
+            ..Default::default()
+        };
+        let unmounted = inner.unmounted.clone();
+        let key = with_nodes_mut(|n| n.insert(inner));
+        Self { key, unmounted }
+    }
+
     pub fn replace_node(&mut self, node: &DomNode) {
         with_nodes_mut(|nodes| {
             nodes.replace_node(self.key, node.key);
@@ -579,7 +603,16 @@ impl DomNode {
     }
 
     pub fn focusable(self, focusable: bool) -> Self {
-        with_nodes_mut(|nodes| nodes.set_focusable(self.key, focusable));
+        with_nodes_mut(|nodes| {
+            nodes.set_focus_mode(
+                self.key,
+                if focusable {
+                    FocusMode::Tab
+                } else {
+                    FocusMode::None
+                },
+            )
+        });
         self
     }
 

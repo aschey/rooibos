@@ -5,7 +5,7 @@ use std::process::ExitCode;
 use rooibos::components::{ListView, WrappingList};
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::height;
-use rooibos::reactive::dom::{Render, UpdateLayoutProps, text};
+use rooibos::reactive::dom::{Render, UpdateLayoutProps};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{col, wgt};
@@ -42,7 +42,7 @@ fn app() -> impl Render {
     ));
 
     col![
-        wgt!(style(height(2)), text!("Select an item".bold())),
+        wgt!(style(height(2)), "Select an item".bold()),
         ListView::new()
             .height(3)
             .on_item_click(move |i, _| {

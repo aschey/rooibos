@@ -17,8 +17,33 @@ use tachyonfx::{EffectRenderer, Shader};
 use terminput::ScrollDirection;
 
 use super::node_tree::{DomNodeKey, NodeTree};
-use super::{ContentRect, NodeId, NodeType, refresh_dom};
+use super::{ContentRect, NodeId, NodeType, next_node_id, refresh_dom};
 use crate::events::EventHandlers;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FocusScope {
+    last_focused: Option<DomNodeKey>,
+    contain: bool,
+    id: u32,
+}
+
+impl FocusScope {
+    pub(crate) fn new() -> Self {
+        Self {
+            last_focused: None,
+            contain: false,
+            id: next_node_id(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FocusMode {
+    Tab,
+    List,
+    #[default]
+    None,
+}
 
 #[derive(Educe)]
 #[educe(Debug, Default)]
@@ -30,7 +55,7 @@ pub struct NodeProperties {
     pub(crate) parent: Option<DomNodeKey>,
     pub(crate) id: Option<NodeId>,
     pub(crate) class: Vec<String>,
-    pub(crate) focusable: bool,
+    pub(crate) focus_mode: FocusMode,
     #[educe(Debug(ignore))]
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: RefCell<Rect>,
@@ -93,12 +118,20 @@ impl NodeProperties {
         self.enabled = enabled;
     }
 
-    pub(crate) fn focusable(&self) -> bool {
-        self.focusable && self.enabled()
+    pub(crate) fn tab_focusable(&self) -> bool {
+        self.focus_mode == FocusMode::Tab && self.enabled()
     }
 
-    pub(crate) fn set_focusable(&mut self, focusable: bool) {
-        self.focusable = focusable;
+    pub(crate) fn list_focusable(&self) -> bool {
+        self.focus_mode == FocusMode::List && self.enabled()
+    }
+
+    pub(crate) fn focusable(&self) -> bool {
+        self.tab_focusable() || self.list_focusable()
+    }
+
+    pub(crate) fn set_focus_mode(&mut self, focus_mode: FocusMode) {
+        self.focus_mode = focus_mode;
     }
 
     pub(crate) fn set_parent_enabled(&mut self, enabled: bool) {
@@ -158,9 +191,21 @@ impl NodeProperties {
         } = props;
 
         let prev_rect = *self.rect.borrow();
-        let content_rect = dom_nodes.rect(key);
+        let Some(content_rect) = dom_nodes.try_rect(key) else {
+            self.children.iter().for_each(|key| {
+                dom_nodes[*key].render(RenderProps {
+                    frame,
+                    window,
+                    parent_bounds,
+                    parent_scroll_offset,
+                    key: *key,
+                    dom_nodes,
+                });
+            });
+            return;
+        };
 
-        if self.focusable {
+        if self.focusable() {
             dom_nodes.add_focusable(key);
         }
 
@@ -260,6 +305,9 @@ impl NodeProperties {
                         };
                     }
                 }
+                NodeType::FocusScope(_) => {
+                    print!("")
+                }
                 NodeType::Widget(widget) => {
                     self.visible.store(true, Ordering::Relaxed);
                     let mut inner = content_rect.inner_bounds();
@@ -353,7 +401,7 @@ impl NodeProperties {
             parent: _parent,
             id,
             class,
-            focusable,
+            focus_mode,
             event_handlers,
             rect,
             original_display,
@@ -373,7 +421,7 @@ impl NodeProperties {
 
         let name = name.clone();
         let node_type = node_type.clone();
-        let focusable = *focusable;
+        let focus_mode = *focus_mode;
         let id = id.clone();
         let class = class.clone();
         let event_handlers = event_handlers.clone();
@@ -389,7 +437,7 @@ impl NodeProperties {
 
         self.name = name;
         self.node_type = node_type;
-        self.focusable = focusable;
+        self.focus_mode = focus_mode;
         self.id = id;
         self.class = class;
         self.event_handlers = event_handlers;
