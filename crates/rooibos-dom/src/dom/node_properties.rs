@@ -250,7 +250,7 @@ impl NodeProperties {
 
                         let mut all_child_bounds = Rect::default();
                         let mut init = false;
-                        self.children.iter().for_each(|key| {
+                        dom_nodes.child_layout_keys(key).iter().for_each(|key| {
                             let visible_child_bounds = dom_nodes.rect(*key).total_size();
                             if visible_child_bounds.width > 0 && visible_child_bounds.height > 0 {
                                 if !init {
@@ -305,9 +305,7 @@ impl NodeProperties {
                         };
                     }
                 }
-                NodeType::FocusScope(_) => {
-                    print!("")
-                }
+                NodeType::FocusScope(_) => {}
                 NodeType::Widget(widget) => {
                     self.visible.store(true, Ordering::Relaxed);
                     let mut inner = content_rect.inner_bounds();
