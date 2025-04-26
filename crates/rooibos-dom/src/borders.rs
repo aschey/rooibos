@@ -3,7 +3,7 @@ use ratatui::symbols::border;
 use ratatui::widgets::block::Title;
 use taffy::LengthPercentage;
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BorderType {
     #[default]
     Solid,
@@ -39,7 +39,7 @@ impl From<BorderType> for border::Set {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Borders {
     borders: ratatui::widgets::Borders,
     border_type: BorderType,

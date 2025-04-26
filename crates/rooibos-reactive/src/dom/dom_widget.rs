@@ -8,22 +8,22 @@ use rooibos_dom::events::{
     BlurEvent, ClickHandler, DragHandler, EventData, EventHandle, FocusEvent, IntoClickHandler,
     IntoDragHandler, IntoKeyHandler, KeyHandler, NodeState,
 };
-use rooibos_dom::{AsDomNode, Borders, BuildNodeRenderer, NodeId};
+use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
 use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
 use super::layout::{
-    AlignSelf, AspectRatio, BorderProp, Class, Clear, Enabled, FlexBasis, FlexGrow, FlexShrink,
-    Focusable, Height, Id, IntoAlignSelfSignal, IntoJustifySelfSignal, JustifySelf, Margin,
-    MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY, MaxHeight, MaxWidth,
-    MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding, PaddingBottom, PaddingLeft,
-    PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property, UpdateLayout, Width, ZIndex,
-    align_self, aspect_ratio, borders, class, clear, enabled, flex_basis, flex_grow, flex_shrink,
-    focusable, height, id, justify_self, margin, margin_bottom, margin_left, margin_right,
-    margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width, overflow,
-    overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right, padding_top,
-    padding_x, padding_y, position, width, z_index,
+    AlignSelf, AspectRatio, Background, BorderProp, Borders, Class, Clear, Enabled, FlexBasis,
+    FlexGrow, FlexShrink, Focusable, Height, Id, IntoAlignSelfSignal, IntoJustifySelfSignal,
+    JustifySelf, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop, MarginX, MarginY,
+    MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY, Padding,
+    PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position, Property,
+    UpdateLayout, Width, ZIndex, align_self, aspect_ratio, background, borders, class, clear,
+    enabled, flex_basis, flex_grow, flex_shrink, focusable, height, id, justify_self, margin,
+    margin_bottom, margin_left, margin_right, margin_top, margin_x, margin_y, max_height,
+    max_width, min_height, min_width, overflow, overflow_x, overflow_y, padding, padding_bottom,
+    padding_left, padding_right, padding_top, padding_x, padding_y, position, width, z_index,
 };
 #[cfg(feature = "effects")]
 use super::layout::{Effect, effect};
@@ -418,6 +418,7 @@ where
 pub struct LayoutProps {
     pub simple: SimpleLayoutProps,
     pub borders: BorderProp,
+    pub background: Background,
     pub focusable: Focusable,
     pub clear: Clear,
     pub enabled: Enabled,
@@ -431,6 +432,7 @@ pub struct LayoutProps {
 pub struct LayoutPropsState {
     simple: <SimpleLayoutProps as Property>::State,
     borders: <BorderProp as Property>::State,
+    background: <Background as Property>::State,
     focusable: <Focusable as Property>::State,
     clear: <Clear as Property>::State,
     enabled: <Enabled as Property>::State,
@@ -458,13 +460,14 @@ impl Property for LayoutProps {
 
     fn build(self, node: &DomNode) -> Self::State {
         build_props!(
-            self, node, borders, focusable, simple, clear, enabled, id, class, z_index
+            self, node, borders, background, focusable, simple, clear, enabled, id, class, z_index
         );
         #[cfg(feature = "effects")]
         build_props!(self, node, effect);
 
         LayoutPropsState {
             borders,
+            background,
             focusable,
             simple,
             clear,
@@ -479,7 +482,8 @@ impl Property for LayoutProps {
 
     fn rebuild(self, node: &DomNode, state: &mut Self::State) {
         rebuild_props!(
-            self, node, state, borders, focusable, simple, clear, enabled, id, class, z_index
+            self, node, state, borders, background, focusable, simple, clear, enabled, id, class,
+            z_index
         );
         #[cfg(feature = "effects")]
         rebuild_props!(self, node, state, effect);
@@ -672,6 +676,7 @@ where
     update_dimension_props!(flex_basis);
 
     update_props!(borders, Borders);
+    update_props!(background, ratatui::style::Color);
     update_props!(focusable, bool);
     update_props!(clear, bool);
     update_props!(enabled, bool);
@@ -858,6 +863,7 @@ custom_widget_prop!(
 dimension_widget_prop!(FlexBasis, flex_basis, simple.flex_basis);
 
 widget_prop!(BorderProp, borders, Borders, borders);
+widget_prop!(Background, background, ratatui::style::Color, background);
 widget_prop!(Focusable, focusable, bool, focusable);
 widget_prop!(Clear, clear, bool, clear);
 widget_prop!(Enabled, enabled, bool, enabled);

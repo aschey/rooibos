@@ -14,8 +14,8 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, absolute, align_items, borders, center, clear, full, height, justify_content, margin,
-    overflow_y, padding, padding_left, position, scroll, show, width,
+    Borders, absolute, align_items, background, borders, center, clear, full, height,
+    justify_content, margin, overflow_y, padding, padding_left, position, scroll, show, width,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -29,7 +29,8 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Track};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    IntoText, col, derive_signal, error_map, focus_scope, row, transition, wgt,
+    IntoText, StateProp, col, derive_signal, error_map, focus_scope, row, transition,
+    use_state_prop, wgt,
 };
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
@@ -280,11 +281,16 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let editing = derive_signal!(editing_id.get() == Some(id));
     let text = RwSignal::new(text);
 
-    let add_edit_id = NodeId::new_auto();
+    let (row_bg, set_row_state) = use_state_prop(
+        StateProp::new(ratatui::style::Color::default())
+            .focused(|_| ratatui::style::Color::Indexed(237)),
+    );
 
+    let add_edit_id = NodeId::new_auto();
     let input_ref = Input::get_ref();
 
     row![
+        style(background(row_bg)),
         col![style(margin(1)), format!("{id}.")],
         add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
         delete_button(id),
@@ -294,6 +300,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
                 todo_editor(id, text, editing_id, add_edit_id, input_ref)
             })
     ]
+    .on_state_change(set_row_state)
 }
 
 fn add_edit_button(
@@ -351,12 +358,11 @@ fn todo_editor(
         focus_id(input_id);
     });
 
+    let (input_borders, set_input_state) =
+        use_state_prop(StateProp::new(Borders::all().empty()).focused(|b| b.solid().blue()));
+
     Input::default()
-        .borders(derive_signal!(if focused.get() {
-            Borders::all().blue()
-        } else {
-            Borders::all().empty()
-        }))
+        .borders(input_borders)
         .initial_value(text.get())
         .on_submit(move |value| {
             update_todo.dispatch((id, value));
@@ -367,6 +373,7 @@ fn todo_editor(
                 editing_id.set(None);
             }
         })
+        .on_state_change(set_input_state)
         .width(full())
         .flex_grow(1.)
         .max_width(100)

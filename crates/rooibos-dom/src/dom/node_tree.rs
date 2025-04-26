@@ -7,6 +7,7 @@ use std::{cmp, mem};
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
+use ratatui::style::Color;
 use ratatui::widgets::Block;
 use slotmap::{SlotMap, new_key_type};
 use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
@@ -14,7 +15,7 @@ use terminput::ScrollDirection;
 
 use super::{FocusMode, MeasureNode, NodeProperties, dom_node, refresh_dom};
 use crate::events::{BlurEvent, Event, EventData, EventHandlers, FocusEvent, queue_event};
-use crate::{AsDomNode, DomNode, NodeType};
+use crate::{AsDomNode, Borders, DomNode, NodeType};
 
 new_key_type! { pub struct DomNodeKey; }
 
@@ -859,8 +860,13 @@ impl NodeTree {
         refresh_dom();
     }
 
-    pub fn set_block(&mut self, node: DomNodeKey, block: Block<'static>) {
-        self.dom_nodes[node].inner.block = Some(block);
+    pub fn set_borders(&mut self, node: DomNodeKey, borders: Borders) {
+        self.dom_nodes[node].inner.borders = Some(borders);
+        refresh_dom();
+    }
+
+    pub fn set_background(&mut self, node: DomNodeKey, background: Color) {
+        self.dom_nodes[node].inner.background = Some(background);
         refresh_dom();
     }
 

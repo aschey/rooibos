@@ -3,6 +3,7 @@ use ratatui::layout::Rect;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, FocusEvent, IntoClickHandler, IntoKeyHandler, KeyHandler,
+    NodeState,
 };
 use rooibos_dom::{AsDomNode, Borders, NodeId};
 use tachys::prelude::Renderer;
@@ -10,15 +11,15 @@ use tachys::view::{Mountable, Render};
 pub use taffy;
 
 use super::layout::{
-    AlignContent, AlignItems, AlignSelf, AspectRatio, BorderProp, Class, Clear, ColumnGap,
-    FlexBasis, FlexGrow, FlexShrink, FlexWrap, Gap, Height, Id, IntoAlignContentSignal,
+    AlignContent, AlignItems, AlignSelf, AspectRatio, Background, BorderProp, Class, Clear,
+    ColumnGap, FlexBasis, FlexGrow, FlexShrink, FlexWrap, Gap, Height, Id, IntoAlignContentSignal,
     IntoAlignItemsSignal, IntoAlignSelfSignal, IntoJustifyContentSignal, IntoJustifyItemsSignal,
     JustifyContent, JustifyItems, Margin, MarginBottom, MarginLeft, MarginRight, MarginTop,
     MarginX, MarginY, MaxHeight, MaxWidth, MinHeight, MinWidth, Overflow, OverflowX, OverflowY,
     Padding, PaddingBottom, PaddingLeft, PaddingRight, PaddingTop, PaddingX, PaddingY, Position,
     Property, RowGap, Show, Width, ZIndex, align_content, align_items, align_self, aspect_ratio,
-    borders, class, clear, column_gap, flex_basis, flex_grow, flex_shrink, flex_wrap, focusable,
-    gap, height, id, justify_content, justify_items, margin, margin_bottom, margin_left,
+    background, borders, class, clear, column_gap, flex_basis, flex_grow, flex_shrink, flex_wrap,
+    focusable, gap, height, id, justify_content, justify_items, margin, margin_bottom, margin_left,
     margin_right, margin_top, margin_x, margin_y, max_height, max_width, min_height, min_width,
     overflow, overflow_x, overflow_y, padding, padding_bottom, padding_left, padding_right,
     padding_top, padding_x, padding_y, position, row_gap, show, width, z_index,
@@ -117,6 +118,22 @@ impl<C, P> FlexNode<C, P> {
             let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
             handler(size);
         });
+        self
+    }
+
+    pub fn on_state_change<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(NodeState, EventData) + 'static,
+    {
+        self.inner.0 = self
+            .inner
+            .0
+            .on_state_change(move |event, data| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data);
+            })
+            .focusable(true);
         self
     }
 
@@ -278,6 +295,7 @@ dimension_flex_prop!(ColumnGap, column_gap);
 dimension_flex_prop!(Gap, gap);
 
 flex_prop!(BorderProp, borders, Borders);
+flex_prop!(Background, background, ratatui::style::Color);
 flex_prop!(Focusable, focusable, bool);
 flex_prop!(Show, show, bool);
 flex_prop!(Clear, clear, bool);

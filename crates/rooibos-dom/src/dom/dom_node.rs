@@ -15,7 +15,8 @@ use crate::events::{
 };
 use crate::widgets::Role;
 use crate::{
-    DomWidgetNode, MatchBehavior, next_node_id, tree_is_accessible, with_nodes, with_nodes_mut,
+    Borders, DomWidgetNode, MatchBehavior, next_node_id, tree_is_accessible, with_nodes,
+    with_nodes_mut,
 };
 
 pub trait AsDomNode {
@@ -132,7 +133,7 @@ impl Debug for NodeType {
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NodeTypeRepr {
-    Layout { block: Option<Block<'static>> },
+    Layout { borders: Option<Borders> },
     FocusScope,
     Widget,
     Placeholder,
@@ -152,7 +153,7 @@ impl DomNodeRepr {
             rect: *node.rect.borrow(),
             node_type: match &node.node_type {
                 NodeType::Layout => NodeTypeRepr::Layout {
-                    block: node.block.clone(),
+                    borders: node.borders.clone(),
                 },
                 NodeType::FocusScope(_) => NodeTypeRepr::FocusScope,
                 NodeType::Widget(_) => NodeTypeRepr::Widget,
@@ -573,9 +574,9 @@ impl DomNode {
         self
     }
 
-    pub fn block(self, block: Block<'static>) -> Self {
+    pub fn borders(self, borders: Borders) -> Self {
         with_nodes_mut(|n| {
-            n.set_block(self.key, block);
+            n.set_borders(self.key, borders);
         });
         self
     }

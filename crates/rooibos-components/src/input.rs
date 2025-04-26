@@ -2,7 +2,7 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::Widget;
-use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps};
+use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps, NodeState};
 use rooibos_dom::{Event, KeyCode, MeasureNode, RenderNode, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
@@ -130,6 +130,7 @@ pub struct Input {
     on_submit: Box<dyn FnMut(String)>,
     on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
     on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
+    on_state_change: Box<dyn FnMut(NodeState, EventData)>,
     initial_value: String,
 }
 
@@ -145,6 +146,7 @@ impl Default for Input {
             on_submit: Box::new(|_| {}),
             on_focus: Box::new(|_, _| {}),
             on_blur: Box::new(|_, _| {}),
+            on_state_change: Box::new(|_, _| {}),
             initial_value: "".to_string(),
         }
     }
@@ -182,6 +184,14 @@ impl Input {
         self
     }
 
+    pub fn on_state_change(
+        mut self,
+        on_state_change: impl FnMut(NodeState, EventData) + 'static,
+    ) -> Self {
+        self.on_state_change = Box::new(on_state_change);
+        self
+    }
+
     pub fn initial_value(mut self, initial_value: impl Into<String>) -> Self {
         self.initial_value = initial_value.into();
         self
@@ -206,6 +216,7 @@ impl Input {
             mut on_submit,
             mut on_focus,
             mut on_blur,
+            mut on_state_change,
             initial_value,
         } = self;
 
@@ -292,6 +303,7 @@ impl Input {
             set_focused.set(true);
             on_focus(focus_event, event_data);
         })
+        .on_state_change(on_state_change)
         .on_blur(move |blur_event, event_data| {
             // Notify DOM that we're editing to suppress any quit sequences that could interfere
             set_editing(false);

@@ -8,6 +8,7 @@ use educe::Educe;
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
+use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{
     Block, Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
     WidgetRef,
@@ -18,6 +19,7 @@ use terminput::ScrollDirection;
 
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::{ContentRect, NodeId, NodeType, next_node_id, refresh_dom};
+use crate::Borders;
 use crate::events::EventHandlers;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -60,7 +62,8 @@ pub struct NodeProperties {
     pub(crate) event_handlers: EventHandlers,
     pub(crate) rect: RefCell<Rect>,
     pub(crate) z_index: Option<i32>,
-    pub(crate) block: Option<Block<'static>>,
+    pub(crate) borders: Option<Borders>,
+    pub(crate) background: Option<Color>,
     pub(crate) clear: bool,
     pub(crate) scroll_offset: Position,
     pub(crate) ancestor_scroll_offset: Position,
@@ -300,9 +303,7 @@ impl NodeProperties {
                                 dom_nodes,
                             });
                         });
-                        if let Some(block) = &self.block {
-                            block.render_ref(render_bounds, frame.buffer_mut());
-                        };
+                        self.render_block(render_bounds, frame.buffer_mut());
                     }
                 }
                 NodeType::FocusScope(_) => {}
@@ -363,9 +364,19 @@ impl NodeProperties {
     }
 
     fn render_block(&self, bounds: Rect, buf: &mut Buffer) {
-        if let Some(block) = &self.block {
-            block.render_ref(bounds, buf);
-        };
+        let needs_block = self.borders.is_some() || self.background.is_some();
+        if !needs_block {
+            return;
+        }
+        let mut block = self
+            .borders
+            .clone()
+            .map(|b| b.into_block())
+            .unwrap_or_default();
+        if let Some(background) = self.background {
+            block = block.bg(background);
+        }
+        block.render_ref(bounds, buf);
     }
 
     fn render_scrollbar(
@@ -403,7 +414,8 @@ impl NodeProperties {
             event_handlers,
             rect,
             original_display,
-            block,
+            borders,
+            background,
             clear,
             enabled,
             scroll_offset,
@@ -425,7 +437,8 @@ impl NodeProperties {
         let event_handlers = event_handlers.clone();
         let rect = rect.clone();
         let original_display = *original_display;
-        let block = block.clone();
+        let borders = borders.clone();
+        let background = background.clone();
         let clear = *clear;
         let enabled = *enabled;
         let scroll_offset = *scroll_offset;
@@ -441,7 +454,8 @@ impl NodeProperties {
         self.event_handlers = event_handlers;
         self.rect = rect;
         self.original_display = original_display;
-        self.block = block;
+        self.borders = borders;
+        self.background = background;
         self.clear = clear;
         self.enabled = enabled;
         self.scroll_offset = scroll_offset;

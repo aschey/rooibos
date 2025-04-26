@@ -29,6 +29,29 @@
 //   style(contain()),
 //   col![..]
 // ]
+//
+// grid
+//
+// grid [
+//    focus_scope![
+//       style(focus_list()),
+//       // arrow up/down to focus
+//       col![
+//         rows.map(|r| grid_row(r))
+//       ]
+//    ]
+// ]
+//
+// fn grid_row() {
+//   focus_scope![
+//     style(focus_list()),
+//     // arrow left/right to focus
+//     row![
+//       item1,
+//       item2
+//     ]
+//   ]
+// }
 
 use next_tuple::NextTuple;
 use rooibos_dom::AsDomNode;

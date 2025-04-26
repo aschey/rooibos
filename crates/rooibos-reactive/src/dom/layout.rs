@@ -134,12 +134,39 @@ impl Property for BorderProp {
             };
             let border = border.get();
             let rect = border.to_rect();
-            let block = border.into_block();
+            //let block = border.into_block();
 
             with_nodes_mut(|nodes| {
-                nodes.set_block(key, block);
+                nodes.set_borders(key, border);
                 nodes.update_layout(key, |s| s.border = rect);
             });
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
+signal_wrapper!(
+    Background,
+    background,
+    ratatui::style::Color,
+    ratatui::style::Color::default()
+);
+
+impl Property for Background {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.get_key();
+        RenderEffect::new(move |_| {
+            let Some(color) = self.0 else {
+                return;
+            };
+            let color = color.get();
+            with_nodes_mut(|nodes| nodes.set_background(key, color));
         })
     }
 

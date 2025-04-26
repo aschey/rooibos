@@ -173,7 +173,7 @@ impl Counters {
                 .on_blur(move |_, _| send(Message::Blur))
         };
         if self.focused && !self.counters.is_empty() {
-            col = col.block(Block::bordered());
+            col = col.borders(Borders::all());
         }
 
         with_nodes_mut(|nodes| {
@@ -277,7 +277,7 @@ impl Counter {
 
         with_nodes_mut(|nodes| {
             let rect = borders.to_rect();
-            nodes.set_block(node.get_key(), borders.into_block());
+            nodes.set_borders(node.get_key(), borders);
             nodes.update_layout(node.get_key(), |layout| {
                 layout.border = rect;
             });
