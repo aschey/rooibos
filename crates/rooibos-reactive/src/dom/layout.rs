@@ -7,7 +7,7 @@ use reactive_graph::signal::{ReadSignal, RwSignal};
 use reactive_graph::traits::Get;
 use reactive_graph::wrappers::read::Signal;
 pub use rooibos_dom::{BorderType, Borders};
-use rooibos_dom::{FocusMode, NodeId};
+use rooibos_dom::{FocusDirection, FocusMode, NodeId};
 use taffy::Display;
 use wasm_compat::sync::Mutex;
 
@@ -134,7 +134,6 @@ impl Property for BorderProp {
             };
             let border = border.get();
             let rect = border.to_rect();
-            //let block = border.into_block();
 
             with_nodes_mut(|nodes| {
                 nodes.set_borders(key, border);
@@ -167,6 +166,28 @@ impl Property for Background {
             };
             let color = color.get();
             with_nodes_mut(|nodes| nodes.set_background(key, color));
+        })
+    }
+
+    fn rebuild(self, node: &DomNode, state: &mut Self::State) {
+        let new = self.build(node);
+        *state = new;
+    }
+}
+
+signal_wrapper!(FocusModeProp, focus_mode, FocusMode, FocusMode::None);
+
+impl Property for FocusModeProp {
+    type State = RenderEffect<()>;
+
+    fn build(self, node: &DomNode) -> Self::State {
+        let key = node.get_key();
+        RenderEffect::new(move |_| {
+            let Some(focus_mode) = self.0 else {
+                return;
+            };
+            let focus_mode = focus_mode.get();
+            with_nodes_mut(|nodes| nodes.set_focus_mode(key, focus_mode));
         })
     }
 
@@ -536,6 +557,18 @@ macro_rules! layout_prop_opt {
             $struct_name(Some(val.into()))
         }
     };
+}
+
+pub const fn vertical_list() -> FocusMode {
+    FocusMode::List(FocusDirection::Vertical)
+}
+
+pub const fn horizontal_list() -> FocusMode {
+    FocusMode::List(FocusDirection::Vertical)
+}
+
+pub const fn tab() -> FocusMode {
+    FocusMode::Tab
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

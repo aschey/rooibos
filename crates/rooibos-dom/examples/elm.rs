@@ -11,7 +11,7 @@ use crossterm::terminal::{
 use futures::StreamExt;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::widgets::Paragraph;
 use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{

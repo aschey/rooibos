@@ -8,10 +8,9 @@ use std::{cmp, mem};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
-use ratatui::widgets::Block;
 use slotmap::{SlotMap, new_key_type};
 use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
-use terminput::ScrollDirection;
+use terminput::{KeyCode, KeyEvent, KeyEventKind, SHIFT, ScrollDirection, key};
 
 use super::{FocusMode, MeasureNode, NodeProperties, dom_node, refresh_dom};
 use crate::events::{BlurEvent, Event, EventData, EventHandlers, FocusEvent, queue_event};
@@ -257,6 +256,25 @@ impl ViewportSize {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct FocusableNode {
+    key: DomNodeKey,
+    focus_mode: FocusMode,
+}
+
+impl FocusableNode {
+    pub fn new(key: DomNodeKey, focus_mode: FocusMode) -> Self {
+        Self { key, focus_mode }
+    }
+}
+
+pub(crate) enum FocusEventType {
+    Next,
+    NextList,
+    Previous,
+    PreviousList,
+}
+
 pub struct NodeTree {
     dom_nodes: SlotMap<DomNodeKey, TreeValue>,
     layout_tree: TaffyTree<Context>,
@@ -265,7 +283,7 @@ pub struct NodeTree {
     focused: Option<crate::NodeId>,
     focused_key: Option<DomNodeKey>,
     hovered_key: Option<DomNodeKey>,
-    focusable_nodes: Rc<RefCell<Vec<DomNodeKey>>>,
+    focusable_nodes: Rc<RefCell<Vec<FocusableNode>>>,
     on_window_size_change: Box<dyn Fn(ViewportSize)>,
     on_focus_change: Box<dyn Fn(Option<crate::NodeId>)>,
 }
@@ -415,6 +433,87 @@ impl NodeTree {
 
     pub fn focused(&self) -> &Option<crate::NodeId> {
         &self.focused
+    }
+
+    pub(crate) fn focus_event_type(&self, key_event: &KeyEvent) -> Option<FocusEventType> {
+        if key_event.kind == KeyEventKind::Release {
+            return None;
+        }
+        if let Some(focused) = self.focused_key {
+            let focusable_nodes = self.focusable_nodes.borrow();
+            let focusable = focusable_nodes.iter().find(|n| n.key == focused).unwrap();
+            match key_event {
+                key!(KeyCode::Tab) if focusable.focus_mode.is_tab_focus() => {
+                    Some(FocusEventType::Next)
+                }
+                key!(SHIFT, KeyCode::Tab) if focusable.focus_mode.is_tab_focus() => {
+                    Some(FocusEventType::Previous)
+                }
+                key!(KeyCode::Down) => {
+                    let mut key = focusable.key;
+                    while let Some(parent) = self.dom_nodes[key].inner.parent {
+                        if self.dom_nodes[parent]
+                            .inner
+                            .focus_mode
+                            .is_vertical_list_focus()
+                        {
+                            return Some(FocusEventType::NextList);
+                        }
+                        key = parent;
+                    }
+                    None
+                }
+                key!(KeyCode::Up) => {
+                    let mut key = focusable.key;
+                    while let Some(parent) = self.dom_nodes[key].inner.parent {
+                        if self.dom_nodes[parent]
+                            .inner
+                            .focus_mode
+                            .is_vertical_list_focus()
+                        {
+                            return Some(FocusEventType::NextList);
+                        }
+                        key = parent;
+                    }
+                    None
+                }
+                key!(KeyCode::Left) => {
+                    let mut key = focusable.key;
+                    while let Some(parent) = self.dom_nodes[key].inner.parent {
+                        if self.dom_nodes[parent]
+                            .inner
+                            .focus_mode
+                            .is_horizontal_list_focus()
+                        {
+                            return Some(FocusEventType::NextList);
+                        }
+                        key = parent;
+                    }
+                    None
+                }
+                key!(KeyCode::Right) => {
+                    let mut key = focusable.key;
+                    while let Some(parent) = self.dom_nodes[key].inner.parent {
+                        if self.dom_nodes[parent]
+                            .inner
+                            .focus_mode
+                            .is_horizontal_list_focus()
+                        {
+                            return Some(FocusEventType::NextList);
+                        }
+                        key = parent;
+                    }
+                    None
+                }
+                _ => None,
+            }
+        } else {
+            match key_event {
+                key!(KeyCode::Tab) => Some(FocusEventType::Next),
+                key!(SHIFT, KeyCode::Tab) => Some(FocusEventType::Previous),
+                _ => None,
+            }
+        }
     }
 
     pub(crate) fn hovered_key(&self) -> Option<DomNodeKey> {
@@ -837,7 +936,7 @@ impl NodeTree {
 
     fn remove_focusable(&mut self, key: &DomNodeKey) {
         let mut focusable_nodes = self.focusable_nodes.borrow_mut();
-        if let Some(pos) = focusable_nodes.iter().position(|n| n == key) {
+        if let Some(pos) = focusable_nodes.iter().position(|n| n.key == *key) {
             focusable_nodes.remove(pos);
         }
     }
@@ -892,12 +991,14 @@ impl NodeTree {
         refresh_dom();
     }
 
-    pub(crate) fn add_focusable(&self, key: DomNodeKey) {
+    pub(crate) fn add_focusable(&self, key: DomNodeKey, focus_mode: FocusMode) {
         if !self.dom_nodes[key].inner.enabled() {
             return;
         }
 
-        self.focusable_nodes.borrow_mut().push(key);
+        self.focusable_nodes
+            .borrow_mut()
+            .push(FocusableNode { key, focus_mode });
     }
 
     pub(crate) fn remove_hovered(&mut self) {
@@ -936,22 +1037,22 @@ impl NodeTree {
             .map(|(k, _)| k)
     }
 
-    pub fn set_focused_untracked(&mut self, node_key: Option<DomNodeKey>) {
-        let Some(node_key) = node_key else {
+    pub fn set_focused_untracked(&mut self, key: Option<DomNodeKey>) {
+        let Some(key) = key else {
             self.focused = None;
             self.focused_key = None;
             return;
         };
-        if !self.dom_nodes.contains_key(node_key) {
+        if !self.dom_nodes.contains_key(key) {
             self.focused = None;
             self.focused_key = None;
             return;
         }
-        self.focused_key = Some(node_key);
-        self.focused = self.dom_nodes[node_key].inner.id.clone();
+        self.focused_key = Some(key);
+        self.focused = self.dom_nodes[key].inner.id.clone();
     }
 
-    pub fn set_focused(&mut self, node_key: Option<DomNodeKey>) {
+    pub fn set_focused(&mut self, node: Option<DomNodeKey>) {
         let prev_focused_id = if let Some(focused_key) = self.focused_key {
             let node_id = self.dom_nodes[focused_key].inner.id.clone();
             let mut on_blur = self.dom_nodes[focused_key]
@@ -967,7 +1068,7 @@ impl NodeTree {
                 target: node_id.clone(),
             };
             for on_blur in &mut on_blur {
-                let focus_id = node_key.and_then(|k| self.dom_nodes[k].inner.id.clone());
+                let focus_id = node.and_then(|n| self.dom_nodes[n].inner.id.clone());
                 on_blur.borrow_mut()(
                     BlurEvent {
                         new_target: focus_id,
@@ -980,7 +1081,7 @@ impl NodeTree {
             None
         };
 
-        self.set_focused_untracked(node_key);
+        self.set_focused_untracked(node);
         if prev_focused_id != self.focused {
             (self.on_focus_change)(self.focused.clone());
         }
@@ -1023,19 +1124,55 @@ impl NodeTree {
                 .focusable_nodes
                 .borrow()
                 .iter()
-                .position(|n| n == &focused)
+                .position(|n| n.key == focused)
                 .unwrap();
 
             let last = self.focusable_nodes.borrow().len() - 1;
             if current_focused < last {
                 let next = self.focusable_nodes.borrow()[current_focused + 1];
-                self.set_focused(Some(next));
+                self.set_focused(Some(next.key));
                 return;
             }
         }
         let next = self.focusable_nodes.borrow().first().cloned();
         if let Some(next) = next {
-            self.set_focused(Some(next));
+            self.set_focused(Some(next.key));
+        }
+    }
+
+    pub(crate) fn focus_next_list(&mut self) {
+        if let Some(focused) = self.focused_key {
+            let mut key = focused;
+            let mut child_index = None;
+            let mut child_count = 0;
+            while let Some(parent) = self.dom_nodes[key].inner.parent {
+                let parent_node = &self.dom_nodes[parent];
+                if parent_node.inner.list_focusable() {
+                    child_index = parent_node.inner.children.iter().position(|c| *c == key);
+                    child_count = parent_node.inner.children.len();
+                    key = parent;
+                    break;
+                }
+                key = parent;
+            }
+            if let Some(child_index) = child_index {
+                if child_index < child_count {
+                    let next = self.dom_nodes[key].inner.children[child_index + 1..]
+                        .iter()
+                        .find(|k| self.dom_nodes[**k].inner.focusable());
+                    if let Some(next) = next {
+                        self.set_focused(Some(*next));
+                        return;
+                    }
+
+                    let first = self.dom_nodes[key]
+                        .inner
+                        .children
+                        .iter()
+                        .find(|k| self.dom_nodes[**k].inner.focusable());
+                    self.set_focused(first.copied());
+                }
+            }
         }
     }
 
@@ -1045,17 +1182,52 @@ impl NodeTree {
                 .focusable_nodes
                 .borrow()
                 .iter()
-                .position(|n| n == &focused)
+                .position(|n| n.key == focused)
                 .unwrap();
             if current_focused > 0 {
                 let prev = self.focusable_nodes.borrow()[current_focused - 1];
-                self.set_focused(Some(prev));
+                self.set_focused(Some(prev.key));
                 return;
             }
         }
         let prev = self.focusable_nodes.borrow().last().cloned();
         if let Some(prev) = prev {
-            self.set_focused(Some(prev));
+            self.set_focused(Some(prev.key));
+        }
+    }
+
+    pub(crate) fn focus_prev_list(&mut self) {
+        if let Some(focused) = self.focused_key {
+            let mut key = focused;
+            let mut child_index = None;
+            while let Some(parent) = self.dom_nodes[key].inner.parent {
+                let parent_node = &self.dom_nodes[parent];
+                if parent_node.inner.list_focusable() {
+                    child_index = parent_node.inner.children.iter().position(|c| *c == key);
+                    key = parent;
+                    break;
+                }
+                key = parent;
+            }
+            if let Some(child_index) = child_index {
+                if child_index > 0 {
+                    let next = self.dom_nodes[key].inner.children[0..child_index - 1]
+                        .iter()
+                        .find(|k| self.dom_nodes[**k].inner.focusable());
+                    if let Some(next) = next {
+                        self.set_focused(Some(*next));
+                        return;
+                    }
+
+                    let last = self.dom_nodes[key]
+                        .inner
+                        .children
+                        .iter()
+                        .rev()
+                        .find(|k| self.dom_nodes[**k].inner.focusable());
+                    self.set_focused(last.copied());
+                }
+            }
         }
     }
 }
@@ -1064,8 +1236,16 @@ pub fn focus_next() {
     with_nodes_mut(|n| n.focus_next())
 }
 
+pub fn focus_next_list() {
+    with_nodes_mut(|n| n.focus_next_list())
+}
+
 pub fn focus_prev() {
     with_nodes_mut(|n| n.focus_prev())
+}
+
+pub fn focus_prev_list() {
+    with_nodes_mut(|n| n.focus_prev_list())
 }
 
 pub fn clear_focus() {

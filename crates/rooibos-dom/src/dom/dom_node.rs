@@ -5,10 +5,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use ratatui::Frame;
 use ratatui::layout::{Position, Rect};
-use ratatui::widgets::Block;
 use terminput::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::{DomNodeKey, FocusMode, FocusScope, NodeProperties, RenderProps, unmount_child};
+use super::{
+    DomNodeKey, FocusMode, FocusScope, FocusableNode, NodeProperties, RenderProps, unmount_child,
+};
 use crate::events::{
     BlurEvent, Event, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
     IntoDragHandler, IntoKeyHandler, NodeState, dispatch_event, reset_mouse_position,
@@ -269,11 +270,8 @@ impl DomNodeRepr {
 
     pub fn focus(&self) {
         with_nodes_mut(|nodes| {
-            let found_node = nodes
-                .iter_nodes()
-                .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
-            if let Some(found_node) = found_node {
-                nodes.set_focused(Some(found_node));
+            if nodes[self.key].focusable() {
+                nodes.set_focused(Some(self.key));
             }
         });
     }

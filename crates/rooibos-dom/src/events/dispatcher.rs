@@ -11,9 +11,9 @@ use super::{
     KeyEventProps,
 };
 use crate::{
-    DomNodeKey, MatchBehavior, NodeId, NodeProperties, NodeType, focus_next, focus_prev,
-    push_pending_event, refresh_dom, set_pending_resize, toggle_print_dom,
-    trigger_window_focus_changed, with_nodes, with_nodes_mut,
+    DomNodeKey, FocusEventType, MatchBehavior, NodeId, NodeProperties, NodeType, focus_next,
+    focus_next_list, focus_prev, focus_prev_list, push_pending_event, refresh_dom,
+    set_pending_resize, toggle_print_dom, trigger_window_focus_changed, with_nodes, with_nodes_mut,
 };
 
 thread_local! {
@@ -231,16 +231,27 @@ impl EventDispatcher {
 }
 
 fn dispatch_key_event(key_event: KeyEvent) {
-    if key_event.code == KeyCode::Tab && key_event.kind == KeyEventKind::Press {
-        focus_next();
-    } else if key_event.code == KeyCode::Tab
-        && key_event.modifiers.intersects(KeyModifiers::SHIFT)
-        && key_event.kind == KeyEventKind::Press
-    {
-        focus_prev();
-    } else if key_event.code == KeyCode::Char('x')
-        && key_event.modifiers.contains(KeyModifiers::CTRL)
-    {
+    match with_nodes(|n| n.focus_event_type(&key_event)) {
+        Some(FocusEventType::Next) => {
+            focus_next();
+            return;
+        }
+        Some(FocusEventType::Previous) => {
+            focus_prev();
+            return;
+        }
+        Some(FocusEventType::NextList) => {
+            focus_next_list();
+            return;
+        }
+        Some(FocusEventType::PreviousList) => {
+            focus_prev_list();
+            return;
+        }
+        None => {}
+    }
+
+    if key_event.code == KeyCode::Char('x') && key_event.modifiers.contains(KeyModifiers::CTRL) {
         toggle_print_dom();
     } else if let Some(key) = with_nodes(|nodes| nodes.focused_key()) {
         bubble_key_event(key, key_event);
@@ -388,8 +399,12 @@ where
                 if !inner.enabled() || !filter(inner) {
                     return None;
                 }
-                let inner_rect = with_nodes(|n| n.rect(key).visible_bounds());
-                if inner_rect.contains(position) {
+                let contains_position = with_nodes(|n| {
+                    n.try_rect(key)
+                        .map(|r| r.visible_bounds().contains(position))
+                })
+                .unwrap_or(false);
+                if contains_position {
                     return Some(key);
                 }
                 None

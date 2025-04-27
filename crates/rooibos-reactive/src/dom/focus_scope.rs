@@ -58,7 +58,7 @@ use rooibos_dom::AsDomNode;
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 
-use super::layout::Property;
+use super::layout::{FocusModeProp, Property};
 use super::{DomNode, RenderAny, RooibosDom};
 
 pub struct FocusScope<C, P> {
@@ -107,10 +107,16 @@ macro_rules! focus_scope {
     );
 }
 
+pub trait FocusScopeProperty: Property {}
+
+impl FocusScopeProperty for () {}
+
+impl FocusScopeProperty for FocusModeProp {}
+
 pub struct FocusScopeState<C, P>
 where
     C: Render<RooibosDom>,
-    P: Property,
+    P: FocusScopeProperty,
 {
     node: <DomNode as Render<RooibosDom>>::State,
     prop_state: <P as Property>::State,
@@ -120,7 +126,7 @@ where
 impl<C, P> AsDomNode for FocusScopeState<C, P>
 where
     C: Render<RooibosDom>,
-    P: Property,
+    P: FocusScopeProperty,
 {
     fn as_dom_node(&self) -> &rooibos_dom::DomNode {
         self.node.as_dom_node()
@@ -130,7 +136,7 @@ where
 impl<C, P> Mountable<RooibosDom> for FocusScopeState<C, P>
 where
     C: Render<RooibosDom>,
-    P: Property,
+    P: FocusScopeProperty,
 {
     fn unmount(&mut self) {
         self.node.unmount();
@@ -152,7 +158,7 @@ where
 impl<C, P> Render<RooibosDom> for FocusScope<C, P>
 where
     C: RenderAny,
-    P: Property + 'static,
+    P: FocusScopeProperty + 'static,
 {
     type State = FocusScopeState<C, P>;
 

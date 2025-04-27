@@ -39,12 +39,32 @@ impl FocusScope {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FocusDirection {
+    Vertical,
+    Horizontal,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum FocusMode {
     Tab,
-    List,
+    List(FocusDirection),
     #[default]
     None,
+}
+
+impl FocusMode {
+    pub fn is_tab_focus(&self) -> bool {
+        self == &Self::Tab
+    }
+
+    pub fn is_vertical_list_focus(&self) -> bool {
+        self == &Self::List(FocusDirection::Vertical)
+    }
+
+    pub fn is_horizontal_list_focus(&self) -> bool {
+        self == &Self::List(FocusDirection::Horizontal)
+    }
 }
 
 #[derive(Educe)]
@@ -126,7 +146,7 @@ impl NodeProperties {
     }
 
     pub(crate) fn list_focusable(&self) -> bool {
-        self.focus_mode == FocusMode::List && self.enabled()
+        matches!(self.focus_mode, FocusMode::List(_)) && self.enabled()
     }
 
     pub(crate) fn focusable(&self) -> bool {
@@ -209,7 +229,7 @@ impl NodeProperties {
         };
 
         if self.focusable() {
-            dom_nodes.add_focusable(key);
+            dom_nodes.add_focusable(key, dom_nodes[key].focus_mode);
         }
 
         let render_bounds = content_rect.render_bounds();
@@ -438,7 +458,7 @@ impl NodeProperties {
         let rect = rect.clone();
         let original_display = *original_display;
         let borders = borders.clone();
-        let background = background.clone();
+        let background = *background;
         let clear = *clear;
         let enabled = *enabled;
         let scroll_offset = *scroll_offset;

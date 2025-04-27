@@ -14,8 +14,9 @@ use rooibos::components::{
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
-    Borders, absolute, align_items, background, borders, center, clear, full, height,
-    justify_content, margin, overflow_y, padding, padding_left, position, scroll, show, width,
+    Borders, absolute, align_items, background, borders, center, clear, focus_mode, full, height,
+    justify_content, margin, overflow_y, padding, padding_left, position, scroll, show,
+    vertical_list, width,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -195,15 +196,13 @@ fn todos_body(
     let update_version = update_todo.version();
     let delete_version = delete_todo.version();
 
-    Effect::new({
-        move || {
-            if let Some(update_value) = update_todo.value().get() {
-                let notification = match update_value {
-                    Ok(()) => Notification::new("Todo updated"),
-                    Err(e) => Notification::new(text!("Failed to update todo", e.to_string())),
-                };
-                notifier.notify(notification.timeout(notification_timeout));
-            }
+    Effect::new(move || {
+        if let Some(update_value) = update_todo.value().get() {
+            let notification = match update_value {
+                Ok(()) => Notification::new("Todo updated"),
+                Err(e) => Notification::new(text!("Failed to update todo", e.to_string())),
+            };
+            notifier.notify(notification.timeout(notification_timeout));
         }
     });
 
@@ -236,6 +235,7 @@ fn todos_body(
                 wgt!("No todos".gray()).into_any()
             } else {
                 focus_scope!(
+                    style(focus_mode(vertical_list())),
                     todos
                         .into_iter()
                         .map(|t| todo_item(t.id, t.text, editing_id))
@@ -351,8 +351,7 @@ fn todo_editor(
 ) -> impl Render {
     let TodoContext { update_todo, .. } = use_context::<TodoContext>().unwrap();
 
-    let (input_id, focused) = use_focus();
-
+    let input_id = NodeId::new_auto();
     // We can't focus until after rendering since the widget ID won't exist in the tree until then
     after_render(move || {
         focus_id(input_id);
