@@ -87,11 +87,15 @@ impl<C, P> FlexNode<C, P> {
         H: IntoKeyHandler + 'static,
     {
         let mut handler = handler.into_key_handler();
-        self.inner.0 = self.inner.0.on_key_down(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props)
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_key_down(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props)
+            })
+            .focusable(true);
 
         self
     }
@@ -101,11 +105,15 @@ impl<C, P> FlexNode<C, P> {
         H: IntoKeyHandler + 'static,
     {
         let mut handler = handler.into_key_handler();
-        self.inner.0 = self.inner.0.on_key_up(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_key_up(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props);
+            })
+            .focusable(true);
         self
     }
 
@@ -142,11 +150,15 @@ impl<C, P> FlexNode<C, P> {
         H: IntoClickHandler + 'static,
     {
         let mut handler = handler.into_click_handler();
-        self.inner.0 = self.inner.0.on_click(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props)
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_click(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props)
+            })
+            .focusable(true);
         self
     }
 
@@ -155,11 +167,15 @@ impl<C, P> FlexNode<C, P> {
         H: IntoClickHandler + 'static,
     {
         let mut handler = handler.into_click_handler();
-        self.inner.0 = self.inner.0.on_right_click(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props)
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_right_click(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props)
+            })
+            .focusable(true);
         self
     }
 
@@ -168,11 +184,15 @@ impl<C, P> FlexNode<C, P> {
         H: IntoClickHandler + 'static,
     {
         let mut handler = handler.into_click_handler();
-        self.inner.0 = self.inner.0.on_middle_click(move |props| {
-            #[cfg(debug_assertions)]
-            let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-            handler.handle(props);
-        });
+        self.inner.0 = self
+            .inner
+            .0
+            .on_middle_click(move |props| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler.handle(props);
+            })
+            .focusable(true);
         self
     }
 }

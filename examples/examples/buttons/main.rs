@@ -104,6 +104,7 @@ fn app() -> impl Render {
         ]
         .bind(),
     )
+    .focusable(false)
 }
 
 fn button<F>(

@@ -471,7 +471,7 @@ impl NodeTree {
                             .focus_mode
                             .is_vertical_list_focus()
                         {
-                            return Some(FocusEventType::NextList);
+                            return Some(FocusEventType::PreviousList);
                         }
                         key = parent;
                     }
@@ -485,7 +485,7 @@ impl NodeTree {
                             .focus_mode
                             .is_horizontal_list_focus()
                         {
-                            return Some(FocusEventType::NextList);
+                            return Some(FocusEventType::PreviousList);
                         }
                         key = parent;
                     }
@@ -546,8 +546,11 @@ impl NodeTree {
     pub(crate) fn child_layout_keys(&self, key: DomNodeKey) -> Vec<DomNodeKey> {
         let mut keys = Vec::new();
         for child in &self.dom_nodes[key].inner.children {
-            if self.dom_nodes[*child].layout_id.is_none() {
-                for child in &self.dom_nodes[*child].inner.children {
+            let child_node = &self.dom_nodes[*child];
+            if child_node.layout_id.is_none()
+                || child_node.inner.original_display == taffy::Display::None
+            {
+                for child in &child_node.inner.children {
                     keys.append(&mut self.child_layout_keys(*child));
                 }
             } else {
@@ -1144,34 +1147,29 @@ impl NodeTree {
         if let Some(focused) = self.focused_key {
             let mut key = focused;
             let mut child_index = None;
-            let mut child_count = 0;
+            let mut child_layout_keys = Vec::new();
             while let Some(parent) = self.dom_nodes[key].inner.parent {
                 let parent_node = &self.dom_nodes[parent];
                 if parent_node.inner.list_focusable() {
-                    child_index = parent_node.inner.children.iter().position(|c| *c == key);
-                    child_count = parent_node.inner.children.len();
-                    key = parent;
+                    child_layout_keys = self.child_layout_keys(parent);
+                    child_index = child_layout_keys.iter().position(|c| *c == key);
                     break;
                 }
                 key = parent;
             }
             if let Some(child_index) = child_index {
-                if child_index < child_count {
-                    let next = self.dom_nodes[key].inner.children[child_index + 1..]
-                        .iter()
-                        .find(|k| self.dom_nodes[**k].inner.focusable());
-                    if let Some(next) = next {
-                        self.set_focused(Some(*next));
-                        return;
-                    }
-
-                    let first = self.dom_nodes[key]
-                        .inner
-                        .children
-                        .iter()
-                        .find(|k| self.dom_nodes[**k].inner.focusable());
-                    self.set_focused(first.copied());
+                let next = child_layout_keys[child_index + 1..]
+                    .iter()
+                    .find(|k| self.dom_nodes[**k].inner.focusable());
+                if let Some(next) = next {
+                    self.set_focused(Some(*next));
+                    return;
                 }
+
+                let first = child_layout_keys
+                    .iter()
+                    .find(|k| self.dom_nodes[**k].inner.focusable());
+                self.set_focused(first.copied());
             }
         }
     }
@@ -1200,33 +1198,31 @@ impl NodeTree {
         if let Some(focused) = self.focused_key {
             let mut key = focused;
             let mut child_index = None;
+            let mut child_layout_keys = Vec::new();
             while let Some(parent) = self.dom_nodes[key].inner.parent {
                 let parent_node = &self.dom_nodes[parent];
                 if parent_node.inner.list_focusable() {
-                    child_index = parent_node.inner.children.iter().position(|c| *c == key);
-                    key = parent;
+                    child_layout_keys = self.child_layout_keys(parent);
+                    child_index = child_layout_keys.iter().position(|c| *c == key);
                     break;
                 }
                 key = parent;
             }
             if let Some(child_index) = child_index {
-                if child_index > 0 {
-                    let next = self.dom_nodes[key].inner.children[0..child_index - 1]
-                        .iter()
-                        .find(|k| self.dom_nodes[**k].inner.focusable());
-                    if let Some(next) = next {
-                        self.set_focused(Some(*next));
-                        return;
-                    }
-
-                    let last = self.dom_nodes[key]
-                        .inner
-                        .children
-                        .iter()
-                        .rev()
-                        .find(|k| self.dom_nodes[**k].inner.focusable());
-                    self.set_focused(last.copied());
+                let prev = child_layout_keys[0..child_index]
+                    .iter()
+                    .rev()
+                    .find(|k| self.dom_nodes[**k].inner.focusable());
+                if let Some(next) = prev {
+                    self.set_focused(Some(*next));
+                    return;
                 }
+
+                let last = child_layout_keys
+                    .iter()
+                    .rev()
+                    .find(|k| self.dom_nodes[**k].inner.focusable());
+                self.set_focused(last.copied());
             }
         }
     }

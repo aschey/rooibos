@@ -26,7 +26,7 @@ async fn test_counters() {
 
     assert_snapshot!(harness);
 
-    harness.send_key(KeyCode::Up);
+    harness.send_key(KeyCode::Char('+'));
     harness
         .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
         .await

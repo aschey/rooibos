@@ -7,9 +7,7 @@ use ratatui::Frame;
 use ratatui::layout::{Position, Rect};
 use terminput::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 
-use super::{
-    DomNodeKey, FocusMode, FocusScope, FocusableNode, NodeProperties, RenderProps, unmount_child,
-};
+use super::{DomNodeKey, FocusMode, FocusScope, NodeProperties, RenderProps, unmount_child};
 use crate::events::{
     BlurEvent, Event, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
     IntoDragHandler, IntoKeyHandler, NodeState, dispatch_event, reset_mouse_position,
@@ -280,8 +278,21 @@ impl DomNodeRepr {
         with_nodes(|nodes| {
             let found_node = nodes
                 .iter_nodes()
-                .find_map(|(key, _)| if key == self.key { Some(key) } else { None });
-            nodes.focused_key() == found_node
+                .find_map(|(key, _)| if key == self.key { Some(key) } else { None })
+                .unwrap();
+            let focused = nodes.focused_key();
+            let Some(focused) = focused else {
+                return false;
+            };
+            if focused == found_node {
+                return true;
+            }
+            while let Some(parent) = nodes[found_node].parent {
+                if focused == parent {
+                    return true;
+                }
+            }
+            false
         })
     }
 }

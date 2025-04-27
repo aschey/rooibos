@@ -148,6 +148,7 @@ fn app(notification_timeout: Duration) -> impl Render {
         ]
         .bind(),
     )
+    .focusable(false)
 }
 
 fn add_todo_input(id: NodeId) -> impl Render {

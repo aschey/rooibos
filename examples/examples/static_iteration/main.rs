@@ -1,11 +1,13 @@
 use std::process::ExitCode;
 
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::dom::layout::{Borders, borders, max_width, padding};
+use rooibos::reactive::dom::layout::{
+    Borders, borders, focus_mode, max_width, padding, vertical_list,
+};
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{col, wgt};
+use rooibos::reactive::{col, focus_scope, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -34,10 +36,10 @@ fn counter() -> impl Render {
     .on_blur(move |_, _| set_border_block.set(Borders::all().empty()))
     .on_key_down(
         [
-            key(keys::UP, move |_, _| {
+            key("+", move |_, _| {
                 increase();
             }),
-            key(keys::DOWN, move |_, _| {
+            key("-", move |_, _| {
                 decrease();
             }),
         ]
@@ -52,7 +54,10 @@ const NUM_COUNTERS: usize = 5;
 fn app() -> impl Render {
     col![
         style(max_width(20), padding(1)),
-        (0..NUM_COUNTERS).map(|_| counter()).collect::<Vec<_>>()
+        focus_scope!(
+            style(focus_mode(vertical_list())),
+            (0..NUM_COUNTERS).map(|_| counter()).collect::<Vec<_>>()
+        )
     ]
 }
 
