@@ -19,7 +19,8 @@ use rooibos::reactive::dom::layout::{
     vertical_list, width,
 };
 use rooibos::reactive::dom::{
-    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text, use_focus_with_id,
+    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
+    use_focus_with_id,
 };
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
@@ -283,7 +284,8 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
 
     let (row_bg, set_row_state) = use_state_prop(
         StateProp::new(ratatui::style::Color::default())
-            .focused(|_| ratatui::style::Color::Indexed(237)),
+            .focused(|_| ratatui::style::Color::Indexed(237))
+            .direct_focus(false),
     );
 
     let add_edit_id = NodeId::new_auto();
