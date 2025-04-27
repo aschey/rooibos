@@ -15,8 +15,8 @@ use ratatui::widgets::Paragraph;
 use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{
-    AsDomNode, Borders, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, focus_next, mount,
-    render_terminal, with_nodes, with_nodes_mut,
+    AsDomNode, Borders, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, dom_update_receiver,
+    focus_next, mount, render_terminal, with_nodes, with_nodes_mut,
 };
 use taffy::style_helpers::length;
 use terminput::{CTRL, Event, KeyCode, Repeats, key};
@@ -32,12 +32,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         next_id: 0,
         focused: false,
     };
+    app.update(Message::Add);
     let view = {
         let tx = tx.clone();
         app.view(move |msg| tx.clone().try_send(msg).unwrap())
     };
-    mount(view);
+
+    let mut dom_update_rx = dom_update_receiver();
     let mut terminal = setup_terminal()?;
+    mount(view);
 
     render_terminal(&mut terminal).await?;
     let mut event_reader = EventStream::new().fuse();
@@ -45,6 +48,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     loop {
         tokio::select! {
+            Ok(()) = dom_update_rx.changed() => {
+                render_terminal(&mut terminal).await?;
+            }
             Some(msg) = rx.recv() => {
                 let prev_focused_id = with_nodes(|nodes| nodes.focused().clone());
                 with_nodes_mut(|nodes| nodes.clear());
@@ -57,7 +63,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     let prev_focused_key = prev_focused_id.and_then(|p| nodes.get_key(p));
                     nodes.set_focused_untracked(prev_focused_key);
                 });
-                render_terminal(&mut terminal).await?;
             }
             Some(Ok(event)) = event_reader.next() => {
                 if let Ok(event) = to_terminput(event) {

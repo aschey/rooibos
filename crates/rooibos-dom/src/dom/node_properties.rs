@@ -228,7 +228,7 @@ impl NodeProperties {
         };
 
         if self.focusable() {
-            dom_nodes.add_focusable(key, dom_nodes[key].focus_mode);
+            dom_nodes.add_focusable(key, self.focus_mode);
         }
 
         let render_bounds = content_rect.render_bounds();
@@ -376,7 +376,7 @@ impl NodeProperties {
 
         *self.rect.borrow_mut() = render_bounds;
         if render_bounds != prev_rect {
-            for on_size_change in &dom_nodes[key].event_handlers.on_size_change {
+            for on_size_change in &self.event_handlers.on_size_change {
                 on_size_change.borrow_mut()(render_bounds);
             }
         }
