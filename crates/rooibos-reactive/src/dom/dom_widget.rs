@@ -6,7 +6,7 @@ use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
     BlurEvent, ClickHandler, DragHandler, EventData, EventHandle, FocusEvent, IntoClickHandler,
-    IntoDragHandler, IntoKeyHandler, KeyHandler, NodeState,
+    IntoDragHandler, IntoKeyHandler, KeyHandler, StateChangeEvent,
 };
 use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
@@ -159,15 +159,31 @@ where
 
     pub fn on_focus<F>(mut self, mut handler: F) -> Self
     where
-        F: FnMut(FocusEvent, EventData) + 'static,
+        F: FnMut(FocusEvent, EventData, EventHandle) + 'static,
     {
         self.inner.0 = self
             .inner
             .0
-            .on_focus(move |event, data| {
+            .on_focus(move |event, data, handle| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data);
+                handler(event, data, handle);
+            })
+            .focusable(true);
+        self
+    }
+
+    pub fn on_direct_focus<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(FocusEvent, EventData, EventHandle) + 'static,
+    {
+        self.inner.0 = self
+            .inner
+            .0
+            .on_direct_focus(move |event, data, handle| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data, handle);
             })
             .focusable(true);
         self
@@ -175,15 +191,15 @@ where
 
     pub fn on_state_change<F>(mut self, mut handler: F) -> Self
     where
-        F: FnMut(NodeState, EventData) + 'static,
+        F: FnMut(StateChangeEvent, EventData, EventHandle) + 'static,
     {
         self.inner.0 = self
             .inner
             .0
-            .on_state_change(move |event, data| {
+            .on_state_change(move |event, data, handle| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data);
+                handler(event, data, handle);
             })
             .focusable(true);
         self
@@ -191,15 +207,31 @@ where
 
     pub fn on_blur<F>(mut self, mut handler: F) -> Self
     where
-        F: FnMut(BlurEvent, EventData) + 'static,
+        F: FnMut(BlurEvent, EventData, EventHandle) + 'static,
     {
         self.inner.0 = self
             .inner
             .0
-            .on_blur(move |event, data| {
+            .on_blur(move |event, data, handle| {
                 #[cfg(debug_assertions)]
                 let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
-                handler(event, data);
+                handler(event, data, handle);
+            })
+            .focusable(true);
+        self
+    }
+
+    pub fn on_direct_blur<F>(mut self, mut handler: F) -> Self
+    where
+        F: FnMut(BlurEvent, EventData, EventHandle) + 'static,
+    {
+        self.inner.0 = self
+            .inner
+            .0
+            .on_direct_blur(move |event, data, handle| {
+                #[cfg(debug_assertions)]
+                let _guard = reactive_graph::diagnostics::SpecialNonReactiveZone::enter();
+                handler(event, data, handle);
             })
             .focusable(true);
         self

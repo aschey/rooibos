@@ -2,7 +2,9 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
-use rooibos_dom::events::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
+use rooibos_dom::events::{
+    BlurEvent, ClickEventProps, EventData, EventHandle, FocusEvent, KeyHandler,
+};
 use rooibos_dom::{IntoSpan, line};
 use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::dom::layout::{Dimension, IntoDimensionSignal, full, height, max_height};
@@ -69,8 +71,8 @@ pub struct TabView {
     style: Signal<Style>,
     on_title_click: Box<OnChangeFn>,
     on_decorator_click: Option<Box<OnChangeFn>>,
-    on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
-    on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
+    on_direct_focus: Box<dyn FnMut(FocusEvent, EventData, EventHandle)>,
+    on_direct_blur: Box<dyn FnMut(BlurEvent, EventData, EventHandle)>,
     on_key_down: Box<dyn KeyHandler>,
     fit: Signal<bool>,
     divider: Signal<Span<'static>>,
@@ -92,8 +94,8 @@ impl Default for TabView {
             on_title_click: Box::new(move |_, _| {}),
             on_decorator_click: None,
             on_key_down: Box::new(move |_| {}),
-            on_focus: Box::new(move |_, _| {}),
-            on_blur: Box::new(move |_, _| {}),
+            on_direct_focus: Box::new(move |_, _, _| {}),
+            on_direct_blur: Box::new(move |_, _, _| {}),
             block: Default::default(),
             highlight_style: Default::default(),
             decorator_highlight_style: Default::default(),
@@ -172,13 +174,19 @@ impl TabView {
         self
     }
 
-    pub fn on_focus(mut self, on_focus: impl FnMut(FocusEvent, EventData) + 'static) -> Self {
-        self.on_focus = Box::new(on_focus);
+    pub fn on_direct_focus(
+        mut self,
+        on_direct_focus: impl FnMut(FocusEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
+        self.on_direct_focus = Box::new(on_direct_focus);
         self
     }
 
-    pub fn on_blur(mut self, on_blur: impl FnMut(BlurEvent, EventData) + 'static) -> Self {
-        self.on_blur = Box::new(on_blur);
+    pub fn on_direct_blur(
+        mut self,
+        on_direct_blur: impl FnMut(BlurEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
+        self.on_direct_blur = Box::new(on_direct_blur);
         self
     }
 
@@ -212,8 +220,8 @@ impl TabView {
             style,
             mut on_title_click,
             mut on_decorator_click,
-            on_focus,
-            on_blur,
+            on_direct_focus,
+            on_direct_blur,
             on_key_down,
             width,
             fit,
@@ -390,8 +398,8 @@ impl TabView {
             })
             .on_click(on_click)
             .on_key_down(on_key_down)
-            .on_focus(on_focus)
-            .on_blur(on_blur),
+            .on_direct_focus(on_direct_focus)
+            .on_direct_blur(on_direct_blur),
             col![style(max_height(full()), height(body_height)), move || {
                 cur_tab
                     .get()

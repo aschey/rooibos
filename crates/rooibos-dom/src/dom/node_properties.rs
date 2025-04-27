@@ -10,8 +10,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{
-    Block, Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
-    WidgetRef,
+    Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, WidgetRef,
 };
 #[cfg(feature = "effects")]
 use tachyonfx::{EffectRenderer, Shader};

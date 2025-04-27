@@ -1,6 +1,8 @@
 use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
-use rooibos_dom::events::{BlurEvent, ClickEventProps, EventData, FocusEvent, KeyHandler};
+use rooibos_dom::events::{
+    BlurEvent, ClickEventProps, EventData, EventHandle, FocusEvent, KeyHandler,
+};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::Signal;
@@ -14,8 +16,8 @@ pub struct ListView<T> {
     style: Signal<Style>,
     on_item_click: Box<ItemSelectFn<T>>,
     on_key_down: Box<dyn KeyHandler>,
-    on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
-    on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
+    on_direct_focus: Box<dyn FnMut(FocusEvent, EventData, EventHandle)>,
+    on_direct_blur: Box<dyn FnMut(BlurEvent, EventData, EventHandle)>,
     highlight_style: Signal<Style>,
     block: Option<Signal<Block<'static>>>,
     direction: Signal<ListDirection>,
@@ -32,8 +34,8 @@ impl<T> Default for ListView<T> {
             style: Default::default(),
             on_item_click: Box::new(move |_, _| {}),
             on_key_down: Box::new(move |_| {}),
-            on_focus: Box::new(move |_, _| {}),
-            on_blur: Box::new(move |_, _| {}),
+            on_direct_focus: Box::new(move |_, _, _| {}),
+            on_direct_blur: Box::new(move |_, _, _| {}),
             highlight_style: Style::default().into(),
             block: Default::default(),
             direction: Default::default(),
@@ -77,13 +79,19 @@ impl<T> ListView<T> {
         self
     }
 
-    pub fn on_focus(mut self, on_focus: impl FnMut(FocusEvent, EventData) + 'static) -> Self {
-        self.on_focus = Box::new(on_focus);
+    pub fn on_direct_focus(
+        mut self,
+        on_direct_focus: impl FnMut(FocusEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
+        self.on_direct_focus = Box::new(on_direct_focus);
         self
     }
 
-    pub fn on_blur(mut self, on_blur: impl FnMut(BlurEvent, EventData) + 'static) -> Self {
-        self.on_blur = Box::new(on_blur);
+    pub fn on_direct_blur(
+        mut self,
+        on_blur: impl FnMut(BlurEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
+        self.on_direct_blur = Box::new(on_blur);
         self
     }
 
@@ -135,8 +143,8 @@ impl<T> ListView<T> {
             style,
             mut on_item_click,
             on_key_down,
-            on_focus,
-            on_blur,
+            on_direct_focus,
+            on_direct_blur,
             highlight_style,
             block,
             direction,
@@ -186,7 +194,7 @@ impl<T> ListView<T> {
         })
         .layout_props(layout_props)
         .on_key_down(on_key_down)
-        .on_focus(on_focus)
-        .on_blur(on_blur)
+        .on_direct_focus(on_direct_focus)
+        .on_direct_blur(on_direct_blur)
     }
 }

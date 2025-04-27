@@ -13,7 +13,7 @@ use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
 use terminput::{KeyCode, KeyEvent, KeyEventKind, SHIFT, ScrollDirection, key};
 
 use super::{FocusMode, MeasureNode, NodeProperties, dom_node, refresh_dom};
-use crate::events::{BlurEvent, Event, EventData, EventHandlers, FocusEvent, queue_event};
+use crate::events::{Event, EventHandlers, queue_event};
 use crate::{AsDomNode, Borders, DomNode, NodeType};
 
 new_key_type! { pub struct DomNodeKey; }
@@ -1010,23 +1010,12 @@ impl NodeTree {
 
     fn remove_focused(&mut self) {
         if let Some(focused_key) = self.focused_key {
-            let mut on_blur = self.dom_nodes[focused_key]
-                .inner
-                .event_handlers
-                .on_blur
-                .clone();
-            let rect = *self.dom_nodes[focused_key].inner.rect.borrow();
             let node_id = self.dom_nodes[focused_key].inner.id.clone();
 
-            for on_blur in &mut on_blur {
-                on_blur.borrow_mut()(
-                    BlurEvent { new_target: None },
-                    EventData {
-                        rect,
-                        target: node_id.clone(),
-                    },
-                );
-            }
+            queue_event(Event::NodeBlur {
+                blur_key: focused_key,
+                focus_target: node_id,
+            });
         }
         self.set_focused(None);
         self.focused_key = None;
@@ -1058,27 +1047,11 @@ impl NodeTree {
     pub fn set_focused(&mut self, node: Option<DomNodeKey>) {
         let prev_focused_id = if let Some(focused_key) = self.focused_key {
             let node_id = self.dom_nodes[focused_key].inner.id.clone();
-            let mut on_blur = self.dom_nodes[focused_key]
-                .inner
-                .event_handlers
-                .on_blur
-                .clone();
 
-            let rect = *self.dom_nodes[focused_key].inner.rect.borrow();
-
-            let event_data = EventData {
-                rect,
-                target: node_id.clone(),
-            };
-            for on_blur in &mut on_blur {
-                let focus_id = node.and_then(|n| self.dom_nodes[n].inner.id.clone());
-                on_blur.borrow_mut()(
-                    BlurEvent {
-                        new_target: focus_id,
-                    },
-                    event_data.clone(),
-                );
-            }
+            queue_event(Event::NodeBlur {
+                blur_key: focused_key,
+                focus_target: node_id.clone(),
+            });
             node_id
         } else {
             None
@@ -1093,27 +1066,10 @@ impl NodeTree {
             return;
         };
 
-        let mut on_focus = self.dom_nodes[node_key]
-            .inner
-            .event_handlers
-            .on_focus
-            .clone();
-
-        let node_id = self.dom_nodes[node_key].inner.id.clone();
-        let rect = *self.dom_nodes[node_key].inner.rect.borrow();
-        let event_data = EventData {
-            rect,
-            target: node_id,
-        };
-
-        for on_focused in &mut on_focus {
-            on_focused.borrow_mut()(
-                FocusEvent {
-                    previous_target: prev_focused_id.clone(),
-                },
-                event_data.clone(),
-            );
-        }
+        queue_event(Event::NodeFocus {
+            focus_key: node_key,
+            prev_focused: prev_focused_id,
+        });
         refresh_dom();
     }
 

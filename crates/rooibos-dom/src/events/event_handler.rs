@@ -8,7 +8,7 @@ use wasm_compat::cell::BoolCell;
 
 use super::{
     BlurEvent, ClickEventProps, DragEventProps, EventData, EventHandle, FocusEvent, KeyEventProps,
-    NodeState,
+    NodeState, StateChangeCause, StateChangeEvent,
 };
 
 pub trait IntoKeyHandler {
@@ -113,8 +113,8 @@ pub(crate) type DragEventFn = Rc<RefCell<dyn DragHandler>>;
 pub(crate) type EventFn = Rc<RefCell<dyn FnMut(EventData, EventHandle)>>;
 pub(crate) type SizeChangeFn = Rc<RefCell<dyn FnMut(Rect)>>;
 pub(crate) type PasteFn = Rc<RefCell<dyn FnMut(String, EventData, EventHandle)>>;
-pub(crate) type FocusFn = Rc<RefCell<dyn FnMut(FocusEvent, EventData)>>;
-pub(crate) type BlurFn = Rc<RefCell<dyn FnMut(BlurEvent, EventData)>>;
+pub(crate) type FocusFn = Rc<RefCell<dyn FnMut(FocusEvent, EventData, EventHandle)>>;
+pub(crate) type BlurFn = Rc<RefCell<dyn FnMut(BlurEvent, EventData, EventHandle)>>;
 pub(crate) type ScrollFn = Rc<RefCell<dyn FnMut(ScrollDirection, EventData, EventHandle)>>;
 
 #[derive(Clone, Default)]
@@ -165,23 +165,45 @@ impl EventHandlers {
 
     pub fn on_focus<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(FocusEvent, EventData) + 'static,
+        F: FnMut(FocusEvent, EventData, EventHandle) + 'static,
     {
         self.on_focus.push(Rc::new(RefCell::new(handler)));
         self
     }
 
+    pub fn on_direct_focus<F>(self, mut handler: F) -> Self
+    where
+        F: FnMut(FocusEvent, EventData, EventHandle) + 'static,
+    {
+        self.on_focus(move |event, data, handle| {
+            if data.is_direct {
+                handler(event, data, handle);
+            }
+        })
+    }
+
     pub fn on_blur<F>(mut self, handler: F) -> Self
     where
-        F: FnMut(BlurEvent, EventData) + 'static,
+        F: FnMut(BlurEvent, EventData, EventHandle) + 'static,
     {
         self.on_blur.push(Rc::new(RefCell::new(handler)));
         self
     }
 
+    pub fn on_direct_blur<F>(self, mut handler: F) -> Self
+    where
+        F: FnMut(BlurEvent, EventData, EventHandle) + 'static,
+    {
+        self.on_blur(move |event, data, handle| {
+            if data.is_direct {
+                handler(event, data, handle);
+            }
+        })
+    }
+
     pub fn on_state_change<F>(self, handler: F) -> Self
     where
-        F: FnMut(NodeState, EventData) + 'static,
+        F: FnMut(StateChangeEvent, EventData, EventHandle) + 'static,
     {
         let handler = Rc::new(RefCell::new(handler));
         let focused = Arc::new(BoolCell::new(false));
@@ -209,50 +231,92 @@ impl EventHandlers {
             let get_state = get_state.clone();
             let focused = focused.clone();
             let handler = handler.clone();
-            move |_e, data| {
+            move |_, data, handle| {
                 focused.set(true);
-                handler.borrow_mut()(get_state(), data);
+                handler.borrow_mut()(
+                    StateChangeEvent {
+                        state: get_state(),
+                        cause: StateChangeCause::Focus,
+                    },
+                    data,
+                    handle,
+                );
             }
         })
         .on_blur({
             let get_state = get_state.clone();
             let focused = focused.clone();
             let handler = handler.clone();
-            move |_e, data| {
+            move |_e, data, handle| {
                 focused.set(false);
-                handler.borrow_mut()(get_state(), data);
+                handler.borrow_mut()(
+                    StateChangeEvent {
+                        state: get_state(),
+                        cause: StateChangeCause::Blur,
+                    },
+                    data,
+                    handle,
+                );
             }
         })
         .on_mouse_enter({
             let get_state = get_state.clone();
             let hovered = hovered.clone();
             let handler = handler.clone();
-            move |data, _handle| {
+            move |data, handle| {
                 hovered.set(true);
-                handler.borrow_mut()(get_state(), data);
+                handler.borrow_mut()(
+                    StateChangeEvent {
+                        state: get_state(),
+                        cause: StateChangeCause::MouseEnter,
+                    },
+                    data,
+                    handle,
+                );
             }
         })
         .on_mouse_leave({
             let get_state = get_state.clone();
             let handler = handler.clone();
-            move |data, _handle| {
+            move |data, handle| {
                 hovered.set(false);
-                handler.borrow_mut()(get_state(), data);
+                handler.borrow_mut()(
+                    StateChangeEvent {
+                        state: get_state(),
+                        cause: StateChangeCause::MouseLeave,
+                    },
+                    data,
+                    handle,
+                );
             }
         })
         .on_enable({
             let get_state = get_state.clone();
             let handler = handler.clone();
             let enabled = enabled.clone();
-            move |data, _handle| {
+            move |data, handle| {
                 enabled.set(true);
-                handler.borrow_mut()(get_state(), data);
+                handler.borrow_mut()(
+                    StateChangeEvent {
+                        state: get_state(),
+                        cause: StateChangeCause::Enable,
+                    },
+                    data,
+                    handle,
+                );
             }
         })
         .on_disable({
-            move |data, _handle| {
+            move |data, handle| {
                 enabled.set(false);
-                handler.borrow_mut()(get_state(), data);
+                handler.borrow_mut()(
+                    StateChangeEvent {
+                        state: get_state(),
+                        cause: StateChangeCause::Disable,
+                    },
+                    data,
+                    handle,
+                );
             }
         })
     }

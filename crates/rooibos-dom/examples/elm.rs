@@ -166,11 +166,11 @@ impl Counters {
                 })
                 .focusable(true)
                 .id(id.clone())
-                .on_focus({
+                .on_direct_focus({
                     let send = send.clone();
-                    move |_, _| send(Message::Focus)
+                    move |_, _, _| send(Message::Focus)
                 })
-                .on_blur(move |_, _| send(Message::Blur))
+                .on_direct_blur(move |_, _, _| send(Message::Blur))
         };
         if self.focused && !self.counters.is_empty() {
             col = col.borders(Borders::all());
@@ -269,11 +269,11 @@ impl Counter {
             })
             .id(id.clone())
             .focusable(true)
-            .on_focus({
+            .on_direct_focus({
                 let send = send.clone();
-                move |_, _| send(TaskMessage::Focus)
+                move |_, _, _| send(TaskMessage::Focus)
             })
-            .on_blur(move |_, _| send(TaskMessage::Blur));
+            .on_direct_blur(move |_, _, _| send(TaskMessage::Blur));
 
         with_nodes_mut(|nodes| {
             let rect = borders.to_rect();

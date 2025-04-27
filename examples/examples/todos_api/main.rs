@@ -19,13 +19,12 @@ use rooibos::reactive::dom::layout::{
     vertical_list, width,
 };
 use rooibos::reactive::dom::{
-    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
-    use_focus, use_focus_with_id,
+    NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text, use_focus_with_id,
 };
 use rooibos::reactive::graph::actions::Action;
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::effect::Effect;
-use rooibos::reactive::graph::owner::{provide_context, use_context};
+use rooibos::reactive::graph::owner::{on_cleanup, provide_context, use_context};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Track};
 use rooibos::reactive::graph::wrappers::read::Signal;
@@ -358,6 +357,10 @@ fn todo_editor(
         focus_id(input_id);
     });
 
+    on_cleanup(move || {
+        editing_id.set(None);
+    });
+
     let (input_borders, set_input_state) =
         use_state_prop(StateProp::new(Borders::all().empty()).focused(|b| b.solid().blue()));
 
@@ -368,7 +371,7 @@ fn todo_editor(
             update_todo.dispatch((id, value));
             editing_id.set(None);
         })
-        .on_blur(move |blur_event, _| {
+        .on_direct_blur(move |blur_event, _, _| {
             if blur_event.new_target != Some(add_edit_id.into()) {
                 editing_id.set(None);
             }

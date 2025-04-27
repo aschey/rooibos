@@ -3,7 +3,7 @@ use std::process::ExitCode;
 use rooibos::components::Button;
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{
-    Borders, borders, focus_mode, full, height, margin_x, max_width, overflow_y, scroll,
+    Borders, borders, focus_mode, full, height, max_width, overflow_y, padding_x, scroll,
     vertical_list,
 };
 use rooibos::reactive::dom::{NodeId, Render, line, span, text};
@@ -65,13 +65,10 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
     let row_borders = StateProp::new(Borders::all().empty()).focused(|b| b.solid());
     let (row_borders, set_row_state) = use_state_prop(row_borders);
 
-    row![
-        style(borders(row_borders)),
-        wgt!(
-            style(margin_x(1)),
-            line!(span!("{id}. "), "count: ".bold(), count.get().cyan())
-        )
-    ]
+    wgt!(
+        style(padding_x(1), borders(row_borders)),
+        line!(span!("{id}. "), "count: ".bold(), count.get().cyan())
+    )
     .id(id)
     .on_state_change(set_row_state)
     .on_click(move |_| increase())

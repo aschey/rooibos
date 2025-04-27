@@ -2,7 +2,9 @@ use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::style::{Style, Stylize};
 use ratatui::widgets::Widget;
-use rooibos_dom::events::{BlurEvent, EventData, FocusEvent, KeyEventProps, NodeState};
+use rooibos_dom::events::{
+    BlurEvent, EventData, EventHandle, FocusEvent, KeyEventProps, StateChangeEvent,
+};
 use rooibos_dom::{Event, KeyCode, MeasureNode, RenderNode, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
@@ -128,9 +130,9 @@ pub struct Input {
     placeholder_style: Signal<Style>,
     placeholder_text: Signal<String>,
     on_submit: Box<dyn FnMut(String)>,
-    on_focus: Box<dyn FnMut(FocusEvent, EventData)>,
-    on_blur: Box<dyn FnMut(BlurEvent, EventData)>,
-    on_state_change: Box<dyn FnMut(NodeState, EventData)>,
+    on_direct_focus: Box<dyn FnMut(FocusEvent, EventData, EventHandle)>,
+    on_direct_blur: Box<dyn FnMut(BlurEvent, EventData, EventHandle)>,
+    on_state_change: Box<dyn FnMut(StateChangeEvent, EventData, EventHandle)>,
     initial_value: String,
 }
 
@@ -144,9 +146,9 @@ impl Default for Input {
             placeholder_text: String::new().into(),
             style: Style::default().into(),
             on_submit: Box::new(|_| {}),
-            on_focus: Box::new(|_, _| {}),
-            on_blur: Box::new(|_, _| {}),
-            on_state_change: Box::new(|_, _| {}),
+            on_direct_focus: Box::new(|_, _, _| {}),
+            on_direct_blur: Box::new(|_, _, _| {}),
+            on_state_change: Box::new(|_, _, _| {}),
             initial_value: "".to_string(),
         }
     }
@@ -174,19 +176,25 @@ impl Input {
         self
     }
 
-    pub fn on_focus(mut self, on_focus: impl FnMut(FocusEvent, EventData) + 'static) -> Self {
-        self.on_focus = Box::new(on_focus);
+    pub fn on_direct_focus(
+        mut self,
+        on_focus: impl FnMut(FocusEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
+        self.on_direct_focus = Box::new(on_focus);
         self
     }
 
-    pub fn on_blur(mut self, on_blur: impl FnMut(BlurEvent, EventData) + 'static) -> Self {
-        self.on_blur = Box::new(on_blur);
+    pub fn on_direct_blur(
+        mut self,
+        on_blur: impl FnMut(BlurEvent, EventData, EventHandle) + 'static,
+    ) -> Self {
+        self.on_direct_blur = Box::new(on_blur);
         self
     }
 
     pub fn on_state_change(
         mut self,
-        on_state_change: impl FnMut(NodeState, EventData) + 'static,
+        on_state_change: impl FnMut(StateChangeEvent, EventData, EventHandle) + 'static,
     ) -> Self {
         self.on_state_change = Box::new(on_state_change);
         self
@@ -214,9 +222,9 @@ impl Input {
             style,
             placeholder_text,
             mut on_submit,
-            mut on_focus,
-            mut on_blur,
-            mut on_state_change,
+            mut on_direct_focus,
+            mut on_direct_blur,
+            on_state_change,
             initial_value,
         } = self;
 
@@ -298,17 +306,17 @@ impl Input {
         .layout_props(layout_props)
         .on_key_down(key_down)
         .on_paste(paste)
-        .on_focus(move |focus_event, event_data| {
+        .on_direct_focus(move |focus_event, event_data, event_handle| {
             set_editing(true);
             set_focused.set(true);
-            on_focus(focus_event, event_data);
+            on_direct_focus(focus_event, event_data, event_handle);
         })
         .on_state_change(on_state_change)
-        .on_blur(move |blur_event, event_data| {
+        .on_direct_blur(move |blur_event, event_data, event_handle| {
             // Notify DOM that we're editing to suppress any quit sequences that could interfere
             set_editing(false);
             set_focused.set(false);
-            on_blur(blur_event, event_data);
+            on_direct_blur(blur_event, event_data, event_handle);
         })
     }
 }

@@ -10,7 +10,7 @@ use terminput::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use super::{DomNodeKey, FocusMode, FocusScope, NodeProperties, RenderProps, unmount_child};
 use crate::events::{
     BlurEvent, Event, EventData, EventHandle, EventHandlers, FocusEvent, IntoClickHandler,
-    IntoDragHandler, IntoKeyHandler, NodeState, dispatch_event, reset_mouse_position,
+    IntoDragHandler, IntoKeyHandler, StateChangeEvent, dispatch_event, reset_mouse_position,
 };
 use crate::widgets::Role;
 use crate::{
@@ -276,7 +276,7 @@ impl DomNodeRepr {
 
     pub fn is_focused(&self) -> bool {
         with_nodes(|nodes| {
-            let found_node = nodes
+            let mut found_node = nodes
                 .iter_nodes()
                 .find_map(|(key, _)| if key == self.key { Some(key) } else { None })
                 .unwrap();
@@ -291,6 +291,7 @@ impl DomNodeRepr {
                 if focused == parent {
                     return true;
                 }
+                found_node = parent;
             }
             false
         })
@@ -528,19 +529,33 @@ impl DomNode {
 
     pub fn on_focus<F>(self, handler: F) -> Self
     where
-        F: FnMut(FocusEvent, EventData) + 'static,
+        F: FnMut(FocusEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_focus(handler));
+        self
+    }
 
+    pub fn on_direct_focus<F>(self, handler: F) -> Self
+    where
+        F: FnMut(FocusEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_direct_focus(handler));
         self
     }
 
     pub fn on_blur<F>(self, handler: F) -> Self
     where
-        F: FnMut(BlurEvent, EventData) + 'static,
+        F: FnMut(BlurEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_blur(handler));
+        self
+    }
 
+    pub fn on_direct_blur<F>(self, handler: F) -> Self
+    where
+        F: FnMut(BlurEvent, EventData, EventHandle) + 'static,
+    {
+        self.update_event_handlers(|h| h.on_direct_blur(handler));
         self
     }
 
@@ -570,7 +585,7 @@ impl DomNode {
 
     pub fn on_state_change<F>(self, handler: F) -> Self
     where
-        F: FnMut(NodeState, EventData) + 'static,
+        F: FnMut(StateChangeEvent, EventData, EventHandle) + 'static,
     {
         self.update_event_handlers(|h| h.on_state_change(handler));
         self

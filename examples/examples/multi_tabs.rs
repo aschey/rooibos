@@ -41,10 +41,10 @@ fn app() -> impl Render {
             .on_title_click(move |_, tab| {
                 focused.set(tab.to_string());
             })
-            .on_focus(move |_, _| {
+            .on_direct_focus(move |_, _, _| {
                 tab_block.set(Block::bordered().blue().title("Demo"));
             })
-            .on_blur(move |_, _| {
+            .on_direct_blur(move |_, _, _| {
                 tab_block.set(Block::bordered().title("Demo"));
             })
             .on_key_down(
@@ -104,10 +104,10 @@ fn inner_tabs() -> impl Render {
             .on_title_click(move |_, tab| {
                 focused_tab.set(tab.to_string());
             })
-            .on_focus(move |_, _| {
+            .on_direct_focus(move |_, _, _| {
                 tab_block.set(Block::bordered().blue().title("Inner"));
             })
-            .on_blur(move |_, _| {
+            .on_direct_blur(move |_, _, _| {
                 tab_block.set(Block::bordered().title("Inner"));
             })
             .on_key_down(on_key_down)

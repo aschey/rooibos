@@ -25,7 +25,7 @@ use reactive_graph::owner::Owner;
 use reactive_graph::signal::signal;
 use reactive_graph::traits::{Get, Set};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_dom::events::{EventData, NodeState};
+use rooibos_dom::events::{EventData, EventHandle, NodeState, StateChangeCause, StateChangeEvent};
 #[cfg(feature = "effects")]
 pub use rooibos_dom::tachyonfx;
 pub use rooibos_dom::{IntoLine, IntoSpan, IntoText, NonblockingTerminal};
@@ -103,6 +103,7 @@ pub async fn tick() {
 #[derive(Clone)]
 pub struct StateProp<T> {
     pub focused: Arc<dyn Fn(T) -> T + Send + Sync>,
+    pub direct_focus: bool,
     pub disabled: Arc<dyn Fn(T) -> T + Send + Sync>,
     pub hovered: Arc<dyn Fn(T) -> T + Send + Sync>,
     pub normal: T,
@@ -115,6 +116,7 @@ where
     fn default() -> Self {
         Self {
             focused: Arc::new(|t| t),
+            direct_focus: true,
             disabled: Arc::new(|t| t),
             hovered: Arc::new(|t| t),
             normal: T::default(),
@@ -126,6 +128,7 @@ impl<T> StateProp<T> {
     pub fn new(normal: T) -> Self {
         Self {
             normal,
+            direct_focus: true,
             focused: Arc::new(|t| t),
             disabled: Arc::new(|t| t),
             hovered: Arc::new(|t| t),
@@ -157,15 +160,24 @@ where
         self
     }
 
-    fn apply_state(&self, node_state: NodeState) -> T {
+    pub fn direct_focus(mut self, direct: bool) -> Self {
+        self.direct_focus = direct;
+        self
+    }
+
+    fn apply_state(&self, event: StateChangeEvent, is_direct: bool) -> T {
         let mut value = self.normal.clone();
-        if node_state.intersects(NodeState::HOVERED) {
+        if event.state.intersects(NodeState::HOVERED) {
             value = (self.hovered)(value);
         }
-        if node_state.intersects(NodeState::FOCUSED) {
+        let direct_focus_required = self.direct_focus && event.cause == StateChangeCause::Focus;
+        let is_required_direct_focus = direct_focus_required && is_direct;
+        if event.state.intersects(NodeState::FOCUSED)
+            && (is_required_direct_focus || !direct_focus_required)
+        {
             value = (self.focused)(value);
         }
-        if node_state.intersects(NodeState::DISABLED) {
+        if event.state.intersects(NodeState::DISABLED) {
             value = (self.disabled)(value);
         }
         value
@@ -174,15 +186,23 @@ where
 
 pub fn use_state_prop<T>(
     state_prop: impl Into<Signal<StateProp<T>>>,
-) -> (Signal<T>, impl Fn(NodeState, EventData))
+) -> (Signal<T>, impl Fn(StateChangeEvent, EventData, EventHandle))
 where
     T: Clone + Send + Sync + 'static,
 {
-    let (widget_state, set_widget_state) = signal(NodeState::empty());
+    let (change_event, set_change_event) = signal(StateChangeEvent {
+        state: NodeState::empty(),
+        cause: StateChangeCause::Enable,
+    });
+    let (is_direct, set_is_direct) = signal(false);
     let state_prop = state_prop.into();
     let prop = derive_signal!({
         let state_prop = state_prop.get();
-        state_prop.apply_state(widget_state.get())
+        state_prop.apply_state(change_event.get(), is_direct.get())
     });
-    (prop, move |state: NodeState, _| set_widget_state.set(state))
+
+    (prop, move |event, data, _| {
+        set_change_event.set(event);
+        set_is_direct.set(data.is_direct);
+    })
 }

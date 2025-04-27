@@ -36,6 +36,14 @@ pub enum Event {
     Resize,
     NodeEnable(DomNodeKey),
     NodeDisable(DomNodeKey),
+    NodeBlur {
+        blur_key: DomNodeKey,
+        focus_target: Option<NodeId>,
+    },
+    NodeFocus {
+        focus_key: DomNodeKey,
+        prev_focused: Option<NodeId>,
+    },
 }
 
 impl From<terminput::Event> for Event {
@@ -55,6 +63,7 @@ impl From<terminput::Event> for Event {
 pub struct EventData {
     pub rect: Rect,
     pub target: Option<NodeId>,
+    pub is_direct: bool,
 }
 
 #[derive(Debug)]
@@ -74,6 +83,22 @@ bitflags! {
         const HOVERED = 0b010;
         const DISABLED = 0b100;
     }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum StateChangeCause {
+    Focus,
+    Blur,
+    MouseEnter,
+    MouseLeave,
+    Enable,
+    Disable,
+}
+
+#[derive(Clone, Copy)]
+pub struct StateChangeEvent {
+    pub state: NodeState,
+    pub cause: StateChangeCause,
 }
 
 #[derive(Clone, Debug)]

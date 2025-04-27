@@ -7,8 +7,8 @@ use terminput::{
 };
 
 use super::{
-    ClickEvent, ClickEventFn, ClickEventProps, Event, EventData, EventHandle, EventHandlers,
-    KeyEventProps,
+    BlurEvent, ClickEvent, ClickEventFn, ClickEventProps, Event, EventData, EventHandle,
+    EventHandlers, FocusEvent, KeyEventProps,
 };
 use crate::{
     DomNodeKey, FocusEventType, MatchBehavior, NodeId, NodeProperties, NodeType, focus_next,
@@ -82,6 +82,18 @@ impl EventDispatcher {
             Event::NodeDisable(key) => {
                 dispatch_node_disable(key);
             }
+            Event::NodeFocus {
+                focus_key,
+                prev_focused,
+            } => {
+                dispatch_node_focus(focus_key, prev_focused);
+            }
+            Event::NodeBlur {
+                blur_key,
+                focus_target,
+            } => {
+                dispatch_node_blur(blur_key, focus_target);
+            }
         };
     }
 
@@ -137,12 +149,13 @@ impl EventDispatcher {
                     bubble_event(
                         hovered_key,
                         |props| props.event_handlers.on_mouse_leave.clone(),
-                        |event, node_id, rect, handle| {
+                        |event, node_id, rect, handle, is_direct| {
                             for handler in event {
                                 handler.borrow_mut()(
                                     EventData {
                                         target: node_id.clone(),
                                         rect,
+                                        is_direct,
                                     },
                                     handle.clone(),
                                 );
@@ -152,6 +165,7 @@ impl EventDispatcher {
                         // remove some hover state and if the node loses hover while disabled,
                         // these events would never fire
                         AllowDisabled::Allow,
+                        true,
                     );
                 }
             }
@@ -160,18 +174,20 @@ impl EventDispatcher {
                 bubble_event(
                     current,
                     |props| props.event_handlers.on_mouse_enter.clone(),
-                    |event, node_id, rect, handle| {
+                    |event, node_id, rect, handle, is_direct| {
                         for handler in event {
                             handler.borrow_mut()(
                                 EventData {
                                     target: node_id.clone(),
                                     rect,
+                                    is_direct,
                                 },
                                 handle.clone(),
                             );
                         }
                     },
                     AllowDisabled::Allow,
+                    true,
                 );
             }
         } else {
@@ -180,18 +196,20 @@ impl EventDispatcher {
                 bubble_event(
                     hovered_key,
                     |props| props.event_handlers.on_mouse_leave.clone(),
-                    |event, node_id, rect, handle| {
+                    |event, node_id, rect, handle, is_direct| {
                         for handler in event {
                             handler.borrow_mut()(
                                 EventData {
                                     target: node_id.clone(),
                                     rect,
+                                    is_direct,
                                 },
                                 handle.clone(),
                             );
                         }
                     },
                     AllowDisabled::Allow,
+                    true,
                 );
                 with_nodes_mut(|nodes| {
                     nodes.remove_hovered();
@@ -212,19 +230,21 @@ impl EventDispatcher {
             bubble_event(
                 *current_hovered,
                 |props| props.event_handlers.on_scroll.clone(),
-                |event, node_id, rect, handle| {
+                |event, node_id, rect, handle, is_direct| {
                     for handler in event {
                         (handler.borrow_mut())(
                             direction,
                             EventData {
                                 rect,
                                 target: node_id.clone(),
+                                is_direct,
                             },
                             handle.clone(),
                         );
                     }
                 },
                 AllowDisabled::Disallow,
+                true,
             );
         }
     }
@@ -270,18 +290,20 @@ fn dispatch_node_enable(key: DomNodeKey) {
     bubble_event(
         key,
         |props| props.event_handlers.on_enable.clone(),
-        |event, node_id, rect, handle| {
+        |event, node_id, rect, handle, is_direct| {
             for on_enable in event {
                 on_enable.borrow_mut()(
                     EventData {
                         rect,
                         target: node_id.clone(),
+                        is_direct,
                     },
                     handle.clone(),
                 );
             }
         },
         AllowDisabled::Disallow,
+        true,
     );
 }
 
@@ -289,18 +311,68 @@ fn dispatch_node_disable(key: DomNodeKey) {
     bubble_event(
         key,
         |props| props.event_handlers.on_disable.clone(),
-        |event, node_id, rect, handle| {
+        |event, node_id, rect, handle, is_direct| {
             for on_enable in event {
                 on_enable.borrow_mut()(
                     EventData {
                         rect,
                         target: node_id.clone(),
+                        is_direct,
                     },
                     handle.clone(),
                 );
             }
         },
         AllowDisabled::Allow,
+        true,
+    );
+}
+
+fn dispatch_node_focus(key: DomNodeKey, previous_target: Option<NodeId>) {
+    bubble_event(
+        key,
+        |props| props.event_handlers.on_focus.clone(),
+        |event, node_id, rect, handle, is_direct| {
+            for on_focus in event {
+                on_focus.borrow_mut()(
+                    FocusEvent {
+                        previous_target: previous_target.clone(),
+                    },
+                    EventData {
+                        rect,
+                        target: node_id.clone(),
+                        is_direct,
+                    },
+                    handle.clone(),
+                );
+            }
+        },
+        AllowDisabled::Allow,
+        true,
+    );
+}
+
+fn dispatch_node_blur(key: DomNodeKey, new_target: Option<NodeId>) {
+    bubble_event(
+        key,
+        |props| props.event_handlers.on_blur.clone(),
+        |event, node_id, rect, handle, is_direct| {
+            for on_blur in event {
+                on_blur.borrow_mut()(
+                    BlurEvent {
+                        new_target: new_target.clone(),
+                    },
+                    EventData {
+                        rect,
+                        target: node_id.clone(),
+                        is_direct,
+                    },
+                    handle.clone(),
+                );
+            }
+        },
+        AllowDisabled::Allow,
+        true,
     );
 }
 
@@ -309,36 +381,40 @@ fn bubble_key_event(key: DomNodeKey, key_event: KeyEvent) -> bool {
         KeyEventKind::Press | KeyEventKind::Repeat => bubble_event(
             key,
             |props| props.event_handlers.on_key_down.clone(),
-            |event, node_id, rect, handle| {
+            |event, node_id, rect, handle, is_direct| {
                 for handler in event {
                     handler.borrow_mut().handle(KeyEventProps {
                         event: key_event,
                         data: EventData {
                             rect,
                             target: node_id.clone(),
+                            is_direct,
                         },
                         handle: handle.clone(),
                     });
                 }
             },
             AllowDisabled::Disallow,
+            true,
         ),
         KeyEventKind::Release => bubble_event(
             key,
             |props| props.event_handlers.on_key_up.clone(),
-            |event, node_id, rect, handle| {
+            |event, node_id, rect, handle, is_direct| {
                 for handler in event {
                     handler.borrow_mut().handle(KeyEventProps {
                         event: key_event,
                         data: EventData {
                             rect,
                             target: node_id.clone(),
+                            is_direct,
                         },
                         handle: handle.clone(),
                     });
                 }
             },
             AllowDisabled::Disallow,
+            true,
         ),
     }
 }
@@ -354,11 +430,16 @@ pub(crate) fn bubble_event<GE, EF, E>(
     get_event: GE,
     event_fn: EF,
     allow_disabled: AllowDisabled,
+    is_direct: bool,
 ) -> bool
 where
     GE: Fn(&NodeProperties) -> Vec<E>,
-    EF: Fn(&mut Vec<E>, Option<NodeId>, Rect, EventHandle),
+    EF: Fn(&mut Vec<E>, Option<NodeId>, Rect, EventHandle, bool),
 {
+    let is_valid_key = with_nodes(|nodes| nodes.contains_key(key));
+    if !is_valid_key {
+        return false;
+    }
     if allow_disabled == AllowDisabled::Disallow {
         let enabled = with_nodes(|nodes| nodes[key].enabled());
         if !enabled {
@@ -376,13 +457,13 @@ where
     if !event.is_empty() {
         handled = true;
         let handle = EventHandle::default();
-        event_fn(&mut event, node_id, rect, handle.clone());
+        event_fn(&mut event, node_id, rect, handle.clone(), is_direct);
         if handle.get_stop_propagation() {
             return handled;
         }
     }
     if let Some(parent) = with_nodes(|nodes| nodes[key].parent) {
-        let child_handled = bubble_event(parent, get_event, event_fn, allow_disabled);
+        let child_handled = bubble_event(parent, get_event, event_fn, allow_disabled, false);
         handled = handled || child_handled;
     }
     handled
@@ -442,6 +523,7 @@ where
     if !found.is_empty() {
         let mut focus_set = false;
         let mut stop_propagation = false;
+        let mut is_direct = true;
         for key in found.into_iter().rev() {
             let continue_iter = with_nodes_mut(|nodes| {
                 if !focus_set && nodes[key].focusable() {
@@ -468,10 +550,12 @@ where
                             data: EventData {
                                 rect: *rect,
                                 target: node_id.clone(),
+                                is_direct,
                             },
                             handle: handle.clone(),
                         });
                     }
+                    is_direct = false;
                     if !stop_propagation {
                         stop_propagation = handle.get_stop_propagation();
                     }
@@ -494,19 +578,21 @@ fn dispatch_paste(val: String) {
         bubble_event(
             key,
             |props| props.event_handlers.on_paste.clone(),
-            |event, node_id, rect, handle| {
+            |event, node_id, rect, handle, is_direct| {
                 for handler in event {
                     handler.borrow_mut()(
                         val.clone(),
                         EventData {
                             rect,
                             target: node_id.clone(),
+                            is_direct,
                         },
                         handle.clone(),
                     );
                 }
             },
             AllowDisabled::Disallow,
+            true,
         );
     }
 }

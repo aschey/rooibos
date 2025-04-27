@@ -1,13 +1,13 @@
 use std::process::ExitCode;
 
-use rooibos::keybind::{Bind, key, keys};
+use rooibos::keybind::{Bind, key};
 use rooibos::reactive::dom::layout::{
     Borders, borders, focus_mode, max_width, padding, vertical_list,
 };
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::signal::signal;
-use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{col, focus_scope, wgt};
+use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::{StateProp, col, focus_scope, use_state_prop, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -22,18 +22,19 @@ async fn main() -> Result {
 
 fn counter() -> impl Render {
     let (count, set_count) = signal(0);
-    let (border_block, set_border_block) = signal(Borders::all().empty());
 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
     let increase = move || update_count(1);
     let decrease = move || update_count(-1);
 
+    let border_prop = StateProp::new(Borders::all().empty()).focused(|b| b.solid().blue());
+    let (border, set_counter_state) = use_state_prop(border_prop);
+
     wgt![
-        style(borders(border_block)),
+        style(borders(border)),
         line!("count: ".bold().reset(), count.get().cyan())
     ]
-    .on_focus(move |_, _| set_border_block.set(Borders::all().blue()))
-    .on_blur(move |_, _| set_border_block.set(Borders::all().empty()))
+    .on_state_change(set_counter_state)
     .on_key_down(
         [
             key("+", move |_, _| {
