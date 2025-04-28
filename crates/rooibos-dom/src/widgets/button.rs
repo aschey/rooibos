@@ -3,6 +3,7 @@ use ratatui::layout::{Alignment, Rect};
 use ratatui::text::Text;
 use ratatui::widgets::{Widget, WidgetRef};
 
+use super::{Role, WidgetRole};
 use crate::MeasureNode;
 
 pub struct Button<'a> {
@@ -44,6 +45,12 @@ impl WidgetRef for Button<'_> {
 impl Widget for Button<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         self.render_ref(area, buf);
+    }
+}
+
+impl WidgetRole for Button<'_> {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Button)
     }
 }
 

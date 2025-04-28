@@ -14,7 +14,6 @@ educe = { workspace = true }
 futures = { workspace = true }
 rustc-hash = { workspace = true }
 terminput = { workspace = true }
-tui-textarea = { workspace = true, optional = true, default-features = false }
 paste = { workspace = true }
 wasm-compat = { workspace = true, features = ["all"] }
 taffy = { workspace = true }
@@ -37,10 +36,5 @@ terminput-crossterm = { workspace = true }
 wasm-bindgen = { workspace = true, features = ["enable-interning"] }
 
 [features]
-crossterm = ["tui-textarea?/crossterm"]
-termion = ["tui-textarea?/termion"]
-termwiz = ["tui-textarea?/termwiz"]
-input = ["tui-textarea"]
-default = ["crossterm"]
 effects = ["dep:tachyonfx"]
 scrolling-regions = ["ratatui/scrolling-regions"]

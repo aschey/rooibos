@@ -11,7 +11,6 @@ use crossterm::terminal::{
 use futures::StreamExt;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
-use ratatui::widgets::Paragraph;
 use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{
@@ -243,9 +242,7 @@ impl Counter {
         } else {
             Borders::all().empty()
         };
-        let widget = DomWidgetNode::new::<Paragraph, _>(move || {
-            RenderWidgetRef(format!("count: {}", model.count))
-        });
+        let widget = DomWidgetNode::new(move || RenderWidgetRef(format!("count: {}", model.count)));
         widget.build();
 
         let node = DomNode::widget(widget.clone())

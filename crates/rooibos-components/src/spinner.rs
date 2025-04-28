@@ -5,6 +5,7 @@ use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::StatefulWidget;
 use rooibos_dom::MeasureNode;
+use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_reactive::dom::Render;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::graph::computed::Memo;
@@ -193,6 +194,12 @@ struct SpinnerWidget<'a> {
     inner: Throbber<'a>,
     label: Option<Signal<Span<'static>>>,
     spinner_set: Signal<throbber_widgets_tui::Set>,
+}
+
+impl WidgetRole for SpinnerWidget<'_> {
+    fn widget_role() -> Option<Role> {
+        None
+    }
 }
 
 impl SpinnerWidget<'_> {

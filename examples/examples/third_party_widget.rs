@@ -4,6 +4,7 @@ use std::process::ExitCode;
 use rooibos::reactive::KeyCode;
 use rooibos::reactive::dom::events::KeyEventProps;
 use rooibos::reactive::dom::layout::pct;
+use rooibos::reactive::dom::widgets::{Role, WidgetRole};
 use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
@@ -73,7 +74,7 @@ fn app() -> impl Render {
         _ => {}
     };
 
-    DomWidget::new::<Tree<&str>, _>(move || {
+    DomWidget::new(move || {
         let tree = tree.get();
         state.track();
         RenderTree { tree, state }
@@ -100,6 +101,12 @@ where
                 .highlight_style(Style::default().black().on_green().bold())
                 .render(area, frame.buffer_mut(), s);
         })
+    }
+}
+
+impl<T> WidgetRole for RenderTree<T> {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 

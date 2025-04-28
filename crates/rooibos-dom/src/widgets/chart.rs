@@ -4,6 +4,7 @@ use ratatui::widgets::{Axis, Block, GraphType, WidgetRef};
 use style::Styled;
 use taffy::AvailableSpace;
 
+use super::{Role, WidgetRole};
 use crate::MeasureNode;
 
 #[derive(Clone, Default)]
@@ -143,6 +144,12 @@ impl WidgetRef for Chart<'_> {
 impl Widget for Chart<'_> {
     fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
         self.render_ref(area, buf)
+    }
+}
+
+impl WidgetRole for Chart<'_> {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 

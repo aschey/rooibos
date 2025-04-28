@@ -1,10 +1,11 @@
 use std::process::ExitCode;
 
+use rooibos::reactive::Event;
 use rooibos::reactive::dom::events::KeyEventProps;
+use rooibos::reactive::dom::widgets::{Role, WidgetRole};
 use rooibos::reactive::dom::{DomWidget, MeasureNode, Render, RenderNode};
 use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{GetUntracked as _, Track as _, Update as _, With as _};
-use rooibos::reactive::Event;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -41,7 +42,7 @@ fn app() -> impl Render {
 }
 
 fn text_area(text_area: RwSignal<TextArea<'static>>) -> DomWidget<()> {
-    DomWidget::new::<TextArea, _>(move || {
+    DomWidget::new(move || {
         text_area.track();
         RenderInput { text_area }
     })
@@ -54,6 +55,12 @@ struct RenderInput {
 impl RenderNode for RenderInput {
     fn render(&mut self, area: Rect, frame: &mut Frame) {
         self.text_area.with(|t| t.render(area, frame.buffer_mut()));
+    }
+}
+
+impl WidgetRole for RenderInput {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 

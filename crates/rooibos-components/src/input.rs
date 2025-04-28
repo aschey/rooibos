@@ -5,6 +5,7 @@ use ratatui::widgets::Widget;
 use rooibos_dom::events::{
     BlurEvent, EventData, EventHandle, FocusEvent, KeyEventProps, StateChangeEvent,
 };
+use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{Event, KeyCode, MeasureNode, RenderNode, set_editing};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
@@ -299,7 +300,7 @@ impl Input {
             }
         };
 
-        DomWidget::new::<TextArea, _>(move || {
+        DomWidget::new(move || {
             text_area.track();
             RenderInput { text_area }
         })
@@ -323,6 +324,12 @@ impl Input {
 
 struct RenderInput {
     text_area: RwSignal<TextArea<'static>>,
+}
+
+impl WidgetRole for RenderInput {
+    fn widget_role() -> Option<Role> {
+        Some(Role::TextInput)
+    }
 }
 
 impl RenderNode for RenderInput {

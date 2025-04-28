@@ -66,12 +66,11 @@ impl Render<RooibosDom> for DomWidgetNode {
 }
 
 impl DomWidget<()> {
-    pub fn new<T, R>(render_node: R) -> Self
+    pub fn new<R>(render_node: R) -> Self
     where
-        T: 'static,
         R: BuildNodeRenderer + 'static,
     {
-        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _>(render_node);
+        let dom_widget_node = rooibos_dom::DomWidgetNode::new(render_node);
         let inner = DomNode(rooibos_dom::DomNode::widget(dom_widget_node));
         Self {
             inner,
@@ -87,12 +86,11 @@ impl DomWidget<()> {
 }
 
 impl<P> DomWidget<P> {
-    pub fn new_with_properties<T, R>(props: P, render_node: R) -> Self
+    pub fn new_with_properties<R>(props: P, render_node: R) -> Self
     where
-        T: 'static,
         R: BuildNodeRenderer + 'static,
     {
-        let dom_widget_node = rooibos_dom::DomWidgetNode::new::<T, _>(render_node);
+        let dom_widget_node = rooibos_dom::DomWidgetNode::new(render_node);
         let inner = DomNode(rooibos_dom::DomNode::widget(dom_widget_node));
         Self {
             inner,

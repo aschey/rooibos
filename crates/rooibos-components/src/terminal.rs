@@ -7,6 +7,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Widget};
 use rooibos_dom::events::KeyEventProps;
+use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{Encoding, Event, MeasureNode, RenderNode};
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
@@ -17,7 +18,7 @@ use rooibos_reactive::graph::wrappers::read::Signal;
 use tokio::sync::mpsc;
 use tokio::task::spawn_blocking;
 use tui_term::widget::PseudoTerminal;
-use vt100::{Parser, Screen};
+use vt100::Parser;
 #[derive(Clone, Copy)]
 pub struct TerminalRef {
     master: StoredValue<Arc<Mutex<Box<dyn MasterPty + Send>>>>,
@@ -126,7 +127,7 @@ impl Terminal {
             }
         });
 
-        DomWidget::new::<PseudoTerminal<Screen>, _>(move || RenderTerminal {
+        DomWidget::new(move || RenderTerminal {
             parser: parser.get(),
             block: block.as_ref().map(|b| b.get()),
         })
@@ -160,6 +161,12 @@ impl Terminal {
 struct RenderTerminal {
     parser: Arc<Mutex<Parser>>,
     block: Option<Block<'static>>,
+}
+
+impl WidgetRole for RenderTerminal {
+    fn widget_role() -> Option<Role> {
+        None
+    }
 }
 
 impl RenderNode for RenderTerminal {

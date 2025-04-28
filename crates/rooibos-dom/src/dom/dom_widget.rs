@@ -18,15 +18,17 @@ use crate::widgets::{Role, WidgetRole};
 use crate::{next_node_id, refresh_dom};
 
 pub trait BuildNodeRenderer {
-    fn build_renderer(&self) -> impl RenderNode + MeasureNode + 'static;
+    type Output: RenderNode + MeasureNode + WidgetRole + 'static;
+    fn build_renderer(&self) -> Self::Output;
 }
 
 impl<F, RN> BuildNodeRenderer for F
 where
     F: Fn() -> RN,
-    RN: RenderNode + MeasureNode + 'static,
+    RN: RenderNode + MeasureNode + WidgetRole + 'static,
 {
-    fn build_renderer(&self) -> impl RenderNode + MeasureNode + 'static {
+    type Output = RN;
+    fn build_renderer(&self) -> Self::Output {
         self()
     }
 }
@@ -241,6 +243,12 @@ impl MeasureNode for Gauge<'_> {
     }
 }
 
+impl WidgetRole for Gauge<'_> {
+    fn widget_role() -> Option<Role> {
+        None
+    }
+}
+
 impl MeasureNode for LineGauge<'_> {
     fn measure(
         &self,
@@ -253,6 +261,12 @@ impl MeasureNode for LineGauge<'_> {
 
     fn estimate_size(&self) -> Size<f32> {
         Size::zero()
+    }
+}
+
+impl WidgetRole for LineGauge<'_> {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 
@@ -271,6 +285,12 @@ impl MeasureNode for Table<'_> {
     }
 }
 
+impl WidgetRole for Table<'_> {
+    fn widget_role() -> Option<Role> {
+        None
+    }
+}
+
 impl MeasureNode for BarChart<'_> {
     fn measure(
         &self,
@@ -283,6 +303,12 @@ impl MeasureNode for BarChart<'_> {
 
     fn estimate_size(&self) -> Size<f32> {
         Size::zero()
+    }
+}
+
+impl WidgetRole for BarChart<'_> {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 
@@ -301,6 +327,15 @@ where
 
     fn estimate_size(&self) -> Size<f32> {
         Size::zero()
+    }
+}
+
+impl<F> WidgetRole for Canvas<'_, F>
+where
+    F: Fn(&mut Context),
+{
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 
@@ -331,13 +366,12 @@ impl Debug for DomWidgetNode {
 }
 
 impl DomWidgetNode {
-    pub fn new<T, R>(render_node: R) -> Self
+    pub fn new<R>(render_node: R) -> Self
     where
-        T: 'static,
         R: BuildNodeRenderer + 'static,
     {
-        let widget_type = type_name::<T>();
-        let role = T::widget_role();
+        let widget_type = type_name::<R::Output>();
+        let role = R::Output::widget_role();
         let id = next_node_id();
 
         Self {

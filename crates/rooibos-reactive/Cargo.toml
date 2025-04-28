@@ -40,9 +40,9 @@ any_spawner = { workspace = true, features = ["wasm-bindgen"] }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
-crossterm = ["rooibos-dom/crossterm", "tui-textarea?/crossterm"]
-termion = ["rooibos-dom/termion", "tui-textarea?/termion"]
-termwiz = ["rooibos-dom/termwiz", "tui-textarea?/termwiz"]
+crossterm = ["tui-textarea?/crossterm"]
+termion = ["tui-textarea?/termion"]
+termwiz = ["tui-textarea?/termwiz"]
 input = ["tui-textarea"]
 default = ["crossterm"]
 effects = ["rooibos-dom/effects"]

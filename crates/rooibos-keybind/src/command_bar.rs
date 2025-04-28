@@ -7,6 +7,7 @@ use modalkit_ratatui::cmdbar::CommandBarState;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::prelude::StatefulWidget;
+use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{MeasureNode, RenderNode, focus_id, focus_prev};
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, NodeId, Render, UpdateLayoutProps};
@@ -93,7 +94,7 @@ where
                 updates
             }
         });
-        DomWidget::new::<CommandBar<T>, _>(move || RenderCommandBar {
+        DomWidget::new(move || RenderCommandBar {
             state: state.get(),
             command_bar: modalkit_ratatui::cmdbar::CommandBar::new().focus(focused.get()),
         })
@@ -109,6 +110,15 @@ where
 {
     state: CommandBarState<AppInfo<T>>,
     command_bar: modalkit_ratatui::cmdbar::CommandBar<'static, AppInfo<T>>,
+}
+
+impl<T> WidgetRole for RenderCommandBar<T>
+where
+    T: CommandCompleter + ApplicationAction,
+{
+    fn widget_role() -> Option<Role> {
+        None
+    }
 }
 
 impl<T> RenderNode for RenderCommandBar<T>

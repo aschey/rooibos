@@ -9,6 +9,7 @@ use ratatui::widgets::StatefulWidget;
 use ratatui_image::picker::Picker;
 use ratatui_image::thread::{ThreadImage, ThreadProtocol};
 use ratatui_image::{CropOptions, FilterType, Resize};
+use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{MeasureNode, RenderNode, pixel_size};
 use rooibos_reactive::dom::div::taffy;
 use rooibos_reactive::dom::{DomWidget, Render};
@@ -116,7 +117,7 @@ impl Image {
             }
         });
 
-        DomWidget::new::<ThreadImage, _>(move || {
+        DomWidget::new(move || {
             async_state.track();
             let image_size = image.with(|i| {
                 i.as_ref().map(|i| taffy::Size {
@@ -137,6 +138,12 @@ struct RenderImage {
     async_state: RwSignal<Option<ThreadProtocol>>,
     resize_mode: ResizeMode,
     size: taffy::Size<f32>,
+}
+
+impl WidgetRole for RenderImage {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Image)
+    }
 }
 
 impl RenderNode for RenderImage {

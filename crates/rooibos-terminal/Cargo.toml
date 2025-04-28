@@ -32,22 +32,7 @@ termion = { workspace = true, optional = true }
 clipboard-win = { workspace = true, features = ["std"], optional = true }
 
 [features]
-crossterm = [
-  "dep:crossterm",
-  "rooibos-dom/crossterm",
-  "ratatui/crossterm",
-  "terminput-crossterm",
-]
-termion = [
-  "dep:termion",
-  "rooibos-dom/termion",
-  "ratatui/termion",
-  "terminput-termion",
-]
-termwiz = [
-  "dep:termwiz",
-  "rooibos-dom/termwiz",
-  "ratatui/termwiz",
-  "terminput-termwiz",
-]
+crossterm = ["dep:crossterm", "ratatui/crossterm", "terminput-crossterm"]
+termion = ["dep:termion", "ratatui/termion", "terminput-termion"]
+termwiz = ["dep:termwiz", "ratatui/termwiz", "terminput-termwiz"]
 clipboard = ["dep:base64", "clipboard-win"]

@@ -2,13 +2,14 @@ mod button;
 mod chart;
 mod sparkline;
 
-use std::any::{Any, TypeId};
+use std::borrow::Cow;
 
 pub use button::*;
 pub use chart::*;
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::widgets::{List, StatefulWidget, Tabs, Widget, WidgetRef};
+use ratatui::text::{Line, Span, Text};
+use ratatui::widgets::{List, Paragraph, StatefulWidget, Tabs, Widget, WidgetRef};
 pub use sparkline::*;
 use taffy::Size;
 
@@ -18,27 +19,53 @@ use crate::{MeasureNode, RenderNode};
 pub enum Role {
     Button,
     TextInput,
+    Image,
+    Text,
 }
 
 pub trait WidgetRole {
     fn widget_role() -> Option<Role>;
 }
 
-impl<T> WidgetRole for T
-where
-    T: Any,
-{
+impl WidgetRole for () {
     fn widget_role() -> Option<Role> {
-        let current_type = TypeId::of::<Self>();
-
-        if current_type == TypeId::of::<Button>() {
-            return Some(Role::Button);
-        }
-        #[cfg(feature = "input")]
-        if current_type == TypeId::of::<tui_textarea::TextArea>() {
-            return Some(Role::TextInput);
-        }
         None
+    }
+}
+
+impl WidgetRole for String {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
+    }
+}
+
+impl WidgetRole for &'_ str {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
+    }
+}
+
+impl WidgetRole for Cow<'_, str> {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
+    }
+}
+
+impl WidgetRole for Text<'_> {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
+    }
+}
+
+impl WidgetRole for Line<'_> {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
+    }
+}
+
+impl WidgetRole for Span<'_> {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
     }
 }
 
@@ -57,6 +84,12 @@ impl MeasureNode for Tabs<'_> {
     }
 }
 
+impl WidgetRole for Tabs<'_> {
+    fn widget_role() -> Option<Role> {
+        None
+    }
+}
+
 impl MeasureNode for List<'_> {
     fn measure(
         &self,
@@ -72,6 +105,18 @@ impl MeasureNode for List<'_> {
     }
 }
 
+impl WidgetRole for List<'_> {
+    fn widget_role() -> Option<Role> {
+        None
+    }
+}
+
+impl WidgetRole for Paragraph<'_> {
+    fn widget_role() -> Option<Role> {
+        Some(Role::Text)
+    }
+}
+
 pub struct RenderWidgetRef<W>(pub W)
 where
     W: WidgetRef + 'static;
@@ -82,6 +127,15 @@ where
 {
     fn render(&mut self, rect: Rect, frame: &mut Frame) {
         self.0.render_ref(rect, frame.buffer_mut())
+    }
+}
+
+impl<W> WidgetRole for RenderWidgetRef<W>
+where
+    W: WidgetRef + WidgetRole,
+{
+    fn widget_role() -> Option<Role> {
+        W::widget_role()
     }
 }
 
@@ -113,6 +167,15 @@ where
 {
     fn render(&mut self, rect: Rect, frame: &mut Frame) {
         self.0.clone().render(rect, frame.buffer_mut())
+    }
+}
+
+impl<W> WidgetRole for RenderWidget<W>
+where
+    W: Widget + WidgetRole,
+{
+    fn widget_role() -> Option<Role> {
+        W::widget_role()
     }
 }
 
@@ -150,6 +213,15 @@ where
         self.widget
             .clone()
             .render(rect, frame.buffer_mut(), &mut self.state);
+    }
+}
+
+impl<W> WidgetRole for RenderStatefulWidget<W>
+where
+    W: StatefulWidget + Clone + WidgetRole,
+{
+    fn widget_role() -> Option<Role> {
+        W::widget_role()
     }
 }
 

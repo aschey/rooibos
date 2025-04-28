@@ -3,6 +3,7 @@ use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::widgets::{Block, RenderDirection, Widget, WidgetRef};
 
+use super::{Role, WidgetRole};
 use crate::MeasureNode;
 
 #[derive(Clone, Default)]
@@ -64,6 +65,12 @@ impl Styled for Sparkline<'_> {
 
     fn set_style<S: Into<Style>>(self, style: S) -> Self::Item {
         self.style(style.into())
+    }
+}
+
+impl WidgetRole for Sparkline<'_> {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 
