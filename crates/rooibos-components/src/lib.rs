@@ -70,13 +70,13 @@ thread_local! {
     static THEME: LazyCell<ThemeSignal> = LazyCell::new(|| {
         let theme = AppTheme {
             color_theme: ColorTheme {
-                text_primary: tui_theme::Color::Reset,
-                active: tui_theme::Color::Green,
-                disabled_light: tui_theme::Color::Gray,
-                disabled_dark: tui_theme::Color::DarkGray,
-                border: tui_theme::Color::Gray,
-                border_focused: tui_theme::Color::Blue,
-                border_disabled: tui_theme::Color::DarkGray,
+                text_primary: tui_theme::Color::AnsiReset,
+                active: tui_theme::Color::AnsiGreen,
+                disabled_light: tui_theme::Color::AnsiGray,
+                disabled_dark: tui_theme::Color::AnsiDarkGray,
+                border: tui_theme::Color::AnsiGray,
+                border_focused: tui_theme::Color::AnsiBlue,
+                border_disabled: tui_theme::Color::AnsiDarkGray,
             },
             app_properties: AppProperties {
                 border_type_primary: BorderType::Round,
