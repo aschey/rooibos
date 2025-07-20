@@ -40,6 +40,9 @@ jobs:
         run: cargo +nightly build --all-features
   all-features-windows:
     runs-on: windows-latest
+    env:
+      # tell aws-lc-sys to compile nasm
+      AWS_LC_SYS_PREBUILT_NASM: 1
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
