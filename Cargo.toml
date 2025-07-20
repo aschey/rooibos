@@ -23,16 +23,16 @@ rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
 # leptos
 next_tuple = "0.1.0"
 either_of = "0.1.6"
-reactive_graph = "0.2.0-rc.3"
-tachys = { git = "https://github.com/aschey/leptos", rev = "a490d54d78193cd9b6e7ed604dda1a1ea54e875d" }
+reactive_graph = "0.2.4"
+tachys = { git = "https://github.com/aschey/leptos", rev = "c3c9a6da68c6399abc2fdb487bab06d944a8ed0f" }
 throw_error = "0.3.0"
-reactive_stores = "0.2.0-rc.3"
-any_spawner = "0.3.0-rc.3"
+reactive_stores = "0.2.4"
+any_spawner = "0.3.0"
 
 # ratatui
 ratatui = { version = "0.29", default-features = false }
 tui-textarea = { version = "0.7", default-features = false }
-ratatui-image = "5"
+ratatui-image = "8"
 throbber-widgets-tui = "0.8.0"
 tui-term = "0.2.0"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
@@ -45,7 +45,7 @@ termwiz = "0.22"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "524305aeb99e8fce2e9f2560cc4c68181815a64d" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "80b07ff23217392b450325ccac92a459af8dd0eb" }
 
 # proc macros
 manyhow = "0.11"
@@ -78,7 +78,7 @@ taffy = "0.8.0"
 thiserror = "2"
 textwrap = "0.16.2"
 unicode-width = "0.2.0"
-tachyonfx = { version = "0.15", default-features = false }
+tachyonfx = { version = "0.16", default-features = false }
 clap = "4.5.32"
 shlex = "1.3.0"
 clap_complete = "4.5.46"
@@ -92,7 +92,7 @@ proc-exit = "2.0.2"
 console_error_panic_hook = "0.1"
 signal-hook = "0.3"
 async-signal = "0.2"
-russh = "0.52"
+russh = "0.53"
 tap = "1"
 tokio-stream = "0.1.17"
 base64 = "0.22.1"

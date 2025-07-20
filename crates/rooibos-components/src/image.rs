@@ -7,8 +7,8 @@ use ratatui::Frame;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
 use ratatui_image::picker::Picker;
-use ratatui_image::thread::{ThreadImage, ThreadProtocol};
-use ratatui_image::{CropOptions, FilterType, Resize};
+use ratatui_image::thread::ThreadProtocol;
+use ratatui_image::{CropOptions, FilterType, Resize, StatefulImage};
 use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{MeasureNode, RenderNode, pixel_size};
 use rooibos_reactive::dom::div::taffy;
@@ -105,14 +105,14 @@ impl Image {
 
         thread::spawn(move || {
             loop {
-                if let Ok(request) = rec_worker.recv() {
-                    if let Ok(res) = request.resize_encode() {
-                        async_state.update(|s| {
-                            if let Some(s) = s {
-                                s.update_resized_protocol(res);
-                            }
-                        });
-                    }
+                if let Ok(request) = rec_worker.recv()
+                    && let Ok(res) = request.resize_encode()
+                {
+                    async_state.update(|s| {
+                        if let Some(s) = s {
+                            s.update_resized_protocol(res);
+                        }
+                    });
                 }
             }
         });
@@ -148,7 +148,7 @@ impl WidgetRole for RenderImage {
 
 impl RenderNode for RenderImage {
     fn render(&mut self, rect: Rect, frame: &mut Frame) {
-        let image = ThreadImage::default().resize(match self.resize_mode.clone() {
+        let image = StatefulImage::default().resize(match self.resize_mode.clone() {
             ResizeMode::Crop(options) => Resize::Crop(options),
             ResizeMode::Fit(filter_type) => Resize::Fit(filter_type),
         });
