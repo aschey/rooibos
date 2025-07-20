@@ -9,12 +9,11 @@ crate-type = ["cdylib", "rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-crossterm = "0.28.1"
-rooibos = { path = "../../crates/rooibos", features = ["xterm-js"] }
-tokio = { version = "1.44.1", features = ["rt", "macros"] }
-wasm-bindgen = "0.2.100"
-wasm-bindgen-futures = "0.4.50"
-
+crossterm = { workspace = true }
+rooibos = { workspace = true, features = ["xterm-js"] }
+tokio = { workspace = true, features = ["rt", "macros"] }
+wasm-bindgen = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
 
 [features]
 nightly = ["rooibos/nightly"]

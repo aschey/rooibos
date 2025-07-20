@@ -15,7 +15,7 @@ use rooibos_reactive::{col, for_each, wgt};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 
-use crate::{ColorThemeStyle, with_theme};
+use crate::{ColorThemeColorTheme as _, with_theme};
 
 #[derive(Clone, Debug)]
 pub struct NotificationContext {

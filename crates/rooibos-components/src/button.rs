@@ -17,7 +17,7 @@ use rooibos_reactive::{StateProp, derive_signal, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
 
-use crate::{ColorThemeStyle, with_theme};
+use crate::{ColorThemeColorTheme as _, with_theme};
 
 #[derive(Clone, Copy)]
 pub struct ButtonRef {

@@ -45,7 +45,7 @@ termwiz = "0.22"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "80b07ff23217392b450325ccac92a459af8dd0eb" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "d78b43b27eb5814c592bf72300a86fef1607ed6f" }
 
 # proc macros
 manyhow = "0.11"
@@ -111,6 +111,8 @@ confique = { version = "0.3" }
 color-eyre = "0.6.3"
 insta = "1.43.0"
 tui-tree-widget = "0.23.0"
+wasm-bindgen-futures = "0.4.50"
+
 
 [patch.crates-io]
 crossterm = { git = "https://github.com/aschey/crossterm", rev = "3b6db3586eda31a803a67af7bdb1d0937cf26485" }
