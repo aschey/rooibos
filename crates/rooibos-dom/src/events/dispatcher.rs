@@ -144,30 +144,30 @@ impl EventDispatcher {
 
         let hovered_key = with_nodes(|nodes| nodes.hovered_key());
         if let Some(current) = current {
-            if let Some(hovered_key) = hovered_key {
-                if hovered_key != current {
-                    bubble_event(
-                        hovered_key,
-                        |props| props.event_handlers.on_mouse_leave.clone(),
-                        |event, node_id, rect, handle, is_direct| {
-                            for handler in event {
-                                handler.borrow_mut()(
-                                    EventData {
-                                        target: node_id.clone(),
-                                        rect,
-                                        is_direct,
-                                    },
-                                    handle.clone(),
-                                );
-                            }
-                        },
-                        // Still run mouse move events on disabled nodes because we may need to
-                        // remove some hover state and if the node loses hover while disabled,
-                        // these events would never fire
-                        AllowDisabled::Allow,
-                        true,
-                    );
-                }
+            if let Some(hovered_key) = hovered_key
+                && hovered_key != current
+            {
+                bubble_event(
+                    hovered_key,
+                    |props| props.event_handlers.on_mouse_leave.clone(),
+                    |event, node_id, rect, handle, is_direct| {
+                        for handler in event {
+                            handler.borrow_mut()(
+                                EventData {
+                                    target: node_id.clone(),
+                                    rect,
+                                    is_direct,
+                                },
+                                handle.clone(),
+                            );
+                        }
+                    },
+                    // Still run mouse move events on disabled nodes because we may need to
+                    // remove some hover state and if the node loses hover while disabled,
+                    // these events would never fire
+                    AllowDisabled::Allow,
+                    true,
+                );
             }
             if hovered_key != Some(current) {
                 with_nodes_mut(|nodes| nodes.set_hovered(current));

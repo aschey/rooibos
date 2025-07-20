@@ -43,11 +43,10 @@ pub fn use_keypress() -> rooibos_reactive::graph::signal::ReadSignal<Option<rooi
             if term_signal.is_disposed() {
                 return;
             }
-            if let Event::Key(key_event) = event {
-                if key_event.kind == rooibos_dom::KeyEventKind::Press {
+            if let Event::Key(key_event) = event
+                && key_event.kind == rooibos_dom::KeyEventKind::Press {
                     set_term_signal.set(Some(key_event));
                 }
-            }
         }
     });
     term_signal

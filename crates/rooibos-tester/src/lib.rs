@@ -160,8 +160,8 @@ impl TestHarness {
         let text = text.as_ref();
         let buf = self.buffer();
         node.find(|node| {
-            if let NodeTypeRepr::Layout { borders } = node.node_type() {
-                if borders.is_some() {
+            if let NodeTypeRepr::Layout { borders } = node.node_type()
+                && borders.is_some() {
                     let rect = node.rect();
 
                     // Check top of block
@@ -192,7 +192,6 @@ impl TestHarness {
                         return true;
                     }
                 }
-            }
             false
         })
     }
@@ -322,13 +321,12 @@ impl TestHarness {
             tokio::select! {
                 tick_result = self.runtime.tick() => {
                     let tick_result = tick_result.unwrap();
-                    if let TickResult::Exit(payload) = tick_result {
-                        if self.runtime.should_exit(payload.clone()).await {
+                    if let TickResult::Exit(payload) = tick_result
+                        && self.runtime.should_exit(payload.clone()).await {
                             assert_eq!(payload.code(), signal::Code::SUCCESS);
                             self.runtime.handle_exit(&mut self.terminal).await.unwrap();
                             return;
                         }
-                    }
                 }
                 _ = tokio::time::sleep(Duration::from_secs(3) - (Instant::now() - start)) => {
                     panic!("application failed to exit");

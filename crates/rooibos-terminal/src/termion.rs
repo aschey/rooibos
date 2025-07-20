@@ -166,11 +166,10 @@ impl<W: Write + AsFd> Backend for TermionBackend<W> {
             let stdin = io::stdin();
             for event in stdin.events().flatten() {
                 let event: Result<rooibos_dom::Event, _> = to_terminput(event);
-                if let Ok(event) = event {
-                    if let Err(TrySendError::Closed(_)) = tx.try_send(event) {
+                if let Ok(event) = event
+                    && let Err(TrySendError::Closed(_)) = tx.try_send(event) {
                         return;
                     }
-                }
             }
         });
 

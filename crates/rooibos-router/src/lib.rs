@@ -103,11 +103,10 @@ impl RouteContext {
     fn push_url(&self, url: Url, clear_buffer: bool) {
         self.set_history.update(|h| {
             // prevent storing duplicate history entries
-            if let Some(last) = h.last() {
-                if *last == url {
+            if let Some(last) = h.last()
+                && *last == url {
                     return;
                 }
-            }
             h.push(url);
             if clear_buffer {
                 self.set_buffer.update(|b| b.clear());

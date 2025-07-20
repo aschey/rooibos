@@ -227,10 +227,10 @@ impl DomNodeRepr {
     pub fn find_all_by_role(&self, role: Role) -> Vec<DomNodeRepr> {
         self.key.traverse(
             |key, node| {
-                if let NodeType::Widget(widget_node) = &node.node_type {
-                    if widget_node.role == Some(role) {
-                        return Some(DomNodeRepr::from_node(key, node));
-                    }
+                if let NodeType::Widget(widget_node) = &node.node_type
+                    && widget_node.role == Some(role)
+                {
+                    return Some(DomNodeRepr::from_node(key, node));
                 }
                 None
             },

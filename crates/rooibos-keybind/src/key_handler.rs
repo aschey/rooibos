@@ -387,15 +387,14 @@ where
                     }
                 }
                 Action::Macro(macro_action) => {
-                    if let MacroAction::Run(name, _) = &macro_action {
-                        if let Some(handler) = mappings.get_mut(name) {
+                    if let MacroAction::Run(name, _) = &macro_action
+                        && let Some(handler) = mappings.get_mut(name) {
                             let keys = context.get_matched_keys().to_vec();
                             handler
                                 .lock_mut()
                                 .handle(props.clone(), KeybindContext { keys });
                             continue;
                         }
-                    }
                     manager
                         .macro_command(
                             &macro_action,
