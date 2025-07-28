@@ -12,7 +12,7 @@ use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::{Style, Stylize};
+use rooibos::theme::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 use tokio::time;
 

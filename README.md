@@ -42,7 +42,7 @@ use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -95,7 +95,7 @@ use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -141,7 +141,7 @@ use rooibos::reactive::{col, derive_signal, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::{Color, Stylize};
+use rooibos::theme::{Color, Stylize};
 use rooibos::tui::text::Span;
 use rooibos::tui::widgets::Paragraph;
 
@@ -193,7 +193,7 @@ use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -235,7 +235,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::DefaultBackend;
 use rooibos::tester::{TerminalView, TestHarness};
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 fn app() -> impl Render {
     let (count, set_count) = signal(0);

@@ -17,7 +17,7 @@ use rooibos::runtime::{
     ExitResult, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
 };
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 use rooibos::tui::text::Line;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

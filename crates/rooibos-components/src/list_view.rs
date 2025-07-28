@@ -1,4 +1,3 @@
-use ratatui::style::Style;
 use ratatui::widgets::{Block, HighlightSpacing, List, ListDirection, ListItem, ListState};
 use rooibos_dom::events::{
     BlurEvent, ClickEventProps, EventData, EventHandle, FocusEvent, KeyHandler,
@@ -7,6 +6,7 @@ use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::wgt;
+use tui_theme::Style;
 
 use crate::WrappingList;
 

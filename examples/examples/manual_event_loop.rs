@@ -8,7 +8,7 @@ use rooibos::reactive::wgt;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, TickResult, restore_terminal};
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

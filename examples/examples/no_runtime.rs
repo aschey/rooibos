@@ -15,7 +15,7 @@ use rooibos::reactive::{
     wgt,
 };
 use rooibos::terminal::{Backend, DefaultBackend};
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
 use tokio_util::sync::CancellationToken;

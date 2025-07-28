@@ -8,7 +8,7 @@ use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

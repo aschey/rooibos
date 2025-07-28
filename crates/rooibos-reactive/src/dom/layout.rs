@@ -9,6 +9,7 @@ use reactive_graph::wrappers::read::Signal;
 pub use rooibos_dom::{BorderType, Borders};
 use rooibos_dom::{FocusDirection, FocusMode, NodeId};
 use taffy::Display;
+use tui_theme::Color;
 use wasm_compat::sync::Mutex;
 
 use super::{DomNode, with_nodes_mut};
@@ -148,12 +149,7 @@ impl Property for BorderProp {
     }
 }
 
-signal_wrapper!(
-    Background,
-    background,
-    ratatui::style::Color,
-    ratatui::style::Color::default()
-);
+signal_wrapper!(Background, background, Color, Color::default());
 
 impl Property for Background {
     type State = RenderEffect<()>;

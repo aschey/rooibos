@@ -1,4 +1,3 @@
-use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Tabs};
@@ -12,6 +11,7 @@ use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
 use rooibos_reactive::{col, derive_signal, wgt};
+use tui_theme::{Style, Styled};
 
 use crate::Keyed;
 use crate::wrapping_list::KeyedWrappingList;

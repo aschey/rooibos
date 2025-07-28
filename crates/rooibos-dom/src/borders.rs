@@ -1,7 +1,7 @@
-use ratatui::style::{Color, Style, Styled};
 use ratatui::symbols::border;
 use ratatui::widgets::block::Title;
 use taffy::LengthPercentage;
+use tui_theme::{Color, Style, Styled};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BorderType {
@@ -39,7 +39,7 @@ impl From<BorderType> for border::Set {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Borders {
     borders: ratatui::widgets::Borders,
     border_type: BorderType,

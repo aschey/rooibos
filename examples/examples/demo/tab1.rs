@@ -4,8 +4,8 @@ use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::owner::StoredValue;
 use rooibos::reactive::graph::traits::{Get, GetValue};
 use rooibos::reactive::{col, row, wgt};
+use rooibos::theme::{Color, Style, Stylize};
 use rooibos::tui::layout::Constraint;
-use rooibos::tui::style::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::canvas::{self, Canvas, Circle, Context, Map, MapResolution, Rectangle};
 use rooibos::tui::widgets::{Block, Row, Table};
@@ -92,7 +92,7 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
     let paint_map = move |ctx: &mut Context<'_>| {
         let servers = servers.get_value();
         ctx.draw(&Map {
-            color: Color::White,
+            color: Color::White.into(),
             resolution: MapResolution::High,
         });
         ctx.layer();
@@ -101,13 +101,13 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
             y: 30.0,
             width: 10.0,
             height: 10.0,
-            color: Color::Yellow,
+            color: Color::Yellow.into(),
         });
         ctx.draw(&Circle {
             x: servers[2].coords.1,
             y: servers[2].coords.0,
             radius: 10.0,
-            color: Color::Green,
+            color: Color::Green.into(),
         });
         for (i, s1) in servers.iter().enumerate() {
             for s2 in &servers[i + 1..] {
@@ -116,7 +116,7 @@ fn demo_map(servers: StoredValue<Vec<Server<'static>>>, enhanced_graphics: bool)
                     y1: s1.coords.0,
                     y2: s2.coords.0,
                     x2: s2.coords.1,
-                    color: Color::Yellow,
+                    color: Color::Yellow.into(),
                 });
             }
         }

@@ -13,8 +13,7 @@ mod tab_view;
 mod terminal;
 mod wrapping_list;
 
-use std::cell::{LazyCell, RefCell};
-use std::sync::{Arc, LazyLock, RwLock};
+use std::cell::LazyCell;
 
 pub use button::*;
 pub use either_of;
@@ -24,7 +23,6 @@ pub use image::*;
 pub use input::*;
 pub use list_view::*;
 pub use notification::*;
-use ratatui::style::Stylize;
 use rooibos_dom::BorderType;
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::graph::signal::ArcRwSignal;
@@ -34,21 +32,21 @@ pub use show::*;
 pub use tab_view::*;
 #[cfg(all(feature = "terminal-widget", not(target_arch = "wasm32")))]
 pub use terminal::*;
-use tui_theme::{ColorTheme, SetTheme, SubTheme, Theme};
+use tui_theme::{Color, SetTheme, Theme};
 pub use wrapping_list::*;
 
-#[derive(ColorTheme, SubTheme, SetTheme, Clone, Copy, Default, Debug)]
+#[derive(Theme, Clone, Copy, Default, Debug)]
 pub struct ColorTheme {
-    text_primary: tui_theme::Color,
-    active: tui_theme::Color,
-    disabled_light: tui_theme::Color,
-    disabled_dark: tui_theme::Color,
-    border: tui_theme::Color,
-    border_focused: tui_theme::Color,
-    border_disabled: tui_theme::Color,
+    text_primary: Color,
+    active: Color,
+    disabled_light: Color,
+    disabled_dark: Color,
+    border: Color,
+    border_focused: Color,
+    border_disabled: Color,
 }
 
-#[derive(SubTheme, SetTheme, Clone, Copy, Default, Debug)]
+#[derive(Theme, Clone, Copy, Default, Debug)]
 pub struct AppProperties {
     border_type_primary: BorderType,
     border_type_active: BorderType,
@@ -58,7 +56,9 @@ pub struct AppProperties {
 
 #[derive(Theme, Clone, Copy, Default, Debug)]
 pub struct AppTheme {
+    #[subtheme]
     color_theme: ColorTheme,
+    #[subtheme]
     app_properties: AppProperties,
 }
 
@@ -70,13 +70,13 @@ thread_local! {
     static THEME: LazyCell<ThemeSignal> = LazyCell::new(|| {
         let theme = AppTheme {
             color_theme: ColorTheme {
-                text_primary: tui_theme::Color::AnsiReset,
-                active: tui_theme::Color::AnsiGreen,
-                disabled_light: tui_theme::Color::AnsiGray,
-                disabled_dark: tui_theme::Color::AnsiDarkGray,
-                border: tui_theme::Color::AnsiGray,
-                border_focused: tui_theme::Color::AnsiBlue,
-                border_disabled: tui_theme::Color::AnsiDarkGray,
+                text_primary: Color::Reset,
+                active: Color::Green,
+                disabled_light: Color::Gray,
+                disabled_dark: Color::DarkGray,
+                border: tui_theme::Color::Gray,
+                border_focused: Color::Blue,
+                border_disabled: Color::DarkGray,
             },
             app_properties: AppProperties {
                 border_type_primary: BorderType::Round,

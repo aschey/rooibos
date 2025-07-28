@@ -12,8 +12,8 @@ use rooibos::reactive::{col, derive_signal, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
+use rooibos::theme::Stylize;
 use rooibos::tui::palette::Hsl;
-use rooibos::tui::style::{Color, Stylize};
 use rooibos::tui::text::Span;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -64,11 +64,7 @@ fn app() -> impl Render {
                 .centered()
                 .bg({
                     let height = block_height.get() as f32;
-                    Color::from_hsl(Hsl::new(
-                        18.0 * height,
-                        5.0 * height / 100.,
-                        5.0 * height / 100.,
-                    ))
+                    Hsl::new(18.0 * height, 5.0 * height / 100., 5.0 * height / 100.)
                 })
         )
     ]

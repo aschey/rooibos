@@ -12,7 +12,7 @@ use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize as _;
+use rooibos::theme::Stylize as _;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

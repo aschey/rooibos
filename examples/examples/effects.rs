@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use ratatui::style::Color;
+use rooibos::theme::Color;
 use rooibos::reactive::dom::layout::{SyncEffect, effect};
 use rooibos::reactive::dom::{Render, text};
 use rooibos::reactive::graph::signal::signal;

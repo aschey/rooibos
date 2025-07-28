@@ -130,7 +130,7 @@ impl Debug for NodeType {
 }
 
 #[allow(clippy::large_enum_variant)]
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum NodeTypeRepr {
     Layout { borders: Option<Borders> },
     FocusScope,

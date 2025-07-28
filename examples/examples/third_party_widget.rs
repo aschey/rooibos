@@ -11,9 +11,9 @@ use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
+use rooibos::theme::{Style, Stylize};
 use rooibos::tui::Frame;
 use rooibos::tui::layout::Rect;
-use rooibos::tui::style::{Style, Stylize};
 use rooibos::tui::widgets::{Block, StatefulWidget};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -98,7 +98,7 @@ where
             Tree::new(&self.tree)
                 .unwrap()
                 .block(Block::bordered().title("Tree Widget"))
-                .highlight_style(Style::default().black().on_green().bold())
+                .highlight_style(Style::default().black().on_green().bold().into())
                 .render(area, frame.buffer_mut(), s);
         })
     }

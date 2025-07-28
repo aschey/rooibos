@@ -5,7 +5,7 @@ use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::Update;
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{col, wgt};
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 use crate::tab0::charts::charts;
 use crate::tab0::gauges::gauges;

@@ -10,7 +10,7 @@ use rooibos::reactive::{IntoText, col, row};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::{Style, Stylize};
+use rooibos::theme::{Style, Stylize};
 use rooibos::tui::widgets::Block;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

@@ -47,5 +47,5 @@ pub mod xterm_js {
     pub use rooibos_xterm_js::*;
 }
 
-pub use ratatui as tui;
 pub use rooibos_reactive_macros::*;
+pub use {ratatui as tui, tui_theme as theme};

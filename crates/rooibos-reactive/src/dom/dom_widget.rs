@@ -10,6 +10,7 @@ use rooibos_dom::events::{
 };
 use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
+use tui_theme::Color;
 use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
@@ -706,7 +707,7 @@ where
     update_dimension_props!(flex_basis);
 
     update_props!(borders, Borders);
-    update_props!(background, ratatui::style::Color);
+    update_props!(background, Color);
     update_props!(focusable, bool);
     update_props!(clear, bool);
     update_props!(enabled, bool);
@@ -893,7 +894,7 @@ custom_widget_prop!(
 dimension_widget_prop!(FlexBasis, flex_basis, simple.flex_basis);
 
 widget_prop!(BorderProp, borders, Borders, borders);
-widget_prop!(Background, background, ratatui::style::Color, background);
+widget_prop!(Background, background, Color, background);
 widget_prop!(Focusable, focusable, bool, focusable);
 widget_prop!(Clear, clear, bool, clear);
 widget_prop!(Enabled, enabled, bool, enabled);

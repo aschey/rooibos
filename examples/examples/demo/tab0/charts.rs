@@ -9,7 +9,7 @@ use rooibos::reactive::graph::signal::{ReadSignal, RwSignal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{IntoSpan, KeyCode, col, row, wgt};
 use rooibos::runtime::use_keypress;
-use rooibos::tui::style::{Color, Style, Stylize};
+use rooibos::theme::{Color, Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Axis, BarChart, Block, List, ListItem, ListState};
 
@@ -83,10 +83,10 @@ fn demo_chart(enhanced_graphics: bool) -> impl Render {
 
     Effect::new(move |prev| {
         let seq = tick.0.get();
-        if let Some(prev) = prev {
-            if seq <= prev {
-                return seq;
-            }
+        if let Some(prev) = prev
+            && seq <= prev
+        {
+            return seq;
         }
         window.update(|[start, end]| {
             *start += 1.0;
@@ -175,10 +175,10 @@ fn demo_bar_chart(enhanced_graphics: bool) -> impl Render {
 
     Effect::new(move |prev| {
         let seq = tick.0.get();
-        if let Some(prev) = prev {
-            if seq <= prev {
-                return seq;
-            }
+        if let Some(prev) = prev
+            && seq <= prev
+        {
+            return seq;
         }
         bar_chart_data.update(|data| {
             let event = data.pop().unwrap();
@@ -280,10 +280,10 @@ fn logs() -> impl Render {
     let tick = use_context::<Tick>().unwrap();
     Effect::new(move |prev| {
         let seq = tick.0.get();
-        if let Some(prev) = prev {
-            if seq <= prev {
-                return seq;
-            }
+        if let Some(prev) = prev
+            && seq <= prev
+        {
+            return seq;
         }
         log_data.update(|logs| {
             let log = logs.pop().unwrap();

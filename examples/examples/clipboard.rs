@@ -8,7 +8,7 @@ use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, set_clipboard};
 use rooibos::terminal::{ClipboardKind, DefaultBackend};
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

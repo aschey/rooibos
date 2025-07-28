@@ -13,7 +13,7 @@ use rooibos::reactive::{StateProp, col, focus_scope, for_each, row, use_state_pr
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

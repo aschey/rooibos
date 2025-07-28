@@ -8,7 +8,7 @@ use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, wgt};
-use rooibos::tui::style::{Style, Stylize};
+use rooibos::theme::{Style, Stylize};
 use rooibos::tui::symbols;
 use rooibos::tui::widgets::{Block, Gauge, LineGauge};
 
@@ -24,10 +24,10 @@ pub(crate) fn gauges(
     let tick = use_context::<Tick>().unwrap();
     Effect::new(move |prev| {
         let seq = tick.0.get();
-        if let Some(prev) = prev {
-            if seq <= prev {
-                return seq;
-            }
+        if let Some(prev) = prev
+            && seq <= prev
+        {
+            return seq;
         }
         set_progress.update(|p| {
             *p = if *p < 1.0 {

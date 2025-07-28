@@ -12,7 +12,7 @@ use rooibos::reactive::{IntoText, col, derive_signal, focus_scope, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::{Color, Stylize};
+use rooibos::theme::{Color, Stylize};
 use rooibos::tui::text::Span;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -63,11 +63,7 @@ fn app() -> impl Render {
                 .centered()
                 .bg({
                     let height = block_height.get() as f32;
-                    Color::from_hsl(Hsl::new(
-                        18.0 * height,
-                        5.0 * height / 100.,
-                        5.0 * height / 100.,
-                    ))
+                    Hsl::new(18.0 * height, 5.0 * height / 100., 5.0 * height / 100.)
                 })
         ))
     ]

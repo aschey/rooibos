@@ -36,7 +36,7 @@ use rooibos::reactive::{
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::{Color, Stylize};
 use server::run_server;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -283,8 +283,8 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     let text = RwSignal::new(text);
 
     let (row_bg, set_row_state) = use_state_prop(
-        StateProp::new(ratatui::style::Color::default())
-            .focused(|_| ratatui::style::Color::Indexed(237))
+        StateProp::new(Color::default())
+            .focused(|_| Color::Indexed(237))
             .direct_focus(false),
     );
 

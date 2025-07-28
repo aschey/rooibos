@@ -12,7 +12,7 @@ use rooibos::reactive::{col, error_map, suspense, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 use serde::Deserialize;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

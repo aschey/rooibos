@@ -1,7 +1,7 @@
 use ratatui::prelude::*;
-use ratatui::style::{Style, Styled};
 use ratatui::symbols;
 use ratatui::widgets::{Block, RenderDirection, Widget, WidgetRef};
+use tui_theme::{Style, Styled};
 
 use super::{Role, WidgetRole};
 use crate::MeasureNode;

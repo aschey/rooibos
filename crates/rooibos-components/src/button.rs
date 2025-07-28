@@ -3,7 +3,6 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use ratatui::layout::Alignment;
-use ratatui::style::Style;
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
 use rooibos_dom::{KeyCode, delay, supports_key_up};
@@ -16,8 +15,9 @@ use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{StateProp, derive_signal, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
+use tui_theme::Style;
 
-use crate::{ColorThemeColorTheme as _, with_theme};
+use crate::{ColorThemeColorTheme, with_theme};
 
 #[derive(Clone, Copy)]
 pub struct ButtonRef {

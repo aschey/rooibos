@@ -268,9 +268,10 @@ pub fn try_focus_id(id: impl Into<NodeId>) -> Result<(), NodeNotFound> {
                 return None;
             }
             if let Some(current_id) = &node.inner.id
-                && &id == current_id {
-                    return Some(key);
-                }
+                && &id == current_id
+            {
+                return Some(key);
+            }
             None
         });
         if let Some(found_node) = found_node {

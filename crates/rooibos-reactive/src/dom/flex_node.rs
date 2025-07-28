@@ -9,6 +9,7 @@ use rooibos_dom::{AsDomNode, Borders, NodeId};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
+use tui_theme::Color;
 
 use super::layout::{
     AlignContent, AlignItems, AlignSelf, AspectRatio, Background, BorderProp, Class, Clear,
@@ -347,7 +348,7 @@ dimension_flex_prop!(ColumnGap, column_gap);
 dimension_flex_prop!(Gap, gap);
 
 flex_prop!(BorderProp, borders, Borders);
-flex_prop!(Background, background, ratatui::style::Color);
+flex_prop!(Background, background, Color);
 flex_prop!(Focusable, focusable, bool);
 flex_prop!(Show, show, bool);
 flex_prop!(Clear, clear, bool);

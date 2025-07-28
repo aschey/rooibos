@@ -1,6 +1,5 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
-use ratatui::style::{Style, Stylize};
 use ratatui::widgets::Widget;
 use rooibos_dom::events::{
     BlurEvent, EventData, EventHandle, FocusEvent, KeyEventProps, StateChangeEvent,
@@ -19,7 +18,10 @@ use rooibos_reactive::graph::traits::{
 use rooibos_reactive::graph::wrappers::read::Signal;
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
+use tui_theme::Style;
 use wasm_compat::futures::spawn_local;
+
+use crate::{ColorThemeColorTheme, with_theme};
 
 #[derive(Clone, Copy)]
 pub struct InputRef {
@@ -143,7 +145,7 @@ impl Default for Input {
             alignment: Alignment::Left.into(),
             layout_props: LayoutProps::default(),
             cursor_style: Style::reset().reversed().into(),
-            placeholder_style: Style::default().dark_gray().into(),
+            placeholder_style: with_theme(|_| Style::default().fg_disabled_dark()),
             placeholder_text: String::new().into(),
             style: Style::default().into(),
             on_submit: Box::new(|_| {}),
@@ -252,19 +254,19 @@ impl Input {
 
         Effect::new(move || {
             text_area.update(|t| {
-                t.set_cursor_line_style(Style::default());
+                t.set_cursor_line_style(Style::default().into());
                 t.set_alignment(alignment.get());
-                t.set_style(style.get());
-                t.set_cursor_style(Style::new());
+                t.set_style(style.get().into());
+                t.set_cursor_style(Style::new().into());
                 if focused.get() {
-                    t.set_cursor_style(cursor_style.get());
+                    t.set_cursor_style(cursor_style.get().into());
                 } else {
                     // hide cursor when not focused
-                    t.set_cursor_style(Style::reset());
+                    t.set_cursor_style(Style::reset().into());
                 }
 
                 t.set_placeholder_text(placeholder_text.get());
-                t.set_placeholder_style(placeholder_style.get());
+                t.set_placeholder_style(placeholder_style.get().into());
             });
         });
 

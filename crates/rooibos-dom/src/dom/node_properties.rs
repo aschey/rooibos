@@ -8,13 +8,13 @@ use educe::Educe;
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{
     Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, WidgetRef,
 };
 #[cfg(feature = "effects")]
 use tachyonfx::{EffectRenderer, Shader};
 use terminput::ScrollDirection;
+use tui_theme::{Color, Stylize};
 
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::{ContentRect, NodeId, NodeType, next_node_id, refresh_dom};

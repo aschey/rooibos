@@ -6,7 +6,7 @@ use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::wgt;
 use rooibos::runtime::Runtime;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 

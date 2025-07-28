@@ -8,7 +8,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::spawn_local;
 use rooibos::runtime::{Runtime, wasm_compat};
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::Stylize;
+use rooibos::theme::Stylize;
 use tracing::{Level, info};
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

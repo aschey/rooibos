@@ -8,7 +8,7 @@ use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::tui::style::{Style, Stylize};
+use rooibos::theme::Style;
 use rooibos::tui::widgets::ListItem;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

@@ -30,6 +30,7 @@ wasm-compat = { workspace = true, features = ["all"] }
 taffy = { workspace = true }
 crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
 tracing = { workspace = true }
+tui-theme = { workspace = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 any_spawner = { workspace = true, features = ["tokio", "tracing"] }
