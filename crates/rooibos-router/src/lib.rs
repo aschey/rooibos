@@ -104,9 +104,10 @@ impl RouteContext {
         self.set_history.update(|h| {
             // prevent storing duplicate history entries
             if let Some(last) = h.last()
-                && *last == url {
-                    return;
-                }
+                && *last == url
+            {
+                return;
+            }
             h.push(url);
             if clear_buffer {
                 self.set_buffer.update(|b| b.clear());

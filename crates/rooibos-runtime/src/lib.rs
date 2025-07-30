@@ -11,7 +11,6 @@ use std::panic::{set_hook, take_hook};
 
 pub use background_service::ServiceContext;
 pub use commands::*;
-pub use proc_exit;
 use rooibos_dom::Event;
 #[cfg(feature = "reactive")]
 use rooibos_reactive::graph::traits::IsDisposed as _;
@@ -22,6 +21,8 @@ pub use settings::*;
 pub use signal_handler::*;
 pub use state::*;
 pub use tokio_util::sync::CancellationToken;
+
+pub use crate::proc_exit;
 
 pub mod wasm_compat {
     pub use ::wasm_compat::cell::*;
@@ -44,9 +45,10 @@ pub fn use_keypress() -> rooibos_reactive::graph::signal::ReadSignal<Option<rooi
                 return;
             }
             if let Event::Key(key_event) = event
-                && key_event.kind == rooibos_dom::KeyEventKind::Press {
-                    set_term_signal.set(Some(key_event));
-                }
+                && key_event.kind == rooibos_dom::KeyEventKind::Press
+            {
+                set_term_signal.set(Some(key_event));
+            }
         }
     });
     term_signal

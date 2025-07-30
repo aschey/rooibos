@@ -11,8 +11,8 @@ use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
-use rooibos::tui::Viewport;
 use rooibos::theme::{Style, Stylize};
+use rooibos::tui::Viewport;
 use rooibos::tui::widgets::ListItem;
 
 type Result = std::result::Result<ExitCode, Box<dyn Error>>;

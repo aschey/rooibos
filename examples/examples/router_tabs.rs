@@ -10,7 +10,7 @@ use rooibos::router::{Route, RouteContext, RouteFromStatic, use_router};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::theme::{Style, Stylize};
+use rooibos::theme::Style;
 use rooibos::tui::widgets::Block;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

@@ -7,7 +7,7 @@ use rooibos::reactive::graph::signal::{RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
 use rooibos::reactive::{derive_signal, row, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, RuntimeSettings, before_exit, exit};
+use rooibos::runtime::{ControlFlow, Runtime, RuntimeSettings, before_exit, exit};
 use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
 use rooibos::tui::Viewport;
 
@@ -30,9 +30,9 @@ fn app() -> impl Render {
     before_exit(move |_| {
         if !is_exiting.get() {
             is_exiting.set(true);
-            return ExitResult::PreventExit;
+            return ControlFlow::Allow;
         }
-        ExitResult::Exit
+        ControlFlow::Prevent
     });
 
     let update_count = move || set_count.update(|c| *c += 1);

@@ -9,7 +9,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::{sleep, spawn_local};
 use rooibos::runtime::{Runtime, exit};
 use rooibos::terminal::DefaultBackend;
-use rooibos::theme::{Style, Stylize};
+use rooibos::theme::Style;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

@@ -12,7 +12,7 @@ use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
 use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
-use rooibos::runtime::{ExitResult, Runtime, before_exit, exit, max_viewport_width};
+use rooibos::runtime::{ControlFlow, Runtime, before_exit, exit, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
@@ -31,10 +31,10 @@ fn app() -> impl Render {
     before_exit(move |payload| {
         // We should always exit when we have a non-success code
         if !payload.is_success() || quit_confirmed.get() {
-            return ExitResult::Exit;
+            return ControlFlow::Allow;
         }
         set_show_popup.set(true);
-        ExitResult::PreventExit
+        ControlFlow::Prevent
     });
 
     col![

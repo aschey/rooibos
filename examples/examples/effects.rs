@@ -1,6 +1,5 @@
 use std::process::ExitCode;
 
-use rooibos::theme::Color;
 use rooibos::reactive::dom::layout::{SyncEffect, effect};
 use rooibos::reactive::dom::{Render, text};
 use rooibos::reactive::graph::signal::signal;
@@ -11,6 +10,7 @@ use rooibos::reactive::{row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, wasm_compat};
 use rooibos::terminal::DefaultBackend;
+use rooibos::theme::Color;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

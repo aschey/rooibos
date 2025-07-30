@@ -8,7 +8,7 @@ use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, span, text};
 use rooibos::reactive::graph::computed::AsyncDerived;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, error_map, suspense, wgt};
+use rooibos::reactive::{col, fallback, suspense, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -27,11 +27,6 @@ fn app() -> impl Render {
 
     let character = AsyncDerived::new(move || fetch_next(id.get()));
 
-    let fallback = move |errors| {
-        let error_list = move || error_map(&errors, |_, e| span!(e));
-        wgt!(line!(error_list()))
-    };
-
     col![
         style(padding(1)),
         Button::new()
@@ -43,7 +38,7 @@ fn app() -> impl Render {
         suspense!(
             wgt!(" Loading...".gray()),
             character.await.map(|c| wgt!(line!(" ", c.clone().green()))),
-            fallback
+            |err| fallback(err, |e| span!(e).red())
         )
     ]
 }

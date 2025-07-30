@@ -16,7 +16,7 @@ use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
-use crate::{ExitPayload, ExitResult, RuntimeCommand, with_all_state, with_state};
+use crate::{ControlFlow, ExitPayload, OsSignal, RuntimeCommand, with_all_state, with_state};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
@@ -196,7 +196,7 @@ pub fn spawn_blocking_service_on<
 pub fn before_exit_async<F, Fut>(f: F)
 where
     F: Fn(ExitPayload) -> Fut + Send + Sync + 'static,
-    Fut: Future<Output = ExitResult> + Send + 'static,
+    Fut: Future<Output = ControlFlow> + Send + 'static,
 {
     with_state(|s| {
         *s.before_exit.lock_mut() = Box::new(move |payload| {
@@ -206,9 +206,34 @@ where
     });
 }
 
+pub fn on_os_signal<F>(f: F)
+where
+    F: Fn(OsSignal) -> ControlFlow + Send + 'static,
+{
+    with_state(|s| {
+        *s.on_os_signal.lock_mut() = Box::new(move |payload| {
+            let out = f(payload);
+            Box::pin(future::ready(out))
+        })
+    });
+}
+
+pub fn on_os_signal_async<F, Fut>(f: F)
+where
+    F: Fn(OsSignal) -> Fut + Send + Sync + 'static,
+    Fut: Future<Output = ControlFlow> + Send + 'static,
+{
+    with_state(|s| {
+        *s.on_os_signal.lock_mut() = Box::new(move |payload| {
+            let out = f(payload);
+            Box::pin(out)
+        })
+    });
+}
+
 pub fn before_exit<F>(f: F)
 where
-    F: Fn(ExitPayload) -> ExitResult + Send + 'static,
+    F: Fn(ExitPayload) -> ControlFlow + Send + 'static,
 {
     with_state(|s| {
         *s.before_exit.lock_mut() = Box::new(move |payload| {

@@ -10,9 +10,9 @@ use tracing::error;
 
 use crate::RuntimeCommand;
 
-pub mod signal {
+pub mod proc_exit {
     pub use proc_exit::Code;
-    pub use proc_exit::bash::{SIGINT, SIGQUIT, SIGTERM};
+    pub use proc_exit::bash::{SIGABRT, SIGINT, SIGQUIT, SIGTERM};
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -27,16 +27,17 @@ impl SignalHandler {
     pub(crate) async fn run(self) -> Result<(), io::Error> {
         if let Some(mut signals) = crate::get_external_signal_stream() {
             while let Ok(Ok(signal)) = signals.recv().cancel_with(self.context.cancelled()).await {
-                self.handle_signal(signal);
+                self.handle_signal(signal).await;
             }
         } else if self.enable_internal_handler {
             #[cfg(unix)]
             // SIGSTP cannot be handled
             // https://www.gnu.org/software/libc/manual/html_node/Job-Control-Signals.html
             let signals = Signals::new([
-                Signal::Term,
-                Signal::Quit,
                 Signal::Int,
+                Signal::Quit,
+                Signal::Abort,
+                Signal::Term,
                 Signal::Tstp,
                 Signal::Cont,
             ]);
@@ -48,14 +49,19 @@ impl SignalHandler {
             while let Ok(Some(Ok(signal))) =
                 signals.next().cancel_with(self.context.cancelled()).await
             {
-                self.handle_signal(signal);
+                self.handle_signal(signal).await;
             }
         }
         Ok(())
     }
 
-    fn handle_signal(&self, signal: async_signal::Signal) {
-        use async_signal::Signal;
+    async fn handle_signal(&self, signal: async_signal::Signal) {
+        use crate::{ControlFlow, with_state};
+
+        let on_signal = with_state(|s| s.on_os_signal.lock_mut()(map_signal(signal)));
+        if on_signal.await == ControlFlow::Prevent {
+            return;
+        }
         match signal {
             Signal::Tstp => {
                 let _ = self.runtime_command_tx.send(RuntimeCommand::Suspend);
@@ -65,9 +71,10 @@ impl SignalHandler {
             }
             signal => {
                 let code = match signal {
-                    Signal::Term => signal::SIGTERM,
-                    Signal::Quit => signal::SIGQUIT,
-                    Signal::Int => signal::SIGINT,
+                    Signal::Int => proc_exit::SIGINT,
+                    Signal::Quit => proc_exit::SIGQUIT,
+                    Signal::Abort => proc_exit::SIGABRT,
+                    Signal::Term => proc_exit::SIGTERM,
                     _ => unreachable!(),
                 };
                 let _ = self
@@ -75,5 +82,19 @@ impl SignalHandler {
                     .send(RuntimeCommand::Terminate(Ok(code)));
             }
         }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn map_signal(signal: async_signal::Signal) -> crate::OsSignal {
+    use async_signal::Signal;
+    match signal {
+        Signal::Int => crate::OsSignal::Int,
+        Signal::Quit => crate::OsSignal::Quit,
+        Signal::Abort => crate::OsSignal::Abort,
+        Signal::Term => crate::OsSignal::Term,
+        Signal::Tstp => crate::OsSignal::Tstp,
+        Signal::Cont => crate::OsSignal::Cont,
+        _ => unreachable!(),
     }
 }

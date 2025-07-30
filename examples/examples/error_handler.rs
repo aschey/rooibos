@@ -14,7 +14,7 @@ use rooibos::reactive::graph::traits::{Get, Read, Set};
 use rooibos::reactive::{col, derive_signal, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{
-    ExitResult, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
+    ControlFlow, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
 };
 use rooibos::terminal::DefaultBackend;
 use rooibos::theme::Stylize;
@@ -36,9 +36,9 @@ fn app() -> impl Render {
     before_exit(move |payload| {
         if let Some(err) = payload.error() {
             set_popup_text.set(Some(line!("An error occurred: ", err.to_string().red())));
-            ExitResult::PreventExit
+            ControlFlow::Prevent
         } else {
-            ExitResult::Exit
+            ControlFlow::Allow
         }
     });
 

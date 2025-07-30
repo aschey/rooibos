@@ -1,8 +1,8 @@
 use rooibos::reactive::dom::layout::{full, height, width};
 use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::{row, wgt};
-use rooibos::tui::layout::Constraint;
 use rooibos::theme::{Color, Stylize};
+use rooibos::tui::layout::Constraint;
 use rooibos::tui::widgets::{Block, Cell, Row, Table};
 
 pub(crate) fn tab2() -> impl Render {

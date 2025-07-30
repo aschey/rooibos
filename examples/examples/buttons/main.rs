@@ -12,7 +12,7 @@ use rooibos::reactive::{IntoText, col, derive_signal, focus_scope, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::theme::{Color, Stylize};
+use rooibos::theme::Stylize;
 use rooibos::tui::text::Span;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;

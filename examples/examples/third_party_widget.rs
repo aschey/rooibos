@@ -11,7 +11,7 @@ use rooibos::reactive::graph::traits::{Get, Track, Update, UpdateUntracked};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
-use rooibos::theme::{Style, Stylize};
+use rooibos::theme::Style;
 use rooibos::tui::Frame;
 use rooibos::tui::layout::Rect;
 use rooibos::tui::widgets::{Block, StatefulWidget};

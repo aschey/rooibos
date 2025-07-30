@@ -161,37 +161,38 @@ impl TestHarness {
         let buf = self.buffer();
         node.find(|node| {
             if let NodeTypeRepr::Layout { borders } = node.node_type()
-                && borders.is_some() {
-                    let rect = node.rect();
+                && borders.is_some()
+            {
+                let rect = node.rect();
 
-                    // Check top of block
-                    if buf
-                        .slice(Rect {
-                            x: rect.x,
-                            y: rect.y,
-                            width: rect.width,
-                            height: 1,
-                        })
-                        .terminal_view()
-                        .contains(text)
-                    {
-                        return true;
-                    }
-
-                    // Check bottom of block
-                    if buf
-                        .slice(Rect {
-                            x: rect.x,
-                            y: rect.y + rect.height - 1,
-                            width: rect.width,
-                            height: 1,
-                        })
-                        .terminal_view()
-                        .contains(text)
-                    {
-                        return true;
-                    }
+                // Check top of block
+                if buf
+                    .slice(Rect {
+                        x: rect.x,
+                        y: rect.y,
+                        width: rect.width,
+                        height: 1,
+                    })
+                    .terminal_view()
+                    .contains(text)
+                {
+                    return true;
                 }
+
+                // Check bottom of block
+                if buf
+                    .slice(Rect {
+                        x: rect.x,
+                        y: rect.y + rect.height - 1,
+                        width: rect.width,
+                        height: 1,
+                    })
+                    .terminal_view()
+                    .contains(text)
+                {
+                    return true;
+                }
+            }
             false
         })
     }
@@ -308,7 +309,7 @@ impl TestHarness {
 
     #[cfg(feature = "runtime")]
     pub async fn exit(mut self) {
-        use rooibos_runtime::signal;
+        use rooibos_runtime::proc_exit;
 
         self.event_tx
             .send(Event::Key(
@@ -323,7 +324,7 @@ impl TestHarness {
                     let tick_result = tick_result.unwrap();
                     if let TickResult::Exit(payload) = tick_result
                         && self.runtime.should_exit(payload.clone()).await {
-                            assert_eq!(payload.code(), signal::Code::SUCCESS);
+                            assert_eq!(payload.code(), proc_exit::Code::SUCCESS);
                             self.runtime.handle_exit(&mut self.terminal).await.unwrap();
                             return;
                         }

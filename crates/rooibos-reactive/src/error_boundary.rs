@@ -1,6 +1,8 @@
+use std::fmt::Debug;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use ratatui::text::{Line, Text};
 use reactive_graph::computed::ArcMemo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::owner::{Owner, provide_context};
@@ -12,6 +14,7 @@ use tachys::view::{Mountable, Render};
 use throw_error::{Error, ErrorHook, ErrorId};
 
 use crate::dom::{DomNode, IntoView, RenderAny, RooibosDom};
+use crate::wgt;
 
 pub fn error_boundary<FalFn, Fal, F, R>(children: F, fallback: FalFn) -> impl IntoView
 where
@@ -48,6 +51,15 @@ where
         owner,
     )
 }
+pub fn error_view<F, R, E, L>(children: F, map_err: E) -> impl IntoView
+where
+    F: Fn() -> R + Send + 'static,
+    R: RenderAny,
+    E: Fn(&Error) -> L + Clone + Send + Sync + 'static,
+    L: Into<Line<'static>>,
+{
+    error_boundary(children, move |err| fallback(err, map_err.clone()))
+}
 
 pub fn error_map<F, T>(errors: &ArcRwSignal<Errors>, f: F) -> Vec<T>
 where
@@ -59,6 +71,15 @@ where
             .map(|(id, err)| f(id, err))
             .collect::<Vec<_>>()
     })
+}
+
+pub fn fallback<F, L>(errors: ArcRwSignal<Errors>, f: F) -> impl Render<RooibosDom>
+where
+    F: Fn(&Error) -> L + 'static,
+    L: Into<Line<'static>>,
+{
+    let error_list = move || error_map(&errors, |_, e| f(e).into());
+    wgt!(Text::from(error_list()))
 }
 
 struct ErrorBoundaryView<Chil, FalFn> {

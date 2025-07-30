@@ -264,11 +264,12 @@ impl<W: Write + AsRawFd> Backend for TermwizBackend<W> {
             .buffered_terminal_mut()
             .terminal()
             .poll_input(Some(Duration::ZERO))
-            && let Ok(event) = to_terminput(event) {
-                let _ = term_tx
-                    .send(event)
-                    .inspect_err(|e| warn!("error sending input: {e:?}"));
-            }
+            && let Ok(event) = to_terminput(event)
+        {
+            let _ = term_tx
+                .send(event)
+                .inspect_err(|e| warn!("error sending input: {e:?}"));
+        }
         Ok(())
     }
 

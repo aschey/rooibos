@@ -14,8 +14,8 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
 use rooibos::terminal::DefaultBackend;
 use rooibos::terminal::crossterm::TerminalSettings;
-use rooibos::tui::Viewport;
 use rooibos::theme::{Style, Stylize};
+use rooibos::tui::Viewport;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 

@@ -100,10 +100,10 @@ fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
 
     Effect::new(move |prev| {
         let seq = tick.0.get();
-        if let Some(prev) = prev {
-            if seq <= prev {
-                return seq;
-            }
+        if let Some(prev) = prev
+            && seq <= prev
+        {
+            return seq;
         }
         sparkline_signal.update(|s| s.on_tick());
         seq

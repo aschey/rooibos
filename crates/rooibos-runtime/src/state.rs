@@ -13,24 +13,33 @@ use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
 
-use crate::signal_handler::signal;
-use crate::{RuntimeCommand, TerminalCommand, wasm_compat};
+use crate::{RuntimeCommand, TerminalCommand, proc_exit, wasm_compat};
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ControlFlow {
+    Prevent,
+    Allow,
+}
 
 type RestoreFn = dyn Fn() -> io::Result<()> + Send;
 
-type ExitResultFuture = dyn Future<Output = ExitResult> + Send;
+type BeforeExitFn = dyn Fn(ExitPayload) -> Pin<Box<ControlFlowFuture>> + Send;
+
+type ControlFlowFuture = dyn Future<Output = ControlFlow> + Send;
+
+type OnOsSignalFn = dyn FnMut(OsSignal) -> Pin<Box<ControlFlowFuture>> + Send;
 
 #[derive(Debug, Clone)]
 pub struct ExitPayload {
-    code: signal::Code,
+    code: proc_exit::Code,
     error: Option<Arc<Box<dyn Error + Send + Sync>>>,
 }
 
 impl ExitPayload {
     pub(crate) fn from_result(
-        result: Result<signal::Code, Arc<Box<dyn Error + Send + Sync>>>,
+        result: Result<proc_exit::Code, Arc<Box<dyn Error + Send + Sync>>>,
     ) -> Self {
-        let code = result.clone().unwrap_or(signal::Code::FAILURE);
+        let code = result.clone().unwrap_or(proc_exit::Code::FAILURE);
 
         Self {
             code,
@@ -38,18 +47,18 @@ impl ExitPayload {
         }
     }
 
-    pub fn code(&self) -> signal::Code {
+    pub fn code(&self) -> proc_exit::Code {
         self.code
     }
 
     pub fn is_success(&self) -> bool {
-        self.code == signal::Code::SUCCESS
+        self.code == proc_exit::Code::SUCCESS
     }
 
     pub fn is_termination_signal(&self) -> bool {
         matches!(
             self.code,
-            signal::SIGINT | signal::SIGQUIT | signal::SIGTERM
+            proc_exit::SIGINT | proc_exit::SIGQUIT | proc_exit::SIGTERM
         )
     }
 
@@ -58,7 +67,15 @@ impl ExitPayload {
     }
 }
 
-type BeforeExitFn = dyn Fn(ExitPayload) -> Pin<Box<ExitResultFuture>> + Send;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum OsSignal {
+    Int,
+    Quit,
+    Abort,
+    Term,
+    Tstp,
+    Cont,
+}
 
 pub(crate) struct RuntimeState {
     pub(crate) term_tx: broadcast::Sender<rooibos_dom::Event>,
@@ -68,6 +85,7 @@ pub(crate) struct RuntimeState {
     pub(crate) context: ServiceContext,
     pub(crate) restore_terminal: wasm_compat::Mutex<Box<RestoreFn>>,
     pub(crate) before_exit: wasm_compat::Mutex<Box<BeforeExitFn>>,
+    pub(crate) on_os_signal: wasm_compat::Mutex<Box<OnOsSignalFn>>,
     pub(crate) window_size: ArcReadSignal<ViewportSize>,
     pub(crate) window_focused: ArcReadSignal<bool>,
 }
@@ -97,20 +115,18 @@ impl RuntimeState {
             runtime_command_tx,
             restore_terminal: wasm_compat::Mutex::new(Box::new(|| Ok(()))),
             before_exit: wasm_compat::Mutex::new(Box::new(move |_payload| {
-                Box::pin(async move { ExitResult::Exit })
+                Box::pin(async move { ControlFlow::Allow })
             })),
+            on_os_signal: wasm_compat::Mutex::new(Box::new(move |_signal| {
+                Box::pin(async move { ControlFlow::Allow })
+            })),
+
             context: service_manager.get_context(),
             service_manager: Some(service_manager),
             window_size,
             window_focused,
         }
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum ExitResult {
-    Exit,
-    PreventExit,
 }
 
 wasm_compat::static_init! {

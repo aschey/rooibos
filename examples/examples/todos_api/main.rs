@@ -8,6 +8,7 @@ use std::process::ExitCode;
 use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
+use color_eyre::eyre::Result;
 use rooibos::components::{
     Button, Input, InputRef, Notification, Notifier, Show, use_notifications,
 };
@@ -30,16 +31,13 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Track};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    IntoText, StateProp, col, derive_signal, error_map, focus_scope, row, transition,
+    IntoText, StateProp, col, derive_signal, fallback, focus_scope, row, transition,
     use_state_prop, wgt,
 };
-use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
 use rooibos::theme::{Color, Stylize};
 use server::run_server;
-
-type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[derive(clap::Parser, Commands, Clone, Debug, PartialEq, Eq)]
 
@@ -50,20 +48,19 @@ enum Command {
 }
 
 #[rooibos::main]
-async fn main() -> Result {
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:9353")
-        .await
-        .unwrap();
+async fn main() -> Result<ExitCode> {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:9353").await?;
     tokio::spawn(run_server(listener));
     let mut cmd_handler = CommandHandler::<Command>::new();
     cmd_handler.generate_commands();
 
-    Runtime::initialize_with(
+    let res = Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
         DefaultBackend::auto(),
     )
     .run(|| app(Duration::from_secs(3)))
-    .await
+    .await?;
+    Ok(res)
 }
 
 #[derive(Clone)]
@@ -224,11 +221,6 @@ fn todos_body(
         fetch_todos()
     });
 
-    let fallback = move |errors| {
-        let error_list = move || error_map(&errors, |_, e| span!(e));
-        wgt!(line!(error_list()))
-    };
-
     transition!(
         wgt!(line!(" Loading...".gray())),
         todos.await.map(|todos| {
@@ -245,7 +237,7 @@ fn todos_body(
                 .into_any()
             }
         }),
-        fallback
+        |err| fallback(err, |e| span!(e).red())
     )
 }
 

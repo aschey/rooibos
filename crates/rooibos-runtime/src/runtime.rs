@@ -25,9 +25,9 @@ use tracing::{error, warn};
 use crate::debounce::Debouncer;
 use crate::error::RuntimeError;
 use crate::input_handler::InputHandler;
-use crate::signal_handler::signal;
+use crate::signal_handler::proc_exit;
 use crate::{
-    ExitPayload, ExitResult, RuntimeSettings, TerminalCommand, TerminalFnBoxed, restore_terminal,
+    ControlFlow, ExitPayload, RuntimeSettings, TerminalCommand, TerminalFnBoxed, restore_terminal,
     set_panic_hook, wasm_compat, with_state, with_state_mut,
 };
 
@@ -292,7 +292,7 @@ where
 
     pub async fn should_exit(&self, payload: ExitPayload) -> bool {
         let exit_result = with_state_mut(|s| (s.before_exit.lock())(payload));
-        exit_result.await == ExitResult::Exit
+        exit_result.await == ControlFlow::Allow
     }
 
     pub async fn handle_exit(
@@ -489,7 +489,7 @@ where
                     }
                     Err(e) => {
                         error!("error receiving runtime command: {e:?}");
-                        Ok(TickResult::Exit(ExitPayload::from_result(Ok(signal::Code::FAILURE))))
+                        Ok(TickResult::Exit(ExitPayload::from_result(Ok(proc_exit::Code::FAILURE))))
                     }
                 }
             }
