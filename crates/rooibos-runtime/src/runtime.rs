@@ -7,7 +7,6 @@ use std::time::Duration;
 
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
-use futures_cancel::FutureExt;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
 use ratatui::Viewport;
 use ratatui::layout::Position;
@@ -19,6 +18,7 @@ use rooibos_dom::{
 use rooibos_reactive::dom::{Render, mount};
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
+use tokio_util::future::FutureExt;
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 
@@ -93,9 +93,9 @@ where
             service_context.spawn(("input_poller", |context: ServiceContext| async move {
                 loop {
                     if wasm_compat::sleep(Duration::from_millis(20))
-                        .cancel_with(context.cancelled())
+                        .with_cancellation_token(context.cancellation_token())
                         .await
-                        .is_ok()
+                        .is_some()
                     {
                         let _ = term_command_tx.send(TerminalCommand::Poll);
                     } else {
@@ -165,8 +165,11 @@ where
                     move |context: ServiceContext| async move {
                         pin_mut!(input_stream);
 
-                        while let Ok(Some(event)) =
-                            input_stream.next().cancel_with(context.cancelled()).await
+                        while let Some(event) = input_stream
+                            .next()
+                            .with_cancellation_token(context.cancellation_token())
+                            .await
+                            .flatten()
                         {
                             let _ = term_parser_tx.send(event);
                         }

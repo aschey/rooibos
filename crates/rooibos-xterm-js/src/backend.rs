@@ -12,7 +12,6 @@ use crossterm::terminal::{
 };
 use crossterm::{execute, queue};
 use futures::Future;
-use futures_cancel::FutureExt;
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 use ratatui::{Terminal, Viewport};

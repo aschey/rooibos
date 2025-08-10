@@ -34,7 +34,6 @@ axum = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
 clap = { workspace = true, features = ["derive"] }
 confique = { workspace = true }
-futures-cancel = { workspace = true }
 taffy = { workspace = true }
 tokio-util = { workspace = true }
 tracing-appender = { workspace = true }

@@ -1,7 +1,6 @@
 use std::process::ExitCode;
 use std::time::Duration;
 
-use futures_cancel::FutureExt;
 use rooibos::components::either_of::Either;
 use rooibos::reactive::dom::layout::padding;
 use rooibos::reactive::dom::{Render, line};
@@ -12,6 +11,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, ServiceContext, spawn_service, wasm_compat};
 use rooibos::terminal::DefaultBackend;
 use rooibos::theme::Stylize;
+use tokio_util::future::FutureExt;
 
 type Result = std::result::Result<ExitCode, RuntimeError>;
 
@@ -27,9 +27,9 @@ fn app() -> impl Render {
         ("timer_service", move |context: ServiceContext| async move {
             let start = wasm_compat::now();
             while wasm_compat::sleep(Duration::from_secs(1))
-                .cancel_with(context.cancelled())
+                .with_cancellation_token(context.cancellation_token())
                 .await
-                .is_ok()
+                .is_some()
             {
                 set_elapsed.set(((wasm_compat::now() - start) / 1000.0) as u32);
             }

@@ -1,10 +1,10 @@
 use std::ops::{Deref, DerefMut};
 
-use futures_cancel::FutureExt;
 use reactive_graph::owner::{provide_context, use_context};
 use reactive_graph::signal::{ReadSignal, signal};
 use reactive_graph::traits::Set;
 use rooibos_runtime::{ServiceContext, spawn_service};
+use tokio_util::future::FutureExt;
 pub use watch_config;
 use watch_config::{ConfigUpdate, ConfigWatcherService, LoadConfig};
 
@@ -52,7 +52,13 @@ where
     spawn_service((
         "config_watcher",
         move |context: ServiceContext| async move {
-            watcher.cancel_on(context.cancelled_owned()).run().await;
+            let watcher_token = watcher.cancellation_token().clone();
+            let context_token = context.cancellation_token().clone();
+            tokio::spawn(async move {
+                context_token.cancelled().await;
+                watcher_token.cancel();
+            });
+            watcher.run().await;
             Ok(())
         },
     ));
@@ -61,7 +67,11 @@ where
     spawn_service((
         "config_handler",
         move |context: ServiceContext| async move {
-            while let Ok(Ok(update)) = subscriber.recv().cancel_with(context.cancelled()).await {
+            while let Some(Ok(update)) = subscriber
+                .recv()
+                .with_cancellation_token(context.cancellation_token())
+                .await
+            {
                 set_config_signal.set(update);
             }
 

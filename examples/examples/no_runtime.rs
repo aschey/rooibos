@@ -1,7 +1,6 @@
 use std::error::Error;
 use std::sync::Arc;
 
-use futures_cancel::FutureExt;
 use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::events::dispatch_event;
 use rooibos::reactive::dom::{
@@ -15,6 +14,7 @@ use rooibos::terminal::{Backend, DefaultBackend};
 use rooibos::theme::Stylize;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
+use tokio_util::future::FutureExt;
 use tokio_util::sync::CancellationToken;
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
@@ -41,9 +41,9 @@ async fn main() -> Result<()> {
     let cancellation_token = cancellation_token.clone();
     let mut input_stream = backend.async_input_stream();
     tokio::spawn(async move {
-        while let Ok(Some(event)) = input_stream
+        while let Some(Some(event)) = input_stream
             .next()
-            .cancel_on_shutdown(&cancellation_token)
+            .with_cancellation_token(&cancellation_token)
             .await
         {
             let _ = term_tx.send(event);

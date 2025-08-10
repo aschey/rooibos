@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use futures_cancel::FutureExt as _;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::StatefulWidget;
 use rooibos_dom::MeasureNode;
@@ -17,6 +16,7 @@ use rooibos_reactive::{derive_signal, wgt};
 pub use throbber_widgets_tui::WhichUse as SpinnerDisplay;
 pub use throbber_widgets_tui::symbols::throbber::*;
 use throbber_widgets_tui::{Throbber, ThrobberState};
+use tokio_util::future::FutureExt;
 use tokio_util::sync::CancellationToken;
 use tui_theme::Style;
 use wasm_compat::futures::spawn_local;
@@ -106,9 +106,9 @@ impl Spinner {
                         async move {
                             loop {
                                 if wasm_compat::futures::sleep(tick_interval)
-                                    .cancel_on_shutdown(&child_token)
+                                    .with_cancellation_token(&child_token)
                                     .await
-                                    .is_err()
+                                    .is_none()
                                 {
                                     return;
                                 }

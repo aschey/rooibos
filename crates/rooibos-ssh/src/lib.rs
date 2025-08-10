@@ -7,7 +7,6 @@ use std::sync::Arc;
 use async_signal::{Signal, Signals};
 use background_service::Manager;
 use futures::{Future, StreamExt};
-use futures_cancel::FutureExt;
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 use rooibos_dom::Event;
@@ -26,6 +25,7 @@ use tap::TapFallible;
 use tokio::net::ToSocketAddrs;
 use tokio::sync::{RwLock, broadcast, mpsc};
 use tokio::task::LocalSet;
+use tokio_util::future::FutureExt;
 use tracing::{error, warn};
 
 pub struct TerminalHandle {
@@ -126,8 +126,11 @@ impl<T: SshHandler> AppServer<T> {
         service_context.spawn((
             "ssh_signal_handler",
             move |context: ServiceContext| async move {
-                while let Ok(Some(Ok(signal))) =
-                    signals.next().cancel_with(context.cancelled()).await
+                while let Some(Ok(signal)) = signals
+                    .next()
+                    .with_cancellation_token(context.cancellation_token())
+                    .await
+                    .flatten()
                 {
                     signal_tx.send(signal).unwrap();
                 }
@@ -138,7 +141,7 @@ impl<T: SshHandler> AppServer<T> {
         service_context.spawn(("ssh_server", move |context: ServiceContext| async move {
             let _ = self
                 .run_on_address(self.config.clone(), address)
-                .cancel_with(context.cancelled())
+                .with_cancellation_token(context.cancellation_token())
                 .await;
             Ok(())
         }));

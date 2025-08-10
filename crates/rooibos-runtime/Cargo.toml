@@ -13,7 +13,6 @@ educe = { workspace = true }
 tokio-util = { workspace = true }
 wasm-compat = { workspace = true, features = ["all"] }
 background-service = { workspace = true }
-futures-cancel = { workspace = true }
 thiserror = { workspace = true }
 rooibos-terminal = { workspace = true }
 proc-exit = { workspace = true }

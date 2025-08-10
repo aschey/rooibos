@@ -16,7 +16,6 @@ crossterm = { workspace = true, features = [
   "event-stream",
   "use-dev-tty",
 ], optional = true }
-futures-cancel = { workspace = true }
 tracing = { workspace = true }
 termwiz = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }

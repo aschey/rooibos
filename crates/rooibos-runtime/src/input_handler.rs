@@ -33,7 +33,7 @@ impl InputHandler {
                     return false;
                 }
             }
-            _ = self.context.cancelled() => {
+            _ = self.context.cancellation_token().cancelled() => {
                 return false;
             }
             Some(pending_move) = self.hover_debouncer.next_value() => {

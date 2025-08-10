@@ -60,11 +60,10 @@ educe = "0.6"
 tokio = { version = "1", default-features = false }
 tracing = "0.1"
 image = { version = "0.25" }
-tokio-util = "0.7"
-futures-cancel = { git = "https://github.com/aschey/futures-cancel", rev = "d2c20b78ff5c9e85aa892b51971cc1c1b6b22351" }
+tokio-util = "0.7.16"
 getrandom = "0.3"
 derive_more = "2"
-watch-config = { git = "https://github.com/aschey/watch-config", rev = "6fe1f5b2a815a7bd0305b83875570bb4ee9d851c" }
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "aa1432198cf1831ab13f73112d5b02c8552304f7" }
 slotmap = "1"
 bitflags = "2"
 futures = "0.3"
@@ -87,12 +86,12 @@ matchit = "0.8"
 url = "2"
 convert_case = "0.8"
 futures-util = "0.3"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "27c1c31b5d96707c835871984ede8de38b66e1ed" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "6d9a1ddb2b57ac4fe305eff84545168d70171a5d" }
 proc-exit = "2.0.2"
 console_error_panic_hook = "0.1"
 signal-hook = "0.3"
 async-signal = "0.2"
-russh = "0.53"
+russh = "0.54"
 tap = "1"
 tokio-stream = "0.1.17"
 base64 = "0.22.1"

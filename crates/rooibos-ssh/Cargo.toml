@@ -11,13 +11,13 @@ rooibos-terminal = { workspace = true }
 rooibos-dom = { workspace = true }
 rooibos-reactive = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["sync"] }
+tokio-util = { workspace = true }
 ratatui = { workspace = true, default-features = false }
 tracing = { workspace = true }
 tap = { workspace = true }
 futures = { workspace = true }
 async-signal = { workspace = true }
 terminput = { workspace = true }
-futures-cancel = { workspace = true }
 background-service = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
 

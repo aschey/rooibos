@@ -3,9 +3,10 @@ use std::io;
 #[cfg(not(target_arch = "wasm32"))]
 use async_signal::{Signal, Signals};
 use background_service::ServiceContext;
-use futures_cancel::FutureExt;
 use futures_util::StreamExt;
 use tokio::sync::broadcast;
+#[cfg(not(target_arch = "wasm32"))]
+use tokio_util::future::FutureExt;
 use tracing::error;
 
 use crate::RuntimeCommand;
@@ -26,7 +27,11 @@ pub(crate) struct SignalHandler {
 impl SignalHandler {
     pub(crate) async fn run(self) -> Result<(), io::Error> {
         if let Some(mut signals) = crate::get_external_signal_stream() {
-            while let Ok(Ok(signal)) = signals.recv().cancel_with(self.context.cancelled()).await {
+            while let Some(Ok(signal)) = signals
+                .recv()
+                .with_cancellation_token(self.context.cancellation_token())
+                .await
+            {
                 self.handle_signal(signal).await;
             }
         } else if self.enable_internal_handler {
@@ -46,8 +51,11 @@ impl SignalHandler {
             let mut signals =
                 signals.inspect_err(|e| error!("error creating signal stream: {e:?}"))?;
 
-            while let Ok(Some(Ok(signal))) =
-                signals.next().cancel_with(self.context.cancelled()).await
+            while let Some(Ok(signal)) = signals
+                .next()
+                .with_cancellation_token(self.context.cancellation_token())
+                .await
+                .flatten()
             {
                 self.handle_signal(signal).await;
             }
