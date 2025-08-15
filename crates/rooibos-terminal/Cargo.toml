@@ -20,9 +20,13 @@ tracing = { workspace = true }
 termwiz = { workspace = true, optional = true }
 base64 = { workspace = true, optional = true }
 tokio-stream = { workspace = true, features = ["sync"] }
-terminput-crossterm = { workspace = true, optional = true }
+terminput-crossterm = { workspace = true, optional = true, features = [
+  "crossterm_0_28",
+] }
 terminput-termion = { workspace = true, optional = true }
-terminput-termwiz = { workspace = true, optional = true }
+terminput-termwiz = { workspace = true, optional = true, features = [
+  "termwiz_0_22",
+] }
 
 [target.'cfg(unix)'.dependencies]
 termion = { workspace = true, optional = true }

@@ -6,19 +6,19 @@ publish = false
 
 [dependencies]
 rooibos = { workspace = true, features = [
-    "ssh",
-    "terminal-widget",
-    "input",
-    "image",
-    "clipboard",
-    "config",
-    "router",
-    "spinner",
-    "keybind",
-    "derive-commands",
-    "effects",
-    "palette",
-    "tester",
+  "ssh",
+  "terminal-widget",
+  "input",
+  "image",
+  "clipboard",
+  "config",
+  "router",
+  "spinner",
+  "keybind",
+  "derive-commands",
+  "effects",
+  "palette",
+  "tester",
 ] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 insta = { workspace = true }

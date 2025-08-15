@@ -24,7 +24,9 @@ tokio-util = { workspace = true }
 getrandom = { workspace = true, features = ["wasm_js"], optional = true }
 derive_more = { workspace = true, features = ["deref", "deref_mut"] }
 tui-theme = { workspace = true }
-terminput-crossterm = { workspace = true, optional = true }
+terminput-crossterm = { workspace = true, optional = true, features = [
+  "crossterm_0_28",
+] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tui-term = { workspace = true, optional = true }
