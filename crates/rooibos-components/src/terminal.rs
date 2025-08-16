@@ -12,13 +12,14 @@ use rooibos_dom::{Encoding, Event, MeasureNode, RenderNode};
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::owner::StoredValue;
-use rooibos_reactive::graph::signal::RwSignal;
-use rooibos_reactive::graph::traits::{Get, GetValue, Update};
+use rooibos_reactive::graph::signal::Trigger;
+use rooibos_reactive::graph::traits::{Get, GetValue, Notify, Track};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use tokio::sync::mpsc;
 use tokio::task::spawn_blocking;
 use tui_term::widget::PseudoTerminal;
 use vt100::Parser;
+
 #[derive(Clone, Copy)]
 pub struct TerminalRef {
     master: StoredValue<Arc<Mutex<Box<dyn MasterPty + Send>>>>,
@@ -27,15 +28,10 @@ pub struct TerminalRef {
 
 impl TerminalRef {
     pub fn spawn_command(&self, command: CommandBuilder) {
-        let mut child = self
-            .slave
-            .get_value()
-            .lock()
-            .unwrap()
-            .spawn_command(command)
-            .unwrap();
+        let slave = self.slave.get_value();
 
         spawn_blocking(move || {
+            let mut child = slave.lock().unwrap().spawn_command(command).unwrap();
             child.wait().unwrap();
         });
     }
@@ -87,9 +83,11 @@ impl Terminal {
             layout_props,
         } = self;
         let border_size = if block.is_some() { 1 } else { 0 };
+        // we use a trigger here because putting a mutex in a signal is a bad idea
+        // due to the fact that signals should not block
+        let parse_trigger = Trigger::new();
         let TerminalRef { master, .. } = terminal_ref;
-        let parser = RwSignal::new(Arc::new(Mutex::new(vt100::Parser::new(1, 1, 0))));
-
+        let parser = Arc::new(Mutex::new(vt100::Parser::new(1, 1, 0)));
         let master_ = master.get_value();
         let master_ = master_.lock().unwrap();
         let mut reader = master_.try_clone_reader().unwrap();
@@ -104,32 +102,37 @@ impl Terminal {
             }
         });
 
-        std::thread::spawn(move || {
-            // Consume the output from the child
-            // Can't read the full buffer, since that would wait for EOF
-            let mut buf = [0u8; 8192];
-            let mut processed_buf = Vec::new();
-            loop {
-                let size = reader.read(&mut buf).unwrap();
-                if size == 0 {
-                    break;
-                }
-                if size > 0 {
-                    processed_buf.extend_from_slice(&buf[..size]);
-                    parser.update(|p| {
-                        let mut parser = p.lock().unwrap();
-                        parser.process(&processed_buf);
-                    });
+        std::thread::spawn({
+            let parser = parser.clone();
+            move || {
+                // Consume the output from the child
+                // Can't read the full buffer, since that would wait for EOF
+                let mut buf = [0u8; 8192];
+                let mut processed_buf = Vec::new();
+                loop {
+                    let size = reader.read(&mut buf).unwrap();
+                    if size == 0 {
+                        break;
+                    }
 
+                    processed_buf.extend_from_slice(&buf[..size]);
+                    parser.lock().unwrap().process(&processed_buf);
+                    parse_trigger.notify();
                     // Clear the processed portion of the buffer
                     processed_buf.clear();
                 }
             }
         });
 
-        DomWidget::new(move || RenderTerminal {
-            parser: parser.get(),
-            block: block.as_ref().map(|b| b.get()),
+        DomWidget::new({
+            let parser = parser.clone();
+            move || {
+                parse_trigger.track();
+                RenderTerminal {
+                    parser: parser.clone(),
+                    block: block.as_ref().map(|b| b.get()),
+                }
+            }
         })
         .layout_props(layout_props)
         .on_key_down(move |props: KeyEventProps| {
@@ -151,9 +154,8 @@ impl Terminal {
                     pixel_height: 0,
                 })
                 .unwrap();
-            parser.update(|p| {
-                p.lock().unwrap().set_size(rect.height, rect.width);
-            })
+            parser.lock().unwrap().set_size(rect.height, rect.width);
+            parse_trigger.notify();
         })
     }
 }
@@ -171,8 +173,10 @@ impl WidgetRole for RenderTerminal {
 
 impl RenderNode for RenderTerminal {
     fn render(&mut self, rect: Rect, frame: &mut Frame) {
+        // resizing the terminal can lag behind the render cycle so we should make sure we don't
+        // request an area that's too large
+        let rect = rect.clamp(frame.area());
         let parser = self.parser.lock().unwrap();
-
         let mut term = PseudoTerminal::new(parser.screen());
         if let Some(block) = self.block.clone() {
             term = term.block(block);
