@@ -239,9 +239,7 @@ signal_wrapper!(
     Effect,
     effect,
     SyncEffect,
-    SyncEffect(Arc::new(Mutex::new(rooibos_dom::tachyonfx::Effect::new(
-        rooibos_dom::tachyonfx::fx::sequence(&[])
-    ))))
+    SyncEffect::new(rooibos_dom::tachyonfx::fx::sequence(&[]))
 );
 
 #[cfg(feature = "effects")]

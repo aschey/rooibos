@@ -12,7 +12,7 @@ use ratatui::widgets::{
     Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, WidgetRef,
 };
 #[cfg(feature = "effects")]
-use tachyonfx::{EffectRenderer, Shader};
+use tachyonfx::EffectRenderer;
 use terminput::ScrollDirection;
 use tui_theme::{Color, Stylize};
 

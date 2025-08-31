@@ -24,6 +24,7 @@ textwrap = { workspace = true }
 unicode-width = { workspace = true }
 tachyonfx = { workspace = true, default-features = false, features = [
   "sendable",
+  "std",
 ], optional = true }
 itertools = { workspace = true }
 tui-theme = { workspace = true }
