@@ -1,6 +1,5 @@
 mod button;
 mod chart;
-mod sparkline;
 
 use std::borrow::Cow;
 
@@ -10,7 +9,6 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{List, Paragraph, StatefulWidget, Tabs, Widget, WidgetRef};
-pub use sparkline::*;
 use taffy::Size;
 
 use crate::{MeasureNode, RenderNode};
@@ -114,6 +112,27 @@ impl WidgetRole for List<'_> {
 impl WidgetRole for Paragraph<'_> {
     fn widget_role() -> Option<Role> {
         Some(Role::Text)
+    }
+}
+
+impl MeasureNode for ratatui::widgets::Sparkline<'_> {
+    fn measure(
+        &self,
+        _known_dimensions: Size<Option<f32>>,
+        _available_space: Size<taffy::AvailableSpace>,
+        _style: &taffy::Style,
+    ) -> Size<f32> {
+        Size::zero()
+    }
+
+    fn estimate_size(&self) -> Size<f32> {
+        Size::zero()
+    }
+}
+
+impl WidgetRole for ratatui::widgets::Sparkline<'_> {
+    fn widget_role() -> Option<Role> {
+        None
     }
 }
 

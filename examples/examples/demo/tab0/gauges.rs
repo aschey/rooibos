@@ -1,7 +1,6 @@
 use rooibos::reactive::dom::layout::{
     Borders, IntoDimensionSignal, borders, flex_grow, height, min_height,
 };
-use rooibos::reactive::dom::widgets::Sparkline;
 use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
@@ -10,7 +9,7 @@ use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, wgt};
 use rooibos::theme::{Style, Stylize};
 use rooibos::tui::symbols;
-use rooibos::tui::widgets::{Block, Gauge, LineGauge};
+use rooibos::tui::widgets::{Block, Gauge, LineGauge, Sparkline};
 
 use crate::Tick;
 use crate::random::{RandomData, RandomDistribution};
