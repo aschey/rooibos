@@ -144,7 +144,7 @@ where
         mount(f, window_size);
     }
 
-    pub async fn setup_terminal(&mut self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
+    pub fn create_terminal(&self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
         let tui_backend = self.backend.create_tui_backend()?;
         let mut terminal = ratatui::Terminal::with_options(
             tui_backend,
@@ -153,8 +153,10 @@ where
             },
         )?;
         self.backend.setup_terminal(terminal.backend_mut())?;
-        let terminal = NonblockingTerminal::new(terminal);
+        Ok(NonblockingTerminal::new(terminal))
+    }
 
+    pub async fn configure_backend(&mut self) -> io::Result<()> {
         if self.settings.enable_input_reader {
             let term_parser_tx = self.term_parser_tx.clone();
 
@@ -192,7 +194,7 @@ where
                 Ok(())
             })
         });
-        Ok(terminal)
+        Ok(())
     }
 
     fn handle_term_events(&self) {
@@ -243,15 +245,28 @@ where
             })
     }
 
-    pub async fn run<F, M>(mut self, f: F) -> Result<ExitCode, RuntimeError>
+    pub async fn run<F, M>(self, f: F) -> Result<ExitCode, RuntimeError>
+    where
+        F: FnOnce() -> M + 'static,
+        M: Render,
+        <M as Render>::DomState: 'static,
+    {
+        let terminal = self.create_terminal().map_err(RuntimeError::SetupFailure)?;
+        self.run_with_terminal(terminal, f).await
+    }
+
+    pub async fn run_with_terminal<F, M>(
+        mut self,
+        mut terminal: NonblockingTerminal<B::TuiBackend>,
+        f: F,
+    ) -> Result<ExitCode, RuntimeError>
     where
         F: FnOnce() -> M + 'static,
         M: Render,
         <M as Render>::DomState: 'static,
     {
         self.mount(f);
-        let mut terminal = self
-            .setup_terminal()
+        self.configure_backend()
             .await
             .map_err(RuntimeError::SetupFailure)?;
         self.draw(&mut terminal).await;
@@ -265,8 +280,8 @@ where
                 }
                 TickResult::Restart => {
                     terminal.join().await;
-                    terminal = self
-                        .setup_terminal()
+                    terminal = self.create_terminal().map_err(RuntimeError::SetupFailure)?;
+                    self.configure_backend()
                         .await
                         .map_err(RuntimeError::SetupFailure)?;
                     self.draw(&mut terminal).await;

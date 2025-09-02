@@ -1,4 +1,5 @@
 use std::fmt::Write;
+use std::mem;
 use std::time::{Duration, Instant};
 
 use ratatui::buffer::Buffer;
@@ -86,7 +87,8 @@ impl TestHarness {
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
         let mut runtime = Runtime::initialize_with(runtime_settings, backend);
-        let terminal = runtime.setup_terminal().await.unwrap();
+        let terminal = runtime.create_terminal().unwrap();
+        runtime.configure_backend().await.unwrap();
 
         Self {
             runtime,
@@ -280,7 +282,10 @@ impl TestHarness {
                             render_terminal(&mut self.terminal).await.unwrap();
                         }
                         TickResult::Restart => {
-                            self.terminal = self.runtime.setup_terminal().await.unwrap();
+                            let mut new_term = self.runtime.create_terminal().unwrap();
+                            mem::swap(&mut new_term, &mut self.terminal);
+                            new_term.join().await;
+                            self.runtime.configure_backend().await.unwrap();
                             render_terminal(&mut self.terminal).await.unwrap();
                         }
                         TickResult::Exit(_) => {

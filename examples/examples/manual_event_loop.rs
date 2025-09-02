@@ -18,7 +18,10 @@ async fn main() -> Result {
 
     runtime.mount(app);
     let mut terminal = runtime
-        .setup_terminal()
+        .create_terminal()
+        .map_err(RuntimeError::SetupFailure)?;
+    runtime
+        .configure_backend()
         .await
         .map_err(RuntimeError::SetupFailure)?;
     runtime.draw(&mut terminal).await;
@@ -31,7 +34,9 @@ async fn main() -> Result {
                 render_terminal(&mut terminal).await?;
             }
             TickResult::Restart => {
-                terminal = runtime.setup_terminal().await?;
+                terminal.join().await;
+                terminal = runtime.create_terminal()?;
+                runtime.configure_backend().await?;
                 render_terminal(&mut terminal).await?;
             }
             TickResult::Exit(payload) => {
