@@ -1,5 +1,5 @@
 use rooibos::reactive::KeyCode;
-use rooibos::runtime::{RuntimeSettings, TickResult};
+use rooibos::runtime::TickResult;
 use rooibos::tester::{TerminalView, TestHarness};
 
 use crate::app;
@@ -16,12 +16,7 @@ macro_rules! assert_snapshot {
 
 #[rooibos::test]
 async fn test_exec() {
-    let mut harness = TestHarness::new_with_settings(
-        RuntimeSettings::default().enable_signal_handler(false),
-        40,
-        10,
-    )
-    .await;
+    let mut harness = TestHarness::new(40, 10).await;
     harness
         .mount(|| {
             if cfg!(windows) {

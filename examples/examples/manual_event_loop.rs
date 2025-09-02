@@ -15,13 +15,15 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     let mut runtime = Runtime::initialize(DefaultBackend::auto());
-
+    runtime
+        .spawn_signal_handler()
+        .map_err(RuntimeError::SetupFailure)?;
     runtime.mount(app);
     let mut terminal = runtime
         .create_terminal()
         .map_err(RuntimeError::SetupFailure)?;
     runtime
-        .configure_backend()
+        .configure_terminal_events()
         .await
         .map_err(RuntimeError::SetupFailure)?;
     runtime.draw(&mut terminal).await;
@@ -36,7 +38,7 @@ async fn main() -> Result {
             TickResult::Restart => {
                 terminal.join().await;
                 terminal = runtime.create_terminal()?;
-                runtime.configure_backend().await?;
+                runtime.configure_terminal_events().await?;
                 render_terminal(&mut terminal).await?;
             }
             TickResult::Exit(payload) => {

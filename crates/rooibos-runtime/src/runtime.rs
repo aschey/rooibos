@@ -47,6 +47,7 @@ pub struct Runtime<B: Backend> {
     input_task_id: Option<TaskId>,
     service_manager: Manager,
     service_context: ServiceContext,
+    signal_handler_running: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -109,7 +110,6 @@ where
         // We need to query this info before reading events
         let _ =
             rooibos_dom::set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement());
-        spawn_signal_handler(&runtime_command_tx, &service_context, &settings);
 
         let term_command_tx = with_state(|s| s.term_command_tx.clone());
         let term_event_tx = with_state(|s| s.term_tx.clone());
@@ -131,7 +131,25 @@ where
             input_task_id: None,
             service_manager,
             service_context,
+            signal_handler_running: false,
         }
+    }
+
+    pub fn spawn_signal_handler(&mut self) -> io::Result<()> {
+        if self.signal_handler_running {
+            // TODO: make an actual error type for this
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                "already running",
+            ));
+        }
+        spawn_signal_handler(
+            &self.runtime_command_tx,
+            &self.service_context,
+            &self.settings,
+        );
+        self.signal_handler_running = true;
+        Ok(())
     }
 
     pub fn mount<F, M>(&self, f: F)
@@ -156,7 +174,7 @@ where
         Ok(NonblockingTerminal::new(terminal))
     }
 
-    pub async fn configure_backend(&mut self) -> io::Result<()> {
+    pub async fn configure_terminal_events(&mut self) -> io::Result<()> {
         if self.settings.enable_input_reader {
             let term_parser_tx = self.term_parser_tx.clone();
 
@@ -265,10 +283,13 @@ where
         M: Render,
         <M as Render>::DomState: 'static,
     {
-        self.mount(f);
-        self.configure_backend()
+        self.spawn_signal_handler()
+            .map_err(RuntimeError::SetupFailure)?;
+        self.configure_terminal_events()
             .await
             .map_err(RuntimeError::SetupFailure)?;
+        self.mount(f);
+
         self.draw(&mut terminal).await;
         focus_next();
 
@@ -281,7 +302,7 @@ where
                 TickResult::Restart => {
                     terminal.join().await;
                     terminal = self.create_terminal().map_err(RuntimeError::SetupFailure)?;
-                    self.configure_backend()
+                    self.configure_terminal_events()
                         .await
                         .map_err(RuntimeError::SetupFailure)?;
                     self.draw(&mut terminal).await;

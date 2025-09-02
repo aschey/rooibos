@@ -31,9 +31,7 @@ async fn test_todos() {
 
     tokio::spawn(run_server(listener));
     let mut harness = TestHarness::new_with_settings(
-        RuntimeSettings::default()
-            .handle_commands(cmd_handler)
-            .enable_signal_handler(false),
+        RuntimeSettings::default().handle_commands(cmd_handler),
         50,
         15,
     )

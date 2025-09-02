@@ -79,6 +79,11 @@ impl TestHarness {
     }
 
     #[cfg(feature = "runtime")]
+    pub async fn new(width: u16, height: u16) -> Self {
+        Self::new_with_settings(RuntimeSettings::default(), width, height).await
+    }
+
+    #[cfg(feature = "runtime")]
     pub async fn new_with_settings(
         runtime_settings: RuntimeSettings,
         width: u16,
@@ -88,7 +93,7 @@ impl TestHarness {
         let event_tx = backend.event_tx();
         let mut runtime = Runtime::initialize_with(runtime_settings, backend);
         let terminal = runtime.create_terminal().unwrap();
-        runtime.configure_backend().await.unwrap();
+        runtime.configure_terminal_events().await.unwrap();
 
         Self {
             runtime,
@@ -285,7 +290,7 @@ impl TestHarness {
                             let mut new_term = self.runtime.create_terminal().unwrap();
                             mem::swap(&mut new_term, &mut self.terminal);
                             new_term.join().await;
-                            self.runtime.configure_backend().await.unwrap();
+                            self.runtime.configure_terminal_events().await.unwrap();
                             render_terminal(&mut self.terminal).await.unwrap();
                         }
                         TickResult::Exit(_) => {
