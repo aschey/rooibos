@@ -41,10 +41,10 @@ pub mod ssh {
     pub use rooibos_ssh::*;
 }
 
-#[cfg(feature = "xterm-js")]
-pub mod xterm_js {
+#[cfg(feature = "web")]
+pub mod web {
     #[cfg(target_arch = "wasm32")]
-    pub use rooibos_xterm_js::*;
+    pub use rooibos_web::*;
 }
 
 pub use rooibos_reactive_macros::*;

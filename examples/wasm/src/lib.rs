@@ -3,12 +3,12 @@ use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::{col, derive_signal};
+use rooibos::runtime::{Runtime, RuntimeSettings};
+use rooibos::web::WasmBackend;
 
-#[cfg(target_arch = "wasm32")]
 #[rooibos::wasm_bindgen(start)]
 async fn start() -> Result<(), wasm_bindgen::JsError> {
-    use rooibos::runtime::{Runtime, RuntimeSettings};
-    use rooibos::xterm_js::WasmBackend;
+    wasm_tracing::set_as_global_default();
 
     let runtime = Runtime::initialize(WasmBackend::default());
     runtime

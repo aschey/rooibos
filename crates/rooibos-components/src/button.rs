@@ -181,14 +181,28 @@ impl Button {
             }
         });
 
-        let on_enter = move || {
-            active.set(true);
-            if !supports_key_up() {
-                delay(Duration::from_millis(50), async move {
-                    // Need to use try_set here in case the button was already disposed
-                    active.try_set(false);
-                });
+        let on_enter = {
+            let on_click = on_click.clone();
+            move || {
+                active.set(true);
+                if !supports_key_up() {
+                    delay(Duration::from_millis(50), async move {
+                        // Need to use try_set here in case the button was already disposed
+                        active.try_set(false);
+                    });
+                }
+                on_click.borrow_mut()()
             }
+        };
+
+        // TODO: support mouse up events and combine this with on_enter
+        let on_mouse_down = move || {
+            active.set(true);
+            delay(Duration::from_millis(50), async move {
+                // Need to use try_set here in case the button was already disposed
+                active.try_set(false);
+            });
+
             on_click.borrow_mut()()
         };
 
@@ -218,10 +232,7 @@ impl Button {
                 .alignment(text_alignment.get())
         ]
         .layout_props(layout_props)
-        .on_click({
-            let on_enter = on_enter.clone();
-            move |_| on_enter()
-        })
+        .on_click(move |_| on_mouse_down())
         .on_state_change(set_button_state)
         .on_state_change(set_border_state)
         .on_key_down(move |props: KeyEventProps| {

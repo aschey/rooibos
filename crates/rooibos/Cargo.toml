@@ -12,7 +12,7 @@ rooibos-config = { workspace = true, optional = true }
 rooibos-tester = { workspace = true, optional = true }
 rooibos-terminal = { workspace = true }
 rooibos-ssh = { workspace = true, optional = true }
-rooibos-xterm-js = { path = "../rooibos-xterm-js", optional = true }
+rooibos-web = { path = "../rooibos-web", optional = true }
 rooibos-router = { path = "../rooibos-router", optional = true }
 rooibos-keybind = { path = "../rooibos-keybind", optional = true }
 ratatui = { workspace = true, default-features = false }
@@ -23,7 +23,7 @@ tokio = { workspace = true }
 insta = { workspace = true }
 
 [features]
-default = ["crossterm", "runtime", "scrolling-regions"]
+default = ["crossterm", "runtime"]
 nightly = ["rooibos-reactive/nightly"]
 crossterm = [
   "rooibos-runtime/crossterm",
@@ -42,7 +42,7 @@ termwiz = [
 ]
 tester = ["rooibos-tester"]
 runtime = ["rooibos-runtime", "rooibos-keybind?/runtime"]
-xterm-js = ["rooibos-xterm-js"]
+web = ["rooibos-web"]
 config = ["rooibos-config"]
 config-confique = ["rooibos-config/confique"]
 config-schematic = ["rooibos-config/schematic"]
@@ -67,6 +67,5 @@ effects = ["rooibos-reactive/effects"]
 palette = ["ratatui/palette"]
 scrolling-regions = [
   "rooibos-reactive/scrolling-regions",
-  "rooibos-xterm-js?/scrolling-regions",
   "rooibos-ssh?/scrolling-regions",
 ]

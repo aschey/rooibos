@@ -14,7 +14,7 @@ rooibos-config = { path = "./crates/rooibos-config" }
 rooibos-tester = { path = "./crates/rooibos-tester" }
 rooibos-terminal = { path = "./crates/rooibos-terminal" }
 rooibos-ssh = { path = "./crates/rooibos-ssh" }
-rooibos-xterm-js = { path = "./crates/rooibos-xterm-js" }
+rooibos-web = { path = "./crates/rooibos-web" }
 rooibos-router = { path = "./crates/rooibos-router" }
 rooibos-router-macros = { path = "./crates/rooibos-router-macros" }
 rooibos-keybind = { path = "./crates/rooibos-keybind" }
@@ -35,8 +35,8 @@ tui-textarea = { version = "0.7", default-features = false }
 ratatui-image = "8"
 throbber-widgets-tui = "0.8.0"
 tui-term = "0.2.0"
+ratzilla = { git = "https://github.com/junkdog/ratzilla", rev = "de1daee053e7d150ee443cf111b99d742b7c0bda" }
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-ratatui-xterm-js = { git = "https://github.com/aschey/ratatui-xterm-js", rev = "498d59992d0da77bc96f7fc698303e22ae84d143" }
 
 # other TUI things
 crossterm = "0.28.1"
@@ -68,16 +68,17 @@ slotmap = "1"
 bitflags = "2"
 futures = "0.3"
 rustc-hash = "2"
-terminput = "0.5.4"
-terminput-crossterm = { version = "0.4", default-features = false }
-terminput-termion = "0.3"
-terminput-termwiz = { version = "0.4", default-features = false }
+terminput = "0.5.9"
+terminput-crossterm = { version = "0.4.5", default-features = false }
+terminput-termion = "0.3.5"
+terminput-termwiz = { version = "0.4.5", default-features = false }
+terminput-web-sys = "0.2.5"
 paste = "1"
 taffy = "0.9.0"
 thiserror = "2"
 textwrap = "0.16.2"
 unicode-width = "0.2.0"
-tachyonfx = { version = "0.17", default-features = false }
+tachyonfx = { version = "0.18", default-features = false }
 clap = "4.5.32"
 shlex = "1.3.0"
 clap_complete = "4.5.46"

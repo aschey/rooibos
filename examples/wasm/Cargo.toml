@@ -10,10 +10,11 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 crossterm = { workspace = true }
-rooibos = { workspace = true, features = ["xterm-js"] }
+rooibos = { workspace = true, features = ["web"] }
 tokio = { workspace = true, features = ["rt", "macros"] }
 wasm-bindgen = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
+wasm-tracing = "2"
 
 [features]
 nightly = ["rooibos/nightly"]

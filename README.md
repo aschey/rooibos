@@ -303,13 +303,13 @@ For details on internals and the reason behind certain design decisions, see
 
 ## Backend Support Status
 
-| Crate                                               | Backend                                                        | Type     | Status                            |
-| --------------------------------------------------- | -------------------------------------------------------------- | -------- | --------------------------------- |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [crossterm](https://docs.rs/crossterm/latest/crossterm/)       | Terminal | Implemented                       |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termion](https://docs.rs/termion/latest/termion/)             | Terminal | Implemented, but missing features |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termwiz](https://docs.rs/termwiz/latest/termwiz/)             | Terminal | Implemented, but missing features |
-| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)                   | SSH      | Implemented                       |
-| [**`rooibos-xterm-js`**](./crates/rooibos-xterm-js) | [xterm-js-rs](https://docs.rs/xterm-js-rs/latest/xterm_js_rs/) | Web      | Implemented                       |
-| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                      | Desktop  | Planned                           |
-| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                      | Mobile   | Planned                           |
-| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                      | Games    | Planned                           |
+| Crate                                               | Backend                                                  | Type     | Status                            |
+| --------------------------------------------------- | -------------------------------------------------------- | -------- | --------------------------------- |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [crossterm](https://docs.rs/crossterm/latest/crossterm/) | Terminal | Implemented                       |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termion](https://docs.rs/termion/latest/termion/)       | Terminal | Implemented, but missing features |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termwiz](https://docs.rs/termwiz/latest/termwiz/)       | Terminal | Implemented, but missing features |
+| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)             | SSH      | Implemented                       |
+| [**`rooibos-web`**](./crates/rooibos-web)           | [ratzilla](https://docs.rs/ratzilla/latest/ratzilla/)    | Web      | Implemented                       |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                | Desktop  | Planned                           |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                | Mobile   | Planned                           |
+| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                | Games    | Planned                           |

@@ -1,11 +1,10 @@
 [package]
-name = "rooibos-xterm-js"
+name = "rooibos-web"
 version = "0.1.0"
 edition = "2024"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ratatui-xterm-js = { workspace = true }
-crossterm = { workspace = true, features = ["event-stream"] }
+ratzilla = { workspace = true }
 futures = { workspace = true }
 ratatui = { workspace = true, default-features = false }
 tokio = { workspace = true, default-features = false, features = ["sync"] }
@@ -13,9 +12,7 @@ tracing = { workspace = true }
 web-sys = { workspace = true, features = ["console", "Window", "Document"] }
 rooibos-dom = { workspace = true }
 rooibos-terminal = { workspace = true }
-terminput-crossterm = { workspace = true, features = ["crossterm_0_28"] }
 tap = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
-
-[features]
-scrolling-regions = ["ratatui-xterm-js/scrolling-regions"]
+terminput-web-sys = { workspace = true }
+wasm-compat = { workspace = true }
