@@ -54,7 +54,7 @@ jobs:
           toolchain: nightly
       - uses: Swatinem/rust-cache@v2
       - name: Build
-        run: cargo +nightly build --features=crossterm,nightly
+        run: cargo +nightly build --features=nightly
   build-wasm:
     runs-on: ubuntu-latest
     steps:
