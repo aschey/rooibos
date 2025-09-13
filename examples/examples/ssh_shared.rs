@@ -53,7 +53,7 @@ impl SshHandler for SshApp {
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();
-        Runtime::initialize(SshBackend::new(handle, events))
+        Runtime::initialize(SshBackend::new(handle, events).await.unwrap())
             .run(|| app(count_tx))
             .await
             .unwrap();

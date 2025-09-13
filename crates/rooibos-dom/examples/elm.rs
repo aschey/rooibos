@@ -1,29 +1,70 @@
 use std::collections::BTreeMap;
 use std::error::Error;
-use std::io::{Stdout, stdout};
+use std::io::{self, Write, stdout};
 
-use crossterm::cursor::{Hide, Show};
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture, EventStream};
-use crossterm::execute;
-use crossterm::terminal::{
-    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
-};
 use futures::StreamExt;
 use ratatui::Terminal;
-use ratatui::backend::CrosstermBackend;
 use rooibos_dom::events::{KeyEventProps, dispatch_event};
 use rooibos_dom::widgets::RenderWidgetRef;
 use rooibos_dom::{
     AsDomNode, Borders, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, dom_update_receiver,
     focus_next, mount, render_terminal, with_nodes, with_nodes_mut,
 };
+use rooibos_terminal::termina::tui::TerminaBackend;
 use taffy::style_helpers::length;
+use termina::escape::csi::{self, KittyKeyboardFlags};
+use termina::{EventStream, PlatformTerminal, Terminal as _};
 use terminput::{CTRL, Event, KeyCode, Repeats, key};
-use terminput_crossterm::to_terminput;
+use terminput_termina::to_terminput;
 use tokio::sync::mpsc;
+
+macro_rules! decset {
+    ($mode:ident) => {
+        csi::Csi::Mode(csi::Mode::SetDecPrivateMode(csi::DecPrivateMode::Code(
+            csi::DecPrivateModeCode::$mode,
+        )))
+    };
+}
+macro_rules! decreset {
+    ($mode:ident) => {
+        csi::Csi::Mode(csi::Mode::ResetDecPrivateMode(csi::DecPrivateMode::Code(
+            csi::DecPrivateModeCode::$mode,
+        )))
+    };
+}
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let mut terminal = PlatformTerminal::new()?;
+    terminal.enter_raw_mode()?;
+    let event_reader = terminal.event_reader();
+    let mut event_reader = EventStream::new(event_reader, |e| !e.is_escape());
+
+    let backend = TerminaBackend::new(terminal, stdout());
+    let terminal = Terminal::new(backend)?;
+    let mut terminal = NonblockingTerminal::new(terminal);
+    terminal
+        .with_terminal_mut(|t| {
+            write!(
+                t.backend_mut(),
+                "{}{}{}{}{}{}{}{}",
+                csi::Csi::Keyboard(csi::Keyboard::PushFlags(
+                    KittyKeyboardFlags::DISAMBIGUATE_ESCAPE_CODES
+                        | KittyKeyboardFlags::REPORT_ALTERNATE_KEYS
+                )),
+                decset!(ClearAndEnableAlternateScreen),
+                decreset!(ShowCursor),
+                decset!(FocusTracking),
+                decset!(BracketedPaste),
+                decset!(MouseTracking),
+                decset!(ButtonEventMouse),
+                decset!(SGRMouse),
+            )?;
+            t.backend_mut().flush()?;
+            Ok::<_, io::Error>(())
+        })
+        .await?;
+
     let (tx, mut rx) = mpsc::channel(32);
 
     let mut app = Counters {
@@ -38,11 +79,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let mut dom_update_rx = dom_update_receiver();
-    let mut terminal = setup_terminal()?;
+
     mount(view);
 
     render_terminal(&mut terminal).await?;
-    let mut event_reader = EventStream::new().fuse();
+
     focus_next();
 
     loop {
@@ -78,7 +119,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    restore_terminal()?;
+    terminal
+        .with_terminal_mut(|t| {
+            write!(
+                t.backend_mut(),
+                "{}{}{}{}{}{}{}{}",
+                csi::Csi::Keyboard(csi::Keyboard::PopFlags(1)),
+                decreset!(ClearAndEnableAlternateScreen),
+                decset!(ShowCursor),
+                decreset!(FocusTracking),
+                decreset!(BracketedPaste),
+                decreset!(MouseTracking),
+                decreset!(ButtonEventMouse),
+                decreset!(SGRMouse),
+            )?;
+            Ok::<_, io::Error>(())
+        })
+        .await?;
+
     Ok(())
 }
 
@@ -88,20 +146,6 @@ fn should_exit(event: &Event) -> bool {
     } else {
         false
     }
-}
-fn setup_terminal() -> Result<NonblockingTerminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
-    enable_raw_mode()?;
-    let mut stdout = stdout();
-    execute!(stdout, Hide, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let terminal = Terminal::new(backend)?;
-    Ok(NonblockingTerminal::new(terminal))
-}
-
-fn restore_terminal() -> Result<(), Box<dyn Error>> {
-    disable_raw_mode()?;
-    execute!(stdout(), DisableMouseCapture, LeaveAlternateScreen, Show)?;
-    Ok(())
 }
 
 enum Message {

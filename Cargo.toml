@@ -36,16 +36,17 @@ ratatui-image = "8"
 throbber-widgets-tui = "0.8.0"
 tui-term = "0.2.0"
 ratzilla = { git = "https://github.com/junkdog/ratzilla", rev = "de1daee053e7d150ee443cf111b99d742b7c0bda" }
-modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
+modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
 
 # other TUI things
-crossterm = "0.28.1"
-termion = "4"
-termwiz = "0.22"
+termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
-modalkit = { git = "https://github.com/aschey/modalkit", rev = "471b8a1bb66aed66673274083c0e55c275e788b7" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "87671add00b1e2aead90adefcc957c88a510890c" }
+modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "1ba37ff46d941d5698589796606118ee15f2b75b" }
+terminput = "0.5.9"
+terminput-web-sys = "0.2.5"
+terminput-termina = "0.1.2"
 
 # proc macros
 manyhow = "0.11"
@@ -68,11 +69,6 @@ slotmap = "1"
 bitflags = "2"
 futures = "0.3"
 rustc-hash = "2"
-terminput = "0.5.9"
-terminput-crossterm = { version = "0.4.5", default-features = false }
-terminput-termion = "0.3.5"
-terminput-termwiz = { version = "0.4.5", default-features = false }
-terminput-web-sys = "0.2.5"
 paste = "1"
 taffy = "0.9.0"
 thiserror = "2"
@@ -95,10 +91,9 @@ async-signal = "0.2"
 russh = "0.54"
 tap = "1"
 tokio-stream = "0.1.17"
-base64 = "0.22.1"
-clipboard-win = "5.4"
 web-sys = "0.3.77"
 itertools = "0.14"
+stream-cancel = "0.8"
 
 # examples/testing
 tracing-subscriber = "0.3.19"
@@ -115,5 +110,4 @@ wasm-bindgen-futures = "0.4.50"
 
 
 [patch.crates-io]
-crossterm = { git = "https://github.com/aschey/crossterm", rev = "3b6db3586eda31a803a67af7bdb1d0937cf26485" }
 ratatui = { git = "https://github.com/aschey/ratatui", rev = "9c095537802f3bdb7d82b10bda226540f152421e" }

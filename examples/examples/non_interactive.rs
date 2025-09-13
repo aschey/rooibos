@@ -3,18 +3,21 @@ use std::error::Error;
 use rooibos::reactive::dom::layout::{Borders, borders};
 use rooibos::reactive::dom::{Render, render_single_frame};
 use rooibos::reactive::wgt;
+use rooibos::terminal::termina::TerminalSettings;
 use rooibos::terminal::{Backend, DefaultBackend};
 use rooibos::theme::Stylize;
 use rooibos::tui::Viewport;
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let backend = DefaultBackend::new(TerminalSettings::stdout().alternate_screen(false));
     let mut terminal = rooibos::tui::Terminal::with_options(
-        DefaultBackend::stdout().create_tui_backend()?,
+        backend.create_tui_backend()?,
         rooibos::tui::TerminalOptions {
             viewport: Viewport::Inline(3),
         },
     )?;
     render_single_frame(app, &mut terminal)?;
+    backend.restore_terminal()?;
 
     Ok(())
 }

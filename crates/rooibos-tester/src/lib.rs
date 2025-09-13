@@ -1,3 +1,5 @@
+mod test_backend;
+
 use std::fmt::Write;
 use std::mem;
 use std::time::{Duration, Instant};
@@ -13,7 +15,7 @@ use rooibos_reactive::dom::Render;
 use rooibos_runtime::wasm_compat::{self, Lazy, RwLock};
 #[cfg(feature = "runtime")]
 use rooibos_runtime::{Runtime, RuntimeSettings, TickResult};
-use rooibos_terminal::test::TestBackend;
+pub use test_backend::*;
 use tokio::sync::broadcast;
 use unicode_width::UnicodeWidthStr;
 
@@ -108,7 +110,7 @@ impl TestHarness {
         M: Render,
         <M as Render>::DomState: 'static,
     {
-        self.runtime.mount(f);
+        self.runtime.mount(&mut self.terminal, f).await;
         render_terminal(&mut self.terminal).await.unwrap();
         focus_next();
     }
@@ -135,37 +137,46 @@ impl TestHarness {
         &self.terminal
     }
 
-    pub fn buffer(&self) -> Buffer {
+    pub async fn buffer(&self) -> Buffer {
         self.terminal
             .with_terminal(|t| t.backend().buffer().clone())
+            .await
+    }
+
+    pub async fn terminal_view(&self) -> String {
+        self.buffer().await.terminal_view()
     }
 
     #[cfg(feature = "runtime")]
-    pub async fn wait_for(
-        &mut self,
-        f: impl FnMut(&Self, Option<TickResult>) -> bool,
-    ) -> Result<(), Buffer> {
+    pub async fn wait_for<F>(&mut self, f: F) -> Result<(), Buffer>
+    where
+        F: AsyncFnMut(&Self, Option<TickResult>) -> bool,
+    {
         DEFAULT_TIMEOUT
             .with(|t| self.wait_for_timeout(f, *t.read()))
             .await
     }
 
-    pub fn find_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> Option<DomNodeRepr> {
+    pub async fn find_by_text(
+        &self,
+        node: &DomNodeRepr,
+        text: impl AsRef<str>,
+    ) -> Option<DomNodeRepr> {
         let text = text.as_ref();
-        let buf = self.buffer();
+        let buf = self.buffer().await;
         node.find(|node| {
             node.node_type() == NodeTypeRepr::Widget
                 && buf.slice(node.rect()).terminal_view().contains(text)
         })
     }
 
-    pub fn find_by_block_text(
+    pub async fn find_by_block_text(
         &self,
         node: &DomNodeRepr,
         text: impl AsRef<str>,
     ) -> Option<DomNodeRepr> {
         let text = text.as_ref();
-        let buf = self.buffer();
+        let buf = self.buffer().await;
         node.find(|node| {
             if let NodeTypeRepr::Layout { borders } = node.node_type()
                 && borders.is_some()
@@ -204,31 +215,36 @@ impl TestHarness {
         })
     }
 
-    pub fn get_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> DomNodeRepr {
-        if let Some(node) = self.find_by_text(node, text) {
+    pub async fn get_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> DomNodeRepr {
+        if let Some(node) = self.find_by_text(node, text).await {
             node
         } else {
-            panic!("{}", self.buffer().terminal_view());
+            panic!("{}", self.buffer().await.terminal_view());
         }
     }
 
-    pub fn get_by_block_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> DomNodeRepr {
-        if let Some(node) = self.find_by_block_text(node, text) {
+    pub async fn get_by_block_text(
+        &self,
+        node: &DomNodeRepr,
+        text: impl AsRef<str>,
+    ) -> DomNodeRepr {
+        if let Some(node) = self.find_by_block_text(node, text).await {
             node
         } else {
-            panic!("{}", self.buffer().terminal_view());
+            panic!("{}", self.buffer().await.terminal_view());
         }
     }
 
-    pub fn find_all_by_text(&self, node: &DomNodeRepr, text: impl AsRef<str>) -> Vec<DomNodeRepr> {
+    pub async fn find_all_by_text(
+        &self,
+        node: &DomNodeRepr,
+        text: impl AsRef<str>,
+    ) -> Vec<DomNodeRepr> {
         let text = text.as_ref();
+        let buffer = self.buffer().await;
         node.find_all(|node| {
             node.node_type() == NodeTypeRepr::Widget
-                && self
-                    .buffer()
-                    .slice(node.rect())
-                    .terminal_view()
-                    .contains(text)
+                && buffer.slice(node.rect()).terminal_view().contains(text)
         })
     }
 
@@ -266,11 +282,10 @@ impl TestHarness {
     }
 
     #[cfg(feature = "runtime")]
-    pub async fn wait_for_timeout(
-        &mut self,
-        mut f: impl FnMut(&Self, Option<TickResult>) -> bool,
-        timeout: Duration,
-    ) -> Result<(), Buffer> {
+    pub async fn wait_for_timeout<F>(&mut self, mut f: F, timeout: Duration) -> Result<(), Buffer>
+    where
+        F: AsyncFnMut(&Self, Option<TickResult>) -> bool,
+    {
         use rooibos_dom::render_terminal;
 
         let start = Instant::now();
@@ -306,13 +321,13 @@ impl TestHarness {
                 },
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
-            if f(self, last_tick_result) {
+            if f(self, last_tick_result).await {
                 // Ensure the screen is updated in case we're still in a debouncer timeout
                 render_terminal(&mut self.terminal).await.unwrap();
                 return Ok(());
             }
             if Instant::now().duration_since(start) > timeout {
-                return Err(self.buffer().clone());
+                return Err(self.buffer().await.clone());
             }
         }
     }
@@ -346,9 +361,13 @@ impl TestHarness {
         }
     }
 
-    pub fn find_nth_position_of_text(&self, text: impl AsRef<str>, nth: usize) -> Option<Rect> {
+    pub async fn find_nth_position_of_text(
+        &self,
+        text: impl AsRef<str>,
+        nth: usize,
+    ) -> Option<Rect> {
         let text = text.as_ref();
-        let view = self.buffer().terminal_view();
+        let view = self.buffer().await.terminal_view();
         let lines = view.split('\n');
 
         for (i, line) in lines.enumerate() {
@@ -364,15 +383,15 @@ impl TestHarness {
         None
     }
 
-    pub fn get_nth_position_of_text(&self, text: impl AsRef<str>, nth: usize) -> Rect {
-        self.find_nth_position_of_text(text, nth).unwrap()
+    pub async fn get_nth_position_of_text(&self, text: impl AsRef<str>, nth: usize) -> Rect {
+        self.find_nth_position_of_text(text, nth).await.unwrap()
     }
 
-    pub fn find_position_of_text(&self, text: impl AsRef<str>) -> Option<Rect> {
-        self.find_nth_position_of_text(text, 0)
+    pub async fn find_position_of_text(&self, text: impl AsRef<str>) -> Option<Rect> {
+        self.find_nth_position_of_text(text, 0).await
     }
 
-    pub fn get_position_of_text(&self, text: impl AsRef<str>) -> Rect {
-        self.find_position_of_text(text).unwrap()
+    pub async fn get_position_of_text(&self, text: impl AsRef<str>) -> Rect {
+        self.find_position_of_text(text).await.unwrap()
     }
 }

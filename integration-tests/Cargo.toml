@@ -10,7 +10,6 @@ rooibos = { workspace = true, features = [
   "terminal-widget",
   "input",
   "image",
-  "clipboard",
   "config",
   "router",
   "spinner",

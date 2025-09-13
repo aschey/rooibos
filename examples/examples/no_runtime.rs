@@ -31,7 +31,13 @@ async fn main() -> Result<()> {
     set_pixel_size(window_size).unwrap();
     set_supports_keyboard_enhancement(backend.supports_keyboard_enhancement()).unwrap();
 
-    let window_size = backend.window_size().ok();
+    let window_size = terminal
+        .with_terminal_mut({
+            let backend = backend.clone();
+            move |t| backend.window_size(t.backend_mut())
+        })
+        .await
+        .ok();
     mount(app, window_size);
     render_terminal(&mut terminal).await?;
     let cancellation_token = CancellationToken::new();
@@ -39,7 +45,7 @@ async fn main() -> Result<()> {
     focus_next();
 
     let cancellation_token = cancellation_token.clone();
-    let mut input_stream = backend.async_input_stream();
+    let mut input_stream = backend.async_input_stream(cancellation_token.clone());
     tokio::spawn(async move {
         while let Some(Some(event)) = input_stream
             .next()

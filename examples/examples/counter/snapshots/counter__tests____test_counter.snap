@@ -1,6 +1,6 @@
 ---
-source: examples/examples/counter/./tests.rs
-expression: harness.terminal().backend().buffer()
+source: examples/examples/counter/tests.rs
+expression: buffer
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 20, height: 10 },
@@ -17,8 +17,8 @@ Buffer {
         "                    ",
     ],
     styles: [
-        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: BOLD,
-        x: 7, y: 0, fg: Cyan, bg: Reset, underline: Reset, modifier: NONE,
-        x: 8, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 0, y: 0, fg: Reset, bg: Reset, modifier: BOLD,
+        x: 7, y: 0, fg: Cyan, bg: Reset, modifier: NONE,
+        x: 8, y: 0, fg: Reset, bg: Reset, modifier: NONE,
     ]
 }

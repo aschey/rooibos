@@ -1,15 +1,16 @@
 use rooibos::reactive::KeyCode;
 use rooibos::runtime::TickResult;
-use rooibos::tester::{TerminalView, TestHarness};
+use rooibos::tester::TestHarness;
 
 use crate::app;
 
 macro_rules! assert_snapshot {
     ($harness:expr) => {
+        let buffer = $harness.buffer().await;
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($harness.buffer());
+            insta::assert_debug_snapshot!(buffer);
         });
     };
 }
@@ -32,11 +33,11 @@ async fn test_exec() {
 
     // Wait for process to finish
     harness
-        .wait_for(|_, last_tick_result| matches!(last_tick_result, Some(TickResult::Restart)))
+        .wait_for(async |_, last_tick_result| matches!(last_tick_result, Some(TickResult::Restart)))
         .await
         .unwrap();
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("Open Editor"))
+        .wait_for(async |harness, _| harness.terminal_view().await.contains("Open Editor"))
         .await
         .unwrap();
 

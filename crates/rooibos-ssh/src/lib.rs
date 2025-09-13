@@ -1,8 +1,11 @@
 pub mod backend;
+
 use std::collections::HashMap;
 use std::error::Error;
 use std::io;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::Duration;
 
 use async_signal::{Signal, Signals};
 use background_service::Manager;
@@ -22,7 +25,9 @@ pub use russh::server::Config as SshConfig;
 use russh::server::{Auth, Handle, Handler, Msg, Server, Session};
 use russh::{Channel, ChannelId};
 use tap::TapFallible;
-use tokio::net::ToSocketAddrs;
+use termina::Parser;
+use terminput_termina::to_terminput;
+use tokio::net::{TcpListener, ToSocketAddrs};
 use tokio::sync::{RwLock, broadcast, mpsc};
 use tokio::task::LocalSet;
 use tokio_util::future::FutureExt;
@@ -30,7 +35,6 @@ use tracing::{error, warn};
 
 pub struct TerminalHandle {
     handle: Handle,
-    // The sink collects the data which is finally flushed to the handle.
     sink: Vec<u8>,
     channel_id: ChannelId,
 }
@@ -45,7 +49,6 @@ impl TerminalHandle {
     }
 }
 
-// The crossterm backend writes to the terminal handle.
 impl std::io::Write for TerminalHandle {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.sink.extend_from_slice(buf);
@@ -90,7 +93,9 @@ where
     config: Arc<SshConfig>,
     service_manager: Option<Manager>,
     service_context: ServiceContext,
+    server_shutdown: CancellationToken,
     current_client_id: u32,
+    shutdown_requested: Arc<AtomicBool>,
 }
 
 impl<T: SshHandler> AppServer<T> {
@@ -98,7 +103,7 @@ impl<T: SshHandler> AppServer<T> {
         init_executor();
         let service_manager = Manager::new(
             CancellationToken::new(),
-            background_service::Settings::default(),
+            background_service::Settings::default().task_wait_duration(Duration::from_secs(20)),
         );
         let service_context = service_manager.get_context();
         Self {
@@ -107,7 +112,9 @@ impl<T: SshHandler> AppServer<T> {
             config: Arc::new(config),
             service_manager: Some(service_manager),
             service_context,
+            server_shutdown: CancellationToken::new(),
             current_client_id: 0,
+            shutdown_requested: AtomicBool::new(false).into(),
         }
     }
 
@@ -118,36 +125,50 @@ impl<T: SshHandler> AppServer<T> {
         #[cfg(windows)]
         let mut signals = Signals::new([Signal::Int]).unwrap();
 
-        let (signal_tx, mut signal_rx) = broadcast::channel(32);
+        let (signal_tx, _) = broadcast::channel(32);
         set_external_signal_source(signal_tx.clone()).expect("signal handler already set");
 
         let service_manager = self.service_manager.take().unwrap();
         let service_context = self.service_context.clone();
+        let shutdown_requested = self.shutdown_requested.clone();
+        let clients = self.clients.clone();
+        let server_shutdown = self.server_shutdown.clone();
         service_context.spawn((
             "ssh_signal_handler",
             move |context: ServiceContext| async move {
-                while let Some(Ok(signal)) = signals
+                if let Some(Ok(signal)) = signals
                     .next()
                     .with_cancellation_token(context.cancellation_token())
                     .await
                     .flatten()
                 {
-                    signal_tx.send(signal).unwrap();
+                    shutdown_requested.store(true, Ordering::Release);
+                    if clients.read().await.is_empty() {
+                        // If no clients are connected, we can shut down immediately
+                        server_shutdown.cancel();
+                    }
+                    let _ = signal_tx.send(signal);
                 }
                 Ok(())
             },
         ));
-
+        let server_shutdown = self.server_shutdown.clone();
         service_context.spawn(("ssh_server", move |context: ServiceContext| async move {
-            let _ = self
-                .run_on_address(self.config.clone(), address)
-                .with_cancellation_token(context.cancellation_token())
-                .await;
+            let socket = TcpListener::bind(address).await?;
+            let server = self.run_on_socket(self.config.clone(), &socket);
+            let server_handle = server.handle();
+
+            context.spawn(("ssh_shutdown", move |_: ServiceContext| async move {
+                server_shutdown.cancelled().await;
+                server_handle.shutdown("server shutdown".into());
+                Ok(())
+            }));
+
+            server.await?;
+            context.cancel_all();
             Ok(())
         }));
 
-        signal_rx.recv().await.unwrap();
-        service_context.cancel_all();
         service_manager.join_on_cancel().await.unwrap();
 
         Ok(())
@@ -166,11 +187,13 @@ pub trait SshHandler: Send + Sync + 'static {
 
 pub struct SshEventSender {
     events: mpsc::Sender<Event>,
+    query_events: mpsc::Sender<termina::Event>,
     window_size: Arc<std::sync::RwLock<WindowSize>>,
 }
 
 pub struct SshEventReceiver {
     events: mpsc::Receiver<Event>,
+    query_events: mpsc::Receiver<termina::Event>,
     window_size: Arc<std::sync::RwLock<WindowSize>>,
 }
 
@@ -182,7 +205,10 @@ where
     clients: Arc<RwLock<HashMap<u32, SshEventSender>>>,
     handler: Arc<T>,
     socket_addr: Option<std::net::SocketAddr>,
+    shutdown_requested: Arc<AtomicBool>,
+    server_shutdown: CancellationToken,
     service_context: ServiceContext,
+    parser: Parser,
 }
 
 impl<T> AppHandler<T>
@@ -216,8 +242,11 @@ where
             client_id: self.current_client_id,
             handler: self.handler.clone(),
             clients: self.clients.clone(),
+            shutdown_requested: self.shutdown_requested.clone(),
             socket_addr,
+            server_shutdown: self.server_shutdown.clone(),
             service_context: self.service_context.clone(),
+            parser: Parser::default(),
         }
     }
 
@@ -234,7 +263,8 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         channel: Channel<Msg>,
         session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        let (event_tx, event_rx) = mpsc::channel(32);
+        let (event_tx, event_rx) = mpsc::channel(1024);
+        let (query_event_tx, query_event_rx) = mpsc::channel(1024);
 
         let clients = self.clients.clone();
         let client_id = self.client_id;
@@ -246,6 +276,7 @@ impl<T: SshHandler> Handler for AppHandler<T> {
             client_id,
             SshEventSender {
                 events: event_tx,
+                query_events: query_event_tx,
                 window_size: window_size.clone(),
             },
         );
@@ -255,43 +286,49 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         let terminal_handle = TerminalHandle::new(session.handle(), channel_id);
         let handle = session.handle();
         let socket_addr = self.socket_addr;
-        self.service_context.spawn_blocking(("tui", move |_| {
-            let owner = Owner::new();
-            owner.with(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
 
-                rt.block_on(async move {
-                    let local_set = LocalSet::new();
-                    local_set
-                        .run_until(async move {
-                            with_runtime_async(client_id, async move {
-                                handler
-                                    .run_terminal(
-                                        client_id,
-                                        ArcHandle(Arc::new(std::sync::RwLock::new(
-                                            terminal_handle,
-                                        ))),
-                                        SshEventReceiver {
-                                            events: event_rx,
-                                            window_size,
-                                        },
-                                        socket_addr,
-                                    )
-                                    .await;
-                                restore_terminal().unwrap();
+        self.service_context
+            .spawn_blocking(("tui", move |_: ServiceContext| {
+                let owner = Owner::new();
+                owner.with(move || {
+                    let rt = tokio::runtime::Runtime::new().unwrap();
+
+                    rt.block_on(async move {
+                        let local_set = LocalSet::new();
+                        local_set
+                            .run_until(async move {
+                                with_runtime_async(client_id, async move {
+                                    handler
+                                        .run_terminal(
+                                            client_id,
+                                            ArcHandle(Arc::new(std::sync::RwLock::new(
+                                                terminal_handle,
+                                            ))),
+                                            SshEventReceiver {
+                                                events: event_rx,
+                                                query_events: query_event_rx,
+                                                window_size,
+                                            },
+                                            socket_addr,
+                                        )
+                                        .await;
+                                    restore_terminal().unwrap();
+                                })
+                                .await
                             })
+                            .await;
+
+                        let mut clients = clients.write().await;
+                        clients.remove(&client_id);
+
+                        let _ = handle
+                            .close(channel_id)
                             .await
-                        })
-                        .await;
-                    clients.write().await.remove(&client_id);
-                    let _ = handle
-                        .close(channel_id)
-                        .await
-                        .inspect_err(|e| warn!("error closing channel: {e:?}"));
+                            .inspect_err(|e| warn!("error closing channel: {e:?}"));
+                    });
                 });
-            });
-            Ok(())
-        }));
+                Ok(())
+            }));
 
         Ok(true)
     }
@@ -306,6 +343,13 @@ impl<T: SshHandler> Handler for AppHandler<T> {
             .disconnect(russh::Disconnect::ByApplication, "Quit", "")
             .unwrap();
         session.close(channel).unwrap();
+        let shutdown_requested = self.shutdown_requested.load(Ordering::Acquire);
+        let can_shutdown = shutdown_requested && self.clients.read().await.is_empty();
+        if can_shutdown {
+            session.flush().unwrap();
+            session.flush_pending(channel).unwrap();
+            self.server_shutdown.cancel();
+        }
         Ok(())
     }
 
@@ -319,14 +363,28 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         data: &[u8],
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
-        if let Some(event) = Event::parse_from(data)? {
+        self.parser.parse(data, false);
+        while let Some(event) = self.parser.pop() {
             let clients = self.clients.read().await;
             if let Some(client_tx) = clients.get(&self.client_id) {
-                let _ = client_tx
-                    .events
-                    .send(event)
-                    .await
-                    .tap_err(|e| warn!("error sending data: {e:?}"));
+                match event {
+                    termina::Event::Csi(_) | termina::Event::Dcs(_) => {
+                        let _ = client_tx
+                            .query_events
+                            .send(event)
+                            .await
+                            .tap_err(|e| warn!("error sending data: {e:?}"));
+                    }
+                    _ => {
+                        if let Ok(event) = to_terminput(event) {
+                            let _ = client_tx
+                                .events
+                                .send(event)
+                                .await
+                                .tap_err(|e| warn!("error sending data: {e:?}"));
+                        }
+                    }
+                }
             }
         }
 

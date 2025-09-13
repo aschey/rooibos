@@ -234,7 +234,7 @@ use rooibos::reactive::{KeyCode, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, RuntimeSettings};
 use rooibos::terminal::DefaultBackend;
-use rooibos::tester::{TerminalView, TestHarness};
+use rooibos::tester::TestHarness;
 use rooibos::theme::Stylize;
 
 fn app() -> impl Render {
@@ -249,10 +249,11 @@ fn app() -> impl Render {
 
 macro_rules! assert_snapshot {
     ($harness:expr) => {
+        let buffer = $harness.buffer().await;
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($harness.buffer());
+            insta::assert_debug_snapshot!(buffer);
         });
     };
 }
@@ -266,7 +267,7 @@ async fn test_counter() {
 
     harness.send_key(KeyCode::Enter);
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
+        .wait_for(async |harness, _| harness.terminal_view().await.contains("count: 1"))
         .await
         .unwrap();
 
@@ -303,13 +304,12 @@ For details on internals and the reason behind certain design decisions, see
 
 ## Backend Support Status
 
-| Crate                                               | Backend                                                  | Type     | Status                            |
-| --------------------------------------------------- | -------------------------------------------------------- | -------- | --------------------------------- |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [crossterm](https://docs.rs/crossterm/latest/crossterm/) | Terminal | Implemented                       |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termion](https://docs.rs/termion/latest/termion/)       | Terminal | Implemented, but missing features |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termwiz](https://docs.rs/termwiz/latest/termwiz/)       | Terminal | Implemented, but missing features |
-| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)             | SSH      | Implemented                       |
-| [**`rooibos-web`**](./crates/rooibos-web)           | [ratzilla](https://docs.rs/ratzilla/latest/ratzilla/)    | Web      | Implemented                       |
-| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                | Desktop  | Planned                           |
-| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                | Mobile   | Planned                           |
-| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                | Games    | Planned                           |
+| Crate                                               | Backend                                                                             | Type     | Status      |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- | -------- | ----------- |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termina](https://docs.rs/termina/latest/termina/)                                  | Terminal | Implemented |
+| [**`rooibos-tester`**](./crates/rooibos-tester)     | [in-memory](https://docs.rs/ratatui/latest/ratatui/backend/struct.TestBackend.html) | Testing  | Implemented |
+| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)                                        | SSH      | Implemented |
+| [**`rooibos-web`**](./crates/rooibos-web)           | [ratzilla](https://docs.rs/ratzilla/latest/ratzilla/)                               | Web      | Implemented |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                                           | Desktop  | Planned     |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                                           | Mobile   | Planned     |
+| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                                           | Games    | Planned     |

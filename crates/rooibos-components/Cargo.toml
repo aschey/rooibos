@@ -6,8 +6,9 @@ edition = "2024"
 [dependencies]
 next_tuple = { workspace = true }
 either_of = { workspace = true }
-tui-textarea = { workspace = true, default-features = false, optional = true }
-crossterm = { workspace = true, optional = true }
+tui-textarea = { workspace = true, default-features = false, features = [
+  "ratatui",
+], optional = true }
 rooibos-dom = { path = "../rooibos-dom" }
 rooibos-reactive = { path = "../rooibos-reactive" }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
@@ -24,9 +25,6 @@ tokio-util = { workspace = true }
 getrandom = { workspace = true, features = ["wasm_js"], optional = true }
 derive_more = { workspace = true, features = ["deref", "deref_mut"] }
 tui-theme = { workspace = true }
-terminput-crossterm = { workspace = true, optional = true, features = [
-  "crossterm_0_28",
-] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 tui-term = { workspace = true, optional = true }
@@ -34,9 +32,6 @@ vt100 = { workspace = true, optional = true }
 portable-pty = { workspace = true, optional = true }
 
 [features]
-crossterm = ["dep:crossterm", "tui-textarea?/crossterm", "terminput-crossterm"]
-termion = ["tui-textarea?/termion"]
-termwiz = ["tui-textarea?/termwiz"]
 input-search = ["tui-textarea/search"]
 terminal-widget = ["tui-term", "vt100", "portable-pty"]
 image = ["dep:image", "dep:ratatui-image"]

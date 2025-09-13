@@ -6,10 +6,11 @@ use crate::app;
 
 macro_rules! assert_snapshot {
     ($harness:expr) => {
+        let buffer = $harness.buffer().await;
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($harness.buffer());
+            insta::assert_debug_snapshot!(buffer);
         });
     };
 }
@@ -21,12 +22,12 @@ async fn test_buttons() {
 
     let root_node = root();
     assert_snapshot!(harness);
-    let top_button = harness.find_by_text(&root_node, "bigger").unwrap();
+    let top_button = harness.find_by_text(&root_node, "bigger").await.unwrap();
     let button_rect = top_button.rect();
     harness.send_mouse_move(button_rect.x, button_rect.y);
 
     harness
-        .wait_for(|harness, _| harness.find_by_text(&root_node, "╔").is_some())
+        .wait_for(async |harness, _| harness.find_by_text(&root_node, "╔").await.is_some())
         .await
         .unwrap();
     assert_snapshot!(harness);
@@ -34,7 +35,7 @@ async fn test_buttons() {
     harness.send_key(KeyCode::Enter);
 
     harness
-        .wait_for(|harness, _| harness.find_by_text(&root_node, "12 x 6").is_some())
+        .wait_for(async |harness, _| harness.find_by_text(&root_node, "12 x 6").await.is_some())
         .await
         .unwrap();
     assert_snapshot!(harness);

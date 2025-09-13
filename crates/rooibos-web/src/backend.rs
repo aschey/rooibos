@@ -9,12 +9,14 @@ use ratzilla::ratatui::layout::Size;
 use ratzilla::{CanvasBackend, WebGl2Backend};
 use rooibos_dom::Event;
 use rooibos_terminal::{AsyncInputStream, ClipboardKind};
+use stream_cancel::StreamExt;
 use terminput_web_sys::{
     self, to_terminput_key, to_terminput_mouse, to_terminput_mouse_scroll, to_terminput_paste,
     to_terminput_resize,
 };
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
+use tokio_util::sync::CancellationToken;
 use tracing::info;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::wasm_bindgen::prelude::Closure;
@@ -50,7 +52,7 @@ impl rooibos_terminal::Backend for WasmBackend {
         Ok(backend)
     }
 
-    fn window_size(&self) -> io::Result<WindowSize> {
+    fn window_size(&self, backend: &mut Self::TuiBackend) -> io::Result<WindowSize> {
         let size = ratzilla::utils::get_window_size();
         Ok(WindowSize {
             columns_rows: size,
@@ -99,7 +101,7 @@ impl rooibos_terminal::Backend for WasmBackend {
         Ok(())
     }
 
-    fn async_input_stream(&self) -> impl AsyncInputStream {
+    fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {
         let (tx, rx) = mpsc::channel(32);
 
         let window = window().unwrap();
@@ -189,6 +191,9 @@ impl rooibos_terminal::Backend for WasmBackend {
         window.set_onblur(Some(on_blur.as_ref().unchecked_ref()));
         on_blur.forget();
 
-        ReceiverStream::new(rx)
+        ReceiverStream::new(rx).take_until_if(async move {
+            cancellation_token.cancelled().await;
+            true
+        })
     }
 }

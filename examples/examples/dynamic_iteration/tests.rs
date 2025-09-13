@@ -1,16 +1,17 @@
 use rooibos::reactive::KeyCode;
 use rooibos::reactive::dom::root;
 use rooibos::reactive::dom::widgets::Role;
-use rooibos::tester::{TerminalView, TestHarness};
+use rooibos::tester::TestHarness;
 
 use crate::app;
 
 macro_rules! assert_snapshot {
     ($harness:expr) => {
+        let buffer = $harness.buffer().await;
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($harness.buffer());
+            insta::assert_debug_snapshot!(buffer);
         });
     };
 }
@@ -29,24 +30,24 @@ async fn test_counters() {
     add_button.click();
 
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 0"))
+        .wait_for(async |harness, _| harness.terminal_view().await.contains("count: 0"))
         .await
         .unwrap();
     assert_snapshot!(harness);
 
     harness.send_key(KeyCode::Tab);
 
-    let text_node = harness.get_by_text(&root_layout, "count: 0");
+    let text_node = harness.get_by_text(&root_layout, "count: 0").await;
 
     harness
-        .wait_for(|_, _| text_node.is_focused())
+        .wait_for(async |_, _| text_node.is_focused())
         .await
         .unwrap();
 
     harness.send_key(KeyCode::Char('+'));
 
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
+        .wait_for(async |harness, _| harness.terminal_view().await.contains("count: 1"))
         .await
         .unwrap();
 
@@ -55,7 +56,9 @@ async fn test_counters() {
     add_button.click();
 
     harness
-        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "count").len() == 2)
+        .wait_for(async |harness, _| {
+            harness.find_all_by_text(&root_layout, "count").await.len() == 2
+        })
         .await
         .unwrap();
     assert_snapshot!(harness);
@@ -63,14 +66,16 @@ async fn test_counters() {
     harness.send_key(KeyCode::Tab);
 
     harness
-        .wait_for(|_, _| text_node.is_focused())
+        .wait_for(async |_, _| text_node.is_focused())
         .await
         .unwrap();
 
     harness.send_key(KeyCode::Char('d'));
 
     harness
-        .wait_for(|harness, _| harness.find_all_by_text(&root_layout, "count").len() == 1)
+        .wait_for(async |harness, _| {
+            harness.find_all_by_text(&root_layout, "count").await.len() == 1
+        })
         .await
         .unwrap();
 

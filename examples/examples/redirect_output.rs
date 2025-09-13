@@ -10,7 +10,8 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, With};
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::{Runtime, RuntimeSettings, exit};
-use rooibos::terminal::crossterm::{CrosstermBackend, TerminalSettings};
+use rooibos::terminal::DefaultBackend;
+use rooibos::terminal::termina::TerminalSettings;
 use rooibos::theme::{Style, Stylize};
 use rooibos::tui::Viewport;
 use rooibos::tui::widgets::ListItem;
@@ -20,14 +21,15 @@ type Result = std::result::Result<ExitCode, Box<dyn Error>>;
 #[rooibos::main]
 async fn main() -> Result {
     if stdout().is_terminal() {
-        return Err("Try redirecting the output. Ex: out=$(cargo run --example=redirect_output)")?;
+        return Err("Try redirecting the output. Ex: out=$(cargo run
+    --example=redirect_output)")?;
     }
 
     let res = Runtime::initialize_with(
         RuntimeSettings::default()
             .viewport(Viewport::Inline(6))
             .show_final_output(false),
-        CrosstermBackend::new(TerminalSettings::auto().alternate_screen(false)),
+        DefaultBackend::new(TerminalSettings::auto().alternate_screen(false)),
     )
     .run(app)
     .await?;

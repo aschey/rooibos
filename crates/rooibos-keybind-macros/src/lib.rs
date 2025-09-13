@@ -44,11 +44,5 @@ pub fn derive_commands(input: DeriveInput) -> manyhow::Result {
                 rooibos::keybind::generate_commands(command_handler)
             }
         }
-
-        impl rooibos::keybind::CommandCompleter for #ident {
-            fn complete(text: &str, cursor_position: usize) -> Vec<String> {
-                rooibos::keybind::complete::<#ident>(text, cursor_position)
-            }
-        }
     })
 }

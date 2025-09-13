@@ -6,14 +6,14 @@ use rooibos::components::Show;
 use rooibos::components::spinner::Spinner;
 use rooibos::reactive::dom::layout::padding_left;
 use rooibos::reactive::dom::{Render, after_render, line};
-use rooibos::reactive::graph::computed::Memo;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
 use rooibos::reactive::{col, derive_signal, wgt};
 use rooibos::runtime::error::RuntimeError;
+use rooibos::runtime::wasm_compat::spawn_local;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
 use rooibos::terminal::DefaultBackend;
-use rooibos::terminal::crossterm::TerminalSettings;
+use rooibos::terminal::termina::TerminalSettings;
 use rooibos::theme::{Style, Stylize};
 use rooibos::tui::Viewport;
 
@@ -22,7 +22,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize_with(
-        RuntimeSettings::default().viewport(Viewport::Inline(1)),
+        RuntimeSettings::default().viewport(Viewport::Inline(2)),
         DefaultBackend::auto().settings(TerminalSettings::default().alternate_screen(false)),
     )
     .run(app)
@@ -43,7 +43,7 @@ fn app() -> impl Render {
 
     let current_package = derive_signal!(packages.with(|p| p.front().copied().unwrap_or_default()));
 
-    tokio::spawn(async move {
+    spawn_local(async move {
         loop {
             tokio::time::sleep(get_random_delay()).await;
             insert_before(1, line!(" ✓ ".green(), current_package.get())).unwrap();
@@ -65,13 +65,13 @@ fn app() -> impl Render {
                 wgt!("Done".bold())
             })
             .render(
-                Memo::new(move |_| !current_package.get().is_empty()),
+                derive_signal!(!current_package.get().is_empty()),
                 move || wgt!(line!(
                     spinner.get(),
                     "building ",
                     current_package.get().bold(),
                     "..."
-                )),
+                ))
             )
     ]
 }

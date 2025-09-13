@@ -5,17 +5,18 @@ use rooibos::reactive::KeyCode;
 use rooibos::reactive::dom::widgets::Role;
 use rooibos::reactive::dom::{DomNodeRepr, root};
 use rooibos::runtime::RuntimeSettings;
-use rooibos::tester::{TerminalView, TestHarness};
+use rooibos::tester::TestHarness;
 
 use crate::server::run_server;
 use crate::{Command, app};
 
 macro_rules! assert_snapshot {
     ($name:literal, $harness:expr) => {
+        let buffer = $harness.buffer().await;
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($name, $harness.buffer());
+            insta::assert_debug_snapshot!($name, buffer);
         });
     };
 }
@@ -41,9 +42,15 @@ async fn test_todos() {
     let root_layout = root();
     // Wait for initial data load
     harness
-        .wait_for(|harness, _| {
-            harness.find_by_text(&root_layout, "Add a todo").is_some()
-                && harness.find_by_text(&root_layout, "No todos").is_some()
+        .wait_for(async |harness, _| {
+            harness
+                .find_by_text(&root_layout, "Add a todo")
+                .await
+                .is_some()
+                && harness
+                    .find_by_text(&root_layout, "No todos")
+                    .await
+                    .is_some()
         })
         .await
         .unwrap();
@@ -55,9 +62,9 @@ async fn test_todos() {
     harness.send_text("todo 1");
     harness.send_key(KeyCode::Enter);
 
-    let todos_block = harness.get_by_block_text(&root_layout, "Todos");
+    let todos_block = harness.get_by_block_text(&root_layout, "Todos").await;
     harness
-        .wait_for(|harness, _| harness.find_by_text(&todos_block, "todo 1").is_some())
+        .wait_for(async |harness, _| harness.find_by_text(&todos_block, "todo 1").await.is_some())
         .await
         .unwrap();
     assert_snapshot!("after_create", harness);
@@ -71,9 +78,14 @@ async fn test_todos() {
     wait_for_notification(&mut harness, "Todo updated").await;
 
     // Delete todo
-    harness.get_by_text(&todos_block, "x").click();
+    harness.get_by_text(&todos_block, "x").await.click();
     harness
-        .wait_for(|harness, _| harness.find_by_text(&todos_block, "No todos").is_some())
+        .wait_for(async |harness, _| {
+            harness
+                .find_by_text(&todos_block, "No todos")
+                .await
+                .is_some()
+        })
         .await
         .unwrap();
     wait_for_notification(&mut harness, "Todo deleted").await;
@@ -90,15 +102,15 @@ async fn update_todo(
     use_keyboard: bool,
 ) {
     // Update todo
-    let edit_node = harness.get_by_text(todos_block, "󱞁");
+    let edit_node = harness.get_by_text(todos_block, "󱞁").await;
     edit_node.click();
     harness
-        .wait_for(|_, _| todos_block.find_all_by_role(Role::TextInput).len() == 1)
+        .wait_for(async |_, _| todos_block.find_all_by_role(Role::TextInput).len() == 1)
         .await
         .unwrap();
     harness.send_text(send_text);
     harness
-        .wait_for(|harness, _| harness.find_by_text(todos_block, new_text).is_some())
+        .wait_for(async |harness, _| harness.find_by_text(todos_block, new_text).await.is_some())
         .await
         .unwrap();
 
@@ -109,9 +121,9 @@ async fn update_todo(
     }
 
     harness
-        .wait_for(|harness, _| {
+        .wait_for(async |harness, _| {
             todos_block.find_all_by_role(Role::TextInput).is_empty()
-                && harness.find_by_text(todos_block, new_text).is_some()
+                && harness.find_by_text(todos_block, new_text).await.is_some()
         })
         .await
         .unwrap();
@@ -119,7 +131,7 @@ async fn update_todo(
 
 async fn wait_for_notification(harness: &mut TestHarness, text: &str) {
     harness
-        .wait_for(|harness, _| !harness.buffer().terminal_view().contains(text))
+        .wait_for(async |harness, _| !harness.terminal_view().await.contains(text))
         .await
         .unwrap();
 }

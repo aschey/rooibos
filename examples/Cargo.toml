@@ -4,13 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-crossterm = { workspace = true }
 rooibos = { workspace = true, features = [
   "ssh",
   "terminal-widget",
   "input",
   "image",
-  "clipboard",
   "config",
   "config-confique",
   "config-yaml",
@@ -39,8 +37,7 @@ tokio-util = { workspace = true }
 tracing-appender = { workspace = true }
 shlex = { workspace = true }
 color-eyre = { workspace = true }
-ratatui = { workspace = true, features = ["palette"] }
-terminput-crossterm = { workspace = true, features = ["crossterm_0_28"] }
+ratatui = { workspace = true, default-features = false, features = ["palette"] }
 async-signal = { workspace = true }
 
 [dev-dependencies]
@@ -48,4 +45,3 @@ insta = { workspace = true }
 
 [features]
 nightly = ["rooibos/nightly"]
-termion = ["rooibos/termion"]

@@ -17,7 +17,6 @@ terminput = { workspace = true }
 paste = { workspace = true }
 wasm-compat = { workspace = true, features = ["all"] }
 taffy = { workspace = true }
-crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
 tracing = { workspace = true }
 thiserror = { workspace = true }
 textwrap = { workspace = true }
@@ -31,7 +30,9 @@ tui-theme = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
-terminput-crossterm = { workspace = true, features = ["crossterm_0_28"] }
+termina = { workspace = true, features = ["event-stream"] }
+terminput-termina = { workspace = true }
+rooibos-terminal = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true, features = ["enable-interning"] }

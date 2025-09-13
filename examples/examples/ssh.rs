@@ -47,7 +47,7 @@ impl SshHandler for SshApp {
         event_rx: SshEventReceiver,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
-        Runtime::initialize(SshBackend::new(handle, event_rx))
+        Runtime::initialize(SshBackend::new(handle, event_rx).await.unwrap())
             .run(app)
             .await
             .unwrap();

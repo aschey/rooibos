@@ -18,7 +18,6 @@ use rooibos_dom::{
 use rooibos_reactive::dom::{Render, mount};
 use rooibos_terminal::{self, Backend};
 use tokio::sync::broadcast;
-use tokio_util::future::FutureExt;
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 
@@ -45,6 +44,7 @@ pub struct Runtime<B: Backend> {
     backend: Arc<B>,
     parser_running: Arc<AtomicBool>,
     input_task_id: Option<TaskId>,
+    input_task_cancellation: Option<CancellationToken>,
     service_manager: Manager,
     service_context: ServiceContext,
     signal_handler_running: bool,
@@ -82,29 +82,12 @@ where
 
         let (term_parser_tx, _) = broadcast::channel(32);
 
-        let (term_command_tx, runtime_command_tx) =
-            with_state(|s| (s.term_command_tx.clone(), s.runtime_command_tx.clone()));
+        let runtime_command_tx = with_state(|s| s.runtime_command_tx.clone());
         let service_manager = Manager::new(
             CancellationToken::new(),
             background_service::Settings::default(),
         );
         let service_context = service_manager.get_context();
-
-        if !backend.supports_async_input() {
-            service_context.spawn(("input_poller", |context: ServiceContext| async move {
-                loop {
-                    if wasm_compat::sleep(Duration::from_millis(20))
-                        .with_cancellation_token(context.cancellation_token())
-                        .await
-                        .is_some()
-                    {
-                        let _ = term_command_tx.send(TerminalCommand::Poll);
-                    } else {
-                        return Ok(());
-                    }
-                }
-            }));
-        }
 
         let dom_update_rx = dom_update_receiver();
         // We need to query this info before reading events
@@ -129,6 +112,7 @@ where
             dom_update_rx,
             parser_running: Arc::new(AtomicBool::new(false)),
             input_task_id: None,
+            input_task_cancellation: None,
             service_manager,
             service_context,
             signal_handler_running: false,
@@ -152,13 +136,17 @@ where
         Ok(())
     }
 
-    pub fn mount<F, M>(&self, f: F)
+    pub async fn mount<F, M>(&self, terminal: &mut NonblockingTerminal<B::TuiBackend>, f: F)
     where
         F: FnOnce() -> M + 'static,
         M: Render,
         <M as Render>::DomState: 'static,
     {
-        let window_size = self.backend.window_size().ok();
+        let backend = self.backend.clone();
+        let window_size = terminal
+            .with_terminal_mut(move |t| backend.window_size(t.backend_mut()))
+            .await
+            .ok();
         mount(f, window_size);
     }
 
@@ -178,27 +166,25 @@ where
         if self.settings.enable_input_reader {
             let term_parser_tx = self.term_parser_tx.clone();
 
-            if self.backend.supports_async_input() {
-                let input_stream = self.backend.async_input_stream();
-                self.input_task_id = Some(self.service_context.spawn((
-                    "input_reader",
-                    move |context: ServiceContext| async move {
-                        pin_mut!(input_stream);
+            let input_task_cancellation = self.service_context.cancellation_token().child_token();
+            let input_stream = self
+                .backend
+                .async_input_stream(input_task_cancellation.clone());
+            self.input_task_id = Some(self.service_context.spawn((
+                "input_reader",
+                move |_: ServiceContext| async move {
+                    pin_mut!(input_stream);
 
-                        while let Some(event) = input_stream
-                            .next()
-                            .with_cancellation_token(context.cancellation_token())
-                            .await
-                            .flatten()
-                        {
-                            let _ = term_parser_tx.send(event);
-                        }
-                        Ok(())
-                    },
-                )));
-            }
-            self.handle_term_events();
+                    while let Some(event) = input_stream.next().await {
+                        let _ = term_parser_tx.send(event);
+                    }
+                    Ok(())
+                },
+            )));
+            self.input_task_cancellation = Some(input_task_cancellation);
         }
+        self.handle_term_events();
+
         let show_final_output = self.show_final_output();
 
         let backend = self.backend.clone();
@@ -207,7 +193,7 @@ where
                 backend.restore_terminal()?;
                 if show_final_output {
                     // ensure we start a new line before exiting to ensure the full content is shown
-                    backend.write_all(b"\n")?;
+                    backend.write_all(b"\r\n")?;
                 }
                 Ok(())
             })
@@ -288,7 +274,7 @@ where
         self.configure_terminal_events()
             .await
             .map_err(RuntimeError::SetupFailure)?;
-        self.mount(f);
+        self.mount(&mut terminal, f).await;
 
         self.draw(&mut terminal).await;
         focus_next();
@@ -391,30 +377,32 @@ where
                 terminal.insert_before(height, text).await;
             }
             TerminalCommand::EnterAltScreen => {
-                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t.backend_mut()))?;
+                let backend = self.backend.clone();
+                terminal
+                    .with_terminal_mut(move |t| backend.enter_alt_screen(t.backend_mut()))
+                    .await?;
                 terminal.clear().await;
             }
             TerminalCommand::LeaveAltScreen => {
-                terminal.with_terminal_mut(|t| self.backend.leave_alt_screen(t.backend_mut()))?;
+                let backend = self.backend.clone();
+                terminal
+                    .with_terminal_mut(move |t| backend.leave_alt_screen(t.backend_mut()))
+                    .await?;
                 terminal.clear().await;
             }
             TerminalCommand::SetTitle(title) => {
-                terminal.with_terminal_mut(|t| {
-                    self.backend.set_title(t.backend_mut(), title.clone())
-                })?;
+                let backend = self.backend.clone();
+                terminal
+                    .with_terminal_mut(move |t| backend.set_title(t.backend_mut(), title.clone()))
+                    .await?;
             }
-            TerminalCommand::Poll => {
-                terminal.with_terminal_mut(|t| {
-                    self.backend
-                        .poll_input(t.backend_mut(), &self.term_parser_tx)
-                })?;
-            }
-            #[cfg(feature = "clipboard")]
             TerminalCommand::SetClipboard(content, kind) => {
-                terminal.with_terminal_mut(|t| {
-                    self.backend
-                        .set_clipboard(t.backend_mut(), content.clone(), kind)
-                })?;
+                let backend = self.backend.clone();
+                terminal
+                    .with_terminal_mut(move |t| {
+                        backend.set_clipboard(t.backend_mut(), content.clone(), kind)
+                    })
+                    .await?;
             }
             TerminalCommand::SetViewportWidth(max_width) => {
                 rooibos_dom::max_viewport_width(max_width);
@@ -423,12 +411,17 @@ where
                 rooibos_dom::max_viewport_height(max_height);
             }
             TerminalCommand::Custom(f) => {
-                let mut terminal_fn = f.lock().expect("lock poisoned");
-                let terminal_fn = terminal_fn
-                    .as_any_mut()
-                    .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
-                    .expect("invalid downcast");
-                terminal.with_terminal_mut(|t| terminal_fn(t));
+                terminal
+                    .with_terminal_mut(move |t| {
+                        let mut terminal_fn = f.lock().expect("lock poisoned");
+                        let terminal_fn = terminal_fn
+                            .as_any_mut()
+                            .downcast_mut::<TerminalFnBoxed<B::TuiBackend>>()
+                            .expect("invalid downcast");
+
+                        terminal_fn(t)
+                    })
+                    .await;
             }
             #[cfg(not(target_arch = "wasm32"))]
             TerminalCommand::Exec { command, on_finish } => {
@@ -441,11 +434,13 @@ where
 
     async fn cancel_input_reader(&mut self) {
         if let Some(input_task_id) = self.input_task_id.take() {
+            let token = self.input_task_cancellation.take().unwrap();
+            token.cancel();
             let input_service = self
                 .service_context
                 .take_service(&input_task_id)
                 .expect("input service missing");
-            input_service.cancel();
+
             let _ = input_service
                 .wait_for_shutdown()
                 .await
@@ -464,8 +459,11 @@ where
         self.cancel_input_reader().await;
 
         restore_terminal()?;
+        let backend = self.backend.clone();
         // enter alt screen to prevent flickering before the new command is shown
-        terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t.backend_mut()))?;
+        terminal
+            .with_terminal_mut(move |t| backend.enter_alt_screen(t.backend_mut()))
+            .await?;
 
         let mut child = command.lock().expect("lock poisoned").spawn()?;
 
@@ -474,8 +472,9 @@ where
 
         tokio::select! {
             status = child.wait() => {
+                let backend = self.backend.clone();
                 // prevent flickering
-                terminal.with_terminal_mut(|t| self.backend.enter_alt_screen(t.backend_mut()))?;
+                terminal.with_terminal_mut(move |t| backend.enter_alt_screen(t.backend_mut())).await?;
                 let status = status?;
                 let on_finish = (*on_finish.lock().expect("lock poisoned")).take().expect("on_finish missing");
                 on_finish(status, child_stdout, child_stderr);

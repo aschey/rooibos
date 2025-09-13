@@ -38,9 +38,6 @@ tokio = { workspace = true, default-features = false, features = [
 
 
 [features]
-default = ["crossterm", "reactive"]
+default = ["termina", "reactive"]
 reactive = ["rooibos-reactive"]
-crossterm = ["rooibos-terminal/crossterm"]
-termion = ["rooibos-terminal/termion"]
-termwiz = ["rooibos-terminal/termwiz"]
-clipboard = ["rooibos-terminal/clipboard"]
+termina = ["rooibos-terminal/termina"]

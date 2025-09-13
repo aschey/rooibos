@@ -51,7 +51,7 @@ where
 
     mount(f, window_size);
     terminal.draw(render_dom)?;
-    terminal.backend_mut().write_all(b"\n")?;
+    terminal.backend_mut().write_all(b"\r\n")?;
     Ok(())
 }
 

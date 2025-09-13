@@ -23,23 +23,9 @@ tokio = { workspace = true }
 insta = { workspace = true }
 
 [features]
-default = ["crossterm", "runtime"]
+default = ["termina", "runtime"]
 nightly = ["rooibos-reactive/nightly"]
-crossterm = [
-  "rooibos-runtime/crossterm",
-  "rooibos-components/crossterm",
-  "rooibos-terminal/crossterm",
-]
-termion = [
-  "rooibos-runtime/termion",
-  "rooibos-components/termion",
-  "rooibos-terminal/termion",
-]
-termwiz = [
-  "rooibos-runtime/termwiz",
-  "rooibos-components/termwiz",
-  "rooibos-terminal/termwiz",
-]
+termina = ["rooibos-terminal/termina"]
 tester = ["rooibos-tester"]
 runtime = ["rooibos-runtime", "rooibos-keybind?/runtime"]
 web = ["rooibos-web"]
@@ -55,11 +41,6 @@ input-search = ["rooibos-components/input-search"]
 terminal-widget = ["rooibos-components/terminal-widget"]
 input = ["rooibos-components/input"]
 image = ["rooibos-components/image"]
-clipboard = [
-  "rooibos-runtime/clipboard",
-  "rooibos-terminal/clipboard",
-  "rooibos-ssh?/clipboard",
-]
 keybind = ["rooibos-keybind"]
 spinner = ["rooibos-components/spinner"]
 derive-commands = ["rooibos-keybind?/derive-commands"]
@@ -67,5 +48,6 @@ effects = ["rooibos-reactive/effects"]
 palette = ["ratatui/palette"]
 scrolling-regions = [
   "rooibos-reactive/scrolling-regions",
+  "rooibos-terminal/scrolling-regions",
   "rooibos-ssh?/scrolling-regions",
 ]

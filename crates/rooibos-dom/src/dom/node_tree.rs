@@ -855,7 +855,8 @@ impl NodeTree {
 
     pub(crate) fn replace_node(&mut self, old_key: DomNodeKey, new_key: DomNodeKey) {
         let mut new_key_vals = mem::take(&mut self.dom_nodes[new_key].inner);
-        new_key_vals.replace_with(&self.dom_nodes[old_key].inner);
+        new_key_vals.replace_with(&self.dom_nodes[old_key].inner, new_key);
+
         self.dom_nodes[new_key].inner = new_key_vals;
         if let Some(parent) = self.dom_nodes[new_key].inner.parent {
             let parent_enabled = self.dom_nodes[parent].inner.enabled();

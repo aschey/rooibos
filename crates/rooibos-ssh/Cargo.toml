@@ -4,10 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-crossterm = { workspace = true }
 russh = { workspace = true }
 rooibos-runtime = { workspace = true }
-rooibos-terminal = { workspace = true }
+rooibos-terminal = { workspace = true, features = ["termina"] }
 rooibos-dom = { workspace = true }
 rooibos-reactive = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["sync"] }
@@ -18,9 +17,11 @@ tap = { workspace = true }
 futures = { workspace = true }
 async-signal = { workspace = true }
 terminput = { workspace = true }
+terminput-termina = { workspace = true }
 background-service = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
+termina = { workspace = true }
+stream-cancel = { workspace = true }
 
 [features]
-clipboard = ["rooibos-runtime/clipboard"]
 scrolling-regions = ["ratatui/scrolling-regions"]

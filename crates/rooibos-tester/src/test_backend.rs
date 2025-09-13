@@ -2,11 +2,12 @@ use std::io;
 
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
+use rooibos_terminal::{AsyncInputStream, Backend, ClipboardKind};
+use stream_cancel::StreamExt;
 use tokio::sync::broadcast;
-use tokio_stream::StreamExt;
+use tokio_stream::StreamExt as _;
 use tokio_stream::wrappers::BroadcastStream;
-
-use super::Backend;
+use tokio_util::sync::CancellationToken;
 
 pub struct TestBackend {
     width: u16,
@@ -48,7 +49,7 @@ impl Backend for TestBackend {
         true
     }
 
-    fn window_size(&self) -> io::Result<WindowSize> {
+    fn window_size(&self, _backend: &mut Self::TuiBackend) -> io::Result<WindowSize> {
         Ok(WindowSize {
             columns_rows: Size {
                 width: self.width,
@@ -70,7 +71,7 @@ impl Backend for TestBackend {
         &self,
         _backend: &mut Self::TuiBackend,
         _content: T,
-        _clipboard_kind: super::ClipboardKind,
+        _clipboard_kind: ClipboardKind,
     ) -> io::Result<()> {
         Ok(())
     }
@@ -87,8 +88,13 @@ impl Backend for TestBackend {
         Ok(())
     }
 
-    fn async_input_stream(&self) -> impl crate::AsyncInputStream {
+    fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {
         let rx = self.event_tx.subscribe();
-        BroadcastStream::new(rx).filter_map(|e| e.ok())
+        BroadcastStream::new(rx)
+            .filter_map(|e| e.ok())
+            .take_until_if(async move {
+                cancellation_token.cancelled().await;
+                true
+            })
     }
 }

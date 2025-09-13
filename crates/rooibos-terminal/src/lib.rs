@@ -1,21 +1,16 @@
-#[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
-pub mod crossterm;
 mod stream;
-#[cfg(all(feature = "termion", not(target_arch = "wasm32")))]
-pub mod termion;
-#[cfg(all(feature = "termwiz", not(target_arch = "wasm32")))]
-pub mod termwiz;
-pub mod test;
+#[cfg(all(feature = "termina", not(target_arch = "wasm32")))]
+pub mod termina;
 
 use std::fmt::Display;
-use std::{env, io};
+use std::io;
 
 use futures_util::Stream;
 pub use stream::*;
-use tokio::sync::broadcast;
+use tokio_util::sync::CancellationToken;
 
-#[cfg(all(feature = "crossterm", not(target_arch = "wasm32")))]
-pub type DefaultBackend<T> = crossterm::CrosstermBackend<T>;
+#[cfg(all(feature = "termina", not(target_arch = "wasm32")))]
+pub type DefaultBackend<T> = termina::TerminaBackend<T>;
 
 // From https://github.com/crossterm-rs/crossterm/pull/697
 /// Which selection to set. Only affects X11. See
@@ -61,7 +56,10 @@ pub trait Backend: Send + Sync {
 
     fn leave_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()>;
 
-    fn window_size(&self) -> io::Result<ratatui::backend::WindowSize>;
+    fn window_size(
+        &self,
+        backend: &mut Self::TuiBackend,
+    ) -> io::Result<ratatui::backend::WindowSize>;
 
     fn set_title<T: Display>(&self, backend: &mut Self::TuiBackend, title: T) -> io::Result<()>;
 
@@ -72,50 +70,7 @@ pub trait Backend: Send + Sync {
         clipboard_kind: ClipboardKind,
     ) -> io::Result<()>;
 
-    fn supports_async_input(&self) -> bool {
-        true
-    }
-
-    #[allow(unused)]
-    fn poll_input(
-        &self,
-        terminal: &mut Self::TuiBackend,
-        term_tx: &broadcast::Sender<rooibos_dom::Event>,
-    ) -> io::Result<()> {
-        Ok(())
-    }
-
-    fn async_input_stream(&self) -> impl AsyncInputStream;
+    fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream;
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()>;
-}
-
-fn parse_env_var(var_name: &str) -> bool {
-    let Ok(env_var) = env::var(var_name) else {
-        return false;
-    };
-    let env_var = env_var.to_ascii_lowercase();
-    env_var == "1" || env_var == "true"
-}
-
-fn color_override() -> Option<bool> {
-    if parse_env_var("NO_COLOR") {
-        Some(false)
-    } else if parse_env_var("CLICOLOR_FORCE") || parse_env_var("FORCE_COLOR") {
-        Some(true)
-    } else {
-        None
-    }
-}
-
-#[cfg(feature = "crossterm")]
-fn adjust_color_output<T>(writer: &T)
-where
-    T: std::io::IsTerminal,
-{
-    if let Some(set_override) = color_override() {
-        ::crossterm::style::force_color_output(set_override);
-    } else if !writer.is_terminal() {
-        ::crossterm::style::force_color_output(false);
-    }
 }

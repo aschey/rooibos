@@ -21,6 +21,7 @@ use tokio_util::sync::CancellationToken;
 use tui_theme::Style;
 use wasm_compat::futures::spawn_local;
 
+#[derive(Clone, Copy)]
 pub struct Spinner {
     label: Option<Signal<Span<'static>>>,
     spinner_set: Signal<throbber_widgets_tui::Set>,

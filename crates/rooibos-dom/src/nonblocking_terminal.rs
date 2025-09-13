@@ -196,18 +196,26 @@ where
         self.requester.rx.recv().await.unwrap();
     }
 
-    pub fn with_terminal_mut<F, R>(&mut self, mut f: F) -> R
+    pub async fn with_terminal_mut<F, R>(&mut self, mut f: F) -> R
     where
-        F: FnMut(&mut Terminal<B>) -> R,
+        F: FnMut(&mut Terminal<B>) -> R + Send + 'static,
+        R: Send + 'static,
     {
-        f(&mut self.terminal.write())
+        let terminal = self.terminal.clone();
+        tokio::task::spawn_blocking(move || f(&mut terminal.write()))
+            .await
+            .unwrap()
     }
 
-    pub fn with_terminal<F, R>(&self, mut f: F) -> R
+    pub async fn with_terminal<F, R>(&self, mut f: F) -> R
     where
-        F: FnMut(&Terminal<B>) -> R,
+        F: FnMut(&Terminal<B>) -> R + Send + 'static,
+        R: Send + 'static,
     {
-        f(&self.terminal.read())
+        let terminal = self.terminal.clone();
+        tokio::task::spawn_blocking(move || f(&terminal.read()))
+            .await
+            .unwrap()
     }
 
     pub async fn join(self) {

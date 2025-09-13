@@ -11,7 +11,6 @@ rooibos-runtime = { workspace = true, optional = true }
 modalkit = { workspace = true }
 modalkit-ratatui = { workspace = true }
 terminput = { workspace = true }
-crossterm = { workspace = true }
 ratatui = { workspace = true, features = ["unstable"] }
 wasm-compat = { workspace = true, features = ["all"] }
 educe = { workspace = true }
@@ -21,7 +20,6 @@ clap_complete = { workspace = true, features = [
   "unstable-dynamic",
 ], optional = true }
 unicode-width = { workspace = true }
-terminput-crossterm = { workspace = true, features = ["crossterm_0_28"] }
 
 [features]
 runtime = ["rooibos-runtime"]

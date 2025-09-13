@@ -61,9 +61,15 @@ pub fn supports_key_up() -> bool {
 }
 
 pub fn set_pixel_size(window_size: Option<WindowSize>) -> Result<(), Option<Size>> {
-    let pixel_size = window_size.map(|s| ratatui::layout::Size {
-        width: s.pixels.width / s.columns_rows.width,
-        height: s.pixels.height / s.columns_rows.height,
+    let pixel_size = window_size.and_then(|s| {
+        if s.columns_rows.height > 0 && s.columns_rows.width > 0 {
+            Some(ratatui::layout::Size {
+                width: s.pixels.width / s.columns_rows.width,
+                height: s.pixels.height / s.columns_rows.height,
+            })
+        } else {
+            None
+        }
     });
     PIXEL_SIZE.with(|p| p.set(pixel_size))
 }

@@ -1,14 +1,20 @@
 use std::fmt::Display;
 use std::io;
 use std::sync::{Arc, Mutex, RwLock};
+use std::time::Duration;
 
-use crossterm::terminal::disable_raw_mode;
 use ratatui::Viewport;
 use ratatui::backend::WindowSize;
+use ratatui::layout::{Position, Size};
 use rooibos_dom::Event;
-use rooibos_terminal::crossterm::CrosstermBackend;
+use rooibos_runtime::CancellationToken;
+use rooibos_terminal::termina::{TerminaBackend, tui};
 use rooibos_terminal::{self, AsyncInputStream, Backend};
+use stream_cancel::StreamExt;
+use termina::escape::csi::{self, Csi};
+use termina::{PlatformTerminal, Terminal};
 use tokio::sync::mpsc;
+use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
 
 use crate::{ArcHandle, SshEventReceiver};
@@ -84,41 +90,70 @@ impl TerminalSettings {
 pub struct SshBackend {
     event_rx: Mutex<Option<mpsc::Receiver<Event>>>,
     window_size: Arc<RwLock<WindowSize>>,
-    inner: CrosstermBackend<ArcHandle>,
+    inner: TerminaBackend<ArcHandle>,
 }
 
 impl SshBackend {
-    pub fn new(handle: ArcHandle, events: SshEventReceiver) -> Self {
-        Self::new_with_settings(handle, events, TerminalSettings::default())
+    pub async fn new(handle: ArcHandle, events: SshEventReceiver) -> io::Result<Self> {
+        Self::new_with_settings(handle, events, TerminalSettings::default()).await
     }
 
-    pub fn new_with_settings(
-        handle: ArcHandle,
-        events: SshEventReceiver,
+    pub async fn new_with_settings(
+        mut handle: ArcHandle,
+        mut events: SshEventReceiver,
         settings: TerminalSettings,
-    ) -> Self {
-        let mut crossterm_settings =
-            rooibos_terminal::crossterm::TerminalSettings::from_writer(move || handle.clone())
+    ) -> io::Result<Self> {
+        use io::Write;
+        let mut supports_keyboard_enhancement = false;
+        if settings.keyboard_enhancement {
+            write!(
+                handle,
+                "{}{}",
+                Csi::Keyboard(csi::Keyboard::QueryFlags),
+                Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
+            )?;
+            handle.flush()?;
+
+            loop {
+                let res = timeout(Duration::from_millis(100), events.query_events.recv()).await;
+                let Ok(Some(res)) = res else {
+                    break;
+                };
+                match res {
+                    termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
+                        supports_keyboard_enhancement = true;
+                    }
+                    termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
+                        break;
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        let mut termina_settings =
+            rooibos_terminal::termina::TerminalSettings::from_writer(move || handle.clone())
                 .raw_mode(false)
                 .alternate_screen(settings.alternate_screen)
                 .bracketed_paste(settings.bracketed_paste)
                 .focus_change(settings.focus_change)
-                .keyboard_enhancement(settings.keyboard_enhancement)
+                .keyboard_enhancement(
+                    settings.keyboard_enhancement && supports_keyboard_enhancement,
+                )
+                .force_keyboard_enhancement(supports_keyboard_enhancement)
                 .mouse_capture(settings.mouse_capture);
         if let Some(title) = settings.title {
-            crossterm_settings = crossterm_settings.title(title);
+            termina_settings = termina_settings.title(title);
         }
-        let inner = CrosstermBackend::new(crossterm_settings);
+
+        let inner = TerminaBackend::new(termina_settings);
         let window_size = events.window_size;
 
-        // force ANSI escape codes on windows because SSH on Windows uses Unix-style escape codes
-        #[cfg(windows)]
-        crossterm::ansi_support::force_ansi(true);
-        Self {
+        Ok(Self {
             event_rx: Mutex::new(Some(events.events)),
             window_size,
             inner,
-        }
+        })
     }
 }
 
@@ -133,7 +168,10 @@ impl Backend for SshBackend {
         })
     }
 
-    fn window_size(&self) -> io::Result<ratatui::backend::WindowSize> {
+    fn window_size(
+        &self,
+        _backend: &mut Self::TuiBackend,
+    ) -> io::Result<ratatui::backend::WindowSize> {
         Ok(*self.window_size.read().unwrap())
     }
 
@@ -142,8 +180,10 @@ impl Backend for SshBackend {
     }
 
     fn restore_terminal(&self) -> io::Result<()> {
-        disable_raw_mode()?;
-        self.inner.restore_terminal()
+        let mut terminal = PlatformTerminal::new()?;
+
+        self.inner.restore_terminal()?;
+        terminal.enter_cooked_mode()
     }
 
     fn enter_alt_screen(&self, backend: &mut Self::TuiBackend) -> io::Result<()> {
@@ -170,7 +210,6 @@ impl Backend for SshBackend {
         self.inner.set_title(&mut backend.inner, title)
     }
 
-    #[cfg(feature = "clipboard")]
     fn set_clipboard<T: std::fmt::Display>(
         &self,
         backend: &mut Self::TuiBackend,
@@ -181,18 +220,17 @@ impl Backend for SshBackend {
             .set_clipboard(&mut backend.inner, content, clipboard_kind)
     }
 
-    fn supports_async_input(&self) -> bool {
-        true
-    }
-
-    fn async_input_stream(&self) -> impl AsyncInputStream {
+    fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {
         let event_rx = self.event_rx.lock().unwrap().take().unwrap();
-        ReceiverStream::new(event_rx)
+        ReceiverStream::new(event_rx).take_until_if(async move {
+            cancellation_token.cancelled().await;
+            true
+        })
     }
 }
 
 pub struct SshTuiBackend {
-    inner: ratatui::backend::CrosstermBackend<ArcHandle>,
+    inner: tui::TerminaBackend<ArcHandle>,
     window_size: Arc<RwLock<WindowSize>>,
 }
 
@@ -212,14 +250,11 @@ impl ratatui::backend::Backend for SshTuiBackend {
         self.inner.show_cursor()
     }
 
-    fn get_cursor_position(&mut self) -> io::Result<ratatui::prelude::Position> {
+    fn get_cursor_position(&mut self) -> io::Result<Position> {
         self.inner.get_cursor_position()
     }
 
-    fn set_cursor_position<P: Into<ratatui::prelude::Position>>(
-        &mut self,
-        position: P,
-    ) -> io::Result<()> {
+    fn set_cursor_position<P: Into<Position>>(&mut self, position: P) -> io::Result<()> {
         self.inner.set_cursor_position(position)
     }
 
@@ -231,7 +266,7 @@ impl ratatui::backend::Backend for SshTuiBackend {
         self.inner.flush()
     }
 
-    fn size(&self) -> io::Result<ratatui::prelude::Size> {
+    fn size(&self) -> io::Result<Size> {
         Ok(self.window_size.read().unwrap().columns_rows)
     }
 

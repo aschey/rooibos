@@ -419,7 +419,7 @@ impl NodeProperties {
         );
     }
 
-    pub(crate) fn replace_with(&mut self, new: &NodeProperties) {
+    pub(crate) fn replace_with(&mut self, new: &NodeProperties, new_key: DomNodeKey) {
         // This is annoyingly verbose, but we use destructuring here to ensure we account for
         // any new properties that get added to DomNodeInner
         let NodeProperties {
@@ -479,6 +479,10 @@ impl NodeProperties {
         self.enabled = enabled;
         self.scroll_offset = scroll_offset;
         self.max_scroll_offset = max_scroll_offset;
+
+        if let NodeType::Widget(widget) = &mut self.node_type {
+            widget.set_key(new_key);
+        }
         #[cfg(feature = "effects")]
         {
             self.effects = effects;

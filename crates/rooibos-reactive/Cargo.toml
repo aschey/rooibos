@@ -28,7 +28,6 @@ tui-textarea = { workspace = true, optional = true, default-features = false }
 paste = { workspace = true }
 wasm-compat = { workspace = true, features = ["all"] }
 taffy = { workspace = true }
-crossterm = { workspace = true, features = ["event-stream", "use-dev-tty"] }
 tracing = { workspace = true }
 tui-theme = { workspace = true }
 
@@ -41,10 +40,6 @@ any_spawner = { workspace = true, features = ["wasm-bindgen"] }
 
 [features]
 nightly = ["reactive_graph/nightly", "tachys/nightly"]
-crossterm = ["tui-textarea?/crossterm"]
-termion = ["tui-textarea?/termion"]
-termwiz = ["tui-textarea?/termwiz"]
 input = ["tui-textarea"]
-default = ["crossterm"]
 effects = ["rooibos-dom/effects"]
 scrolling-regions = ["rooibos-dom/scrolling-regions"]

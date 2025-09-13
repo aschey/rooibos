@@ -1,6 +1,6 @@
 ---
 source: examples/examples/dynamic_tabs/tests.rs
-expression: harness.terminal().backend().buffer()
+expression: buffer
 ---
 Buffer {
     area: Rect { x: 0, y: 0, width: 40, height: 10 },
@@ -17,25 +17,25 @@ Buffer {
         "                                        ",
     ],
     styles: [
-        x: 0, y: 0, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 1, y: 1, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 22, y: 1, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 27, y: 1, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 1, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 9, y: 2, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
-        x: 10, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 13, y: 2, fg: Yellow, bg: Reset, underline: Reset, modifier: NONE,
-        x: 17, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 19, y: 2, fg: Red, bg: Reset, underline: Reset, modifier: NONE,
-        x: 20, y: 2, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 22, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 23, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 24, y: 2, fg: Green, bg: Reset, underline: Reset, modifier: NONE,
-        x: 25, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 26, y: 2, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 27, y: 2, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
-        x: 1, y: 3, fg: Blue, bg: Reset, underline: Reset, modifier: NONE,
-        x: 22, y: 3, fg: Gray, bg: Reset, underline: Reset, modifier: NONE,
-        x: 27, y: 3, fg: Reset, bg: Reset, underline: Reset, modifier: NONE,
+        x: 0, y: 0, fg: Reset, bg: Reset, modifier: NONE,
+        x: 1, y: 1, fg: Blue, bg: Reset, modifier: NONE,
+        x: 22, y: 1, fg: Gray, bg: Reset, modifier: NONE,
+        x: 27, y: 1, fg: Reset, bg: Reset, modifier: NONE,
+        x: 1, y: 2, fg: Blue, bg: Reset, modifier: NONE,
+        x: 9, y: 2, fg: Red, bg: Reset, modifier: NONE,
+        x: 10, y: 2, fg: Blue, bg: Reset, modifier: NONE,
+        x: 13, y: 2, fg: Yellow, bg: Reset, modifier: NONE,
+        x: 17, y: 2, fg: Blue, bg: Reset, modifier: NONE,
+        x: 19, y: 2, fg: Red, bg: Reset, modifier: NONE,
+        x: 20, y: 2, fg: Blue, bg: Reset, modifier: NONE,
+        x: 22, y: 2, fg: Gray, bg: Reset, modifier: NONE,
+        x: 23, y: 2, fg: Reset, bg: Reset, modifier: NONE,
+        x: 24, y: 2, fg: Green, bg: Reset, modifier: NONE,
+        x: 25, y: 2, fg: Reset, bg: Reset, modifier: NONE,
+        x: 26, y: 2, fg: Gray, bg: Reset, modifier: NONE,
+        x: 27, y: 2, fg: Reset, bg: Reset, modifier: NONE,
+        x: 1, y: 3, fg: Blue, bg: Reset, modifier: NONE,
+        x: 22, y: 3, fg: Gray, bg: Reset, modifier: NONE,
+        x: 27, y: 3, fg: Reset, bg: Reset, modifier: NONE,
     ]
 }

@@ -60,7 +60,7 @@ pub fn set_panic_hook() {
         rooibos_reactive::install_panic_hook();
         let original_hook = take_hook();
         set_hook(Box::new(move |panic_info| {
-            let _ = restore_terminal();
+            let _ = restore_all_terminals();
             original_hook(panic_info);
         }));
     }

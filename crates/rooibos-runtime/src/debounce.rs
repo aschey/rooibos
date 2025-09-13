@@ -74,6 +74,6 @@ impl<T> Debouncer<T> {
     pub(crate) async fn next_value(&mut self) -> Option<T> {
         self.ready_rx.recv().await?;
         self.has_value.store(false, Ordering::Relaxed);
-        Some(self.pending.take().expect("value missing"))
+        self.pending.take()
     }
 }

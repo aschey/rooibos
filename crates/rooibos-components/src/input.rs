@@ -5,7 +5,9 @@ use rooibos_dom::events::{
     BlurEvent, EventData, EventHandle, FocusEvent, KeyEventProps, StateChangeEvent,
 };
 use rooibos_dom::widgets::{Role, WidgetRole};
-use rooibos_dom::{Event, KeyCode, MeasureNode, RenderNode, set_editing};
+use rooibos_dom::{
+    Event, KeyCode, KeyModifiers, MeasureNode, RenderNode, Repeats, ScrollDirection, set_editing,
+};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
@@ -286,8 +288,7 @@ impl Input {
                 }
 
                 text_area.update(|t| {
-                    #[cfg(feature = "crossterm")]
-                    if let Ok(event) = terminput_crossterm::to_crossterm(Event::Key(props.event)) {
+                    if let Some(event) = to_input(Event::Key(props.event)) {
                         t.input(event);
                     }
                 });
@@ -302,6 +303,7 @@ impl Input {
             }
         };
 
+        // TODO: add on_scroll handler
         DomWidget::new(move || {
             text_area.track();
             RenderInput { text_area }
@@ -322,6 +324,52 @@ impl Input {
             on_direct_blur(blur_event, event_data, event_handle);
         })
     }
+}
+
+fn to_input(event: Event) -> Option<tui_textarea::Input> {
+    let (key, modifiers) = to_key(event)?;
+    Some(tui_textarea::Input {
+        key,
+        shift: modifiers.intersects(KeyModifiers::SHIFT),
+        ctrl: modifiers.intersects(KeyModifiers::CTRL),
+        alt: modifiers.intersects(KeyModifiers::ALT),
+    })
+}
+
+fn to_key(event: Event) -> Option<(tui_textarea::Key, KeyModifiers)> {
+    if let Some((mouse_event, direction)) = event.as_mouse_scroll() {
+        match direction {
+            ScrollDirection::Up => {
+                return Some((tui_textarea::Key::MouseScrollUp, mouse_event.modifiers));
+            }
+            ScrollDirection::Down => {
+                return Some((tui_textarea::Key::MouseScrollDown, mouse_event.modifiers));
+            }
+            _ => {}
+        }
+    }
+
+    let key_event = event.as_key_press(Repeats::Include)?;
+
+    let key_code = match key_event.code {
+        KeyCode::Backspace => tui_textarea::Key::Backspace,
+        KeyCode::Enter => tui_textarea::Key::Enter,
+        KeyCode::Left => tui_textarea::Key::Left,
+        KeyCode::Right => tui_textarea::Key::Right,
+        KeyCode::Up => tui_textarea::Key::Up,
+        KeyCode::Down => tui_textarea::Key::Down,
+        KeyCode::Home => tui_textarea::Key::Home,
+        KeyCode::End => tui_textarea::Key::End,
+        KeyCode::PageUp => tui_textarea::Key::PageUp,
+        KeyCode::PageDown => tui_textarea::Key::PageDown,
+        KeyCode::Tab => tui_textarea::Key::Tab,
+        KeyCode::Delete => tui_textarea::Key::Delete,
+        KeyCode::F(f) => tui_textarea::Key::F(f),
+        KeyCode::Char(c) => tui_textarea::Key::Char(c),
+        KeyCode::Esc => tui_textarea::Key::Esc,
+        _ => return None,
+    };
+    Some((key_code, key_event.modifiers))
 }
 
 struct RenderInput {

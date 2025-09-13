@@ -11,7 +11,6 @@ use modalkit::env::vim::keybindings::{InputStep, VimMachine};
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
-use rooibos_dom::Event;
 use rooibos_dom::events::{IntoKeyHandler, KeyEventProps, KeyHandler};
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::graph::computed::Memo;
@@ -19,20 +18,16 @@ use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::{WriteSignal, signal};
 use rooibos_reactive::graph::traits::{Get, Update, With, WriteValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use terminput_crossterm::to_crossterm;
 use wasm_compat::sync::Mutex;
 
-use crate::{
-    AppInfo, CommandBarContext, CommandCompleter, parse, provide_command_context,
-    use_command_context,
-};
+use crate::{AppInfo, CommandBarContext, parse, provide_command_context, use_command_context};
 
 type AppInfoManager<T> = KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>;
 
 #[derive(Clone)]
 struct KeyMapHolder<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync,
+    T: ApplicationAction + Send + Sync,
 {
     bindings: Arc<Mutex<AppInfoManager<T>>>,
     mappings: HashMap<String, Arc<Mutex<Box<dyn KeybindHandler + Send + Sync>>>>,
@@ -40,7 +35,7 @@ where
 
 impl<T> PartialEq for KeyMapHolder<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync,
+    T: ApplicationAction + Send + Sync,
 {
     // this is required to use with Memo, but KeyManager doesn't implement Eq so we don't have a
     // good way of implementing this
@@ -49,11 +44,11 @@ where
     }
 }
 
-impl<T> Eq for KeyMapHolder<T> where T: CommandCompleter + ApplicationAction + Send + Sync {}
+impl<T> Eq for KeyMapHolder<T> where T: ApplicationAction + Send + Sync {}
 
 pub struct KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     bindings: Signal<KeyMapHolder<T>>,
     set_key_maps: WriteSignal<HashMap<String, InternalKeyMap<T>>>,
@@ -61,7 +56,7 @@ where
 
 impl<T> Default for KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync,
+    T: ApplicationAction + Send + Sync,
 {
     fn default() -> Self {
         Self::new()
@@ -70,7 +65,7 @@ where
 
 impl<T, KM> From<KM> for KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync,
+    T: ApplicationAction + Send + Sync,
     KM: IntoIterator<Item = KeyActionMap<T>>,
 {
     fn from(value: KM) -> Self {
@@ -85,7 +80,7 @@ where
 
 impl<T> KeyMapper<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync,
+    T: ApplicationAction + Send + Sync,
 {
     pub fn new() -> Self {
         let (key_maps, set_key_maps) = signal(HashMap::<String, InternalKeyMap<T>>::new());
@@ -263,7 +258,7 @@ pub type KeyMap = KeyActionMap<()>;
 
 impl<T> KeyActionMap<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync,
+    T: ApplicationAction + Send + Sync,
 {
     pub fn into_handler(self) -> KeyInputHandler<T> {
         KeyInputHandler::new([self])
@@ -291,7 +286,7 @@ where
 
 impl<T> IntoKeyHandler for KeyActionMap<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn into_key_handler(self) -> impl KeyHandler {
         KeyInputHandler::new([self])
@@ -316,7 +311,7 @@ where
 
 pub struct KeyInputHandler<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     manager: Signal<KeyMapHolder<T>>,
     command_context: CommandBarContext<T>,
@@ -325,7 +320,7 @@ where
 impl<K, T> From<K> for KeyInputHandler<T>
 where
     K: Into<KeyMapper<T>>,
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn from(value: K) -> Self {
         KeyInputHandler::new(value)
@@ -340,7 +335,7 @@ pub trait Bind<T> {
 impl<K, T> Bind<T> for K
 where
     K: Into<KeyMapper<T>>,
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     type Target = KeyInputHandler<T>;
 
@@ -351,7 +346,7 @@ where
 
 impl<T> KeyInputHandler<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     pub fn new<K>(mapper: K) -> Self
     where
@@ -367,16 +362,10 @@ where
     }
 
     fn read(&mut self, props: KeyEventProps) {
-        let Ok(crossterm::event::Event::Key(crossterm_event)) =
-            to_crossterm(Event::Key(props.event))
-        else {
-            return;
-        };
-
         let mut manager = self.manager.get();
         let mappings = &mut manager.mappings;
         let mut manager = manager.bindings.lock_mut();
-        manager.input_key(crossterm_event.into());
+        manager.input_key(props.event.into());
 
         while let Some((action, context)) = manager.pop() {
             match action {
@@ -412,7 +401,7 @@ where
 
 impl<T> KeyHandler for KeyInputHandler<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn handle(&mut self, props: KeyEventProps) {
         self.read(props)

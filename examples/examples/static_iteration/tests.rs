@@ -1,14 +1,15 @@
 use rooibos::reactive::KeyCode;
-use rooibos::tester::{TerminalView, TestHarness};
+use rooibos::tester::TestHarness;
 
 use crate::app;
 
 macro_rules! assert_snapshot {
     ($harness:expr) => {
+        let buffer = $harness.buffer().await;
         insta::with_settings!({
             snapshot_path => "./snapshots"
         }, {
-            insta::assert_debug_snapshot!($harness.buffer());
+            insta::assert_debug_snapshot!(buffer);
         });
     };
 }
@@ -22,7 +23,7 @@ async fn test_counters() {
 
     harness.send_key(KeyCode::Char('+'));
     harness
-        .wait_for(|harness, _| harness.buffer().terminal_view().contains("count: 1"))
+        .wait_for(async |harness, _| harness.terminal_view().await.contains("count: 1"))
         .await
         .unwrap();
     assert_snapshot!(harness);

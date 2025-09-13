@@ -14,7 +14,7 @@ use rooibos_reactive::dom::{DomWidget, LayoutProps, NodeId, Render, UpdateLayout
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Set, Update, WriteValue};
 
-use crate::{AppInfo, CommandCompleter, CommandHandlerAction, use_command_context};
+use crate::{AppInfo, CommandHandlerAction, use_command_context};
 
 pub struct CommandBar<T> {
     _phantom: PhantomData<T>,
@@ -34,7 +34,7 @@ impl<T> UpdateLayoutProps for CommandBar<T> {
 
 impl<T> Default for CommandBar<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn default() -> Self {
         Self::new()
@@ -43,7 +43,7 @@ where
 
 impl<T> CommandBar<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     pub fn new() -> Self {
         Self {
@@ -106,7 +106,7 @@ where
 
 struct RenderCommandBar<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: ApplicationAction,
 {
     state: CommandBarState<AppInfo<T>>,
     command_bar: modalkit_ratatui::cmdbar::CommandBar<'static, AppInfo<T>>,
@@ -114,7 +114,7 @@ where
 
 impl<T> WidgetRole for RenderCommandBar<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: ApplicationAction,
 {
     fn widget_role() -> Option<Role> {
         None
@@ -123,7 +123,7 @@ where
 
 impl<T> RenderNode for RenderCommandBar<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn render(&mut self, rect: Rect, frame: &mut Frame) {
         self.command_bar
@@ -137,7 +137,7 @@ where
 
 impl<T> MeasureNode for RenderCommandBar<T>
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn measure(
         &self,

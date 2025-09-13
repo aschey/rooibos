@@ -12,9 +12,7 @@ use modalkit::editing::application::{
     ApplicationAction, ApplicationContentId, ApplicationInfo, ApplicationStore, ApplicationWindowId,
 };
 use modalkit::editing::context::EditContext;
-use modalkit::editing::cursor::Cursor;
 use modalkit::editing::key::KeyManager;
-use modalkit::editing::rope::EditRope;
 use modalkit::editing::store::Store;
 use modalkit::env::vim::VimMode;
 use modalkit::env::vim::command::{
@@ -24,14 +22,13 @@ use modalkit::env::vim::keybindings::InputStep;
 use modalkit::key::TerminalKey;
 use modalkit::keybindings::{BindingMachine, ModalMachine};
 use modalkit::prelude::{
-    CommandType, CompletionDisplay, CompletionSelection, CompletionType, Count, EditTarget,
-    MoveDir1D, MoveType, RepeatType, Specifier,
+    CommandType, CompletionDisplay, CompletionStyle, CompletionType, Count, EditTarget, MoveDir1D,
+    MoveType, RecallFilter, RepeatType, Specifier,
 };
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup, provide_context, use_context};
 use rooibos_reactive::graph::traits::{ReadValue, WriteValue};
 use rooibos_runtime::InputMode;
 use terminput::Event;
-use terminput_crossterm::to_crossterm;
 use unicode_width::UnicodeWidthStr;
 use wasm_compat::cell::UsizeCell;
 use wasm_compat::sync::Mutex;
@@ -41,7 +38,7 @@ use crate::{keys, parse};
 #[cfg(feature = "runtime")]
 pub trait CommandFilter<T>
 where
-    T: CommandCompleter + ApplicationAction,
+    T: ApplicationAction,
 {
     fn handle_commands(self, handler: CommandHandler<T>) -> Self;
 }
@@ -49,7 +46,7 @@ where
 #[cfg(feature = "runtime")]
 impl<T> CommandFilter<T> for rooibos_runtime::RuntimeSettings
 where
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn handle_commands(self, mut handler: CommandHandler<T>) -> Self {
         self.event_filter(move |event, input_mode| handler.event_filter(event, input_mode))
@@ -91,19 +88,9 @@ impl ApplicationContentId for AppContentId {}
 
 impl ApplicationWindowId for AppId {}
 
-pub trait CommandCompleter {
-    fn complete(text: &str, cursor_position: usize) -> Vec<String>;
-}
-
-impl CommandCompleter for () {
-    fn complete(_text: &str, _cursor_position: usize) -> Vec<String> {
-        Vec::new()
-    }
-}
-
 impl<T> ApplicationInfo for AppInfo<T>
 where
-    T: ApplicationAction + CommandCompleter,
+    T: ApplicationAction,
 {
     type Error = String;
 
@@ -118,20 +105,11 @@ where
     fn content_of_command(cmdtype: CommandType) -> Self::ContentId {
         AppContentId::Command(cmdtype)
     }
-
-    fn complete(
-        text: &EditRope,
-        cursor: &mut Cursor,
-        _content: &Self::ContentId,
-        _store: &mut Store<Self>,
-    ) -> Vec<String> {
-        T::complete(&text.to_string(), cursor.x)
-    }
 }
 
 pub struct CommandHandler<T>
 where
-    T: ApplicationAction + CommandCompleter,
+    T: ApplicationAction,
 {
     manager: KeyManager<TerminalKey, Action<AppInfo<T>>, RepeatType>,
     cmds: CommandMachine<VimCommand<AppInfo<T>>>,
@@ -142,7 +120,7 @@ where
 
 impl<T> Default for CommandHandler<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     fn default() -> Self {
         Self::new()
@@ -157,7 +135,7 @@ type CommandHandlerActionFn<T> = dyn Fn(CommandHandlerAction<T>, &EditContext) -
 #[educe(Clone, Copy)]
 pub struct CommandBarContext<T>
 where
-    T: ApplicationAction + CommandCompleter,
+    T: ApplicationAction,
 {
     store: StoredValue<Store<AppInfo<T>>>,
     action_handlers: StoredValue<Vec<Box<CommandHandlerActionFn<T>>>>,
@@ -166,7 +144,7 @@ where
 
 impl<T> CommandBarContext<T>
 where
-    T: ApplicationAction + CommandCompleter + 'static,
+    T: ApplicationAction + 'static,
 {
     pub fn on_command_bar_action<F>(&self, f: F)
     where
@@ -193,14 +171,14 @@ where
 
 pub fn use_command_context<T>() -> CommandBarContext<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     use_context::<CommandBarContext<T>>().unwrap()
 }
 
 pub fn provide_command_context<T>()
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     if use_context::<CommandBarContext<T>>().is_none() {
         provide_context(CommandBarContext {
@@ -213,7 +191,7 @@ where
 
 pub enum CommandHandlerAction<T>
 where
-    T: ApplicationAction + CommandCompleter,
+    T: ApplicationAction,
 {
     CommandBar(CommandBarAction<AppInfo<T>>),
     Editor(EditorAction),
@@ -222,14 +200,14 @@ where
 
 pub trait CommandGenerator<T>
 where
-    T: ApplicationAction + CommandCompleter,
+    T: ApplicationAction,
 {
     fn generate_commands(command_handler: &mut CommandHandler<T>);
 }
 
 impl<T> CommandHandler<T>
 where
-    T: ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     pub fn new() -> Self {
         provide_command_context::<T>();
@@ -275,18 +253,18 @@ where
             VimMode::Command,
             &up,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Prompt(PromptAction::Recall(
+                RecallFilter::All,
                 MoveDir1D::Previous,
                 Count::Contextual,
-                true,
             ))]),
         );
         ism.add_mapping(
             VimMode::Command,
             &down,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Prompt(PromptAction::Recall(
+                RecallFilter::All,
                 MoveDir1D::Next,
                 Count::Contextual,
-                true,
             ))]),
         );
         ism.add_mapping(
@@ -324,8 +302,8 @@ where
             VimMode::Command,
             &tab,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Complete(
+                CompletionStyle::List(MoveDir1D::Next),
                 CompletionType::Auto,
-                CompletionSelection::List(MoveDir1D::Next),
                 CompletionDisplay::None,
             ))]),
         );
@@ -333,8 +311,8 @@ where
             VimMode::Command,
             &shift_tab,
             &InputStep::<AppInfo<T>>::new().actions(vec![Action::Editor(EditorAction::Complete(
+                CompletionStyle::List(MoveDir1D::Previous),
                 CompletionType::Auto,
-                CompletionSelection::List(MoveDir1D::Previous),
                 CompletionDisplay::None,
             ))]),
         );
@@ -373,7 +351,7 @@ where
             return Some(event);
         }
 
-        let Ok(crossterm::event::Event::Key(key_event)) = to_crossterm(event.clone()) else {
+        let Event::Key(key_event) = event else {
             return Some(event);
         };
 
@@ -447,7 +425,7 @@ where
 
 impl<T> CommandHandler<T>
 where
-    T: ApplicationAction + CommandCompleter + CommandGenerator<T> + Send + Sync + 'static,
+    T: ApplicationAction + CommandGenerator<T> + Send + Sync + 'static,
 {
     pub fn generate_commands(&mut self) {
         T::generate_commands(self);
@@ -457,7 +435,7 @@ where
 #[cfg(feature = "derive-commands")]
 pub fn generate_commands<C>(command_handler: &mut CommandHandler<C>)
 where
-    C: clap::Parser + ApplicationAction + CommandCompleter + Send + Sync + 'static,
+    C: clap::Parser + ApplicationAction + Send + Sync + 'static,
 {
     let cmd = C::command();
     for sub in cmd.get_subcommands().map(|s| s.get_name()) {
@@ -475,7 +453,7 @@ pub fn handler<C>(
     ctx: &mut CommandContext,
 ) -> CommandResult<VimCommand<AppInfo<C>>>
 where
-    C: clap::Parser + ApplicationAction + CommandCompleter,
+    C: clap::Parser + ApplicationAction,
 {
     let full_cmd = format!("- {} {}", desc.name(), desc.arg.text);
     let args = shlex::split(&full_cmd).unwrap();
@@ -546,7 +524,7 @@ pub fn on_command<EC, V, T, H>(extract_command: EC, mut handler: H)
 where
     EC: Fn(&T) -> Option<V> + Send + Sync + 'static,
     H: FnMut(V) + Send + Sync + 'static,
-    T: CommandCompleter + ApplicationAction + Send + Sync + 'static,
+    T: ApplicationAction + Send + Sync + 'static,
 {
     let handler_fn = CommandHandlerFn {
         handler: Arc::new(Mutex::new(Box::new(move |command| {

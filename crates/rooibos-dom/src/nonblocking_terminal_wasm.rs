@@ -104,16 +104,16 @@ where
             .unwrap();
     }
 
-    pub fn with_terminal_mut<F, R>(&mut self, mut f: F) -> R
+    pub async fn with_terminal_mut<F, R>(&mut self, mut f: F) -> R
     where
-        F: FnMut(&mut Terminal<B>) -> R,
+        F: FnMut(&mut Terminal<B>) -> R + 'static,
     {
         f(&mut self.terminal)
     }
 
-    pub fn with_terminal<F, R>(&self, mut f: F) -> R
+    pub async fn with_terminal<F, R>(&self, mut f: F) -> R
     where
-        F: FnMut(&Terminal<B>) -> R,
+        F: FnMut(&Terminal<B>) -> R + 'static,
     {
         f(&self.terminal)
     }

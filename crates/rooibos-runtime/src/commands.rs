@@ -72,7 +72,6 @@ pub enum TerminalCommand {
     SetViewportWidth(Option<u16>),
     SetViewportHeight(Option<u16>),
     Custom(#[educe(Debug(ignore))] Arc<std::sync::Mutex<Box<dyn AsAnyMut>>>),
-    #[cfg(feature = "clipboard")]
     SetClipboard(String, rooibos_terminal::ClipboardKind),
     #[cfg(not(target_arch = "wasm32"))]
     Exec {
@@ -81,14 +80,20 @@ pub enum TerminalCommand {
         #[educe(Debug(ignore))]
         on_finish: Arc<std::sync::Mutex<Option<Box<OnFinishFn>>>>,
     },
-    Poll,
 }
 
-pub fn restore_terminal() -> io::Result<()> {
+pub fn restore_all_terminals() -> io::Result<()> {
     with_all_state(|s| {
         for runtime in s.values() {
             runtime.restore_terminal.lock()()?;
         }
+        Ok(())
+    })
+}
+
+pub fn restore_terminal() -> io::Result<()> {
+    with_state(|s| {
+        s.restore_terminal.lock()()?;
         Ok(())
     })
 }
@@ -144,7 +149,6 @@ where
     ))))
 }
 
-#[cfg(feature = "clipboard")]
 pub fn set_clipboard<T: Display>(
     title: T,
     kind: rooibos_terminal::ClipboardKind,
