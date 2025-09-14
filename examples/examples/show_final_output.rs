@@ -31,9 +31,9 @@ fn app() -> impl Render {
     before_exit(move |_| {
         if !is_exiting.get() {
             is_exiting.set(true);
-            return ControlFlow::Allow;
+            return ControlFlow::Prevent;
         }
-        ControlFlow::Prevent
+        ControlFlow::Allow
     });
 
     let update_count = move || set_count.update(|c| *c += 1);

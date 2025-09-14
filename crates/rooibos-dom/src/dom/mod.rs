@@ -199,6 +199,7 @@ pub fn unmount() {
 }
 
 pub fn render_dom(frame: &mut Frame) {
+    let area = frame.area();
     let buf = frame.buffer_mut();
 
     if PENDING_RESIZE.with(|p| p.swap(false, Ordering::Relaxed)) {
@@ -214,8 +215,10 @@ pub fn render_dom(frame: &mut Frame) {
         }
     });
 
-    let viewport = with_nodes(|n| n.viewport_size());
-    let render_size = viewport.viewport();
+    let mut render_size = with_nodes(|n| n.viewport_size()).viewport();
+    // x,y can change between renders if insert_before is used
+    render_size.x = area.x;
+    render_size.y = area.y;
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
         print_dom().render_ref(buf.area, buf);

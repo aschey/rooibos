@@ -22,7 +22,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize_with(
-        RuntimeSettings::default().viewport(Viewport::Inline(2)),
+        RuntimeSettings::default().viewport(Viewport::Inline(1)),
         DefaultBackend::auto().settings(TerminalSettings::default().alternate_screen(false)),
     )
     .run(app)
