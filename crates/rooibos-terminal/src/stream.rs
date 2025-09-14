@@ -1,12 +1,12 @@
 use std::fmt;
 use std::io::{self, IoSlice, IsTerminal, Stderr, Stdout, Write, stderr, stdout};
 
-enum StreamImpl {
+pub(crate) enum StreamImpl {
     Stdout(Stdout),
     Stderr(Stderr),
 }
 
-pub struct AutoStream(StreamImpl);
+pub struct AutoStream(pub(crate) StreamImpl);
 
 impl Default for AutoStream {
     fn default() -> Self {

@@ -14,10 +14,11 @@ use terminput_termina::to_terminput;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
+use tui_theme::profile::DetectorSettings;
 
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
-use crate::{AsyncInputStream, AutoStream};
+use crate::{AsyncInputStream, AutoStream, StreamImpl};
 
 pub(super) mod macros {
     macro_rules! decset {
@@ -73,22 +74,40 @@ impl Default for TerminalSettings<AutoStream> {
 }
 
 impl TerminalSettings<Stdout> {
-    pub fn stdout() -> Self {
-        //adjust_color_output(&stdout());
+    pub fn stdout_with_detector_options(settings: DetectorSettings) -> Self {
+        tui_theme::load_profile(&stdout(), settings);
+        tui_theme::load_color_palette();
         Self::from_writer(stdout)
+    }
+
+    pub fn stdout() -> Self {
+        Self::stdout_with_detector_options(DetectorSettings::new())
     }
 }
 
 impl TerminalSettings<Stderr> {
-    pub fn stderr() -> Self {
-        //adjust_color_output(&stderr());
+    pub fn stderr_with_detector_options(settings: DetectorSettings) -> Self {
+        tui_theme::load_profile(&stderr(), settings);
+        tui_theme::load_color_palette();
         Self::from_writer(stderr)
+    }
+
+    pub fn stderr() -> Self {
+        Self::stderr_with_detector_options(DetectorSettings::new())
     }
 }
 
 impl TerminalSettings<AutoStream> {
-    pub fn auto() -> Self {
+    pub fn auto_with_detector_options(settings: DetectorSettings) -> Self {
+        match AutoStream::new().0 {
+            StreamImpl::Stdout(out) => tui_theme::load_profile(&out, settings),
+            StreamImpl::Stderr(err) => tui_theme::load_profile(&err, settings),
+        }
+        tui_theme::load_color_palette();
         Self::from_writer(AutoStream::new)
+    }
+    pub fn auto() -> Self {
+        Self::auto_with_detector_options(DetectorSettings::new())
     }
 }
 
