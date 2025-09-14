@@ -5,7 +5,7 @@ use ratatui::backend::WindowSize;
 use ratatui::layout::{Position, Rect, Size};
 use ratatui::prelude::Backend;
 use ratatui::text::Text;
-use ratatui::widgets::{Paragraph, Widget as _};
+use ratatui::widgets::Widget as _;
 use ratatui::{Frame, Terminal};
 use tokio::sync::mpsc;
 use tokio::task::JoinHandle;
@@ -111,7 +111,7 @@ where
                             terminal
                                 .write()
                                 .insert_before(height, |buf| {
-                                    Paragraph::new(text).render(buf.area, buf);
+                                    text.render(buf.area, buf);
                                 })
                                 .unwrap();
                             handle.tx.blocking_send(TermResponse::Empty).unwrap();

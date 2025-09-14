@@ -422,7 +422,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
                 let poll = reader.poll(Duration::from_millis(20).into(), |e| !e.is_escape());
                 if cancellation_token.is_cancelled() {
                     while matches!(
-                        reader.poll(Duration::from_millis(10).into(), |_| true),
+                        reader.poll(Duration::from_millis(20).into(), |_| true),
                         Ok(true)
                     ) {
                         reader.read(|_| true).unwrap();
