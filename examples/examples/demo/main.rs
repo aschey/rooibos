@@ -3,12 +3,12 @@ use std::time::Duration;
 
 use rooibos::components::{KeyedWrappingList, Tab, TabView};
 use rooibos::keybind::{Bind, key, keys};
-use rooibos::reactive::col;
 use rooibos::reactive::dom::layout::{full, height, width};
 use rooibos::reactive::dom::{Render, line};
 use rooibos::reactive::graph::owner::provide_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set};
+use rooibos::reactive::{self, col};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -39,7 +39,7 @@ fn app() -> impl Render {
     let (tick, set_tick) = signal(0);
     provide_context(Tick(tick));
 
-    tokio::spawn(async move {
+    reactive::spawn(async move {
         let mut interval = time::interval(Duration::from_millis(250));
         let mut seq: u32 = 1;
         loop {

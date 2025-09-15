@@ -15,6 +15,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tui_theme::profile::DetectorSettings;
+use tui_theme::{color_palette, term_profile};
 
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
@@ -199,12 +200,12 @@ impl<W: Write> TerminaBackend<W> {
     }
 
     fn set_keyboard_enhancement(&mut self) {
-        if !self.settings.raw_mode {
+        if self.settings.force_keyboard_enhancement {
+            self.supports_keyboard_enhancement = true;
             return;
         }
 
-        if self.settings.force_keyboard_enhancement {
-            self.supports_keyboard_enhancement = true;
+        if !self.settings.raw_mode {
             return;
         }
 
@@ -428,6 +429,14 @@ impl<W: Write> Backend for TerminaBackend<W> {
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()> {
         (self.settings.get_writer)().write_all(buf)
+    }
+
+    fn color_palette(&self) -> tui_theme::ColorPalette {
+        color_palette()
+    }
+
+    fn profile(&self) -> tui_theme::profile::TermProfile {
+        term_profile()
     }
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {

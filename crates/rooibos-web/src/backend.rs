@@ -18,6 +18,8 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
+use tui_theme::ColorPalette;
+use tui_theme::profile::TermProfile;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::wasm_bindgen::prelude::Closure;
 use web_sys::{ClipboardEvent, KeyboardEvent, MouseEvent, WheelEvent, window};
@@ -99,6 +101,14 @@ impl rooibos_terminal::Backend for WasmBackend {
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()> {
         Ok(())
+    }
+
+    fn color_palette(&self) -> ColorPalette {
+        ColorPalette::default()
+    }
+
+    fn profile(&self) -> TermProfile {
+        TermProfile::TrueColor
     }
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {

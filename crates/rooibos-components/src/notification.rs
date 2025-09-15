@@ -73,10 +73,16 @@ pub struct Notifier {
     context: StoredValue<NotificationContext>,
 }
 
+impl Default for Notifier {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Notifier {
-    pub fn new(context: NotificationContext) -> Self {
+    pub fn new() -> Self {
         Self {
-            context: StoredValue::new(context),
+            context: StoredValue::new(get_notification_context()),
         }
     }
 
@@ -92,13 +98,15 @@ pub struct Notifications {
     rx: broadcast::Receiver<Notification>,
 }
 
-pub fn use_notifications() -> (Notifications, Notifier) {
-    let context = get_notification_context();
-    (Notifications::new(context.clone()), Notifier::new(context))
+impl Default for Notifications {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Notifications {
-    fn new(context: NotificationContext) -> Self {
+    pub fn new() -> Self {
+        let context = get_notification_context();
         Self {
             content_width: auto().into(),
             max_layout_width: auto().into(),

@@ -11,11 +11,9 @@ mod wrap;
 
 use std::borrow::Cow;
 use std::cell::{LazyCell, OnceCell};
-use std::future::Future;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
 
 pub use borders::*;
 pub use dom::*;
@@ -31,16 +29,6 @@ use ratatui::text::{Line, Span, Text};
 #[cfg(feature = "effects")]
 pub use tachyonfx;
 pub use terminput::*;
-
-pub fn delay<F>(duration: Duration, f: F)
-where
-    F: Future<Output = ()> + 'static,
-{
-    wasm_compat::futures::spawn_local(async move {
-        wasm_compat::futures::sleep(duration).await;
-        f.await;
-    });
-}
 
 thread_local! {
     static SUPPORTS_KEYBOARD_ENHANCEMENT: OnceCell<bool> = const { OnceCell::new() };

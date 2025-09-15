@@ -3,12 +3,12 @@ use std::time::Duration;
 
 use rooibos::components::either_of::Either;
 use rooibos::components::spinner::Spinner;
-use rooibos::components::{Notification, Notifier, use_notifications};
+use rooibos::components::{Notification, Notifications, Notifier};
 use rooibos::reactive::dom::layout::{Borders, borders, full, height, width};
-use rooibos::reactive::dom::{Render, RenderAny, delay, line, span};
+use rooibos::reactive::dom::{Render, RenderAny, line, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Set};
-use rooibos::reactive::{col, wgt};
+use rooibos::reactive::{col, delay, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -24,11 +24,11 @@ async fn main() -> Result {
 fn app() -> impl Render {
     max_viewport_width(100).unwrap();
 
-    let (notifications, notifier) = use_notifications();
+    let notifier = Notifier::new();
     col![
         style(width(full()), height(full()), borders(Borders::all())),
         (0..5).map(|i| task(i + 1, notifier)).collect::<Vec<_>>(),
-        notifications.render()
+        Notifications::new().render()
     ]
 }
 

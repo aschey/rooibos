@@ -1,6 +1,6 @@
 use std::process::ExitCode;
 
-use rooibos::components::{Button, Input, Notification, use_notifications};
+use rooibos::components::{Button, Input, Notification, Notifications, Notifier};
 use rooibos::reactive::dom::layout::{margin, padding, padding_right};
 use rooibos::reactive::dom::{Render, line, text};
 use rooibos::reactive::graph::traits::Get;
@@ -18,11 +18,10 @@ async fn main() -> Result {
 }
 
 fn app() -> impl Render {
-    let (notifications, notifier) = use_notifications();
     let textarea = Input::get_ref();
 
     let text = textarea.text();
-
+    let notifier = Notifier::new();
     col![
         style(padding(1)),
         row![
@@ -43,6 +42,6 @@ fn app() -> impl Render {
                 )));
             })
             .render(text!("Copy to clipboard")),
-        notifications.render()
+        Notifications::new().render()
     ]
 }

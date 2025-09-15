@@ -9,7 +9,7 @@ use rooibos::reactive::dom::{
 };
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{CTRL, Event, KeyCode, NonblockingTerminal, Repeats, key, wgt};
+use rooibos::reactive::{self, CTRL, Event, KeyCode, NonblockingTerminal, Repeats, key, wgt};
 use rooibos::terminal::{Backend, DefaultBackend};
 use rooibos::theme::Stylize;
 use tokio::sync::broadcast;
@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
 
     let cancellation_token = cancellation_token.clone();
     let mut input_stream = backend.async_input_stream(cancellation_token.clone());
-    tokio::spawn(async move {
+    reactive::spawn(async move {
         while let Some(Some(event)) = input_stream
             .next()
             .with_cancellation_token(&cancellation_token)

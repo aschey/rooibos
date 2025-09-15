@@ -9,9 +9,7 @@ use std::time::Duration;
 
 use client::{add_todo, delete_todo, fetch_todos, update_todo};
 use color_eyre::eyre::Result;
-use rooibos::components::{
-    Button, Input, InputRef, Notification, Notifier, Show, use_notifications,
-};
+use rooibos::components::{Button, Input, InputRef, Notification, Notifications, Notifier, Show};
 use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
@@ -98,7 +96,6 @@ fn app(notification_timeout: Duration) -> impl Render {
     let command_context = use_command_context();
     let input_id = NodeId::new_auto();
 
-    let (notifications, notifier) = use_notifications();
     col![
         style(padding(1), width(full()), height(full())),
         focus_scope!(
@@ -114,12 +111,12 @@ fn app(notification_timeout: Duration) -> impl Render {
                     overflow_y(scroll()),
                     borders(Borders::all().title("Todos"))
                 ),
-                todos_body(editing_id, notifier, notification_timeout)
+                todos_body(editing_id, notification_timeout)
             ],
         ),
         CommandBar::<Command>::new().render(),
         saving_popup(),
-        notifications.render()
+        Notifications::new().render()
     ]
     .on_key_down(
         [
@@ -179,11 +176,7 @@ fn add_todo_input(id: NodeId) -> impl Render {
     ]
 }
 
-fn todos_body(
-    editing_id: RwSignal<Option<u32>>,
-    notifier: Notifier,
-    notification_timeout: Duration,
-) -> impl RenderAny {
+fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration) -> impl RenderAny {
     let TodoContext {
         update_todo,
         delete_todo,
@@ -194,6 +187,7 @@ fn todos_body(
     let update_version = update_todo.version();
     let delete_version = delete_todo.version();
 
+    let notifier = Notifier::new();
     Effect::new(move || {
         if let Some(update_value) = update_todo.value().get() {
             let notification = match update_value {

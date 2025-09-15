@@ -8,6 +8,8 @@ use std::io;
 use futures_util::Stream;
 pub use stream::*;
 use tokio_util::sync::CancellationToken;
+use tui_theme::ColorPalette;
+use tui_theme::profile::TermProfile;
 
 #[cfg(all(feature = "termina", not(target_arch = "wasm32")))]
 pub type DefaultBackend<T> = termina::TerminaBackend<T>;
@@ -69,6 +71,10 @@ pub trait Backend: Send + Sync {
         content: T,
         clipboard_kind: ClipboardKind,
     ) -> io::Result<()>;
+
+    fn color_palette(&self) -> ColorPalette;
+
+    fn profile(&self) -> TermProfile;
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream;
 

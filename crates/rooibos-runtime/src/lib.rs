@@ -39,7 +39,7 @@ pub fn use_keypress() -> rooibos_reactive::graph::signal::ReadSignal<Option<rooi
 {
     let mut term_rx = with_state(|s| s.term_tx.subscribe());
     let (term_signal, set_term_signal) = rooibos_reactive::graph::signal::signal(None);
-    wasm_compat::spawn_local(async move {
+    rooibos_reactive::spawn_local(async move {
         while let Ok(event) = term_rx.recv().await {
             if term_signal.is_disposed() {
                 return;

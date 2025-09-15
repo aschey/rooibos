@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+use rooibos_reactive::spawn_local;
 use tokio::sync::mpsc;
 use tokio_util::sync::CancellationToken;
 use tracing::error;
@@ -30,7 +31,7 @@ impl<T> Debouncer<T> {
         let has_value = Arc::new(AtomicBool::new(false));
         let cancellation_token = CancellationToken::new();
 
-        wasm_compat::spawn_local({
+        spawn_local({
             let has_value = has_value.clone();
             let cancellation_token = cancellation_token.clone();
 

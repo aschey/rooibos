@@ -12,7 +12,7 @@ use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
 use rooibos::ssh::keys::PrivateKey;
 use rooibos::ssh::keys::ssh_key::private::{Ed25519Keypair, KeypairData};
-use rooibos::ssh::{AppServer, ArcHandle, SshConfig, SshEventReceiver, SshHandler};
+use rooibos::ssh::{AppServer, SshConfig, SshHandler, SshParams};
 use tokio::sync::watch;
 use tokio_stream::wrappers::WatchStream;
 
@@ -48,12 +48,11 @@ impl SshHandler for SshApp {
     async fn run_terminal(
         &self,
         _client_id: u32,
-        handle: ArcHandle,
-        events: SshEventReceiver,
+        params: SshParams,
         _client_addr: Option<std::net::SocketAddr>,
     ) {
         let count_tx = self.count_tx.clone();
-        Runtime::initialize(SshBackend::new(handle, events).await.unwrap())
+        Runtime::initialize(SshBackend::new(params).await.unwrap())
             .run(|| app(count_tx))
             .await
             .unwrap();

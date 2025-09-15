@@ -16,6 +16,7 @@ background-service = { workspace = true }
 thiserror = { workspace = true }
 rooibos-terminal = { workspace = true }
 proc-exit = { workspace = true }
+tui-theme = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 tokio = { workspace = true, default-features = false, features = [

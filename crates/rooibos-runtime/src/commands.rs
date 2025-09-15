@@ -6,17 +6,24 @@ use std::io;
 use std::ops::{Deref, DerefMut};
 use std::process::ExitStatus;
 use std::sync::Arc;
+use std::time::Duration;
 
-use background_service::{BackgroundService, LocalBackgroundService, TaskId};
+use background_service::{BackgroundService, LocalBackgroundService, ServiceContext, TaskId};
 use educe::Educe;
 use ratatui::Terminal;
 use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
+use rooibos_reactive::graph::computed::ScopedFuture;
+use rooibos_reactive::graph::owner::Owner;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
+use tui_theme::profile::TermProfile;
+use tui_theme::{ColorPalette, set_color_palette_local, set_profile_local};
 
-use crate::{ControlFlow, ExitPayload, OsSignal, RuntimeCommand, with_all_state, with_state};
+use crate::{
+    ControlFlow, ExitPayload, OsSignal, RuntimeCommand, RuntimeState, with_all_state, with_state,
+};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
@@ -157,7 +164,7 @@ pub fn set_clipboard<T: Display>(
 }
 
 pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
-    with_state(|s| s.context.spawn(service))
+    with_state(|s| s.context.spawn(ScopedBackgroundService::new(service, s)))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -165,7 +172,10 @@ pub fn spawn_service_on<S: BackgroundService + Send + 'static>(
     service: S,
     handle: &Handle,
 ) -> TaskId {
-    with_state(|s| s.context.spawn_on(service, handle))
+    with_state(|s| {
+        s.context
+            .spawn_on(ScopedBackgroundService::new(service, s), handle)
+    })
 }
 
 pub fn spawn_local_service<S: LocalBackgroundService + 'static>(service: S) -> TaskId {
@@ -184,7 +194,10 @@ pub fn spawn_local_service_on<S: LocalBackgroundService + 'static>(
 pub fn spawn_blocking_service<S: background_service::BlockingBackgroundService + Send + 'static>(
     service: S,
 ) -> TaskId {
-    with_state(|s| s.context.spawn_blocking(service))
+    with_state(|s| {
+        s.context
+            .spawn_blocking(ScopedBlockingBackgroundService::new(service, s))
+    })
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -194,7 +207,20 @@ pub fn spawn_blocking_service_on<
     service: S,
     handle: &Handle,
 ) -> TaskId {
-    with_state(|s| s.context.spawn_blocking_on(service, handle))
+    with_state(|s| {
+        s.context
+            .spawn_blocking_on(ScopedBlockingBackgroundService::new(service, s), handle)
+    })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_thread<S: background_service::BlockingBackgroundService + Send + 'static>(
+    service: S,
+) -> TaskId {
+    with_state(|s| {
+        s.context
+            .spawn_thread(ScopedBlockingBackgroundService::new(service, s))
+    })
 }
 
 pub fn before_exit_async<F, Fut>(f: F)
@@ -283,4 +309,86 @@ where
             })
             .unwrap();
     });
+}
+
+struct ScopedBackgroundService<S> {
+    service: S,
+    owner: Owner,
+    profile: TermProfile,
+    palette: ColorPalette,
+}
+
+impl<S> ScopedBackgroundService<S> {
+    fn new(service: S, state: &RuntimeState) -> Self {
+        Self {
+            service,
+            owner: Owner::current().unwrap_or_default(),
+            profile: state.profile,
+            palette: state.palette,
+        }
+    }
+}
+
+impl<S> BackgroundService for ScopedBackgroundService<S>
+where
+    S: BackgroundService + Send,
+{
+    fn name(&self) -> &str {
+        self.service.name()
+    }
+
+    fn shutdown_timeout(&self) -> Duration {
+        self.service.shutdown_timeout()
+    }
+
+    async fn run(
+        self,
+        context: ServiceContext,
+    ) -> std::result::Result<(), background_service::error::BoxedError> {
+        self.owner.set();
+        set_color_palette_local(self.palette);
+        set_profile_local(self.profile);
+        ScopedFuture::new(self.service.run(context)).await
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+struct ScopedBlockingBackgroundService<S> {
+    service: S,
+    owner: Owner,
+    profile: TermProfile,
+    palette: ColorPalette,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<S> ScopedBlockingBackgroundService<S> {
+    fn new(service: S, state: &RuntimeState) -> Self {
+        Self {
+            service,
+            owner: Owner::current().unwrap_or_default(),
+            profile: state.profile,
+            palette: state.palette,
+        }
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl<S> background_service::BlockingBackgroundService for ScopedBlockingBackgroundService<S>
+where
+    S: background_service::BlockingBackgroundService,
+{
+    fn name(&self) -> &str {
+        self.service.name()
+    }
+
+    fn shutdown_timeout(&self) -> Duration {
+        self.service.shutdown_timeout()
+    }
+
+    fn run(self, context: ServiceContext) -> Result<(), background_service::error::BoxedError> {
+        self.owner.set();
+        set_color_palette_local(self.palette);
+        set_profile_local(self.profile);
+        self.service.run(context)
+    }
 }

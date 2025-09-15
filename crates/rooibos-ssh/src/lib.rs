@@ -148,6 +148,12 @@ impl<T: SshHandler> AppServer<T> {
                         server_shutdown.cancel();
                     }
                     let _ = signal_tx.send(signal);
+                    tokio::spawn(async move {
+                        // fallback: If a client exited unexpectedly,
+                        // we may not be able to wait for every connection to drain cleanly
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                        server_shutdown.cancel();
+                    });
                 }
                 Ok(())
             },
@@ -175,12 +181,17 @@ impl<T: SshHandler> AppServer<T> {
     }
 }
 
+pub struct SshParams {
+    pub handle: ArcHandle,
+    pub events: SshEventReceiver,
+    pub term: String,
+}
+
 pub trait SshHandler: Send + Sync + 'static {
     fn run_terminal(
         &self,
         client_id: u32,
-        handle: ArcHandle,
-        events: SshEventReceiver,
+        params: SshParams,
         client_addr: Option<std::net::SocketAddr>,
     ) -> impl Future + Send;
 }
@@ -236,6 +247,7 @@ where
     T: SshHandler,
 {
     type Handler = AppHandler<T>;
+
     fn new_client(&mut self, socket_addr: Option<std::net::SocketAddr>) -> AppHandler<T> {
         self.current_client_id += 1;
         AppHandler {
@@ -260,76 +272,9 @@ impl<T: SshHandler> Handler for AppHandler<T> {
 
     async fn channel_open_session(
         &mut self,
-        channel: Channel<Msg>,
-        session: &mut Session,
+        _channel: Channel<Msg>,
+        _session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        let (event_tx, event_rx) = mpsc::channel(1024);
-        let (query_event_tx, query_event_rx) = mpsc::channel(1024);
-
-        let clients = self.clients.clone();
-        let client_id = self.client_id;
-        let window_size = Arc::new(std::sync::RwLock::new(WindowSize {
-            columns_rows: Size::default(),
-            pixels: Size::default(),
-        }));
-        clients.write().await.insert(
-            client_id,
-            SshEventSender {
-                events: event_tx,
-                query_events: query_event_tx,
-                window_size: window_size.clone(),
-            },
-        );
-
-        let handler = self.handler.clone();
-        let channel_id = channel.id();
-        let terminal_handle = TerminalHandle::new(session.handle(), channel_id);
-        let handle = session.handle();
-        let socket_addr = self.socket_addr;
-
-        self.service_context
-            .spawn_blocking(("tui", move |_: ServiceContext| {
-                let owner = Owner::new();
-                owner.with(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
-
-                    rt.block_on(async move {
-                        let local_set = LocalSet::new();
-                        local_set
-                            .run_until(async move {
-                                with_runtime_async(client_id, async move {
-                                    handler
-                                        .run_terminal(
-                                            client_id,
-                                            ArcHandle(Arc::new(std::sync::RwLock::new(
-                                                terminal_handle,
-                                            ))),
-                                            SshEventReceiver {
-                                                events: event_rx,
-                                                query_events: query_event_rx,
-                                                window_size,
-                                            },
-                                            socket_addr,
-                                        )
-                                        .await;
-                                    restore_terminal().unwrap();
-                                })
-                                .await
-                            })
-                            .await;
-
-                        let mut clients = clients.write().await;
-                        clients.remove(&client_id);
-
-                        let _ = handle
-                            .close(channel_id)
-                            .await
-                            .inspect_err(|e| warn!("error closing channel: {e:?}"));
-                    });
-                });
-                Ok(())
-            }));
-
         Ok(true)
     }
 
@@ -342,6 +287,7 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         session
             .disconnect(russh::Disconnect::ByApplication, "Quit", "")
             .unwrap();
+
         session.close(channel).unwrap();
         let shutdown_requested = self.shutdown_requested.load(Ordering::Acquire);
         let can_shutdown = shutdown_requested && self.clients.read().await.is_empty();
@@ -394,7 +340,7 @@ impl<T: SshHandler> Handler for AppHandler<T> {
     async fn pty_request(
         &mut self,
         channel: ChannelId,
-        _term: &str,
+        term: &str,
         col_width: u32,
         row_height: u32,
         pix_width: u32,
@@ -402,7 +348,12 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         _modes: &[(russh::Pty, u32)],
         session: &mut Session,
     ) -> Result<(), Self::Error> {
-        self.handle_terminal_size(WindowSize {
+        let (event_tx, event_rx) = mpsc::channel(1024);
+        let (query_event_tx, query_event_rx) = mpsc::channel(1024);
+
+        let clients = self.clients.clone();
+        let client_id = self.client_id;
+        let window_size = Arc::new(std::sync::RwLock::new(WindowSize {
             columns_rows: Size {
                 width: col_width as u16,
                 height: row_height as u16,
@@ -411,8 +362,66 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                 width: pix_width as u16,
                 height: pix_height as u16,
             },
-        })
-        .await;
+        }));
+        clients.write().await.insert(
+            client_id,
+            SshEventSender {
+                events: event_tx,
+                query_events: query_event_tx,
+                window_size: window_size.clone(),
+            },
+        );
+
+        let handler = self.handler.clone();
+
+        let terminal_handle = TerminalHandle::new(session.handle(), channel);
+        let handle = session.handle();
+        let socket_addr = self.socket_addr;
+
+        let term = term.to_string();
+        self.service_context
+            .spawn_thread(("tui", move |_: ServiceContext| {
+                let owner = Owner::new();
+                owner.with(move || {
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .unwrap();
+
+                    rt.block_on(async move {
+                        let local_set = LocalSet::new();
+                        local_set
+                            .run_until(async move {
+                                with_runtime_async(client_id, async move {
+                                    let params = SshParams {
+                                        handle: ArcHandle(Arc::new(std::sync::RwLock::new(
+                                            terminal_handle,
+                                        ))),
+                                        events: SshEventReceiver {
+                                            events: event_rx,
+                                            query_events: query_event_rx,
+                                            window_size,
+                                        },
+                                        term,
+                                    };
+                                    handler.run_terminal(client_id, params, socket_addr).await;
+                                    restore_terminal().unwrap();
+                                })
+                                .await
+                            })
+                            .await;
+
+                        let mut clients = clients.write().await;
+                        clients.remove(&client_id);
+
+                        let _ = handle
+                            .close(channel)
+                            .await
+                            .inspect_err(|e| warn!("error closing channel: {e:?}"));
+                    });
+                });
+                Ok(())
+            }));
         session.channel_success(channel)?;
         Ok(())
     }
@@ -439,5 +448,20 @@ impl<T: SshHandler> Handler for AppHandler<T> {
         .await;
         session.channel_success(channel)?;
         Ok(())
+    }
+}
+
+impl<T> Drop for AppHandler<T>
+where
+    T: SshHandler,
+{
+    fn drop(&mut self) {
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            let clients = self.clients.clone();
+            let client_id = self.client_id;
+            handle.spawn(async move {
+                clients.write().await.remove(&client_id);
+            });
+        }
     }
 }

@@ -12,6 +12,8 @@ use rooibos_reactive::graph::traits::Set;
 use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
+use tui_theme::ColorPalette;
+use tui_theme::profile::TermProfile;
 
 use crate::{RuntimeCommand, TerminalCommand, proc_exit, wasm_compat};
 
@@ -88,6 +90,8 @@ pub(crate) struct RuntimeState {
     pub(crate) on_os_signal: wasm_compat::Mutex<Box<OnOsSignalFn>>,
     pub(crate) window_size: ArcReadSignal<ViewportSize>,
     pub(crate) window_focused: ArcReadSignal<bool>,
+    pub(crate) profile: TermProfile,
+    pub(crate) palette: ColorPalette,
 }
 
 impl RuntimeState {
@@ -125,6 +129,8 @@ impl RuntimeState {
             service_manager: Some(service_manager),
             window_size,
             window_focused,
+            palette: ColorPalette::default(),
+            profile: TermProfile::TrueColor,
         }
     }
 }

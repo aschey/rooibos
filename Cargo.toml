@@ -43,7 +43,7 @@ termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "1ba37ff46d941d5698589796606118ee15f2b75b" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "61113379948d06ac5e864cfec1f72b0d923e5402" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
 terminput-termina = "0.1.2"
@@ -83,7 +83,7 @@ matchit = "0.8"
 url = "2"
 convert_case = "0.8"
 futures-util = "0.3"
-background-service = { git = "https://github.com/aschey/background-service-rs", rev = "6d9a1ddb2b57ac4fe305eff84545168d70171a5d" }
+background-service = { git = "https://github.com/aschey/background-service-rs", rev = "e932670ce7998022d8cf56a593f2e39c3c0362b5" }
 proc-exit = "2.0.2"
 console_error_panic_hook = "0.1"
 signal-hook = "0.3"

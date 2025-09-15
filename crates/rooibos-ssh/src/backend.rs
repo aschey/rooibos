@@ -1,5 +1,6 @@
+use std::collections::HashMap;
 use std::fmt::Display;
-use std::io;
+use std::io::{self, stdout};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
@@ -12,12 +13,15 @@ use rooibos_terminal::termina::{TerminaBackend, tui};
 use rooibos_terminal::{self, AsyncInputStream, Backend};
 use stream_cancel::StreamExt;
 use termina::escape::csi::{self, Csi};
+use termina::escape::dcs::{Dcs, DcsRequest, DcsResponse};
 use termina::{PlatformTerminal, Terminal};
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
+use tui_theme::ColorPalette;
+use tui_theme::profile::{DetectorSettings, TermProfile, TermVars};
 
-use crate::{ArcHandle, SshEventReceiver};
+use crate::{ArcHandle, SshParams};
 
 pub struct TerminalSettings {
     alternate_screen: bool,
@@ -91,37 +95,66 @@ pub struct SshBackend {
     event_rx: Mutex<Option<mpsc::Receiver<Event>>>,
     window_size: Arc<RwLock<WindowSize>>,
     inner: TerminaBackend<ArcHandle>,
+    profile: TermProfile,
 }
 
+const TEST_COLOR: termina::style::RgbColor = termina::style::RgbColor::new(150, 150, 150);
+
 impl SshBackend {
-    pub async fn new(handle: ArcHandle, events: SshEventReceiver) -> io::Result<Self> {
-        Self::new_with_settings(handle, events, TerminalSettings::default()).await
+    pub async fn new(params: SshParams) -> io::Result<Self> {
+        Self::new_with_settings(params, TerminalSettings::default()).await
     }
 
     pub async fn new_with_settings(
-        mut handle: ArcHandle,
-        mut events: SshEventReceiver,
+        mut params: SshParams,
         settings: TerminalSettings,
     ) -> io::Result<Self> {
         use io::Write;
         let mut supports_keyboard_enhancement = false;
+
+        let mut profile = TermProfile::detect_with_vars(
+            &stdout(),
+            TermVars::from_source(
+                &HashMap::from_iter([("TERM".to_string(), params.term)]),
+                DetectorSettings::new()
+                    .enable_dcs(false)
+                    .enable_terminfo(false)
+                    .enable_dcs(false),
+            ),
+        );
+
         if settings.keyboard_enhancement {
             write!(
-                handle,
-                "{}{}",
+                params.handle,
+                "{}{}{}{}{}",
                 Csi::Keyboard(csi::Keyboard::QueryFlags),
+                Csi::Sgr(csi::Sgr::Background(TEST_COLOR.into())),
+                Dcs::Request(DcsRequest::GraphicRendition),
+                Csi::Sgr(csi::Sgr::Reset),
                 Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
             )?;
-            handle.flush()?;
+            params.handle.flush()?;
 
             loop {
-                let res = timeout(Duration::from_millis(100), events.query_events.recv()).await;
+                let res = timeout(
+                    Duration::from_millis(100),
+                    params.events.query_events.recv(),
+                )
+                .await;
                 let Ok(Some(res)) = res else {
                     break;
                 };
                 match res {
                     termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
                         supports_keyboard_enhancement = true;
+                    }
+                    termina::Event::Dcs(Dcs::Response {
+                        value: DcsResponse::GraphicRendition(sgrs),
+                        ..
+                    }) => {
+                        if sgrs.contains(&csi::Sgr::Background(TEST_COLOR.into())) {
+                            profile = TermProfile::TrueColor;
+                        }
                     }
                     termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
                         break;
@@ -130,7 +163,7 @@ impl SshBackend {
                 }
             }
         }
-
+        let handle = params.handle.clone();
         let mut termina_settings =
             rooibos_terminal::termina::TerminalSettings::from_writer(move || handle.clone())
                 .raw_mode(false)
@@ -147,12 +180,13 @@ impl SshBackend {
         }
 
         let inner = TerminaBackend::new(termina_settings);
-        let window_size = events.window_size;
+        let window_size = params.events.window_size;
 
         Ok(Self {
-            event_rx: Mutex::new(Some(events.events)),
+            event_rx: Mutex::new(Some(params.events.events)),
             window_size,
             inner,
+            profile,
         })
     }
 }
@@ -218,6 +252,15 @@ impl Backend for SshBackend {
     ) -> io::Result<()> {
         self.inner
             .set_clipboard(&mut backend.inner, content, clipboard_kind)
+    }
+
+    fn color_palette(&self) -> ColorPalette {
+        // TODO: support OSC 10/11 here
+        ColorPalette::default()
+    }
+
+    fn profile(&self) -> tui_theme::profile::TermProfile {
+        self.profile
     }
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {

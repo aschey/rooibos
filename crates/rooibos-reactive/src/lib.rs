@@ -14,6 +14,8 @@ pub mod stores {
 use std::future::Future;
 use std::panic::{set_hook, take_hook};
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 use any_spawner::Executor;
 pub use error_boundary::*;
@@ -21,6 +23,7 @@ pub use for_loop::*;
 pub use provider::*;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
+use reactive_graph::computed::ScopedFuture;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::signal;
 use reactive_graph::traits::{Get, Set};
@@ -41,6 +44,7 @@ pub mod error {
 #[doc(hidden)]
 #[cfg(not(target_arch = "wasm32"))]
 pub use tokio as __tokio;
+use tui_theme::{color_palette, term_profile};
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen as __wasm_bindgen;
@@ -94,10 +98,6 @@ pub fn init_executor() {
 #[cfg(target_arch = "wasm32")]
 pub fn init_executor() {
     any_spawner::Executor::init_wasm_bindgen().expect("executor already initialized");
-}
-
-pub async fn tick() {
-    Executor::tick().await;
 }
 
 #[derive(Clone)]
@@ -205,4 +205,72 @@ where
         set_change_event.set(event);
         set_is_direct.set(data.is_direct);
     })
+}
+
+pub fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
+    let fut = ScopedFuture::new(fut);
+    let profile = term_profile();
+    let palette = color_palette();
+    #[cfg(not(target_arch = "wasm32"))]
+    Executor::spawn(async move {
+        tui_theme::set_profile_local(profile);
+        tui_theme::set_color_palette_local(palette);
+        fut.await
+    });
+
+    #[cfg(target_family = "wasm")]
+    Executor::spawn_local(fut);
+}
+
+pub fn spawn_local(fut: impl Future<Output = ()> + 'static) {
+    Executor::spawn_local(fut)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_blocking<F, R>(f: F) -> tokio::task::JoinHandle<R>
+where
+    F: FnOnce() -> R + Send + 'static,
+    R: Send + 'static,
+{
+    let owner = Owner::current().unwrap_or_default();
+    let profile = term_profile();
+    let palette = color_palette();
+
+    tokio::task::spawn_blocking(move || {
+        tui_theme::set_profile_local(profile);
+        tui_theme::set_color_palette_local(palette);
+        owner.with(f)
+    })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn spawn_thread<F, T>(f: F) -> thread::JoinHandle<T>
+where
+    F: FnOnce() -> T,
+    F: Send + 'static,
+    T: Send + 'static,
+{
+    let owner = Owner::current().unwrap_or_default();
+    let profile = term_profile();
+    let palette = color_palette();
+
+    thread::spawn(move || {
+        tui_theme::set_profile_local(profile);
+        tui_theme::set_color_palette_local(palette);
+        owner.with(f)
+    })
+}
+
+pub async fn tick() {
+    Executor::tick().await
+}
+
+pub fn delay<F>(duration: Duration, f: F)
+where
+    F: Future<Output = ()> + 'static,
+{
+    spawn_local(async move {
+        wasm_compat::futures::sleep(duration).await;
+        f.await;
+    });
 }

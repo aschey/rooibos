@@ -9,8 +9,8 @@ pub use into_view::*;
 use ratatui::backend::WindowSize;
 pub use renderer::*;
 pub use rooibos_dom::{
-    DomNodeRepr, MeasureNode, RenderNode, clear_focus, delay, dom_update_receiver, events,
-    focus_id, focus_next, focus_prev, line, render_terminal, root, set_pixel_size,
+    DomNodeRepr, MeasureNode, RenderNode, clear_focus, dom_update_receiver, events, focus_id,
+    focus_next, focus_prev, line, render_terminal, root, set_pixel_size,
     set_supports_keyboard_enhancement, span, text, try_focus_id, widgets,
 };
 use rooibos_dom::{render_dom, with_nodes, with_nodes_mut};

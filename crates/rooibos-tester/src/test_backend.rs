@@ -8,6 +8,8 @@ use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_util::sync::CancellationToken;
+use tui_theme::ColorPalette;
+use tui_theme::profile::TermProfile;
 
 pub struct TestBackend {
     width: u16,
@@ -86,6 +88,14 @@ impl Backend for TestBackend {
 
     fn leave_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         Ok(())
+    }
+
+    fn color_palette(&self) -> ColorPalette {
+        ColorPalette::default()
+    }
+
+    fn profile(&self) -> TermProfile {
+        TermProfile::TrueColor
     }
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {
