@@ -100,8 +100,6 @@ pub struct SshBackend {
     profile: TermProfile,
 }
 
-const TEST_COLOR: termina::style::RgbColor = termina::style::RgbColor::new(150, 150, 150);
-
 struct SshTerminal<'a> {
     handle: ArcHandle,
     query_events: &'a mut mpsc::Receiver<termina::Event>,

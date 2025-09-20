@@ -16,12 +16,16 @@ tracing = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
 tokio-util = { workspace = true }
 stream-cancel = { workspace = true }
-tui-theme = { workspace = true, features = ["dcs-detect", "terminfo"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 terminput-termina = { workspace = true, optional = true }
 termina = { workspace = true, optional = true }
+tui-theme = { workspace = true, features = [
+  "dcs-detect",
+  "terminfo",
+], optional = true }
+
 
 [features]
-termina = ["dep:termina", "dep:terminput-termina"]
+termina = ["dep:termina", "dep:terminput-termina", "dep:tui-theme"]
 scrolling-regions = ["ratatui/scrolling-regions"]
