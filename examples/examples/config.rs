@@ -32,7 +32,7 @@ async fn main() -> Result<ExitCode, RuntimeError> {
     .unwrap();
     provide_config(config);
 
-    Runtime::initialize(DefaultBackend::auto()).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
 }
 
 fn app() -> impl Render {

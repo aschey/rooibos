@@ -54,7 +54,7 @@ async fn main() -> Result<ExitCode> {
 
     let res = Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
-        DefaultBackend::auto(),
+        DefaultBackend::auto().await?,
     )
     .run(|| app(Duration::from_secs(3)))
     .await?;

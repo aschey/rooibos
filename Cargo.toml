@@ -23,8 +23,8 @@ rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
 # leptos
 next_tuple = "0.1.0"
 either_of = "0.1.6"
-reactive_graph = "0.2.6"
-tachys = { git = "https://github.com/aschey/leptos", rev = "70eb8e5ff77fd8eb44e2570cf8f6d0c1022da9cc" }
+reactive_graph = "0.2.7"
+tachys = { git = "https://github.com/aschey/leptos", rev = "d9749521008c73cfa5601aa0e6ece40b6432d006" }
 throw_error = "0.3.0"
 reactive_stores = "0.2.5"
 any_spawner = "0.3.0"
@@ -43,7 +43,7 @@ termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "61113379948d06ac5e864cfec1f72b0d923e5402" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "fb0f88613c7abb8a449c4527ee04599d9026617e" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
 terminput-termina = "0.1.2"

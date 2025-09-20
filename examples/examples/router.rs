@@ -28,7 +28,7 @@ struct BlogPost {
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto()).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
 }
 
 fn app() -> impl Render {

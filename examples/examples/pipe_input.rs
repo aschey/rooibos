@@ -23,7 +23,7 @@ async fn main() -> Result {
         buffer
     };
 
-    let runtime = Runtime::initialize(DefaultBackend::auto());
+    let runtime = Runtime::initialize(DefaultBackend::auto().await?);
     Ok(runtime.run(|| app(input)).await?)
 }
 

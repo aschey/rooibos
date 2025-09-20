@@ -17,7 +17,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto()).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
 }
 
 #[derive(Route)]

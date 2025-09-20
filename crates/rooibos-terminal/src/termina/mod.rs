@@ -14,7 +14,7 @@ use terminput_termina::to_terminput;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
-use tui_theme::profile::DetectorSettings;
+use tui_theme::profile::{DetectorSettings, QueryTerminal};
 use tui_theme::{color_palette, term_profile};
 
 use super::Backend;
@@ -56,50 +56,45 @@ pub struct TerminalSettings<W> {
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
-impl Default for TerminalSettings<Stdout> {
-    fn default() -> Self {
-        Self::stdout()
-    }
-}
-
-impl Default for TerminalSettings<Stderr> {
-    fn default() -> Self {
-        Self::stderr()
-    }
-}
-
-impl Default for TerminalSettings<AutoStream> {
-    fn default() -> Self {
-        Self::auto()
-    }
-}
-
 impl TerminalSettings<Stdout> {
-    pub fn stdout_with_detector_options(settings: DetectorSettings) -> Self {
+    pub fn stdout_with_detector_options<Q>(settings: DetectorSettings<Q>) -> Self
+    where
+        Q: QueryTerminal,
+    {
         tui_theme::load_profile(&stdout(), settings);
         tui_theme::load_color_palette();
         Self::from_writer(stdout)
     }
 
-    pub fn stdout() -> Self {
-        Self::stdout_with_detector_options(DetectorSettings::new())
+    pub fn stdout() -> io::Result<Self> {
+        Ok(Self::stdout_with_detector_options(
+            DetectorSettings::with_dcs()?,
+        ))
     }
 }
 
 impl TerminalSettings<Stderr> {
-    pub fn stderr_with_detector_options(settings: DetectorSettings) -> Self {
+    pub fn stderr_with_detector_options<Q>(settings: DetectorSettings<Q>) -> Self
+    where
+        Q: QueryTerminal,
+    {
         tui_theme::load_profile(&stderr(), settings);
         tui_theme::load_color_palette();
         Self::from_writer(stderr)
     }
 
-    pub fn stderr() -> Self {
-        Self::stderr_with_detector_options(DetectorSettings::new())
+    pub fn stderr() -> io::Result<Self> {
+        Ok(Self::stderr_with_detector_options(
+            DetectorSettings::with_dcs()?,
+        ))
     }
 }
 
 impl TerminalSettings<AutoStream> {
-    pub fn auto_with_detector_options(settings: DetectorSettings) -> Self {
+    pub fn auto_with_detector_options<Q>(settings: DetectorSettings<Q>) -> Self
+    where
+        Q: QueryTerminal,
+    {
         match AutoStream::new().0 {
             StreamImpl::Stdout(out) => tui_theme::load_profile(&out, settings),
             StreamImpl::Stderr(err) => tui_theme::load_profile(&err, settings),
@@ -107,8 +102,11 @@ impl TerminalSettings<AutoStream> {
         tui_theme::load_color_palette();
         Self::from_writer(AutoStream::new)
     }
-    pub fn auto() -> Self {
-        Self::auto_with_detector_options(DetectorSettings::new())
+
+    pub fn auto() -> io::Result<Self> {
+        Ok(Self::auto_with_detector_options(
+            DetectorSettings::with_dcs()?,
+        ))
     }
 }
 
@@ -183,23 +181,23 @@ pub struct TerminaBackend<W: Write> {
 }
 
 impl<W: Write> TerminaBackend<W> {
-    pub fn new(settings: TerminalSettings<W>) -> Self {
+    pub async fn new(settings: TerminalSettings<W>) -> Self {
         let mut this = Self {
             settings,
             event_reader: None.into(),
             supports_keyboard_enhancement: false,
         };
-        this.set_keyboard_enhancement();
+        this.set_keyboard_enhancement().await;
         this
     }
 
-    pub fn settings(mut self, settings: TerminalSettings<W>) -> Self {
+    pub async fn settings(mut self, settings: TerminalSettings<W>) -> Self {
         self.settings = settings;
-        self.set_keyboard_enhancement();
+        self.set_keyboard_enhancement().await;
         self
     }
 
-    fn set_keyboard_enhancement(&mut self) {
+    async fn set_keyboard_enhancement(&mut self) {
         if self.settings.force_keyboard_enhancement {
             self.supports_keyboard_enhancement = true;
             return;
@@ -210,71 +208,59 @@ impl<W: Write> TerminaBackend<W> {
         }
 
         if self.settings.keyboard_enhancement {
-            let mut terminal = PlatformTerminal::new().unwrap();
-            terminal.enter_raw_mode().unwrap();
-            write!(
-                terminal,
-                "{}{}",
-                Csi::Keyboard(csi::Keyboard::QueryFlags),
-                Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
-            )
-            .unwrap();
-            terminal.flush().unwrap();
-            loop {
-                if !matches!(
-                    terminal.poll(termina::Event::is_escape, Duration::from_millis(100).into()),
-                    Ok(true)
-                ) {
-                    break;
-                }
-                match terminal.read(termina::Event::is_escape).unwrap() {
-                    termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
-                        self.supports_keyboard_enhancement = true;
-                    }
-                    termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
+            let mut supports_keyboard_enhancement = self.supports_keyboard_enhancement;
+            self.supports_keyboard_enhancement = tokio::task::spawn_blocking(move || {
+                let mut terminal = PlatformTerminal::new().unwrap();
+                terminal.enter_raw_mode().unwrap();
+                write!(
+                    terminal,
+                    "{}{}",
+                    Csi::Keyboard(csi::Keyboard::QueryFlags),
+                    Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
+                )
+                .unwrap();
+                terminal.flush().unwrap();
+                loop {
+                    if !matches!(
+                        terminal.poll(termina::Event::is_escape, Duration::from_millis(100).into()),
+                        Ok(true)
+                    ) {
                         break;
                     }
-                    _ => {}
+                    match terminal.read(termina::Event::is_escape).unwrap() {
+                        termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
+                            supports_keyboard_enhancement = true;
+                        }
+                        termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
+                            break;
+                        }
+                        _ => {}
+                    }
                 }
-            }
-            terminal.enter_cooked_mode().unwrap();
+                terminal.enter_cooked_mode().unwrap();
+                supports_keyboard_enhancement
+            })
+            .await
+            .unwrap();
         }
     }
 }
 
-impl Default for TerminaBackend<Stdout> {
-    fn default() -> Self {
-        Self::new(TerminalSettings::default())
-    }
-}
-
-impl Default for TerminaBackend<Stderr> {
-    fn default() -> Self {
-        Self::new(TerminalSettings::default())
-    }
-}
-
-impl Default for TerminaBackend<AutoStream> {
-    fn default() -> Self {
-        Self::new(TerminalSettings::default())
-    }
-}
-
-impl TerminaBackend<AutoStream> {
-    pub fn auto() -> Self {
-        Self::default()
-    }
-}
-
 impl TerminaBackend<Stdout> {
-    pub fn stdout() -> Self {
-        Self::default()
+    pub async fn stdout() -> io::Result<Self> {
+        Ok(Self::new(TerminalSettings::stdout()?).await)
     }
 }
 
 impl TerminaBackend<Stderr> {
-    pub fn stderr() -> Self {
-        Self::default()
+    pub async fn stderr() -> io::Result<Self> {
+        Ok(Self::new(TerminalSettings::stderr()?).await)
+    }
+}
+
+impl TerminaBackend<AutoStream> {
+    pub async fn auto() -> io::Result<Self> {
+        Ok(Self::new(TerminalSettings::auto()?).await)
     }
 }
 

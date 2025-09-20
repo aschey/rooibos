@@ -22,7 +22,7 @@ background-service = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
 termina = { workspace = true }
 stream-cancel = { workspace = true }
-tui-theme = { workspace = true }
+tui-theme = { workspace = true, features = ["dcs-detect", "terminfo"] }
 
 [features]
 scrolling-regions = ["ratatui/scrolling-regions"]

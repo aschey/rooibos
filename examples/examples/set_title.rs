@@ -15,11 +15,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(
-        DefaultBackend::auto().settings(TerminalSettings::default().title("initial title")),
-    )
-    .run(app)
-    .await
+    Runtime::initialize(DefaultBackend::new(TerminalSettings::auto()?.title("initial title")).await)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {

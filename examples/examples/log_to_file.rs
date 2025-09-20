@@ -28,7 +28,7 @@ async fn main() -> Result {
         .with_writer(non_blocking_appender);
     subscriber.init();
 
-    let runtime = Runtime::initialize(DefaultBackend::auto());
+    let runtime = Runtime::initialize(DefaultBackend::auto().await?);
     runtime.run(app).await
 }
 

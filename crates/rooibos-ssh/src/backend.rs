@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::Display;
-use std::io::{self, stdout};
+use std::io::{self};
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
+use futures::executor::block_on;
 use ratatui::Viewport;
 use ratatui::backend::WindowSize;
 use ratatui::layout::{Position, Size};
@@ -12,14 +13,15 @@ use rooibos_runtime::CancellationToken;
 use rooibos_terminal::termina::{TerminaBackend, tui};
 use rooibos_terminal::{self, AsyncInputStream, Backend};
 use stream_cancel::StreamExt;
-use termina::escape::csi::{self, Csi};
-use termina::escape::dcs::{Dcs, DcsRequest, DcsResponse};
+use termina::escape::csi::{self, Csi, Device, Sgr};
+use termina::escape::dcs::{Dcs, DcsResponse};
+use termina::style::ColorSpec;
 use termina::{PlatformTerminal, Terminal};
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
 use tui_theme::ColorPalette;
-use tui_theme::profile::{DetectorSettings, TermProfile, TermVars};
+use tui_theme::profile::{DetectorSettings, IsTerminal, QueryTerminal, TermProfile, TermVars};
 
 use crate::{ArcHandle, SshParams};
 
@@ -100,6 +102,64 @@ pub struct SshBackend {
 
 const TEST_COLOR: termina::style::RgbColor = termina::style::RgbColor::new(150, 150, 150);
 
+struct SshTerminal<'a> {
+    handle: ArcHandle,
+    query_events: &'a mut mpsc::Receiver<termina::Event>,
+}
+
+impl QueryTerminal for SshTerminal<'_> {
+    fn setup(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn cleanup(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+
+    fn read_event(&mut self) -> io::Result<tui_theme::profile::Event> {
+        match block_on(timeout(
+            Duration::from_millis(100),
+            self.query_events.recv(),
+        )) {
+            Ok(Some(event)) => Ok(match event {
+                termina::Event::Dcs(Dcs::Response {
+                    value: DcsResponse::GraphicRendition(sgrs),
+                    ..
+                }) => sgrs
+                    .iter()
+                    .find_map(|s| {
+                        if let Sgr::Background(ColorSpec::TrueColor(rgb)) = s {
+                            tui_theme::profile::Event::BackgroundColor(tui_theme::profile::Rgb {
+                                red: rgb.red,
+                                green: rgb.green,
+                                blue: rgb.blue,
+                            })
+                            .into()
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(tui_theme::profile::Event::Other),
+                termina::Event::Csi(Csi::Device(Device::DeviceAttributes(()))) => {
+                    tui_theme::profile::Event::DeviceAttributes
+                }
+                _ => tui_theme::profile::Event::Other,
+            }),
+            Err(_) | Ok(None) => Ok(tui_theme::profile::Event::TimedOut),
+        }
+    }
+}
+
+impl io::Write for SshTerminal<'_> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        self.handle.write(buf)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.handle.flush()
+    }
+}
+
 impl SshBackend {
     pub async fn new(params: SshParams) -> io::Result<Self> {
         Self::new_with_settings(params, TerminalSettings::default()).await
@@ -110,59 +170,54 @@ impl SshBackend {
         settings: TerminalSettings,
     ) -> io::Result<Self> {
         use io::Write;
-        let mut supports_keyboard_enhancement = false;
+        let mut handle = params.handle.clone();
+        let (profile, supports_keyboard_enhancement) = tokio::task::spawn_blocking(move || {
+            let mut supports_keyboard_enhancement = false;
 
-        let mut profile = TermProfile::detect_with_vars(
-            &stdout(),
-            TermVars::from_source(
-                &HashMap::from_iter([("TERM".to_string(), params.term)]),
+            let profile = TermProfile::detect_with_vars(TermVars::from_source(
+                &HashMap::from_iter([("TERM", params.term.as_str())]),
+                &ForceTerminal,
                 DetectorSettings::new()
-                    .enable_dcs(false)
-                    .enable_terminfo(false)
-                    .enable_dcs(false),
-            ),
-        );
+                    .query_terminal(SshTerminal {
+                        handle: handle.clone(),
+                        query_events: &mut params.events.query_events,
+                    })
+                    .enable_terminfo(true)
+                    .enable_tmux_info(false),
+            ));
 
-        if settings.keyboard_enhancement {
-            write!(
-                params.handle,
-                "{}{}{}{}{}",
-                Csi::Keyboard(csi::Keyboard::QueryFlags),
-                Csi::Sgr(csi::Sgr::Background(TEST_COLOR.into())),
-                Dcs::Request(DcsRequest::GraphicRendition),
-                Csi::Sgr(csi::Sgr::Reset),
-                Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
-            )?;
-            params.handle.flush()?;
+            if settings.keyboard_enhancement {
+                write!(
+                    handle,
+                    "{}{}",
+                    Csi::Keyboard(csi::Keyboard::QueryFlags),
+                    Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
+                )?;
+                handle.flush()?;
 
-            loop {
-                let res = timeout(
-                    Duration::from_millis(100),
-                    params.events.query_events.recv(),
-                )
-                .await;
-                let Ok(Some(res)) = res else {
-                    break;
-                };
-                match res {
-                    termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
-                        supports_keyboard_enhancement = true;
-                    }
-                    termina::Event::Dcs(Dcs::Response {
-                        value: DcsResponse::GraphicRendition(sgrs),
-                        ..
-                    }) => {
-                        if sgrs.contains(&csi::Sgr::Background(TEST_COLOR.into())) {
-                            profile = TermProfile::TrueColor;
-                        }
-                    }
-                    termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
+                loop {
+                    let res = block_on(timeout(
+                        Duration::from_millis(100),
+                        params.events.query_events.recv(),
+                    ));
+                    let Ok(Some(res)) = res else {
                         break;
+                    };
+                    match res {
+                        termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
+                            supports_keyboard_enhancement = true;
+                        }
+                        termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
+                            break;
+                        }
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
-        }
+            Ok::<_, io::Error>((profile, supports_keyboard_enhancement))
+        })
+        .await
+        .unwrap()?;
         let handle = params.handle.clone();
         let mut termina_settings =
             rooibos_terminal::termina::TerminalSettings::from_writer(move || handle.clone())
@@ -179,7 +234,7 @@ impl SshBackend {
             termina_settings = termina_settings.title(title);
         }
 
-        let inner = TerminaBackend::new(termina_settings);
+        let inner = TerminaBackend::new(termina_settings).await;
         let window_size = params.events.window_size;
 
         Ok(Self {
@@ -269,6 +324,14 @@ impl Backend for SshBackend {
             cancellation_token.cancelled().await;
             true
         })
+    }
+}
+
+struct ForceTerminal;
+
+impl IsTerminal for ForceTerminal {
+    fn is_terminal(&self) -> bool {
+        true
     }
 }
 

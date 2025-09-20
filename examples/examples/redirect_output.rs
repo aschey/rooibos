@@ -28,7 +28,7 @@ async fn main() -> Result {
         RuntimeSettings::default()
             .viewport(Viewport::Inline(6))
             .show_final_output(false),
-        DefaultBackend::new(TerminalSettings::auto().alternate_screen(false)),
+        DefaultBackend::new(TerminalSettings::auto()?.alternate_screen(false)).await,
     )
     .run(app)
     .await?;

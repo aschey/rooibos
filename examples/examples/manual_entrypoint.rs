@@ -19,7 +19,7 @@ fn main() -> Result {
 #[tokio::main(flavor = "current_thread")]
 async fn async_main() -> Result {
     run_with_executor(async {
-        let runtime = Runtime::initialize(DefaultBackend::auto());
+        let runtime = Runtime::initialize(DefaultBackend::auto().await?);
         runtime.run(app).await
     })
     .await

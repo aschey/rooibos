@@ -23,7 +23,7 @@ async fn main() -> Result {
 
     let runtime = Runtime::initialize_with(
         RuntimeSettings::default().handle_commands(cmd_handler),
-        DefaultBackend::auto(),
+        DefaultBackend::auto().await?,
     );
     runtime.run(app).await
 }

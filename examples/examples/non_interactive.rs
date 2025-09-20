@@ -8,8 +8,9 @@ use rooibos::terminal::{Backend, DefaultBackend};
 use rooibos::theme::Stylize;
 use rooibos::tui::Viewport;
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let backend = DefaultBackend::new(TerminalSettings::stdout().alternate_screen(false));
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let backend = DefaultBackend::new(TerminalSettings::stdout()?.alternate_screen(false)).await;
     let mut terminal = rooibos::tui::Terminal::with_options(
         backend.create_tui_backend()?,
         rooibos::tui::TerminalOptions {

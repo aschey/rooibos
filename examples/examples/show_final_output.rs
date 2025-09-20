@@ -18,7 +18,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     Runtime::initialize_with(
         RuntimeSettings::default().viewport(Viewport::Inline(1)),
-        DefaultBackend::new(TerminalSettings::stdout().alternate_screen(false)),
+        DefaultBackend::new(TerminalSettings::stdout()?.alternate_screen(false)).await,
     )
     .run(app)
     .await

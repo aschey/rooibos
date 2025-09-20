@@ -14,7 +14,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    let mut runtime = Runtime::initialize(DefaultBackend::auto());
+    let mut runtime = Runtime::initialize(DefaultBackend::auto().await?);
     runtime
         .spawn_signal_handler()
         .map_err(RuntimeError::SetupFailure)?;

@@ -21,7 +21,7 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[rooibos::main]
 async fn main() -> Result<()> {
-    let backend = Arc::new(DefaultBackend::auto());
+    let backend = Arc::new(DefaultBackend::auto().await?);
     let tui_backend = backend.create_tui_backend()?;
     let mut terminal = rooibos::tui::Terminal::new(tui_backend)?;
     backend.setup_terminal(terminal.backend_mut())?;
