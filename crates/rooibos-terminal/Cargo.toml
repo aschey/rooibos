@@ -20,12 +20,11 @@ stream-cancel = { workspace = true }
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 terminput-termina = { workspace = true, optional = true }
 termina = { workspace = true, optional = true }
-tui-theme = { workspace = true, features = [
-  "dcs-detect",
-  "terminfo",
-], optional = true }
+tui-theme = { workspace = true, features = ["dcs-detect", "terminfo"] }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+tui-theme = { workspace = true }
 
 [features]
-termina = ["dep:termina", "dep:terminput-termina", "dep:tui-theme"]
+termina = ["dep:termina", "dep:terminput-termina"]
 scrolling-regions = ["ratatui/scrolling-regions"]
