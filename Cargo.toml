@@ -33,9 +33,9 @@ any_spawner = "0.3.0"
 ratatui = { version = "0.29", default-features = false }
 tui-textarea = { version = "0.7", default-features = false }
 ratatui-image = "8"
-throbber-widgets-tui = "0.8.0"
+throbber-widgets-tui = "0.9.0"
 tui-term = "0.2.0"
-ratzilla = { git = "https://github.com/junkdog/ratzilla", rev = "de1daee053e7d150ee443cf111b99d742b7c0bda" }
+ratzilla = { git = "https://github.com/orhun/ratzilla", rev = "d72116d97c5ee7868e99754233e9f106b8922cab" }
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
 
 # other TUI things
@@ -70,11 +70,11 @@ bitflags = "2"
 futures = "0.3"
 rustc-hash = "2"
 paste = "1"
-taffy = "0.9.0"
+taffy = "0.9.1"
 thiserror = "2"
 textwrap = "0.16.2"
 unicode-width = "0.2.0"
-tachyonfx = { version = "0.18", default-features = false }
+tachyonfx = { version = "0.19", default-features = false }
 clap = "4.5.32"
 shlex = "1.3.0"
 clap_complete = "4.5.46"
