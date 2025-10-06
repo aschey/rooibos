@@ -10,19 +10,30 @@ use termina::{Event, OneBased, PlatformTerminal, Terminal};
 
 use crate::termina::macros::{decreset, decset};
 
+#[derive(Debug, Clone, Default)]
+pub struct Capabilities {
+    pub(crate) synchronized_output: bool,
+}
+
 #[derive(Debug)]
 pub struct TerminaBackend<W: Write> {
-    /// The writer used to send commands to the terminal.
     terminal: PlatformTerminal,
     writer: W,
+    capabilities: Capabilities,
+    is_synchronized_output_set: bool,
 }
 
 impl<W> TerminaBackend<W>
 where
     W: Write,
 {
-    pub const fn new(terminal: PlatformTerminal, writer: W) -> Self {
-        Self { terminal, writer }
+    pub const fn new(terminal: PlatformTerminal, capabilities: Capabilities, writer: W) -> Self {
+        Self {
+            terminal,
+            capabilities,
+            writer,
+            is_synchronized_output_set: false,
+        }
     }
 
     pub const fn writer(&self) -> &W {
@@ -58,6 +69,24 @@ where
         )?;
         self.writer.flush()
     }
+
+    fn start_synchronized_render(&mut self) -> io::Result<()> {
+        if self.capabilities.synchronized_output && !self.is_synchronized_output_set {
+            write!(self.writer, "{}", decset!(SynchronizedOutput))?;
+            self.writer.flush()?;
+            self.is_synchronized_output_set = true;
+        }
+        Ok(())
+    }
+
+    fn end_sychronized_render(&mut self) -> io::Result<()> {
+        if self.is_synchronized_output_set {
+            write!(self.writer, "{}", decreset!(SynchronizedOutput))?;
+            self.writer.flush()?;
+            self.is_synchronized_output_set = false;
+        }
+        Ok(())
+    }
 }
 
 impl<W> Write for TerminaBackend<W>
@@ -83,6 +112,8 @@ where
     where
         I: Iterator<Item = (u16, u16, &'a Cell)>,
     {
+        self.start_synchronized_render()?;
+
         let mut fg = Color::Reset;
         let mut bg = Color::Reset;
         // let mut underline_color = Color::Reset;
@@ -137,7 +168,9 @@ where
             write!(self.writer, "{}", &cell.symbol())?;
         }
 
-        write!(self.writer, "{}", Csi::Sgr(csi::Sgr::Reset))
+        write!(self.writer, "{}", Csi::Sgr(csi::Sgr::Reset))?;
+        self.end_sychronized_render()?;
+        Ok(())
     }
 
     fn hide_cursor(&mut self) -> io::Result<()> {

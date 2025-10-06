@@ -19,6 +19,7 @@ use tui_theme::{color_palette, term_profile};
 
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
+use crate::termina::tui::Capabilities;
 use crate::{AsyncInputStream, AutoStream, StreamImpl};
 
 pub(super) mod macros {
@@ -178,6 +179,7 @@ pub struct TerminaBackend<W: Write> {
     settings: TerminalSettings<W>,
     event_reader: Mutex<Option<EventReader>>,
     supports_keyboard_enhancement: bool,
+    capabilities: Capabilities,
 }
 
 impl<W: Write> TerminaBackend<W> {
@@ -186,6 +188,9 @@ impl<W: Write> TerminaBackend<W> {
             settings,
             event_reader: None.into(),
             supports_keyboard_enhancement: false,
+            capabilities: Capabilities {
+                synchronized_output: false,
+            },
         };
         this.set_keyboard_enhancement().await;
         this
@@ -200,22 +205,34 @@ impl<W: Write> TerminaBackend<W> {
     async fn set_keyboard_enhancement(&mut self) {
         if self.settings.force_keyboard_enhancement {
             self.supports_keyboard_enhancement = true;
-            return;
         }
 
         if !self.settings.raw_mode {
             return;
         }
 
-        if self.settings.keyboard_enhancement {
-            let mut supports_keyboard_enhancement = self.supports_keyboard_enhancement;
-            self.supports_keyboard_enhancement = tokio::task::spawn_blocking(move || {
+        let keyboard_enhancement = self.settings.keyboard_enhancement;
+        let mut supports_keyboard_enhancement = self.supports_keyboard_enhancement;
+        let (supports_keyboard_enhancement, capabilities) =
+            tokio::task::spawn_blocking(move || {
                 let mut terminal = PlatformTerminal::new().unwrap();
                 terminal.enter_raw_mode().unwrap();
+                let mut capabilities = Capabilities {
+                    synchronized_output: false,
+                };
+
+                if keyboard_enhancement && !supports_keyboard_enhancement {
+                    write!(terminal, "{}", Csi::Keyboard(csi::Keyboard::QueryFlags)).unwrap();
+                }
+
                 write!(
                     terminal,
                     "{}{}",
-                    Csi::Keyboard(csi::Keyboard::QueryFlags),
+                    // Synchronized output
+                    Csi::Mode(csi::Mode::QueryDecPrivateMode(csi::DecPrivateMode::Code(
+                        csi::DecPrivateModeCode::SynchronizedOutput
+                    ))),
+                    // Device attributes to tell us when we've processed all the commands
                     Csi::Device(csi::Device::RequestPrimaryDeviceAttributes)
                 )
                 .unwrap();
@@ -231,6 +248,12 @@ impl<W: Write> TerminaBackend<W> {
                         termina::Event::Csi(Csi::Keyboard(csi::Keyboard::ReportFlags(_))) => {
                             supports_keyboard_enhancement = true;
                         }
+                        termina::Event::Csi(Csi::Mode(csi::Mode::ReportDecPrivateMode {
+                            mode: csi::DecPrivateMode::Code(csi::DecPrivateModeCode::SynchronizedOutput),
+                            setting: csi::DecModeSetting::Set | csi::DecModeSetting::Reset,
+                        })) => {
+                            capabilities.synchronized_output = true;
+                        }
                         termina::Event::Csi(Csi::Device(csi::Device::DeviceAttributes(()))) => {
                             break;
                         }
@@ -238,11 +261,12 @@ impl<W: Write> TerminaBackend<W> {
                     }
                 }
                 terminal.enter_cooked_mode().unwrap();
-                supports_keyboard_enhancement
+            (supports_keyboard_enhancement,capabilities)
             })
             .await
             .unwrap();
-        }
+        self.capabilities = capabilities;
+        self.supports_keyboard_enhancement |= supports_keyboard_enhancement;
     }
 }
 
@@ -275,7 +299,11 @@ impl<W: Write> Backend for TerminaBackend<W> {
             *self.event_reader.lock().unwrap() = terminal.event_reader().into();
         }
 
-        Ok(tui::TerminaBackend::new(terminal, writer))
+        Ok(tui::TerminaBackend::new(
+            terminal,
+            self.capabilities.clone(),
+            writer,
+        ))
     }
 
     fn window_size(&self, backend: &mut Self::TuiBackend) -> io::Result<WindowSize> {

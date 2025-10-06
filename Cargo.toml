@@ -23,8 +23,8 @@ rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
 # leptos
 next_tuple = "0.1.0"
 either_of = "0.1.6"
-reactive_graph = "0.2.7"
-tachys = { git = "https://github.com/aschey/leptos", rev = "d9749521008c73cfa5601aa0e6ece40b6432d006" }
+reactive_graph = "0.2.8"
+tachys = { git = "https://github.com/aschey/leptos", rev = "0c508c7920f4e10b836a6f7bb46c106bc3fea76a" }
 throw_error = "0.3.0"
 reactive_stores = "0.2.5"
 any_spawner = "0.3.0"

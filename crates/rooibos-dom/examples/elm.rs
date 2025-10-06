@@ -10,7 +10,7 @@ use rooibos_dom::{
     AsDomNode, Borders, DomNode, DomWidgetNode, NodeId, NonblockingTerminal, dom_update_receiver,
     focus_next, mount, render_terminal, with_nodes, with_nodes_mut,
 };
-use rooibos_terminal::termina::tui::TerminaBackend;
+use rooibos_terminal::termina::tui::{Capabilities, TerminaBackend};
 use taffy::style_helpers::length;
 use termina::escape::csi::{self, KittyKeyboardFlags};
 use termina::{EventStream, PlatformTerminal, Terminal as _};
@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let event_reader = terminal.event_reader();
     let mut event_reader = EventStream::new(event_reader, |e| !e.is_escape());
 
-    let backend = TerminaBackend::new(terminal, stdout());
+    let backend = TerminaBackend::new(terminal, Capabilities::default(), stdout());
     let terminal = Terminal::new(backend)?;
     let mut terminal = NonblockingTerminal::new(terminal);
     terminal
