@@ -14,7 +14,7 @@ use rooibos::terminal::DefaultBackend;
 use rooibos::theme::Stylize;
 
 #[derive(Config, PartialEq, Eq, Clone, Debug)]
-#[config(partial_attr(derive(Clone)))]
+#[config(layer_attr(derive(Clone)))]
 struct AppConfigExample {
     pub number: usize,
     pub string: String,
@@ -32,7 +32,9 @@ async fn main() -> Result<ExitCode, RuntimeError> {
     .unwrap();
     provide_config(config);
 
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {

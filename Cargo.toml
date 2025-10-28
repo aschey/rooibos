@@ -64,7 +64,7 @@ image = { version = "0.25" }
 tokio-util = "0.7.16"
 getrandom = "0.3"
 derive_more = "2"
-watch-config = { git = "https://github.com/aschey/watch-config", rev = "aa1432198cf1831ab13f73112d5b02c8552304f7" }
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "f5f5c93201c4b896426a2112d6830120823189d8" }
 slotmap = "1"
 bitflags = "2"
 futures = "0.3"
@@ -102,7 +102,7 @@ rand = "0.8.5"
 reqwest = "0.12.15"
 serde = "1.0.219"
 axum = "0.8.1"
-confique = { version = "0.3" }
+confique = { version = "0.4" }
 color-eyre = "0.6.3"
 insta = "1.43.0"
 tui-tree-widget = "0.23.0"
