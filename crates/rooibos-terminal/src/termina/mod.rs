@@ -69,7 +69,7 @@ impl TerminalSettings<Stdout> {
 
     pub fn stdout() -> io::Result<Self> {
         Ok(Self::stdout_with_detector_options(
-            DetectorSettings::with_dcs()?,
+            DetectorSettings::with_query()?,
         ))
     }
 }
@@ -86,7 +86,7 @@ impl TerminalSettings<Stderr> {
 
     pub fn stderr() -> io::Result<Self> {
         Ok(Self::stderr_with_detector_options(
-            DetectorSettings::with_dcs()?,
+            DetectorSettings::with_query()?,
         ))
     }
 }
@@ -106,7 +106,7 @@ impl TerminalSettings<AutoStream> {
 
     pub fn auto() -> io::Result<Self> {
         Ok(Self::auto_with_detector_options(
-            DetectorSettings::with_dcs()?,
+            DetectorSettings::with_query()?,
         ))
     }
 }

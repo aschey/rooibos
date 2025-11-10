@@ -43,10 +43,11 @@ termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "fb0f88613c7abb8a449c4527ee04599d9026617e" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "2c5aae00217f871db9acab9e812a7899b65331b2" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
 terminput-termina = "0.1.2"
+termprofile = "0.1.2"
 
 # proc macros
 manyhow = "0.11"
@@ -81,7 +82,7 @@ clap_complete = "4.5.46"
 wasm-bindgen = "0.2"
 matchit = "0.9"
 url = "2"
-convert_case = "0.8"
+convert_case = "0.9"
 futures-util = "0.3"
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "e932670ce7998022d8cf56a593f2e39c3c0362b5" }
 proc-exit = "2.0.2"

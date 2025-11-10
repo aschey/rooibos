@@ -17,6 +17,7 @@ use termina::escape::csi::{self, Csi, Device, Sgr};
 use termina::escape::dcs::{Dcs, DcsResponse};
 use termina::style::ColorSpec;
 use termina::{PlatformTerminal, Terminal};
+use termprofile::DcsEvent;
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
@@ -114,7 +115,7 @@ impl QueryTerminal for SshTerminal<'_> {
         Ok(())
     }
 
-    fn read_event(&mut self) -> io::Result<tui_theme::profile::Event> {
+    fn read_event(&mut self) -> io::Result<DcsEvent> {
         match block_on(timeout(
             Duration::from_millis(100),
             self.query_events.recv(),
@@ -127,7 +128,7 @@ impl QueryTerminal for SshTerminal<'_> {
                     .iter()
                     .find_map(|s| {
                         if let Sgr::Background(ColorSpec::TrueColor(rgb)) = s {
-                            tui_theme::profile::Event::BackgroundColor(tui_theme::profile::Rgb {
+                            DcsEvent::BackgroundColor(tui_theme::profile::Rgb {
                                 red: rgb.red,
                                 green: rgb.green,
                                 blue: rgb.blue,
@@ -137,13 +138,13 @@ impl QueryTerminal for SshTerminal<'_> {
                             None
                         }
                     })
-                    .unwrap_or(tui_theme::profile::Event::Other),
+                    .unwrap_or(DcsEvent::Other),
                 termina::Event::Csi(Csi::Device(Device::DeviceAttributes(()))) => {
-                    tui_theme::profile::Event::DeviceAttributes
+                    DcsEvent::DeviceAttributes
                 }
-                _ => tui_theme::profile::Event::Other,
+                _ => DcsEvent::Other,
             }),
-            Err(_) | Ok(None) => Ok(tui_theme::profile::Event::TimedOut),
+            Err(_) | Ok(None) => Ok(DcsEvent::TimedOut),
         }
     }
 }
