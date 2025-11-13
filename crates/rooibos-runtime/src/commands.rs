@@ -18,8 +18,7 @@ use rooibos_reactive::graph::owner::Owner;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
-use tui_theme::profile::TermProfile;
-use tui_theme::{ColorPalette, set_color_palette_local, set_profile_local};
+use tui_theme::{ColorPalette, SetTheme, TermProfile};
 
 use crate::{
     ControlFlow, ExitPayload, OsSignal, RuntimeCommand, RuntimeState, with_all_state, with_state,
@@ -346,8 +345,8 @@ where
         context: ServiceContext,
     ) -> std::result::Result<(), background_service::error::BoxedError> {
         self.owner.set();
-        set_color_palette_local(self.palette);
-        set_profile_local(self.profile);
+        self.palette.set_local();
+        self.profile.set_local();
         ScopedFuture::new(self.service.run(context)).await
     }
 }
@@ -387,8 +386,8 @@ where
 
     fn run(self, context: ServiceContext) -> Result<(), background_service::error::BoxedError> {
         self.owner.set();
-        set_color_palette_local(self.palette);
-        set_profile_local(self.profile);
+        self.palette.set_local();
+        self.profile.set_local();
         self.service.run(context)
     }
 }

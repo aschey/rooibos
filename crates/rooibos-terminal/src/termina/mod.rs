@@ -15,7 +15,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tui_theme::profile::{DetectorSettings, QueryTerminal};
-use tui_theme::{color_palette, term_profile};
+use tui_theme::{ColorPalette, SetTheme, TermProfile};
 
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
@@ -62,8 +62,8 @@ impl TerminalSettings<Stdout> {
     where
         Q: QueryTerminal,
     {
-        tui_theme::load_profile(&stdout(), settings);
-        tui_theme::load_color_palette();
+        TermProfile::detect(&stdout(), settings).set_global();
+        ColorPalette::detect().set_global();
         Self::from_writer(stdout)
     }
 
@@ -79,8 +79,8 @@ impl TerminalSettings<Stderr> {
     where
         Q: QueryTerminal,
     {
-        tui_theme::load_profile(&stderr(), settings);
-        tui_theme::load_color_palette();
+        TermProfile::detect(&stderr(), settings).set_global();
+        ColorPalette::detect().set_global();
         Self::from_writer(stderr)
     }
 
@@ -97,10 +97,11 @@ impl TerminalSettings<AutoStream> {
         Q: QueryTerminal,
     {
         match AutoStream::new().0 {
-            StreamImpl::Stdout(out) => tui_theme::load_profile(&out, settings),
-            StreamImpl::Stderr(err) => tui_theme::load_profile(&err, settings),
+            StreamImpl::Stdout(out) => TermProfile::detect(&out, settings),
+            StreamImpl::Stderr(err) => TermProfile::detect(&err, settings),
         }
-        tui_theme::load_color_palette();
+        .set_global();
+        ColorPalette::detect().set_global();
         Self::from_writer(AutoStream::new)
     }
 
@@ -446,11 +447,11 @@ impl<W: Write> Backend for TerminaBackend<W> {
     }
 
     fn color_palette(&self) -> tui_theme::ColorPalette {
-        color_palette()
+        ColorPalette::detect()
     }
 
-    fn profile(&self) -> tui_theme::profile::TermProfile {
-        term_profile()
+    fn profile(&self) -> tui_theme::TermProfile {
+        TermProfile::current()
     }
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream {

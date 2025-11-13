@@ -43,7 +43,7 @@ termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "2c5aae00217f871db9acab9e812a7899b65331b2" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "570121b978cbf5b6d89fbed1864a4275c491dae8" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
 terminput-termina = "0.1.2"

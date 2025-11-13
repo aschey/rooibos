@@ -21,8 +21,8 @@ use termprofile::DcsEvent;
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
-use tui_theme::ColorPalette;
-use tui_theme::profile::{DetectorSettings, IsTerminal, QueryTerminal, TermProfile, TermVars};
+use tui_theme::profile::{DetectorSettings, IsTerminal, QueryTerminal, TermVars};
+use tui_theme::{ColorPalette, TermProfile};
 
 use crate::{ArcHandle, SshParams};
 
@@ -128,7 +128,7 @@ impl QueryTerminal for SshTerminal<'_> {
                     .iter()
                     .find_map(|s| {
                         if let Sgr::Background(ColorSpec::TrueColor(rgb)) = s {
-                            DcsEvent::BackgroundColor(tui_theme::profile::Rgb {
+                            DcsEvent::BackgroundColor(termprofile::Rgb {
                                 red: rgb.red,
                                 green: rgb.green,
                                 blue: rgb.blue,
@@ -313,7 +313,7 @@ impl Backend for SshBackend {
         ColorPalette::default()
     }
 
-    fn profile(&self) -> tui_theme::profile::TermProfile {
+    fn profile(&self) -> tui_theme::TermProfile {
         self.profile
     }
 

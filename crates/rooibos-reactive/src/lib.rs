@@ -44,7 +44,7 @@ pub mod error {
 #[doc(hidden)]
 #[cfg(not(target_arch = "wasm32"))]
 pub use tokio as __tokio;
-use tui_theme::{color_palette, term_profile};
+use tui_theme::{ColorPalette, SetTheme, TermProfile};
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen as __wasm_bindgen;
@@ -209,12 +209,13 @@ where
 
 pub fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
     let fut = ScopedFuture::new(fut);
-    let profile = term_profile();
-    let palette = color_palette();
+    let profile = TermProfile::current();
+    let palette = ColorPalette::current();
+
     #[cfg(not(target_arch = "wasm32"))]
     Executor::spawn(async move {
-        tui_theme::set_profile_local(profile);
-        tui_theme::set_color_palette_local(palette);
+        profile.set_local();
+        palette.set_local();
         fut.await
     });
 
@@ -233,12 +234,12 @@ where
     R: Send + 'static,
 {
     let owner = Owner::current().unwrap_or_default();
-    let profile = term_profile();
-    let palette = color_palette();
+    let profile = TermProfile::current();
+    let palette = ColorPalette::current();
 
     tokio::task::spawn_blocking(move || {
-        tui_theme::set_profile_local(profile);
-        tui_theme::set_color_palette_local(palette);
+        profile.set_local();
+        palette.set_local();
         owner.with(f)
     })
 }
@@ -251,12 +252,12 @@ where
     T: Send + 'static,
 {
     let owner = Owner::current().unwrap_or_default();
-    let profile = term_profile();
-    let palette = color_palette();
+    let profile = TermProfile::current();
+    let palette = ColorPalette::current();
 
     thread::spawn(move || {
-        tui_theme::set_profile_local(profile);
-        tui_theme::set_color_palette_local(palette);
+        profile.set_local();
+        palette.set_local();
         owner.with(f)
     })
 }

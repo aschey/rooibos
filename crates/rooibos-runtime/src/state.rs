@@ -12,8 +12,7 @@ use rooibos_reactive::graph::traits::Set;
 use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
-use tui_theme::ColorPalette;
-use tui_theme::profile::TermProfile;
+use tui_theme::{ColorPalette, TermProfile};
 
 use crate::{RuntimeCommand, TerminalCommand, proc_exit, wasm_compat};
 

@@ -8,8 +8,7 @@ use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_util::sync::CancellationToken;
-use tui_theme::ColorPalette;
-use tui_theme::profile::TermProfile;
+use tui_theme::{ColorPalette, TermProfile};
 
 pub struct TestBackend {
     width: u16,
