@@ -1,5 +1,5 @@
 use std::fmt;
-use std::io::{self, IoSlice, IsTerminal, Stderr, Stdout, Write, stderr, stdout};
+use std::io::{self, BufWriter, IoSlice, IsTerminal, Stderr, Stdout, Write, stderr, stdout};
 
 pub(crate) enum StreamImpl {
     Stdout(Stdout),
@@ -79,6 +79,54 @@ impl std::os::fd::AsRawFd for AutoStream {
         match &self.0 {
             StreamImpl::Stdout(s) => s.as_raw_fd(),
             StreamImpl::Stderr(s) => s.as_raw_fd(),
+        }
+    }
+}
+
+pub enum MaybeBuffered<W>
+where
+    W: io::Write,
+{
+    Buffered(BufWriter<W>),
+    Unbuffered(W),
+}
+
+impl<W> io::Write for MaybeBuffered<W>
+where
+    W: io::Write,
+{
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        match self {
+            Self::Buffered(s) => s.write(buf),
+            Self::Unbuffered(s) => s.write(buf),
+        }
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        match self {
+            Self::Buffered(s) => s.flush(),
+            Self::Unbuffered(s) => s.flush(),
+        }
+    }
+
+    fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
+        match self {
+            Self::Buffered(s) => s.write_vectored(bufs),
+            Self::Unbuffered(s) => s.write_vectored(bufs),
+        }
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+        match self {
+            Self::Buffered(s) => s.write_all(buf),
+            Self::Unbuffered(s) => s.write_all(buf),
+        }
+    }
+
+    fn write_fmt(&mut self, args: fmt::Arguments<'_>) -> io::Result<()> {
+        match self {
+            Self::Buffered(s) => s.write_fmt(args),
+            Self::Unbuffered(s) => s.write_fmt(args),
         }
     }
 }

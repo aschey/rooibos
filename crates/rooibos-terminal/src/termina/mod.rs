@@ -1,6 +1,6 @@
 pub mod tui;
 use std::fmt::Display;
-use std::io::{self, Stderr, Stdout, Write, stderr, stdout};
+use std::io::{self, BufWriter, Stderr, Stdout, Write, stderr, stdout};
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
@@ -20,7 +20,7 @@ use tui_theme::{ColorPalette, SetTheme, TermProfile};
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
 use crate::termina::tui::Capabilities;
-use crate::{AsyncInputStream, AutoStream, StreamImpl};
+use crate::{AsyncInputStream, AutoStream, MaybeBuffered, StreamImpl};
 
 pub(super) mod macros {
     macro_rules! decset {
@@ -54,6 +54,8 @@ pub struct TerminalSettings<W> {
     bracketed_paste: bool,
     raw_mode: bool,
     title: Option<String>,
+    buffered: bool,
+    buffer_capacity: usize,
     get_writer: Box<dyn Fn() -> W + Send + Sync>,
 }
 
@@ -126,6 +128,8 @@ impl<W> TerminalSettings<W> {
             focus_change: true,
             bracketed_paste: true,
             title: None,
+            buffered: true,
+            buffer_capacity: 8192, // default size for BufWriter
             get_writer: Box::new(get_writer),
         }
     }
@@ -170,7 +174,20 @@ impl<W> TerminalSettings<W> {
         self
     }
 
-    pub fn writer(mut self, get_writer: impl Fn() -> W + Send + Sync + 'static) -> Self {
+    pub fn buffered(mut self, buffered: bool) -> Self {
+        self.buffered = buffered;
+        self
+    }
+
+    pub fn buffer_capacity(mut self, capacity: usize) -> Self {
+        self.buffer_capacity = capacity;
+        self
+    }
+
+    pub fn writer<F>(mut self, get_writer: F) -> Self
+    where
+        F: Fn() -> W + Send + Sync + 'static,
+    {
         self.get_writer = Box::new(get_writer);
         self
     }
@@ -201,6 +218,18 @@ impl<W: Write> TerminaBackend<W> {
         self.settings = settings;
         self.set_keyboard_enhancement().await;
         self
+    }
+
+    fn get_writer(&self) -> MaybeBuffered<W> {
+        let writer = (self.settings.get_writer)();
+        if self.settings.buffered {
+            MaybeBuffered::Buffered(BufWriter::with_capacity(
+                self.settings.buffer_capacity,
+                writer,
+            ))
+        } else {
+            MaybeBuffered::Unbuffered(writer)
+        }
     }
 
     async fn set_keyboard_enhancement(&mut self) {
@@ -290,10 +319,10 @@ impl TerminaBackend<AutoStream> {
 }
 
 impl<W: Write> Backend for TerminaBackend<W> {
-    type TuiBackend = tui::TerminaBackend<W>;
+    type TuiBackend = tui::TerminaBackend<MaybeBuffered<W>>;
 
     fn create_tui_backend(&self) -> io::Result<Self::TuiBackend> {
-        let writer = (self.settings.get_writer)();
+        let writer = self.get_writer();
         let mut terminal = PlatformTerminal::new()?;
         if self.settings.raw_mode {
             terminal.enter_raw_mode()?;
@@ -323,7 +352,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
 
     fn setup_terminal(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
         let mut s = String::new();
-        let mut writer = (self.settings.get_writer)();
+        let mut writer = self.get_writer();
         s += &format!("{}", decreset!(ShowCursor));
         if self.settings.alternate_screen {
             s += &decset!(ClearAndEnableAlternateScreen).to_string();
@@ -360,7 +389,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
 
     fn restore_terminal(&self) -> io::Result<()> {
         let mut terminal = PlatformTerminal::new()?;
-        let mut writer = (self.settings.get_writer)();
+        let mut writer = self.get_writer();
         if self.settings.raw_mode {
             terminal.enter_cooked_mode()?;
         }
@@ -396,13 +425,13 @@ impl<W: Write> Backend for TerminaBackend<W> {
     }
 
     fn enter_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
+        let mut writer = self.get_writer();
         write!(writer, "{}", decset!(ClearAndEnableAlternateScreen))?;
         writer.flush()
     }
 
     fn leave_alt_screen(&self, _backend: &mut Self::TuiBackend) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
+        let mut writer = self.get_writer();
         write!(writer, "{}", decreset!(ClearAndEnableAlternateScreen))?;
         writer.flush()
     }
@@ -412,8 +441,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
         _backend: &mut Self::TuiBackend,
         title: T,
     ) -> io::Result<()> {
-        let mut writer = (self.settings.get_writer)();
-
+        let mut writer = self.get_writer();
         write!(writer, "{}", osc::Osc::SetWindowTitle(&title.to_string()))?;
         writer.flush()
     }
@@ -428,8 +456,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
             super::ClipboardKind::Primary => Selection::PRIMARY,
             super::ClipboardKind::Clipboard => Selection::CLIPBOARD,
         };
-        let mut writer = (self.settings.get_writer)();
-
+        let mut writer = self.get_writer();
         write!(
             writer,
             "{}",
@@ -443,7 +470,7 @@ impl<W: Write> Backend for TerminaBackend<W> {
     }
 
     fn write_all(&self, buf: &[u8]) -> io::Result<()> {
-        (self.settings.get_writer)().write_all(buf)
+        self.get_writer().write_all(buf)
     }
 
     fn color_palette(&self) -> tui_theme::ColorPalette {

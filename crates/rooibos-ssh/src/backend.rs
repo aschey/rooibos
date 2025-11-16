@@ -11,7 +11,7 @@ use ratatui::layout::{Position, Size};
 use rooibos_dom::Event;
 use rooibos_runtime::CancellationToken;
 use rooibos_terminal::termina::{TerminaBackend, tui};
-use rooibos_terminal::{self, AsyncInputStream, Backend};
+use rooibos_terminal::{self, AsyncInputStream, Backend, MaybeBuffered};
 use stream_cancel::StreamExt;
 use termina::escape::csi::{self, Csi, Device, Sgr};
 use termina::escape::dcs::{Dcs, DcsResponse};
@@ -335,7 +335,7 @@ impl IsTerminal for ForceTerminal {
 }
 
 pub struct SshTuiBackend {
-    inner: tui::TerminaBackend<ArcHandle>,
+    inner: tui::TerminaBackend<MaybeBuffered<ArcHandle>>,
     window_size: Arc<RwLock<WindowSize>>,
 }
 
