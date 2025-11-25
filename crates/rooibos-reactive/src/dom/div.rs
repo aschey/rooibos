@@ -1,4 +1,5 @@
 use next_tuple::NextTuple;
+use reactive_graph::IntoReactiveValue;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::AsDomNode;
 use tachys::prelude::Renderer;
@@ -65,14 +66,14 @@ macro_rules! div_prop {
         where
             P: NextTuple,
         {
-            pub fn $fn<S>(self, val: S) -> Div<C, P::Output<$struct_name>>
+            pub fn $fn<S, M>(self, val: S) -> Div<C, P::Output<$struct_name>>
             where
-                S: Into<Signal<$inner>>,
+                S: IntoReactiveValue<Signal<$inner>, M>,
             {
                 Div {
                     inner: self.inner,
                     children: self.children,
-                    properties: self.properties.next_tuple($fn(val)),
+                    properties: self.properties.next_tuple($fn(val.into_reactive_value())),
                 }
             }
         }

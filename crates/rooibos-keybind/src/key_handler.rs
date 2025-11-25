@@ -13,6 +13,7 @@ use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
 use rooibos_dom::events::{IntoKeyHandler, KeyEventProps, KeyHandler};
 use rooibos_reactive::derive_signal;
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::{WriteSignal, signal};
@@ -134,11 +135,11 @@ where
         }
     }
 
-    pub fn action<S>(&mut self, key: S, action: T)
+    pub fn action<S, M>(&mut self, key: S, action: T)
     where
-        S: Into<Signal<String>>,
+        S: IntoReactiveValue<Signal<String>, M>,
     {
-        let key = key.into();
+        let key = key.into_reactive_value();
         let key = derive_signal!(parse(key.get()));
         self.action_inner(key, action)
     }
@@ -173,15 +174,15 @@ where
         });
     }
 
-    pub fn handler<S, H>(&mut self, key: S, handler: H)
+    pub fn handler<S, H, M>(&mut self, key: S, handler: H)
     where
-        S: Into<Signal<String>>,
+        S: IntoReactiveValue<Signal<String>, M>,
         H: KeybindHandler + Send + Sync + 'static,
     {
         let handler = Arc::new(Mutex::new(
             Box::new(handler) as Box<dyn KeybindHandler + Send + Sync>
         ));
-        let key = key.into();
+        let key = key.into_reactive_value();
         let key = derive_signal!(parse(key.get()));
 
         self.handler_inner(key, handler);
@@ -264,21 +265,21 @@ where
         KeyInputHandler::new([self])
     }
 
-    pub fn action<S>(key: S, action: T) -> Self
+    pub fn action<S, M>(key: S, action: T) -> Self
     where
-        S: Into<Signal<String>>,
+        S: IntoReactiveValue<Signal<String>, M>,
     {
-        let key = key.into();
+        let key = key.into_reactive_value();
         let key = derive_signal!(parse(key.get()));
         Self::Action(key, action)
     }
 
-    pub fn handler<S, H>(key: S, handler: H) -> KeyActionMap<T>
+    pub fn handler<S, H, M>(key: S, handler: H) -> KeyActionMap<T>
     where
-        S: Into<Signal<String>>,
+        S: IntoReactiveValue<Signal<String>, M>,
         H: KeybindHandler + Send + Sync + 'static,
     {
-        let key = key.into();
+        let key = key.into_reactive_value();
         let key = derive_signal!(parse(key.get()));
         KeyActionMap::Handler(key, Arc::new(Mutex::new(Box::new(handler))))
     }
@@ -301,9 +302,9 @@ enum InternalKeyMap<T> {
     ),
 }
 
-pub fn key<S, H>(key: S, handler: H) -> KeyMap
+pub fn key<S, H, M>(key: S, handler: H) -> KeyMap
 where
-    S: Into<Signal<String>>,
+    S: IntoReactiveValue<Signal<String>, M>,
     H: KeybindHandler + Send + Sync + 'static,
 {
     KeyMap::handler(key, handler)

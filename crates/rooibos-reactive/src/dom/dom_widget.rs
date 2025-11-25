@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
+use reactive_graph::IntoReactiveValue;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
@@ -636,11 +637,11 @@ impl UpdateLayout for SimpleLayoutProps {
 
 macro_rules! update_props {
     ($fn:ident, $inner:ty) => {
-        fn $fn<S>(self, val: S) -> Self
+        fn $fn<S, M>(self, val: S) -> Self
         where
-            S: Into<Signal<$inner>>,
+            S: IntoReactiveValue<Signal<$inner>, M>,
         {
-            let props = self.layout_props().$fn(val);
+            let props = self.layout_props().$fn(val.into_reactive_value());
             self.update_props(props)
         }
     };
@@ -776,13 +777,13 @@ macro_rules! widget_prop {
         where
             P: NextTuple,
         {
-            pub fn $fn<S>(self, val: S) -> DomWidget<P::Output<$struct_name>>
+            pub fn $fn<S, M>(self, val: S) -> DomWidget<P::Output<$struct_name>>
             where
-                S: Into<Signal<$inner>>,
+                S: IntoReactiveValue<Signal<$inner>, M>,
             {
                 DomWidget {
                     inner: self.inner,
-                    properties: self.properties.next_tuple($fn(val)),
+                    properties: self.properties.next_tuple($fn(val.into_reactive_value())),
                 }
             }
         }
@@ -794,11 +795,11 @@ macro_rules! widget_prop {
         }
 
         impl LayoutProps {
-            pub fn $fn<S>(mut self, val: S) -> Self
+            pub fn $fn<S, M>(mut self, val: S) -> Self
             where
-                S: Into<Signal<$inner>>,
+                S: IntoReactiveValue<Signal<$inner>, M>,
             {
-                self.$($path).+ = $fn(val);
+                self.$($path).+ = $fn(val.into_reactive_value());
                 self
             }
         }

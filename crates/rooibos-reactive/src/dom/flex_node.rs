@@ -1,5 +1,6 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
+use reactive_graph::IntoReactiveValue;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
     BlurEvent, ClickHandler, EventData, EventHandle, FocusEvent, IntoClickHandler, IntoKeyHandler,
@@ -276,14 +277,14 @@ macro_rules! flex_prop {
         where
             P: NextTuple,
         {
-            pub fn $fn<S>(self, val: S) -> FlexNode<C, P::Output<$struct_name>>
+            pub fn $fn<S, M>(self, val: S) -> FlexNode<C, P::Output<$struct_name>>
             where
-                S: Into<Signal<$inner>>,
+                S: IntoReactiveValue<Signal<$inner>, M>,
             {
                 FlexNode {
                     inner: self.inner,
                     children: self.children,
-                    properties: self.properties.next_tuple($fn(val)),
+                    properties: self.properties.next_tuple($fn(val.into_reactive_value())),
                 }
             }
         }

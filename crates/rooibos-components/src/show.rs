@@ -1,6 +1,8 @@
 use either_of::Either;
 use rooibos_reactive::dom::{IntoView, TypedChildrenMut, ViewFn};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::traits::Get;
+use rooibos_reactive::graph::wrappers::read::Signal;
 
 pub struct Show {
     fallback: ViewFn,
@@ -24,14 +26,15 @@ impl Show {
         self
     }
 
-    pub fn render<C, W>(self, when: W, children: impl Into<TypedChildrenMut<C>>) -> impl IntoView
+    pub fn render<C, W, M>(self, when: W, children: impl Into<TypedChildrenMut<C>>) -> impl IntoView
     where
         C: IntoView + 'static,
-        W: Get<Value = bool> + Send + 'static,
+        W: IntoReactiveValue<Signal<bool>, M>,
     {
         let Self { fallback } = self;
 
         let mut children = children.into().into_inner();
+        let when = when.into_reactive_value();
         move || {
             if when.get() {
                 Either::Left(children())

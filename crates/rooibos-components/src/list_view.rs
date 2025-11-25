@@ -3,6 +3,7 @@ use rooibos_dom::events::{
     BlurEvent, ClickEventProps, EventData, EventHandle, FocusEvent, KeyHandler,
 };
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::wgt;
@@ -64,8 +65,8 @@ impl<T> ListView<T> {
         Self::default()
     }
 
-    pub fn style(mut self, style: impl Into<Signal<Style>>) -> Self {
-        self.style = style.into();
+    pub fn style<M>(mut self, style: impl IntoReactiveValue<Signal<Style>, M>) -> Self {
+        self.style = style.into_reactive_value();
         self
     }
 
@@ -95,46 +96,55 @@ impl<T> ListView<T> {
         self
     }
 
-    pub fn highlight_style(mut self, highlight_style: impl Into<Signal<Style>>) -> Self {
-        self.highlight_style = highlight_style.into();
-        self
-    }
-
-    pub fn block(mut self, block: impl Into<Signal<Block<'static>>>) -> Self {
-        self.block = Some(block.into());
-        self
-    }
-
-    pub fn direction(mut self, direction: impl Into<Signal<ListDirection>>) -> Self {
-        self.direction = direction.into();
-        self
-    }
-
-    pub fn highlight_spacing(
+    pub fn highlight_style<M>(
         mut self,
-        highlight_spacing: impl Into<Signal<HighlightSpacing>>,
+        highlight_style: impl IntoReactiveValue<Signal<Style>, M>,
     ) -> Self {
-        self.highlight_spacing = highlight_spacing.into();
+        self.highlight_style = highlight_style.into_reactive_value();
         self
     }
 
-    pub fn repeat_highlight_symbol(
+    pub fn block<M>(mut self, block: impl IntoReactiveValue<Signal<Block<'static>>, M>) -> Self {
+        self.block = Some(block.into_reactive_value());
+        self
+    }
+
+    pub fn direction<M>(
         mut self,
-        repeat_highlight_symbol: impl Into<Signal<bool>>,
+        direction: impl IntoReactiveValue<Signal<ListDirection>, M>,
     ) -> Self {
-        self.repeat_highlight_symbol = repeat_highlight_symbol.into();
+        self.direction = direction.into_reactive_value();
         self
     }
 
-    pub fn scroll_padding(mut self, scroll_padding: impl Into<Signal<usize>>) -> Self {
-        self.scroll_padding = scroll_padding.into();
+    pub fn highlight_spacing<M>(
+        mut self,
+        highlight_spacing: impl IntoReactiveValue<Signal<HighlightSpacing>, M>,
+    ) -> Self {
+        self.highlight_spacing = highlight_spacing.into_reactive_value();
         self
     }
 
-    pub fn render(
+    pub fn repeat_highlight_symbol<M>(
+        mut self,
+        repeat_highlight_symbol: impl IntoReactiveValue<Signal<bool>, M>,
+    ) -> Self {
+        self.repeat_highlight_symbol = repeat_highlight_symbol.into_reactive_value();
+        self
+    }
+
+    pub fn scroll_padding<M>(
+        mut self,
+        scroll_padding: impl IntoReactiveValue<Signal<usize>, M>,
+    ) -> Self {
+        self.scroll_padding = scroll_padding.into_reactive_value();
+        self
+    }
+
+    pub fn render<M1, M2>(
         self,
-        selected: impl Into<Signal<Option<usize>>>,
-        items: impl Into<Signal<WrappingList<T>>>,
+        selected: impl IntoReactiveValue<Signal<Option<usize>>, M1>,
+        items: impl IntoReactiveValue<Signal<WrappingList<T>>, M2>,
     ) -> impl Render
     where
         T: Into<ListItem<'static>> + Clone + Send + Sync + 'static,
@@ -154,8 +164,8 @@ impl<T> ListView<T> {
             scroll_padding,
             layout_props,
         } = self;
-        let items: Signal<WrappingList<T>> = items.into();
-        let selected: Signal<Option<usize>> = selected.into();
+        let items: Signal<WrappingList<T>> = items.into_reactive_value();
+        let selected: Signal<Option<usize>> = selected.into_reactive_value();
 
         wgt!(ListState::default().with_selected(selected.get()), {
             let mut list = List::new(items.get().0.into_iter().map(Into::into))

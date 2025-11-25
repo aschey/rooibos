@@ -8,6 +8,7 @@ use rooibos_dom::events::KeyEventProps;
 use rooibos_dom::{KeyCode, supports_key_up};
 use rooibos_reactive::dom::layout::{Borders, borders};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
@@ -107,28 +108,43 @@ impl Button {
         self
     }
 
-    pub fn button_style(mut self, button_style: impl Into<Signal<StateProp<Style>>>) -> Self {
-        self.button_style = button_style.into();
+    pub fn button_style<M>(
+        mut self,
+        button_style: impl IntoReactiveValue<Signal<StateProp<Style>>, M>,
+    ) -> Self {
+        self.button_style = button_style.into_reactive_value();
         self
     }
 
-    pub fn active_button_style(mut self, active_button_style: impl Into<Signal<Style>>) -> Self {
-        self.active_button_style = active_button_style.into();
+    pub fn active_button_style<M>(
+        mut self,
+        active_button_style: impl IntoReactiveValue<Signal<Style>, M>,
+    ) -> Self {
+        self.active_button_style = active_button_style.into_reactive_value();
         self
     }
 
-    pub fn borders(mut self, borders: impl Into<Signal<StateProp<Borders>>>) -> Self {
-        self.button_borders = borders.into();
+    pub fn borders<M>(
+        mut self,
+        borders: impl IntoReactiveValue<Signal<StateProp<Borders>>, M>,
+    ) -> Self {
+        self.button_borders = borders.into_reactive_value();
         self
     }
 
-    pub fn active_borders(mut self, active_borders: impl Into<Signal<Borders>>) -> Self {
-        self.active_button_borders = active_borders.into();
+    pub fn active_borders<M>(
+        mut self,
+        active_borders: impl IntoReactiveValue<Signal<Borders>, M>,
+    ) -> Self {
+        self.active_button_borders = active_borders.into_reactive_value();
         self
     }
 
-    pub fn text_alignment(mut self, alignment: impl Into<Signal<Alignment>>) -> Self {
-        self.text_alignment = alignment.into();
+    pub fn text_alignment<M>(
+        mut self,
+        alignment: impl IntoReactiveValue<Signal<Alignment>, M>,
+    ) -> Self {
+        self.text_alignment = alignment.into_reactive_value();
         self
     }
 
@@ -152,9 +168,9 @@ impl Button {
         self
     }
 
-    pub fn render<M>(self, children: M) -> impl Render
+    pub fn render<T, M>(self, children: T) -> impl Render
     where
-        M: Into<Signal<Text<'static>>> + 'static,
+        T: IntoReactiveValue<Signal<Text<'static>>, M> + 'static,
     {
         let Self {
             on_click,
@@ -225,7 +241,7 @@ impl Button {
             button_borders.get()
         });
 
-        let children: Signal<Text> = children.into();
+        let children: Signal<Text> = children.into_reactive_value();
         wgt![
             style(borders(button_borders)),
             rooibos_dom::widgets::Button::new(children.get().style(current_button_style.get()))

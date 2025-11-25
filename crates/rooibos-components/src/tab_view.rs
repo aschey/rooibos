@@ -8,6 +8,7 @@ use rooibos_dom::{IntoSpan, line};
 use rooibos_reactive::any_view::IntoAny as _;
 use rooibos_reactive::dom::layout::{Dimension, IntoDimensionSignal, full, height, max_height};
 use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
 use rooibos_reactive::{col, derive_signal, wgt};
@@ -27,21 +28,24 @@ pub struct Tab {
 }
 
 impl Tab {
-    pub fn new(
-        header: impl Into<Signal<Line<'static>>>,
+    pub fn new<M>(
+        header: impl IntoReactiveValue<Signal<Line<'static>>, M>,
         value: impl Into<String>,
         children: impl IntoChildrenFn,
     ) -> Self {
         Self {
-            header: header.into(),
+            header: header.into_reactive_value(),
             value: value.into(),
             decorator: Default::default(),
             children: children.into_children_fn(),
         }
     }
 
-    pub fn decorator(mut self, decorator: impl Into<Signal<Line<'static>>>) -> Self {
-        self.decorator = Some(decorator.into());
+    pub fn decorator<M>(
+        mut self,
+        decorator: impl IntoReactiveValue<Signal<Line<'static>>, M>,
+    ) -> Self {
+        self.decorator = Some(decorator.into_reactive_value());
         self
     }
 
@@ -136,31 +140,34 @@ impl TabView {
         self
     }
 
-    pub fn highlight_style(mut self, highlight_style: impl Into<Signal<Style>>) -> Self {
-        self.highlight_style = highlight_style.into();
-        self
-    }
-
-    pub fn decorator_highlight_style(
+    pub fn highlight_style<M>(
         mut self,
-        decorator_highlight_style: impl Into<Signal<Style>>,
+        highlight_style: impl IntoReactiveValue<Signal<Style>, M>,
     ) -> Self {
-        self.decorator_highlight_style = Some(decorator_highlight_style.into());
+        self.highlight_style = highlight_style.into_reactive_value();
         self
     }
 
-    pub fn style(mut self, style: impl Into<Signal<Style>>) -> Self {
-        self.style = style.into();
+    pub fn decorator_highlight_style<M>(
+        mut self,
+        decorator_highlight_style: impl IntoReactiveValue<Signal<Style>, M>,
+    ) -> Self {
+        self.decorator_highlight_style = Some(decorator_highlight_style.into_reactive_value());
         self
     }
 
-    pub fn fit(mut self, fit: impl Into<Signal<bool>>) -> Self {
-        self.fit = fit.into();
+    pub fn style<M>(mut self, style: impl IntoReactiveValue<Signal<Style>, M>) -> Self {
+        self.style = style.into_reactive_value();
         self
     }
 
-    pub fn divider(mut self, divider: impl Into<Signal<Span<'static>>>) -> Self {
-        self.divider = divider.into();
+    pub fn fit<M>(mut self, fit: impl IntoReactiveValue<Signal<bool>, M>) -> Self {
+        self.fit = fit.into_reactive_value();
+        self
+    }
+
+    pub fn divider<M>(mut self, divider: impl IntoReactiveValue<Signal<Span<'static>>, M>) -> Self {
+        self.divider = divider.into_reactive_value();
         self
     }
 
@@ -198,20 +205,26 @@ impl TabView {
         self
     }
 
-    pub fn padding_left(mut self, padding_left: impl Into<Signal<Line<'static>>>) -> Self {
-        self.padding_left = padding_left.into();
+    pub fn padding_left<M>(
+        mut self,
+        padding_left: impl IntoReactiveValue<Signal<Line<'static>>, M>,
+    ) -> Self {
+        self.padding_left = padding_left.into_reactive_value();
         self
     }
 
-    pub fn padding_right(mut self, padding_right: impl Into<Signal<Line<'static>>>) -> Self {
-        self.padding_right = padding_right.into();
+    pub fn padding_right<M>(
+        mut self,
+        padding_right: impl IntoReactiveValue<Signal<Line<'static>>, M>,
+    ) -> Self {
+        self.padding_right = padding_right.into_reactive_value();
         self
     }
 
-    pub fn render(
+    pub fn render<M1, M2>(
         self,
-        current_tab: impl Into<Signal<String>>,
-        children: impl Into<Signal<TabList>>,
+        current_tab: impl IntoReactiveValue<Signal<String>, M1>,
+        children: impl IntoReactiveValue<Signal<TabList>, M2>,
     ) -> impl Render {
         let Self {
             block,
@@ -232,8 +245,8 @@ impl TabView {
             body_height,
         } = self;
 
-        let children: Signal<TabList> = children.into();
-        let current_tab: Signal<String> = current_tab.into();
+        let children: Signal<TabList> = children.into_reactive_value();
+        let current_tab: Signal<String> = current_tab.into_reactive_value();
 
         let cur_tab = derive_signal!({
             current_tab.with(|current_tab| {

@@ -13,6 +13,7 @@ use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{MeasureNode, RenderNode, pixel_size};
 use rooibos_reactive::dom::div::taffy;
 use rooibos_reactive::dom::{DomWidget, Render};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, Set, Track, Update, UpdateUntracked, With};
@@ -36,16 +37,16 @@ pub enum ImageSource {
 }
 
 impl Image {
-    pub fn from_url(url: impl Into<Signal<PathBuf>>) -> Self {
+    pub fn from_url<M>(url: impl IntoReactiveValue<Signal<PathBuf>, M>) -> Self {
         Self {
-            image_source: ImageSource::Url(url.into()),
+            image_source: ImageSource::Url(url.into_reactive_value()),
             resize_mode: ResizeMode::Fit(None).into(),
         }
     }
 
-    pub fn from_binary(binary: impl Into<Signal<DynamicImage>>) -> Self {
+    pub fn from_binary<M>(binary: impl IntoReactiveValue<Signal<DynamicImage>, M>) -> Self {
         Self {
-            image_source: ImageSource::Binary(binary.into()),
+            image_source: ImageSource::Binary(binary.into_reactive_value()),
             resize_mode: ResizeMode::Fit(None).into(),
         }
     }

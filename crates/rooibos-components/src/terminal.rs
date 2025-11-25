@@ -11,6 +11,7 @@ use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{Encoding, Event, MeasureNode, RenderNode};
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::Trigger;
 use rooibos_reactive::graph::traits::{Get, GetValue, Notify, Track};
@@ -72,8 +73,8 @@ impl Terminal {
         TerminalRef { master, slave }
     }
 
-    pub fn block(mut self, block: impl Into<Signal<Block<'static>>>) -> Self {
-        self.block = Some(block.into());
+    pub fn block<M>(mut self, block: impl IntoReactiveValue<Signal<Block<'static>>, M>) -> Self {
+        self.block = Some(block.into_reactive_value());
         self
     }
 

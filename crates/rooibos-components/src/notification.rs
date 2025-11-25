@@ -7,6 +7,7 @@ use rooibos_reactive::dom::layout::{
     Borders, Dimension, align_items, auto, borders, clear, end, full, height, max_width,
     padding_right, padding_top, width, z_index,
 };
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
@@ -114,19 +115,19 @@ impl Notifications {
         }
     }
 
-    pub fn content_width<S>(mut self, content_width: S) -> Self
+    pub fn content_width<S, M>(mut self, content_width: S) -> Self
     where
-        S: Into<Signal<Dimension>>,
+        S: IntoReactiveValue<Signal<Dimension>, M>,
     {
-        self.content_width = content_width.into();
+        self.content_width = content_width.into_reactive_value();
         self
     }
 
-    pub fn max_layout_width<S>(mut self, max_layout_width: S) -> Self
+    pub fn max_layout_width<S, M>(mut self, max_layout_width: S) -> Self
     where
-        S: Into<Signal<Dimension>>,
+        S: IntoReactiveValue<Signal<Dimension>, M>,
     {
-        self.max_layout_width = max_layout_width.into();
+        self.max_layout_width = max_layout_width.into_reactive_value();
         self
     }
 

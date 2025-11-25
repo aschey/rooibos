@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use next_tuple::NextTuple;
+use reactive_graph::IntoReactiveValue;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::signal::{ReadSignal, RwSignal};
@@ -77,8 +78,10 @@ macro_rules! signal_wrapper {
     ($struct_name:ident, $fn:ident, $inner:ty, $default:expr) => {
         signal_wrapper_inner!($struct_name, $fn, $inner, $default);
 
-        pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
-            $struct_name(Some(val.into()))
+        pub fn $fn<M>(
+            val: impl ::reactive_graph::IntoReactiveValue<Signal<$inner>, M>,
+        ) -> $struct_name {
+            $struct_name(Some(val.into_reactive_value()))
         }
     };
 }
@@ -547,8 +550,8 @@ macro_rules! layout_prop_opt {
 
         impl_next_tuple!($struct_name);
 
-        pub fn $fn(val: impl Into<Signal<$inner>>) -> $struct_name {
-            $struct_name(Some(val.into()))
+        pub fn $fn<M>(val: impl IntoReactiveValue<Signal<$inner>, M>) -> $struct_name {
+            $struct_name(Some(val.into_reactive_value()))
         }
     };
 }
@@ -668,8 +671,8 @@ pub const fn half() -> Dimension {
     Dimension::Percent(50)
 }
 
-pub fn chars(val: impl Into<Signal<u32>>) -> Signal<Dimension> {
-    let val = val.into();
+pub fn chars<M>(val: impl IntoReactiveValue<Signal<u32>, M>) -> Signal<Dimension> {
+    let val = val.into_reactive_value();
     derive_signal!(Dimension::Chars(val.get()))
 }
 

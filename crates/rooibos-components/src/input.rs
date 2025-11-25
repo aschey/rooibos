@@ -11,6 +11,7 @@ use rooibos_dom::{
 use rooibos_reactive::derive_signal;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::{StoredValue, on_cleanup};
 use rooibos_reactive::graph::signal::{RwSignal, signal};
@@ -171,8 +172,11 @@ impl UpdateLayoutProps for Input {
 }
 
 impl Input {
-    pub fn placeholder_text(mut self, placeholder_text: impl Into<Signal<String>>) -> Self {
-        self.placeholder_text = placeholder_text.into();
+    pub fn placeholder_text<M>(
+        mut self,
+        placeholder_text: impl IntoReactiveValue<Signal<String>, M>,
+    ) -> Self {
+        self.placeholder_text = placeholder_text.into_reactive_value();
         self
     }
 

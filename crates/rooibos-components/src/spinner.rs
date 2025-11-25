@@ -6,6 +6,7 @@ use rooibos_dom::MeasureNode;
 use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_reactive::dom::Render;
 use rooibos_reactive::dom::div::taffy::Size;
+use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
 use rooibos_reactive::graph::owner::on_cleanup;
@@ -49,16 +50,16 @@ impl Spinner {
         }
     }
 
-    pub fn label(mut self, label: impl Into<Signal<Span<'static>>>) -> Self {
-        self.label = Some(label.into());
+    pub fn label<M>(mut self, label: impl IntoReactiveValue<Signal<Span<'static>>, M>) -> Self {
+        self.label = Some(label.into_reactive_value());
         self
     }
 
-    pub fn spinner_set(
+    pub fn spinner_set<M>(
         mut self,
-        spinner_set: impl Into<Signal<throbber_widgets_tui::Set>>,
+        spinner_set: impl IntoReactiveValue<Signal<throbber_widgets_tui::Set>, M>,
     ) -> Self {
-        self.spinner_set = spinner_set.into();
+        self.spinner_set = spinner_set.into_reactive_value();
         self
     }
 
@@ -67,18 +68,24 @@ impl Spinner {
         self
     }
 
-    pub fn style(mut self, style: impl Into<Signal<Style>>) -> Self {
-        self.style = style.into();
+    pub fn style<M>(mut self, style: impl IntoReactiveValue<Signal<Style>, M>) -> Self {
+        self.style = style.into_reactive_value();
         self
     }
 
-    pub fn spinner_style(mut self, spinner_style: impl Into<Signal<Style>>) -> Self {
-        self.spinner_style = spinner_style.into();
+    pub fn spinner_style<M>(
+        mut self,
+        spinner_style: impl IntoReactiveValue<Signal<Style>, M>,
+    ) -> Self {
+        self.spinner_style = spinner_style.into_reactive_value();
         self
     }
 
-    pub fn display(mut self, display: impl Into<Signal<SpinnerDisplay>>) -> Self {
-        self.display = display.into();
+    pub fn display<M>(
+        mut self,
+        display: impl IntoReactiveValue<Signal<SpinnerDisplay>, M>,
+    ) -> Self {
+        self.display = display.into_reactive_value();
         self
     }
 

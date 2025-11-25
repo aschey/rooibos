@@ -23,6 +23,7 @@ pub use for_loop::*;
 pub use provider::*;
 #[doc(hidden)]
 pub use reactive_graph as __reactive;
+use reactive_graph::IntoReactiveValue;
 use reactive_graph::computed::ScopedFuture;
 use reactive_graph::owner::Owner;
 use reactive_graph::signal::signal;
@@ -184,8 +185,8 @@ where
     }
 }
 
-pub fn use_state_prop<T>(
-    state_prop: impl Into<Signal<StateProp<T>>>,
+pub fn use_state_prop<T, M>(
+    state_prop: impl IntoReactiveValue<Signal<StateProp<T>>, M>,
 ) -> (Signal<T>, impl Fn(StateChangeEvent, EventData, EventHandle))
 where
     T: Clone + Send + Sync + 'static,
@@ -195,7 +196,7 @@ where
         cause: StateChangeCause::Enable,
     });
     let (is_direct, set_is_direct) = signal(false);
-    let state_prop = state_prop.into();
+    let state_prop = state_prop.into_reactive_value();
     let prop = derive_signal!({
         let state_prop = state_prop.get();
         state_prop.apply_state(change_event.get(), is_direct.get())
