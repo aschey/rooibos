@@ -32,7 +32,7 @@ pub(crate) fn tab0() -> impl Render {
 }
 
 fn footer(footer_height: Signal<Dimension>) -> impl Render {
-    wgt![
+    wgt!(
         style(
             height(footer_height),
             borders(Borders::all().title("Footer".magenta()).bold())
@@ -63,6 +63,6 @@ fn footer(footer_height: Signal<Dimension>) -> impl Render {
                 "."
             ),
             line!("One more thing is that it should display unicode characters: 10€")
-        ] //        .wrap(Wrap { trim: true })
-    ]
+        ]
+    )
 }

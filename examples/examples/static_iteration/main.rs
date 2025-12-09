@@ -32,10 +32,10 @@ fn counter() -> impl Render {
     let border_prop = StateProp::new(Borders::all().empty()).focused(|b| b.solid().blue());
     let (border, set_counter_state) = use_state_prop(border_prop);
 
-    wgt![
+    wgt!(
         style(borders(border)),
         line!("count: ".bold().reset(), count.get().cyan())
-    ]
+    )
     .on_state_change(set_counter_state)
     .on_key_down(
         [

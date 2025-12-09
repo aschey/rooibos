@@ -4,7 +4,7 @@ use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::layout::{Borders, borders, max_width, padding, width};
 use rooibos::reactive::dom::{Render, clear_focus, focus_next, focus_prev, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{IntoSignal, col, row, wgt};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -52,16 +52,15 @@ fn app() -> impl Render {
 fn focus_block(title: &'static str) -> impl Render {
     let (id, focused) = use_focus();
 
-    let title = (move || {
+    let title = move || {
         if focused.get() {
             line!(title, " - ", "focused".green())
         } else {
             line!(title)
         }
-    })
-    .signal();
+    };
 
-    wgt!(style(borders(Borders::all()), width(30)), title.get())
+    wgt!(style(borders(Borders::all()), width(30)), title())
         .id(id)
         .focusable(true)
 }

@@ -56,7 +56,7 @@ fn demo_gauge(
     progress: ReadSignal<f64>,
     gauge_height: impl IntoDimensionSignal,
 ) -> impl Render {
-    wgt![
+    wgt!(
         style(height(gauge_height)),
         Gauge::default()
             .block(Block::new().title("Gauge:"))
@@ -64,7 +64,7 @@ fn demo_gauge(
             .use_unicode(enhanced_graphics)
             .label(span!("{:.2}%", progress.get() * 100.0))
             .ratio(progress.get())
-    ]
+    )
 }
 
 fn demo_line_gauge(
@@ -72,7 +72,7 @@ fn demo_line_gauge(
     progress: ReadSignal<f64>,
     gauge_height: impl IntoDimensionSignal,
 ) -> impl Render {
-    wgt![
+    wgt!(
         style(height(gauge_height)),
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
@@ -83,7 +83,7 @@ fn demo_line_gauge(
                 symbols::line::NORMAL
             })
             .ratio(progress.get())
-    ]
+    )
 }
 
 fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
@@ -108,7 +108,7 @@ fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
         seq
     });
 
-    wgt![
+    wgt!(
         style(flex_grow(1.)),
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
@@ -119,5 +119,5 @@ fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
             } else {
                 symbols::bar::THREE_LEVELS
             })
-    ]
+    )
 }

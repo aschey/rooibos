@@ -8,7 +8,7 @@ use rooibos::reactive::dom::layout::padding_left;
 use rooibos::reactive::dom::{Render, after_render, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
-use rooibos::reactive::{IntoSignal, col, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::spawn_local;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
@@ -41,13 +41,12 @@ fn app() -> impl Render {
         "termion",
     ]));
 
-    let current_package =
-        (move || packages.with(|p| p.front().copied().unwrap_or_default())).signal();
+    let current_package = move || packages.with(|p| p.front().copied().unwrap_or_default());
 
     spawn_local(async move {
         loop {
             tokio::time::sleep(get_random_delay()).await;
-            insert_before(1, line!(" ✓ ".green(), current_package.get())).unwrap();
+            insert_before(1, line!(" ✓ ".green(), current_package())).unwrap();
             set_packages.update(|p| {
                 p.pop_front();
             });
@@ -66,11 +65,11 @@ fn app() -> impl Render {
                 wgt!("Done".bold())
             })
             .render(
-                move || !current_package.get().is_empty(),
+                move || !current_package().is_empty(),
                 move || wgt!(line!(
                     spinner.get(),
                     "building ",
-                    current_package.get().bold(),
+                    current_package().bold(),
                     "..."
                 ))
             )

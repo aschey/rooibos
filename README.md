@@ -111,7 +111,7 @@ async fn main() -> Result {
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
     // Will automatically update anytime `count` is updated.
-    let doubled_count = (move || count.get() * 2).signal();
+    let doubled_count = move || count.get() * 2;
     let update_count = move || set_count.update(|c| *c += 1);
 
     col![
@@ -120,7 +120,7 @@ fn app() -> impl Render {
         wgt!(line!("count: ".bold(), count.get().cyan()))
             .on_key_down(key(keys::ENTER, move |_, _| update_count()))
             .on_click(move |_| update_count()),
-        wgt!(format!("doubled count: {}", doubled_count.get()))
+        wgt!(format!("doubled count: {}", doubled_count()))
     ]
 }
 ```

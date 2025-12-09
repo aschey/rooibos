@@ -11,7 +11,7 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Read, Set};
-use rooibos::reactive::{IntoSignal, col, row, wgt};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{
     ControlFlow, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
@@ -75,10 +75,10 @@ fn popup(
     on_ok: impl Fn() + Clone + Send + Sync + 'static,
 ) -> impl Render {
     let button_id = NodeId::new_auto();
-    let show_popup = (move || text.read().is_some()).signal();
+    let show_popup = move || text.read().is_some();
 
     Effect::new(move || {
-        if show_popup.get() {
+        if show_popup() {
             after_render(move || {
                 focus_id(button_id);
             });

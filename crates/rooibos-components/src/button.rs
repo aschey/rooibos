@@ -13,7 +13,7 @@ use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use rooibos_reactive::{IntoSignal, StateProp, delay, use_state_prop, wgt};
+use rooibos_reactive::{StateProp, delay, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
 use tui_theme::Style;
@@ -189,14 +189,13 @@ impl Button {
         let (button_style, set_button_state) = use_state_prop(button_style);
         let (button_borders, set_border_state) = use_state_prop(button_borders);
 
-        let current_button_style = (move || {
+        let current_button_style = move || {
             if active.get() {
                 active_button_style.get()
             } else {
                 button_style.get()
             }
-        })
-        .signal();
+        };
 
         let on_enter = {
             let on_click = on_click.clone();
@@ -236,21 +235,20 @@ impl Button {
             });
         }
 
-        let button_borders = (move || {
+        let button_borders = move || {
             if active.get() {
                 active_button_borders.get()
             } else {
                 button_borders.get()
             }
-        })
-        .signal();
+        };
 
         let children: Signal<Text> = children.into_reactive_value();
-        wgt![
+        wgt!(
             style(borders(button_borders)),
-            rooibos_dom::widgets::Button::new(children.get().style(current_button_style.get()))
+            rooibos_dom::widgets::Button::new(children.get().style(current_button_style()))
                 .alignment(text_alignment.get())
-        ]
+        )
         .layout_props(layout_props)
         .on_click(move |_| on_mouse_down())
         .on_state_change(set_button_state)
