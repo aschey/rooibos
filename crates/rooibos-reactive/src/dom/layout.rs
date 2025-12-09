@@ -14,7 +14,7 @@ use tui_theme::Color;
 use wasm_compat::sync::Mutex;
 
 use super::{DomNode, with_nodes_mut};
-use crate::derive_signal;
+use crate::IntoSignal;
 
 pub trait Property {
     type State;
@@ -78,9 +78,7 @@ macro_rules! signal_wrapper {
     ($struct_name:ident, $fn:ident, $inner:ty, $default:expr) => {
         signal_wrapper_inner!($struct_name, $fn, $inner, $default);
 
-        pub fn $fn<M>(
-            val: impl ::reactive_graph::IntoReactiveValue<Signal<$inner>, M>,
-        ) -> $struct_name {
+        pub fn $fn<M>(val: impl IntoReactiveValue<Signal<$inner>, M>) -> $struct_name {
             $struct_name(Some(val.into_reactive_value()))
         }
     };
@@ -492,25 +490,25 @@ macro_rules! impl_signal_derives {
     ($trait_name:ident, $trait_fn:ident, $ret_ty:ty, $impl_ty:ty) => {
         impl $trait_name for Signal<$impl_ty> {
             fn $trait_fn(self) -> Signal<$ret_ty> {
-                derive_signal!(self.get().into())
+                (move || self.get().into()).signal()
             }
         }
 
         impl $trait_name for ReadSignal<$impl_ty> {
             fn $trait_fn(self) -> Signal<$ret_ty> {
-                derive_signal!(self.get().into())
+                (move || self.get().into()).signal()
             }
         }
 
         impl $trait_name for RwSignal<$impl_ty> {
             fn $trait_fn(self) -> Signal<$ret_ty> {
-                derive_signal!(self.get().into())
+                (move || self.get().into()).signal()
             }
         }
 
         impl $trait_name for Memo<$impl_ty> {
             fn $trait_fn(self) -> Signal<$ret_ty> {
-                derive_signal!(self.get().into())
+                (move || self.get().into()).signal()
             }
         }
     };
@@ -673,7 +671,7 @@ pub const fn half() -> Dimension {
 
 pub fn chars<M>(val: impl IntoReactiveValue<Signal<u32>, M>) -> Signal<Dimension> {
     let val = val.into_reactive_value();
-    derive_signal!(Dimension::Chars(val.get()))
+    (move || Dimension::Chars(val.get())).signal()
 }
 
 pub trait IntoDimensionSignal {
@@ -722,6 +720,16 @@ impl IntoDimensionSignal for String {
 impl IntoDimensionSignal for Dimension {
     fn into_dimension_signal(self) -> Signal<Dimension> {
         self.into()
+    }
+}
+
+impl<F, S> IntoDimensionSignal for F
+where
+    F: Fn() -> S + Send + Sync + 'static,
+    S: IntoDimensionSignal + Send + Sync + 'static,
+{
+    fn into_dimension_signal(self) -> Signal<Dimension> {
+        (move || self().into_dimension_signal().get()).signal()
     }
 }
 

@@ -13,7 +13,7 @@ use rooibos_reactive::graph::owner::on_cleanup;
 use rooibos_reactive::graph::signal::{ReadSignal, signal};
 use rooibos_reactive::graph::traits::{Get as _, GetUntracked, Update};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use rooibos_reactive::{derive_signal, wgt};
+use rooibos_reactive::{IntoSignal, wgt};
 pub use throbber_widgets_tui::WhichUse as SpinnerDisplay;
 pub use throbber_widgets_tui::symbols::throbber::*;
 use throbber_widgets_tui::{Throbber, ThrobberState};
@@ -171,13 +171,13 @@ impl Spinner {
     pub fn into_span_signal(self) -> Signal<Span<'static>> {
         let state = self.create_state();
         let create_spinner_fn = self.create_spinner_fn();
-        derive_signal!(create_spinner_fn().to_symbol_span(&state.get()))
+        (move || create_spinner_fn().to_symbol_span(&state.get())).signal()
     }
 
     pub fn into_line_signal(self) -> Signal<Line<'static>> {
         let state = self.create_state();
         let create_spinner_fn = self.create_spinner_fn();
-        derive_signal!(create_spinner_fn().to_line(&state.get()))
+        (move || create_spinner_fn().to_line(&state.get())).signal()
     }
 
     pub fn render(self) -> impl Render {

@@ -3,7 +3,6 @@ use std::process::ExitCode;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rooibos::components::Button;
-use rooibos::reactive::derive_signal;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::ReadSignal;
 use rooibos::reactive::graph::traits::{FromStream, Get};
@@ -68,7 +67,5 @@ fn app(count_tx: watch::Sender<i32>) -> impl Render {
         .on_click(move || {
             count_tx.send(count.get().unwrap_or_default() + 1).unwrap();
         })
-        .render(derive_signal!(
-            line!("count ", count.get().unwrap_or_default()).into()
-        ))
+        .render(move || line!("count ", count.get().unwrap_or_default()).into())
 }

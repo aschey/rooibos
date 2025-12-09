@@ -24,7 +24,7 @@ pub use input::*;
 pub use list_view::*;
 pub use notification::*;
 use rooibos_dom::BorderType;
-use rooibos_reactive::derive_signal;
+use rooibos_reactive::IntoSignal;
 use rooibos_reactive::graph::signal::ArcRwSignal;
 use rooibos_reactive::graph::traits::Track;
 use rooibos_reactive::graph::wrappers::read::Signal;
@@ -102,18 +102,20 @@ where
 impl ThemeSignal {
     pub fn load_theme(&self) -> Signal<ColorTheme> {
         let signal = self.signal.clone();
-        derive_signal!({
+        (move || {
             signal.track();
             ColorTheme::current()
         })
+        .signal()
     }
 
     pub fn load_props(&self) -> Signal<AppProperties> {
         let signal = self.signal.clone();
-        derive_signal!({
+        (move || {
             signal.track();
             AppProperties::current()
         })
+        .signal()
     }
 
     pub fn with_theme<F, T>(&self, f: F) -> Signal<T>
@@ -122,9 +124,10 @@ impl ThemeSignal {
         T: Send + Sync + 'static,
     {
         let signal = self.signal.clone();
-        derive_signal!({
+        (move || {
             signal.track();
             AppTheme::with_theme(f.clone())
         })
+        .signal()
     }
 }

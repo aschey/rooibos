@@ -3,10 +3,10 @@ use std::process::ExitCode;
 use rand::SeedableRng;
 use rand::rngs::StdRng;
 use rooibos::components::Button;
+use rooibos::reactive::col;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{col, derive_signal};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::ssh::backend::SshBackend;
@@ -63,5 +63,5 @@ fn counter_button() -> impl Render {
         .width(20)
         .height(3)
         .on_click(move || set_count.update(|c| *c += 1))
-        .render(derive_signal!(line!("count ", count.get()).into()))
+        .render(move || line!("count ", count.get()).into())
 }

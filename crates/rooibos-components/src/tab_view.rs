@@ -11,7 +11,7 @@ use rooibos_reactive::dom::{ChildrenFn, IntoChildrenFn, Render};
 use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
-use rooibos_reactive::{col, derive_signal, wgt};
+use rooibos_reactive::{IntoSignal, col, wgt};
 use tui_theme::{Style, Styled};
 
 use crate::Keyed;
@@ -248,7 +248,7 @@ impl TabView {
         let children: Signal<TabList> = children.into_reactive_value();
         let current_tab: Signal<String> = current_tab.into_reactive_value();
 
-        let cur_tab = derive_signal!({
+        let cur_tab = (move || {
             current_tab.with(|current_tab| {
                 children.with(|c| {
                     c.iter().enumerate().find_map(|(i, c)| {
@@ -260,9 +260,10 @@ impl TabView {
                     })
                 })
             })
-        });
+        })
+        .signal();
 
-        let headers = derive_signal!({
+        let headers = (move || {
             let cur_tab = cur_tab.get();
             let Some((_, cur_tab)) = cur_tab else {
                 return vec![];
@@ -306,14 +307,15 @@ impl TabView {
                     })
                     .collect::<Vec<_>>()
             })
-        });
-        let divider_width = derive_signal!(divider.with(|d| d.width()));
+        })
+        .signal();
+        let divider_width = (move || divider.with(|d| d.width())).signal();
 
-        let padding_width_left = derive_signal!(padding_left.with(|p| p.width()));
+        let padding_width_left = (move || padding_left.with(|p| p.width())).signal();
 
-        let padding_width_right = derive_signal!(padding_right.with(|p| p.width()));
+        let padding_width_right = (move || padding_right.with(|p| p.width())).signal();
 
-        let headers_len = derive_signal!({
+        let headers_len = (move || {
             let headers_len = headers.with(|h| h.len());
             let divider_width = divider_width.get() as u16;
 
@@ -330,15 +332,17 @@ impl TabView {
                     + ((headers_len as u16 - 1) * divider_width)
                     + 2
             })
-        });
+        })
+        .signal();
 
-        let width = derive_signal!({
+        let width = (move || {
             if fit.get() {
                 (headers_len.get() as u32).into()
             } else {
                 width.get()
             }
-        });
+        })
+        .signal();
 
         let on_click = move |props: ClickEventProps| {
             let start_col = props.data.rect.x;

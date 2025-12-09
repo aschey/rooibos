@@ -48,7 +48,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -91,7 +93,7 @@ use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, line, mount, span};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{col, derive_signal, wgt};
+use rooibos::reactive::{IntoSignal, col, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -101,13 +103,15 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
     let (count, set_count) = signal(0);
     // Will automatically update anytime `count` is updated.
-    let doubled_count = derive_signal!(count.get() * 2);
+    let doubled_count = (move || count.get() * 2).signal();
     let update_count = move || set_count.update(|c| *c += 1);
 
     col![
@@ -137,7 +141,7 @@ use rooibos::components::Button;
 use rooibos::reactive::dom::layout::{height, padding, padding_right, width};
 use rooibos::reactive::dom::{Render, mount, text};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, derive_signal, row, wgt};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -149,7 +153,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -199,7 +205,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {

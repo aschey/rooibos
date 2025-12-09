@@ -5,10 +5,11 @@ use rooibos::keybind::{Bind, KeybindContext, key, keys};
 use rooibos::reactive::dom::div::taffy::Overflow;
 use rooibos::reactive::dom::layout::{full, height, overflow, padding_right, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, span, text, try_focus_id};
+use rooibos::reactive::graph::IntoReactiveValue;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{col, derive_signal, row, wgt};
+use rooibos::reactive::{col, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -20,7 +21,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 const MIN_SIZE: u32 = 3;
@@ -28,7 +31,7 @@ const MAX_SIZE: u32 = 15;
 
 fn app() -> impl Render {
     let (block_height, set_block_height) = signal(5u32);
-    let block_width = derive_signal!(block_height.get() * 2);
+    let block_width = move || block_height.get() * 2;
 
     let adjust_size = move |adjustment: i32| {
         set_block_height.update(|b| {
@@ -47,20 +50,20 @@ fn app() -> impl Render {
             style(width(15), padding_right(2)),
             button(
                 bigger.bold(),
-                derive_signal!(block_height.get() < MAX_SIZE),
+                move || block_height.get() < MAX_SIZE,
                 bigger_ref,
                 move || adjust_size(1)
             ),
             button(
                 smaller.bold(),
-                derive_signal!(block_height.get() > MIN_SIZE),
+                move || block_height.get() > MIN_SIZE,
                 smaller_ref,
                 move || adjust_size(-1)
             )
         ],
         wgt!(
             style(width(block_width), height(block_height)),
-            text!(span!("{} x {}", block_width.get(), block_height.get()))
+            text!(span!("{} x {}", block_width(), block_height.get()))
                 .centered()
                 .bg({
                     let height = block_height.get() as f32;
@@ -103,9 +106,9 @@ fn app() -> impl Render {
     )
 }
 
-fn button<F>(
+fn button<F, M>(
     title: Span<'static>,
-    enabled: Signal<bool>,
+    enabled: impl IntoReactiveValue<Signal<bool>, M>,
     button_ref: ButtonRef,
     on_click: F,
 ) -> impl Render

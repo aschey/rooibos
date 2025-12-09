@@ -1,8 +1,8 @@
 use rooibos::components::Button;
+use rooibos::reactive::col;
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
-use rooibos::reactive::{col, derive_signal};
 
 #[cfg(target_arch = "wasm32")]
 #[rooibos::wasm_bindgen(start)]
@@ -29,7 +29,5 @@ fn counter_button() -> impl Render {
         .centered()
         .padding_x(1)
         .on_click(move || set_count.update(|c| *c += 1))
-        .render(derive_signal!(
-            line!("count ", count.get().to_string()).into()
-        ))
+        .render(move || line!("count ", count.get().to_string()).into())
 }

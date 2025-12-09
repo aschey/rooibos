@@ -4,7 +4,7 @@ use rooibos::components::Input;
 use rooibos::reactive::dom::layout::{Borders, borders, full, padding, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, line, use_focus};
 use rooibos::reactive::graph::traits::Get;
-use rooibos::reactive::{col, derive_signal, wgt};
+use rooibos::reactive::{col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{Runtime, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -14,7 +14,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -27,14 +29,14 @@ fn app() -> impl Render {
         style(
             padding(1),
             width(full()),
-            borders(derive_signal!({
+            borders(move || {
                 let borders = Borders::all().title("Input");
                 if focused.get() {
                     borders.blue()
                 } else {
                     borders
                 }
-            }))
+            })
         ),
         Input::default()
             .id(id)

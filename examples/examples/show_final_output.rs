@@ -5,7 +5,7 @@ use rooibos::keybind::{key, keys};
 use rooibos::reactive::dom::{Render, after_render, line};
 use rooibos::reactive::graph::signal::{RwSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Set, Update};
-use rooibos::reactive::{derive_signal, row, wgt};
+use rooibos::reactive::{row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{ControlFlow, Runtime, RuntimeSettings, before_exit, exit};
 use rooibos::terminal::DefaultBackend;
@@ -44,12 +44,15 @@ fn app() -> impl Render {
                 after_render(exit);
                 wgt!(line!("final count was ", count.get()))
             })
-            .render(derive_signal!(!is_exiting.get()), move || {
-                wgt!(line!("count ", count.get()))
-                    .on_key_down(key(keys::ENTER, move |_, _| {
-                        update_count();
-                    }))
-                    .on_click(move |_| update_count())
-            })
+            .render(
+                move || !is_exiting.get(),
+                move || {
+                    wgt!(line!("count ", count.get()))
+                        .on_key_down(key(keys::ENTER, move |_, _| {
+                            update_count();
+                        }))
+                        .on_click(move |_| update_count())
+                }
+            )
     ]
 }

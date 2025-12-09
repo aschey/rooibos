@@ -1,6 +1,7 @@
 use rooibos::keybind::{
     Bind, CommandFilter, KeybindContext, extract, key, keys, on_command, use_command_context,
 };
+use rooibos::reactive::graph::IntoReactiveValue;
 mod client;
 mod server;
 
@@ -29,8 +30,7 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Track};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    IntoText, StateProp, col, derive_signal, fallback, focus_scope, row, transition,
-    use_state_prop, wgt,
+    IntoText, StateProp, col, fallback, focus_scope, row, transition, use_state_prop, wgt,
 };
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
@@ -153,11 +153,11 @@ fn add_todo_input(id: NodeId) -> impl Render {
     row![
         style(width(full()), padding_left(1)),
         Input::default()
-            .borders(derive_signal!(if focused.get() {
+            .borders(move || if focused.get() {
                 Borders::all().blue()
             } else {
                 Borders::all()
-            }))
+            })
             .placeholder_text("Add a todo")
             .flex_grow(1.)
             .on_submit(move |val| {
@@ -246,7 +246,7 @@ fn saving_popup() -> impl RenderAny {
     let update_pending = update_todo.pending();
     let delete_pending = delete_todo.pending();
 
-    let pending = derive_signal!(add_pending.get() || update_pending.get() || delete_pending.get());
+    let pending = move || add_pending.get() || update_pending.get() || delete_pending.get();
 
     row![
         style(
@@ -265,7 +265,7 @@ fn saving_popup() -> impl RenderAny {
 }
 
 fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl Render {
-    let editing = derive_signal!(editing_id.get() == Some(id));
+    let editing = move || editing_id.get() == Some(id);
     let text = RwSignal::new(text);
 
     let (row_bg, set_row_state) = use_state_prop(
@@ -291,18 +291,21 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     .on_state_change(set_row_state)
 }
 
-fn add_edit_button(
+fn add_edit_button<M>(
     id: u32,
-    editing: Signal<bool>,
+    editing: impl IntoReactiveValue<Signal<bool>, M>,
     add_edit_id: NodeId,
     editing_id: RwSignal<Option<u32>>,
     input_ref: InputRef,
 ) -> impl Render {
-    let edit_save_text = derive_signal!(if editing.get() {
-        "󱣪".green().into_text()
-    } else {
-        "󱞁".blue().into_text()
-    });
+    let editing = editing.into_reactive_value();
+    let edit_save_text = move || {
+        if editing.get() {
+            "󱣪".green().into_text()
+        } else {
+            "󱞁".blue().into_text()
+        }
+    };
 
     Button::new()
         .id(add_edit_id)

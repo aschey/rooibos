@@ -8,7 +8,7 @@ use rooibos::reactive::dom::layout::padding_left;
 use rooibos::reactive::dom::{Render, after_render, line};
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update, With as _};
-use rooibos::reactive::{col, derive_signal, wgt};
+use rooibos::reactive::{IntoSignal, col, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::wasm_compat::spawn_local;
 use rooibos::runtime::{Runtime, RuntimeSettings, exit, insert_before};
@@ -41,7 +41,8 @@ fn app() -> impl Render {
         "termion",
     ]));
 
-    let current_package = derive_signal!(packages.with(|p| p.front().copied().unwrap_or_default()));
+    let current_package =
+        (move || packages.with(|p| p.front().copied().unwrap_or_default())).signal();
 
     spawn_local(async move {
         loop {
@@ -65,7 +66,7 @@ fn app() -> impl Render {
                 wgt!("Done".bold())
             })
             .render(
-                derive_signal!(!current_package.get().is_empty()),
+                move || !current_package.get().is_empty(),
                 move || wgt!(line!(
                     spinner.get(),
                     "building ",

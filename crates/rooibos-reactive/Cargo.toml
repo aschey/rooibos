@@ -39,7 +39,9 @@ wasm-bindgen = { workspace = true, features = ["enable-interning"] }
 any_spawner = { workspace = true, features = ["wasm-bindgen"] }
 
 [features]
-nightly = ["reactive_graph/nightly", "tachys/nightly"]
+# TODO: re-enable when the breaking changes for https://github.com/leptos-rs/leptos/pull/4273 work with nightly
+#nightly = ["reactive_graph/nightly", "tachys/nightly"]
+nightly = []
 input = ["tui-textarea"]
 effects = ["rooibos-dom/effects"]
 scrolling-regions = ["rooibos-dom/scrolling-regions"]

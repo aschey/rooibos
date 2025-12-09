@@ -12,7 +12,7 @@ use modalkit::key::TerminalKey;
 use modalkit::keybindings::{BindingMachine, EdgePathPart};
 use modalkit::prelude::{Count, RepeatType};
 use rooibos_dom::events::{IntoKeyHandler, KeyEventProps, KeyHandler};
-use rooibos_reactive::derive_signal;
+use rooibos_reactive::IntoSignal;
 use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::computed::Memo;
 use rooibos_reactive::graph::effect::Effect;
@@ -140,7 +140,7 @@ where
         S: IntoReactiveValue<Signal<String>, M>,
     {
         let key = key.into_reactive_value();
-        let key = derive_signal!(parse(key.get()));
+        let key = (move || parse(key.get())).signal();
         self.action_inner(key, action)
     }
 
@@ -183,7 +183,7 @@ where
             Box::new(handler) as Box<dyn KeybindHandler + Send + Sync>
         ));
         let key = key.into_reactive_value();
-        let key = derive_signal!(parse(key.get()));
+        let key = (move || parse(key.get())).signal();
 
         self.handler_inner(key, handler);
     }
@@ -270,7 +270,7 @@ where
         S: IntoReactiveValue<Signal<String>, M>,
     {
         let key = key.into_reactive_value();
-        let key = derive_signal!(parse(key.get()));
+        let key = (move || parse(key.get())).signal();
         Self::Action(key, action)
     }
 
@@ -280,7 +280,7 @@ where
         H: KeybindHandler + Send + Sync + 'static,
     {
         let key = key.into_reactive_value();
-        let key = derive_signal!(parse(key.get()));
+        let key = (move || parse(key.get())).signal();
         KeyActionMap::Handler(key, Arc::new(Mutex::new(Box::new(handler))))
     }
 }

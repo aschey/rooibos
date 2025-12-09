@@ -8,7 +8,7 @@ use rooibos_dom::widgets::{Role, WidgetRole};
 use rooibos_dom::{
     Event, KeyCode, KeyModifiers, MeasureNode, RenderNode, Repeats, ScrollDirection, set_editing,
 };
-use rooibos_reactive::derive_signal;
+use rooibos_reactive::IntoSignal;
 use rooibos_reactive::dom::div::taffy::Size;
 use rooibos_reactive::dom::{DomWidget, LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::IntoReactiveValue;
@@ -35,7 +35,7 @@ pub struct InputRef {
 impl InputRef {
     pub fn text(&self) -> Signal<String> {
         let text_area = self.text_area;
-        derive_signal!(text_area.get().lines()[0].clone())
+        (move || text_area.get().lines()[0].clone()).signal()
     }
 }
 

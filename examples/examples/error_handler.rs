@@ -11,7 +11,7 @@ use rooibos::reactive::dom::{
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::signal::{ReadSignal, signal};
 use rooibos::reactive::graph::traits::{Get, Read, Set};
-use rooibos::reactive::{col, derive_signal, row, wgt};
+use rooibos::reactive::{IntoSignal, col, row, wgt};
 use rooibos::runtime::error::RuntimeError;
 use rooibos::runtime::{
     ControlFlow, Runtime, before_exit, exit, exit_with_error, max_viewport_width,
@@ -25,7 +25,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     color_eyre::install().unwrap();
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -73,7 +75,7 @@ fn popup(
     on_ok: impl Fn() + Clone + Send + Sync + 'static,
 ) -> impl Render {
     let button_id = NodeId::new_auto();
-    let show_popup = derive_signal!(text.read().is_some());
+    let show_popup = (move || text.read().is_some()).signal();
 
     Effect::new(move || {
         if show_popup.get() {

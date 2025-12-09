@@ -9,7 +9,7 @@ use rooibos::reactive::dom::{NodeId, Render, line, text, use_focus_with_id};
 use rooibos::reactive::graph::owner::StoredValue;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, GetUntracked, GetValue, Update};
-use rooibos::reactive::{col, derive_signal, for_each, row, wgt};
+use rooibos::reactive::{col, for_each, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -19,7 +19,9 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 
 #[rooibos::main]
 async fn main() -> Result {
-    Runtime::initialize(DefaultBackend::auto().await?).run(app).await
+    Runtime::initialize(DefaultBackend::auto().await?)
+        .run(app)
+        .await
 }
 
 fn app() -> impl Render {
@@ -70,11 +72,11 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
     let decrease = move || update_count(-1);
 
     row![
-        style(borders(derive_signal!(if focused.get() {
+        style(borders(move || if focused.get() {
             Borders::all()
         } else {
             Borders::all().empty()
-        }))),
+        })),
         wgt!(
             style(margin_x(1)),
             line!(

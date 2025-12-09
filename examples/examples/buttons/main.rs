@@ -5,10 +5,11 @@ use rooibos::components::{Button, ButtonRef};
 use rooibos::keybind::{Bind, KeybindContext, key, keys};
 use rooibos::reactive::dom::layout::{height, padding, padding_right, width};
 use rooibos::reactive::dom::{Render, UpdateLayoutProps, span, text, try_focus_id};
+use rooibos::reactive::graph::IntoReactiveValue;
 use rooibos::reactive::graph::signal::signal;
 use rooibos::reactive::graph::traits::{Get, Update};
 use rooibos::reactive::graph::wrappers::read::Signal;
-use rooibos::reactive::{IntoText, col, derive_signal, focus_scope, row, wgt};
+use rooibos::reactive::{IntoText, col, focus_scope, row, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
 use rooibos::terminal::DefaultBackend;
@@ -29,7 +30,7 @@ const MAX_SIZE: u32 = 15;
 
 fn app() -> impl Render {
     let (block_height, set_block_height) = signal(5u32);
-    let block_width = derive_signal!(block_height.get() * 2);
+    let block_width = move || block_height.get() * 2;
 
     let adjust_size = move |adjustment: i32| {
         set_block_height.update(|b| {
@@ -47,20 +48,20 @@ fn app() -> impl Render {
             style(width(15), padding_right(2)),
             button(
                 bigger.bold(),
-                derive_signal!(block_height.get() < MAX_SIZE),
+                move || block_height.get() < MAX_SIZE,
                 bigger_ref,
                 move || adjust_size(1)
             ),
             button(
                 smaller.bold(),
-                derive_signal!(block_height.get() > MIN_SIZE),
+                move || block_height.get() > MIN_SIZE,
                 smaller_ref,
                 move || adjust_size(-1)
             )
         ],
         focus_scope!(wgt!(
             style(width(block_width), height(block_height)),
-            span!("{} x {}", block_width.get(), block_height.get())
+            span!("{} x {}", block_width(), block_height.get())
                 .into_text()
                 .centered()
                 .bg({
@@ -105,9 +106,9 @@ fn app() -> impl Render {
     .focusable(false)
 }
 
-fn button<F>(
+fn button<F, M>(
     title: Span<'static>,
-    enabled: Signal<bool>,
+    enabled: impl IntoReactiveValue<Signal<bool>, M>,
     button_ref: ButtonRef,
     on_click: F,
 ) -> impl Render

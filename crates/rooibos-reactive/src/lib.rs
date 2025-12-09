@@ -1,7 +1,6 @@
 pub mod dom;
 mod error_boundary;
 mod for_loop;
-mod macros;
 mod provider;
 mod suspense;
 mod widgets;
@@ -197,10 +196,11 @@ where
     });
     let (is_direct, set_is_direct) = signal(false);
     let state_prop = state_prop.into_reactive_value();
-    let prop = derive_signal!({
+    let prop = (move || {
         let state_prop = state_prop.get();
         state_prop.apply_state(change_event.get(), is_direct.get())
-    });
+    })
+    .signal();
 
     (prop, move |event, data, _| {
         set_change_event.set(event);
@@ -275,4 +275,21 @@ where
         wasm_compat::futures::sleep(duration).await;
         f.await;
     });
+}
+
+pub trait IntoSignal<T>
+where
+    T: Send + Sync + 'static,
+{
+    fn signal(self) -> Signal<T>;
+}
+
+impl<F, T> IntoSignal<T> for F
+where
+    F: Fn() -> T + Send + Sync + 'static,
+    T: Send + Sync + 'static,
+{
+    fn signal(self) -> Signal<T> {
+        Signal::derive(self)
+    }
 }

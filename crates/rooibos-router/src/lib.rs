@@ -5,7 +5,7 @@ use reactive_graph::owner::{Owner, StoredValue, provide_context, use_context};
 use reactive_graph::signal::{WriteSignal, signal};
 use reactive_graph::traits::{Get, GetValue, Update, UpdateValue, With};
 use reactive_graph::wrappers::read::Signal;
-use rooibos_reactive::derive_signal;
+use rooibos_reactive::IntoSignal;
 use rooibos_reactive::dom::{ChildrenFnMut, IntoChildrenFnMut};
 pub use rooibos_router_macros::*;
 use url::Url;
@@ -146,21 +146,22 @@ impl RouteContext {
     pub fn try_use_param(&self, param: Param) -> Signal<Option<String>> {
         let router = self.router.get_value();
         let current_route = self.current_route;
-        derive_signal!({
+        (move || {
             let route = current_route.get();
             let params = router.at(route.path()).unwrap().params;
             params.get(&param.0).map(|s| s.to_owned())
         })
+        .signal()
     }
 
     pub fn use_param(&self, param: Param) -> Signal<String> {
         let param = self.try_use_param(param);
-        derive_signal!(param.get().unwrap())
+        (move || param.get().unwrap()).signal()
     }
 
     pub fn try_use_query(&self, query: Query) -> Signal<Option<String>> {
         let current_route = self.current_route;
-        derive_signal!({
+        (move || {
             current_route.with(|r| {
                 r.query_pairs().find_map(|q| {
                     if q.0 == query.0 {
@@ -171,11 +172,12 @@ impl RouteContext {
                 })
             })
         })
+        .signal()
     }
 
     pub fn use_query(&self, query: Query) -> Signal<String> {
         let query = self.try_use_query(query);
-        derive_signal!(query.get().unwrap())
+        (move || query.get().unwrap()).signal()
     }
 
     pub fn can_go_forward(&self) -> Signal<bool> {
@@ -207,8 +209,8 @@ fn init_router(initial: &str) -> RouteContext {
         router: StoredValue::new(matchit::Router::new()),
         current_route: Memo::new(move |_| history.with(|h| h.last().cloned().unwrap())),
         set_buffer,
-        can_go_forward: derive_signal!(buffer.with(|b| !b.is_empty())),
-        can_go_back: derive_signal!(history.with(|h| { h.len() > 1 })),
+        can_go_forward: (move || buffer.with(|b| !b.is_empty())).signal(),
+        can_go_back: (move || history.with(|h| h.len() > 1)).signal(),
     };
     context.push_str(initial);
     provide_context(context);

@@ -6,7 +6,7 @@ use reactive_graph::traits::{Get, GetValue, SetValue, Update as _};
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::with_nodes_mut;
 
-use crate::derive_signal;
+use crate::IntoSignal;
 use crate::dom::NodeId;
 
 thread_local! {
@@ -24,8 +24,8 @@ thread_local! {
                         *f = None;
                     }
                     (f, Some(id)) => {
-                         wrapper.set_value(id);
-                         *f = Some(wrapper.get_value());
+                        wrapper.set_value(id);
+                        *f = Some(wrapper.get_value());
                     }
                 })
             })
@@ -46,16 +46,11 @@ pub fn use_focus_with_id(id: impl Into<NodeId>) -> Signal<bool> {
 pub fn use_focused_node() -> Signal<Option<NodeId>> {
     FOCUS_SIGNAL.with(|f| {
         let f = (**f).clone();
-        derive_signal!(f.get().map(|f| NodeId(StoredValue::new(f))))
+        (move || f.get().map(|f| NodeId(StoredValue::new(f)))).signal()
     })
 }
 
 fn use_focus_with_id_inner(id: NodeId) -> Signal<bool> {
     let focused_node = use_focused_node();
-    derive_signal!(
-        focused_node
-            .get()
-            .map(|node| { node == id })
-            .unwrap_or(false)
-    )
+    (move || focused_node.get().map(|node| node == id).unwrap_or(false)).signal()
 }
