@@ -46,9 +46,9 @@ impl ButtonRef {
 pub struct Button {
     on_click: Rc<RefCell<dyn FnMut()>>,
     layout_props: LayoutProps,
-    button_style: Signal<StateProp<Style>>,
+    button_style: StateProp<Style>,
     active_button_style: Signal<Style>,
-    button_borders: Signal<StateProp<Borders>>,
+    button_borders: StateProp<Borders>,
     active_button_borders: Signal<Borders>,
     element_ref: Option<ButtonRef>,
     text_alignment: Signal<Alignment>,
@@ -77,8 +77,7 @@ impl Button {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
             button_style: StateProp::new(Style::default())
-                .disabled(|s: Style| s.fg_disabled_light().get().bg_disabled_dark().get())
-                .into(),
+                .disabled(|s: Style| s.fg_disabled_light().get().bg_disabled_dark().get()),
             active_button_style: Style::new().into(),
             button_borders: StateProp::new(
                 (|| {
@@ -95,8 +94,7 @@ impl Button {
                 b.border_type(BorderType::disabled().get())
                     .fg_disabled_dark()
                     .get()
-            })
-            .into(),
+            }),
             active_button_borders: (|| {
                 Borders::all()
                     .border_type(BorderType::active().get())
@@ -114,11 +112,8 @@ impl Button {
         self
     }
 
-    pub fn button_style<M>(
-        mut self,
-        button_style: impl IntoReactiveValue<Signal<StateProp<Style>>, M>,
-    ) -> Self {
-        self.button_style = button_style.into_reactive_value();
+    pub fn button_style(mut self, button_style: StateProp<Style>) -> Self {
+        self.button_style = button_style;
         self
     }
 
@@ -130,11 +125,8 @@ impl Button {
         self
     }
 
-    pub fn borders<M>(
-        mut self,
-        borders: impl IntoReactiveValue<Signal<StateProp<Borders>>, M>,
-    ) -> Self {
-        self.button_borders = borders.into_reactive_value();
+    pub fn borders<M>(mut self, borders: StateProp<Borders>) -> Self {
+        self.button_borders = borders;
         self
     }
 

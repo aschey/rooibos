@@ -193,8 +193,8 @@ where
     }
 }
 
-pub fn use_state_prop<T, M>(
-    state_prop: impl IntoReactiveValue<Signal<StateProp<T>>, M>,
+pub fn use_state_prop<T>(
+    state_prop: StateProp<T>,
 ) -> (Signal<T>, impl Fn(StateChangeEvent, EventData, EventHandle))
 where
     T: Clone + Send + Sync + 'static,
@@ -204,9 +204,7 @@ where
         cause: StateChangeCause::Enable,
     });
     let (is_direct, set_is_direct) = signal(false);
-    let state_prop = state_prop.into_reactive_value();
     let prop = (move || {
-        let state_prop = state_prop.get();
         state_prop
             .apply_state(change_event.get(), is_direct.get())
             .get()
