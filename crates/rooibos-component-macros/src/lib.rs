@@ -185,6 +185,23 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
         })
         .collect();
 
+    let style_signal_impl_fns: TokenStream = style_fields
+        .iter()
+        .map(|f| {
+            let style_fn = Ident::new(&format!("style_{f}"), Span::call_site());
+            quote! {
+                fn #style_fn(self) -> Signal<T> {
+                    (move || {
+                        let this = self.get();
+                        this.style_fn().get()
+                    })
+                    .signal()
+
+                }
+            }
+        })
+        .collect();
+
     let color_trait_fns: TokenStream = color_fields
         .iter()
         .map(|f| {
@@ -292,6 +309,39 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
         })
         .collect();
 
+    let color_signal_impl_fns: TokenStream = color_fields
+        .iter()
+        .map(|f| {
+            let fg_fn = Ident::new(&format!("fg_{f}"), Span::call_site());
+            let bg_fn = Ident::new(&format!("bg_{f}"), Span::call_site());
+            let underline_fn = Ident::new(&format!("underline_{f}"), Span::call_site());
+
+            quote! {
+                fn #fg_fn(self) -> Signal<T> {
+                    let this = self.clone();
+                    (move || {
+                        this.get().#fg_fn().get()
+                    }).signal()
+                }
+
+                fn #bg_fn(self) -> Signal<T> {
+                    let this = self.clone();
+                    (move || {
+                        this.get().#bg_fn().get()
+                    }).signal()
+                }
+
+                fn #underline_fn(self) -> Signal<T> {
+                    let this = self.clone();
+                    (move || {
+                        this.get().#underline_fn().get()
+                    }).signal()
+                }
+
+            }
+        })
+        .collect();
+
     let color_ext_impl_fns: TokenStream = color_fields
         .iter()
         .map(|f| {
@@ -327,7 +377,12 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             }
         })
         .collect();
+    let signal_marker = Ident::new(&format!("__Signal{struct_name}"), Span::call_site());
+    let primitive_marker = Ident::new(&format!("__Primitive{struct_name}"), Span::call_site());
     Ok(quote! {
+        pub struct #signal_marker;
+        pub struct #primitive_marker;
+
         impl #struct_name {
             #impl_fns
 
@@ -342,11 +397,11 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             }
         }
 
-        pub trait #style_trait<T> where T: Send + Sync + 'static {
+        pub trait #style_trait<T, M> where T: Send + Sync + 'static {
             #style_trait_fns
         }
 
-        impl<T, U> #style_trait<T> for U
+        impl<T, U> #style_trait<T, #primitive_marker> for U
         where
             U: #tui_theme::Styled<Item = T> + Clone + Send + Sync + 'static,
             T: Send + Sync + 'static
@@ -354,11 +409,20 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             #style_impl_fns
         }
 
-        pub trait #color_trait<T> where T: Send + Sync + 'static {
+        impl<T, U> #style_trait<T, #signal_marker> for Signal<U>
+        where
+            U: #style_trait<T, #primitive_marker> + Clone + Send + Sync + 'static,
+            T: Clone + Send + Sync + 'static
+        {
+            #style_signal_impl_fns
+        }
+
+
+        pub trait #color_trait<T, M> where T: Send + Sync + 'static {
             #color_trait_fns
         }
 
-        impl<'a, T, U> #color_trait<T> for U
+        impl<'a, T, U> #color_trait<T, #primitive_marker> for U
         where
             U: #tui_theme::Stylize<'a, T> + Clone + Send + Sync + 'static,
             T: Send + Sync + 'static
@@ -366,6 +430,15 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
         {
             #color_impl_fns
         }
+
+        impl<T, U> #color_trait<T, #signal_marker> for Signal<U>
+        where
+            U: #color_trait<T, #primitive_marker> + Clone + Send + Sync + 'static,
+            T: Clone + Send + Sync + 'static
+        {
+            #color_signal_impl_fns
+        }
+
 
         pub trait #color_ext_trait where Self: Send + Sync + Sized + 'static {
             #color_ext_fns

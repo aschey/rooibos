@@ -28,7 +28,7 @@ use rooibos_dom::BorderType;
 use rooibos_reactive::IntoSignal;
 use rooibos_reactive::graph::graph::ReactiveNode;
 use rooibos_reactive::graph::signal::ArcTrigger;
-use rooibos_reactive::graph::traits::Track;
+use rooibos_reactive::graph::traits::{Get, Track};
 use rooibos_reactive::graph::wrappers::read::Signal;
 pub use show::*;
 pub use tab_view::*;

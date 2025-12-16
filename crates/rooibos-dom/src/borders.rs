@@ -1,4 +1,5 @@
 use ratatui::symbols::border;
+use ratatui::widgets::Block;
 use ratatui::widgets::block::Title;
 use taffy::LengthPercentage;
 use tui_theme::{Color, Style, Styled};
@@ -186,8 +187,8 @@ impl Borders {
         self
     }
 
-    pub fn into_block(self) -> ratatui::widgets::Block<'static> {
-        let mut block = ratatui::widgets::Block::new()
+    pub fn into_block(self) -> Block<'static> {
+        let mut block = Block::new()
             .borders(self.borders)
             .border_set(self.border_type.into())
             .border_style(self.style);

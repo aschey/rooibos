@@ -77,7 +77,7 @@ impl Button {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
             button_style: StateProp::new(Style::default())
-                .disabled(|s: Style| s.fg_disabled_light().get().bg_disabled_dark().get()),
+                .disabled(|s: Style| s.fg_disabled_light().bg_disabled_dark().get()),
             active_button_style: Style::new().into(),
             button_borders: StateProp::new(
                 (|| {
