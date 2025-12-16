@@ -36,7 +36,7 @@ tui-textarea = { version = "0.7", default-features = false }
 ratatui-image = "8"
 throbber-widgets-tui = "0.9.0"
 tui-term = "0.2.0"
-ratzilla = { git = "https://github.com/orhun/ratzilla", rev = "d72116d97c5ee7868e99754233e9f106b8922cab" }
+ratzilla = "0.2.0"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
 
 # other TUI things
