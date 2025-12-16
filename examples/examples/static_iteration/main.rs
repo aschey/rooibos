@@ -29,7 +29,7 @@ fn counter() -> impl Render {
     let increase = move || update_count(1);
     let decrease = move || update_count(-1);
 
-    let border_prop = StateProp::new(Borders::all().empty()).focused(|b| b.solid().blue());
+    let border_prop = StateProp::new(Borders::all().empty()).focused(|b: Borders| b.solid().blue());
     let (border, set_counter_state) = use_state_prop(border_prop);
 
     wgt!(

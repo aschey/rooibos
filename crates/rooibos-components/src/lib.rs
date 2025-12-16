@@ -23,9 +23,11 @@ pub use image::*;
 pub use input::*;
 pub use list_view::*;
 pub use notification::*;
+use rooibos_component_macros::ReactiveTheme;
 use rooibos_dom::BorderType;
 use rooibos_reactive::IntoSignal;
-use rooibos_reactive::graph::signal::ArcRwSignal;
+use rooibos_reactive::graph::graph::ReactiveNode;
+use rooibos_reactive::graph::signal::ArcTrigger;
 use rooibos_reactive::graph::traits::Track;
 use rooibos_reactive::graph::wrappers::read::Signal;
 pub use show::*;
@@ -35,35 +37,38 @@ pub use terminal::*;
 use tui_theme::{Color, SetTheme, Theme};
 pub use wrapping_list::*;
 
-#[derive(Theme, Clone, Copy, Default, Debug)]
+#[derive(ReactiveTheme, Theme, Clone, Copy, Default, Debug)]
+#[theme(prefix = "__internal")]
 pub struct ColorTheme {
-    text_primary: Color,
-    active: Color,
-    disabled_light: Color,
-    disabled_dark: Color,
-    border: Color,
-    border_focused: Color,
-    border_disabled: Color,
+    pub text_primary: Color,
+    pub active: Color,
+    pub disabled_light: Color,
+    pub disabled_dark: Color,
+    pub border: Color,
+    pub border_focused: Color,
+    pub border_disabled: Color,
 }
 
-#[derive(Theme, Clone, Copy, Default, Debug)]
-pub struct AppProperties {
-    border_type_primary: BorderType,
-    border_type_active: BorderType,
-    border_type_hovered: BorderType,
-    border_type_disabled: BorderType,
+#[derive(ReactiveTheme, Theme, Clone, Copy, Default, Debug)]
+#[theme(prefix = "__internal")]
+pub struct BorderProperties {
+    pub primary: BorderType,
+    pub active: BorderType,
+    pub hovered: BorderType,
+    pub disabled: BorderType,
 }
 
-#[derive(Theme, Clone, Copy, Default, Debug)]
+#[derive(ReactiveTheme, Theme, Clone, Copy, Default, Debug)]
+#[theme(prefix = "__internal")]
 pub struct AppTheme {
     #[subtheme]
-    color_theme: ColorTheme,
+    pub color_theme: ColorTheme,
     #[subtheme]
-    app_properties: AppProperties,
+    pub border_properties: BorderProperties,
 }
 
 pub struct ThemeSignal {
-    signal: ArcRwSignal<()>,
+    trigger: ArcTrigger,
 }
 
 thread_local! {
@@ -78,15 +83,15 @@ thread_local! {
                 border_focused: Color::Blue,
                 border_disabled: Color::DarkGray,
             },
-            app_properties: AppProperties {
-                border_type_primary: BorderType::Round,
-                border_type_active: BorderType::Double,
-                border_type_hovered: BorderType::Double,
-                border_type_disabled: BorderType::Inner,
+            border_properties: BorderProperties {
+                primary: BorderType::Round,
+                active: BorderType::Double,
+                hovered: BorderType::Double,
+                disabled: BorderType::Inner,
             }
         };
-        theme.set_global();
-        ThemeSignal { signal: ArcRwSignal::new(()) }
+        SetTheme::set_global(&theme);
+        ThemeSignal { trigger: ArcTrigger::new() }
 
     });
 }
@@ -101,7 +106,7 @@ where
 
 impl ThemeSignal {
     pub fn load_theme(&self) -> Signal<ColorTheme> {
-        let signal = self.signal.clone();
+        let signal = self.trigger.clone();
         (move || {
             signal.track();
             ColorTheme::current()
@@ -109,11 +114,11 @@ impl ThemeSignal {
         .signal()
     }
 
-    pub fn load_props(&self) -> Signal<AppProperties> {
-        let signal = self.signal.clone();
+    pub fn load_props(&self) -> Signal<BorderProperties> {
+        let signal = self.trigger.clone();
         (move || {
             signal.track();
-            AppProperties::current()
+            BorderProperties::current()
         })
         .signal()
     }
@@ -123,7 +128,7 @@ impl ThemeSignal {
         F: Fn(&AppTheme) -> T + Clone + Send + Sync + 'static,
         T: Send + Sync + 'static,
     {
-        let signal = self.signal.clone();
+        let signal = self.trigger.clone();
         (move || {
             signal.track();
             AppTheme::with_theme(f.clone())

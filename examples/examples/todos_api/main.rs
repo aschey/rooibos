@@ -352,8 +352,9 @@ fn todo_editor(
         editing_id.set(None);
     });
 
-    let (input_borders, set_input_state) =
-        use_state_prop(StateProp::new(Borders::all().empty()).focused(|b| b.solid().blue()));
+    let (input_borders, set_input_state) = use_state_prop(
+        StateProp::new(Borders::all().empty()).focused(|b: Borders| b.solid().blue()),
+    );
 
     Input::default()
         .borders(input_borders)

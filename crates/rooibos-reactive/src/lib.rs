@@ -101,17 +101,20 @@ pub fn init_executor() {
 }
 
 #[derive(Clone)]
-pub struct StateProp<T> {
+pub struct StateProp<T>
+where
+    T: Send + Sync + 'static,
+{
     pub focused: Arc<dyn Fn(T) -> T + Send + Sync>,
     pub direct_focus: bool,
     pub disabled: Arc<dyn Fn(T) -> T + Send + Sync>,
     pub hovered: Arc<dyn Fn(T) -> T + Send + Sync>,
-    pub normal: T,
+    pub normal: Signal<T>,
 }
 
 impl<T> Default for StateProp<T>
 where
-    T: Default,
+    T: Default + Send + Sync + 'static,
 {
     fn default() -> Self {
         Self {
@@ -119,15 +122,18 @@ where
             direct_focus: true,
             disabled: Arc::new(|t| t),
             hovered: Arc::new(|t| t),
-            normal: T::default(),
+            normal: T::default().into_reactive_value(),
         }
     }
 }
 
-impl<T> StateProp<T> {
-    pub fn new(normal: T) -> Self {
+impl<T> StateProp<T>
+where
+    T: Send + Sync + 'static,
+{
+    pub fn new<M>(normal: impl IntoReactiveValue<Signal<T>, M>) -> Self {
         Self {
-            normal,
+            normal: normal.into_reactive_value(),
             direct_focus: true,
             focused: Arc::new(|t| t),
             disabled: Arc::new(|t| t),
@@ -138,7 +144,7 @@ impl<T> StateProp<T> {
 
 impl<T> StateProp<T>
 where
-    T: Clone,
+    T: Clone + Send + Sync + 'static,
 {
     pub fn focused(mut self, focused: impl Fn(T) -> T + Send + Sync + 'static) -> Self {
         self.focused = Arc::new(focused);
@@ -155,8 +161,8 @@ where
         self
     }
 
-    pub fn normal(mut self, normal: T) -> Self {
-        self.normal = normal;
+    pub fn normal<M>(mut self, normal: impl IntoReactiveValue<Signal<T>, M>) -> Self {
+        self.normal = normal.into_reactive_value();
         self
     }
 
@@ -165,20 +171,23 @@ where
         self
     }
 
-    fn apply_state(&self, event: StateChangeEvent, is_direct: bool) -> T {
-        let mut value = self.normal.clone();
+    fn apply_state(&self, event: StateChangeEvent, is_direct: bool) -> Signal<T> {
+        let mut value = self.normal;
         if event.state.intersects(NodeState::HOVERED) {
-            value = (self.hovered)(value);
+            let hovered = self.hovered.clone();
+            value = (move || (hovered)(value.get())).signal();
         }
         let direct_focus_required = self.direct_focus && event.cause == StateChangeCause::Focus;
         let is_required_direct_focus = direct_focus_required && is_direct;
         if event.state.intersects(NodeState::FOCUSED)
             && (is_required_direct_focus || !direct_focus_required)
         {
-            value = (self.focused)(value);
+            let focused = self.focused.clone();
+            value = (move || (focused)(value.get())).signal();
         }
         if event.state.intersects(NodeState::DISABLED) {
-            value = (self.disabled)(value);
+            let disabled = self.disabled.clone();
+            value = (move || (disabled)(value.get())).signal();
         }
         value
     }
@@ -198,7 +207,9 @@ where
     let state_prop = state_prop.into_reactive_value();
     let prop = (move || {
         let state_prop = state_prop.get();
-        state_prop.apply_state(change_event.get(), is_direct.get())
+        state_prop
+            .apply_state(change_event.get(), is_direct.get())
+            .get()
     })
     .signal();
 

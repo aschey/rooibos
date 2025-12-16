@@ -24,7 +24,7 @@ use tui_textarea::{CursorMove, TextArea};
 use tui_theme::Style;
 use wasm_compat::futures::spawn_local;
 
-use crate::{ColorThemeColorTheme, with_theme};
+use crate::ColorThemeReactiveColorTheme;
 
 #[derive(Clone, Copy)]
 pub struct InputRef {
@@ -148,7 +148,7 @@ impl Default for Input {
             alignment: Alignment::Left.into(),
             layout_props: LayoutProps::default(),
             cursor_style: Style::reset().reversed().into(),
-            placeholder_style: with_theme(|_| Style::default().fg_disabled_dark()),
+            placeholder_style: Style::default().fg_disabled_dark(),
             placeholder_text: String::new().into(),
             style: Style::default().into(),
             on_submit: Box::new(|_| {}),

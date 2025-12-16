@@ -64,7 +64,7 @@ fn counter(id: NodeId, on_remove: impl Fn() + Clone + Send + Sync + 'static) -> 
     let update_count = move |change: i32| set_count.update(|c| *c += change);
     let increase = move || update_count(1);
     let decrease = move || update_count(-1);
-    let row_borders = StateProp::new(Borders::all().empty()).focused(|b| b.solid());
+    let row_borders = StateProp::new(Borders::all().empty()).focused(|b: Borders| b.solid());
     let (row_borders, set_row_state) = use_state_prop(row_borders);
 
     wgt!(

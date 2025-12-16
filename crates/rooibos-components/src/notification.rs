@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Duration;
 
 use ratatui::text::Text;
+use rooibos_dom::BorderType;
 use rooibos_reactive::dom::Render;
 use rooibos_reactive::dom::layout::{
     Borders, Dimension, align_items, auto, borders, clear, end, full, height, max_width,
@@ -12,11 +13,11 @@ use rooibos_reactive::graph::owner::{StoredValue, provide_context, use_context};
 use rooibos_reactive::graph::signal::signal;
 use rooibos_reactive::graph::traits::{Get, Update, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use rooibos_reactive::{col, for_each, wgt};
+use rooibos_reactive::{IntoSignal, col, for_each, wgt};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 
-use crate::{ColorThemeColorTheme as _, with_theme};
+use crate::{BorderPropertiesBorderTypeReactiveExt, ColorThemeReactiveColorTheme};
 
 #[derive(Clone, Debug)]
 pub struct NotificationContext {
@@ -156,11 +157,13 @@ impl Notifications {
             }
         });
 
-        let border = with_theme(|t| {
+        let border = (|| {
             Borders::all()
-                .border_type(t.app_properties.border_type_primary)
+                .border_type(BorderType::primary().get())
                 .fg_border_focused()
-        });
+                .get()
+        })
+        .signal();
 
         col![
             style(

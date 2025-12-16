@@ -10,6 +10,7 @@ rooibos-dom = { path = "./crates/rooibos-dom" }
 rooibos-runtime = { path = "./crates/rooibos-runtime" }
 rooibos-reactive-macros = { path = "./crates/rooibos-reactive-macros" }
 rooibos-components = { path = "./crates/rooibos-components" }
+rooibos-component-macros = { path = "./crates/rooibos-component-macros" }
 rooibos-config = { path = "./crates/rooibos-config" }
 rooibos-tester = { path = "./crates/rooibos-tester" }
 rooibos-terminal = { path = "./crates/rooibos-terminal" }
@@ -43,7 +44,7 @@ termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "570121b978cbf5b6d89fbed1864a4275c491dae8" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "f657863f80dc1452fb34028c2a9c7034a6ea2b18" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
 terminput-termina = "0.1.2"

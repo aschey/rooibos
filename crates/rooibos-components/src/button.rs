@@ -5,7 +5,7 @@ use std::time::Duration;
 use ratatui::layout::Alignment;
 use ratatui::text::Text;
 use rooibos_dom::events::KeyEventProps;
-use rooibos_dom::{KeyCode, supports_key_up};
+use rooibos_dom::{BorderType, KeyCode, supports_key_up};
 use rooibos_reactive::dom::layout::{Borders, borders};
 use rooibos_reactive::dom::{LayoutProps, Render, UpdateLayoutProps};
 use rooibos_reactive::graph::IntoReactiveValue;
@@ -13,12 +13,12 @@ use rooibos_reactive::graph::owner::StoredValue;
 use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
-use rooibos_reactive::{StateProp, delay, use_state_prop, wgt};
+use rooibos_reactive::{IntoSignal, StateProp, delay, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
 use tui_theme::Style;
 
-use crate::{ColorThemeColorTheme, with_theme};
+use crate::{BorderPropertiesBorderTypeReactiveExt, ColorThemeReactiveColorTheme};
 
 #[derive(Clone, Copy)]
 pub struct ButtonRef {
@@ -76,28 +76,34 @@ impl Button {
         Self {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
-            button_style: with_theme(|_| {
-                StateProp::new(Style::default())
-                    .disabled(|s| s.fg_disabled_light().bg_disabled_dark())
-            }),
+            button_style: StateProp::new(Style::default())
+                .disabled(|s: Style| s.fg_disabled_light().get().bg_disabled_dark().get())
+                .into(),
             active_button_style: Style::new().into(),
-            button_borders: with_theme(|theme| {
-                let props = theme.app_properties;
-                StateProp::new(
+            button_borders: StateProp::new(
+                (|| {
                     Borders::all()
-                        .border_type(props.border_type_primary)
-                        .fg_border(),
-                )
-                .focused(|b| b.fg_border_focused())
-                .hovered(move |b| b.border_type(props.border_type_hovered))
-                .disabled(move |b| b.border_type(props.border_type_disabled).fg_disabled_dark())
-            }),
-            active_button_borders: with_theme(|theme| {
-                let props = theme.app_properties;
+                        .border_type(BorderType::primary().get())
+                        .fg_border()
+                        .get()
+                })
+                .signal(),
+            )
+            .focused(|b: Borders| b.fg_border_focused().get())
+            .hovered(move |b: Borders| b.border_type(BorderType::hovered().get()))
+            .disabled(move |b: Borders| {
+                b.border_type(BorderType::disabled().get())
+                    .fg_disabled_dark()
+                    .get()
+            })
+            .into(),
+            active_button_borders: (|| {
                 Borders::all()
-                    .border_type(props.border_type_active)
+                    .border_type(BorderType::active().get())
                     .fg_active()
-            }),
+                    .get()
+            })
+            .signal(),
             text_alignment: Alignment::Left.into(),
             element_ref: None,
         }
