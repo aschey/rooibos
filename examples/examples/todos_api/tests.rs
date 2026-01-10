@@ -37,7 +37,7 @@ async fn test_todos() {
         15,
     )
     .await;
-    harness.mount(|| app(Duration::from_millis(500))).await;
+    harness.mount((), |_| app(Duration::from_millis(500))).await;
 
     let root_layout = root();
     // Wait for initial data load

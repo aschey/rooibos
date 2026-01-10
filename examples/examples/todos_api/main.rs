@@ -56,7 +56,7 @@ async fn main() -> Result<ExitCode> {
         RuntimeSettings::default().handle_commands(cmd_handler),
         DefaultBackend::auto().await?,
     )
-    .run(|| app(Duration::from_secs(3)))
+    .run(|_| app(Duration::from_secs(3)))
     .await?;
     Ok(res)
 }

@@ -21,7 +21,7 @@ async fn main() -> Result {
     let mut terminal = runtime
         .create_terminal()
         .map_err(RuntimeError::SetupFailure)?;
-    runtime.mount(&mut terminal, app).await;
+    runtime.mount(&mut terminal, (), |_| app()).await;
 
     runtime
         .configure_terminal_events()

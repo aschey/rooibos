@@ -53,9 +53,9 @@ fn main() -> Result {
 }
 
 #[rooibos::main]
-async fn run_tui(initial_route: impl ToRoute + 'static) -> Result {
+async fn run_tui(initial_route: impl ToRoute + Send + Sync + 'static) -> Result {
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(|| app(initial_route))
+        .run(|_| app(initial_route))
         .await
 }
 

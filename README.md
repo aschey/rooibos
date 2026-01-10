@@ -49,7 +49,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(app)
+        .run(|_| app())
         .await
 }
 
@@ -104,7 +104,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(app)
+        .run(|_| app())
         .await
 }
 
@@ -154,7 +154,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(app)
+        .run(|_| app())
         .await
 }
 
@@ -206,7 +206,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(app)
+        .run(|_| app())
         .await
 }
 
@@ -269,7 +269,7 @@ macro_rules! assert_snapshot {
 #[rooibos::test]
 async fn test_counter() {
     let mut harness = TestHarness::new(20, 10).await;
-    harness.mount(app).await;
+    harness.mount((),|_| app()).await;
 
     assert_snapshot!(harness);
 

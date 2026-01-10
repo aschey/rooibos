@@ -24,7 +24,7 @@ async fn main() -> Result {
     };
 
     let runtime = Runtime::initialize(DefaultBackend::auto().await?);
-    Ok(runtime.run(|| app(input)).await?)
+    Ok(runtime.run(|_| app(input)).await?)
 }
 
 fn app(text: String) -> impl Render {

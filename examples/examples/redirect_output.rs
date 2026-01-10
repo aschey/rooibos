@@ -30,7 +30,7 @@ async fn main() -> Result {
             .show_final_output(false),
         DefaultBackend::new(TerminalSettings::auto()?.alternate_screen(false)).await,
     )
-    .run(app)
+    .run(|_| app())
     .await?;
     Ok(res)
 }

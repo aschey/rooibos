@@ -6,7 +6,7 @@ pub use image::ImageReader;
 use ratatui::Frame;
 use ratatui::layout::{Rect, Size};
 use ratatui::widgets::StatefulWidget;
-use ratatui_image::picker::Picker;
+pub use ratatui_image::picker::Picker;
 use ratatui_image::thread::ThreadProtocol;
 use ratatui_image::{CropOptions, FilterType, Resize, StatefulImage};
 use rooibos_dom::widgets::{Role, WidgetRole};
@@ -26,6 +26,7 @@ pub enum ResizeMode {
 }
 
 pub struct Image {
+    picker: Picker,
     resize_mode: Signal<ResizeMode>,
     image_source: ImageSource,
 }
@@ -37,15 +38,20 @@ pub enum ImageSource {
 }
 
 impl Image {
-    pub fn from_url<M>(url: impl IntoReactiveValue<Signal<PathBuf>, M>) -> Self {
+    pub fn from_url<M>(picker: Picker, url: impl IntoReactiveValue<Signal<PathBuf>, M>) -> Self {
         Self {
+            picker,
             image_source: ImageSource::Url(url.into_reactive_value()),
             resize_mode: ResizeMode::Fit(None).into(),
         }
     }
 
-    pub fn from_binary<M>(binary: impl IntoReactiveValue<Signal<DynamicImage>, M>) -> Self {
+    pub fn from_binary<M>(
+        picker: Picker,
+        binary: impl IntoReactiveValue<Signal<DynamicImage>, M>,
+    ) -> Self {
         Self {
+            picker,
             image_source: ImageSource::Binary(binary.into_reactive_value()),
             resize_mode: ResizeMode::Fit(None).into(),
         }
@@ -53,6 +59,7 @@ impl Image {
 
     pub fn render(self) -> impl Render {
         let Self {
+            picker,
             resize_mode,
             image_source,
         } = self;
@@ -83,24 +90,13 @@ impl Image {
         if pixel_size == Size::default() {
             pixel_size = fallback_size;
         }
-        Effect::new(move |prev_picker: Option<Option<Picker>>| {
+        Effect::new(move |_| {
             let image = image.get();
             if let Some(image) = image {
-                let (picker, image) = if let Some(Some(picker)) = prev_picker {
-                    (picker, image)
-                } else {
-                    let picker = Picker::from_fontsize((pixel_size.width, pixel_size.height));
-
-                    (picker, image)
-                };
-
                 async_state.set(Some(ThreadProtocol::new(
                     tx_worker.clone(),
                     Some(picker.new_resize_protocol(image)),
                 )));
-                Some(picker)
-            } else {
-                None
             }
         });
 

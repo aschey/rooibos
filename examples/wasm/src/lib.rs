@@ -13,7 +13,7 @@ async fn start() -> Result<(), wasm_bindgen::JsError> {
 
     let runtime = Runtime::initialize(WasmBackend::default());
     runtime
-        .run(app)
+        .run(|_| app())
         .await
         .map_err(|e| wasm_bindgen::JsError::new(&e.to_string()))?;
     Ok(())

@@ -26,7 +26,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     color_eyre::install().unwrap();
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(app)
+        .run(|_| app())
         .await
 }
 

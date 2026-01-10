@@ -52,7 +52,7 @@ impl SshHandler for SshApp {
     ) {
         let count_tx = self.count_tx.clone();
         Runtime::initialize(SshBackend::new(params).await.unwrap())
-            .run(|| app(count_tx))
+            .run(|_| app(count_tx))
             .await
             .unwrap();
     }

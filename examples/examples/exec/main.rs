@@ -13,7 +13,7 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 async fn main() -> Result {
     let editor = env::var("EDITOR").unwrap_or("vim".to_string());
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(|| app(editor, Vec::new()))
+        .run(|_| app(editor, Vec::new()))
         .await
 }
 

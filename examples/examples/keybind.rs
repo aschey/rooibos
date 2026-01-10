@@ -25,7 +25,7 @@ async fn main() -> Result {
         RuntimeSettings::default().handle_commands(cmd_handler),
         DefaultBackend::auto().await?,
     );
-    runtime.run(app).await
+    runtime.run(|_| app()).await
 }
 
 fn app() -> impl Render {

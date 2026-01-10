@@ -67,19 +67,14 @@ impl TerminalView for Buffer {
     }
 }
 
-pub struct TestHarness {
+pub struct TestHarness<P = ()> {
     #[cfg(feature = "runtime")]
-    runtime: Runtime<TestBackend>,
+    runtime: Runtime<TestBackend, P>,
     terminal: NonblockingTerminal<ratatui::backend::TestBackend>,
     event_tx: broadcast::Sender<Event>,
 }
 
-impl TestHarness {
-    #[cfg(feature = "runtime")]
-    pub fn set_default_timeout(timeout: Duration) {
-        DEFAULT_TIMEOUT.with(|t| *t.write() = timeout);
-    }
-
+impl TestHarness<()> {
     #[cfg(feature = "runtime")]
     pub async fn new(width: u16, height: u16) -> Self {
         Self::new_with_settings(RuntimeSettings::default(), width, height).await
@@ -104,17 +99,6 @@ impl TestHarness {
         }
     }
 
-    pub async fn mount<F, M>(&mut self, f: F)
-    where
-        F: FnOnce() -> M + 'static,
-        M: Render,
-        <M as Render>::DomState: 'static,
-    {
-        self.runtime.mount(&mut self.terminal, f).await;
-        render_terminal(&mut self.terminal).await.unwrap();
-        focus_next();
-    }
-
     pub async fn from_terminal(
         mut terminal: NonblockingTerminal<ratatui::backend::TestBackend>,
         width: u16,
@@ -131,6 +115,27 @@ impl TestHarness {
             #[cfg(feature = "runtime")]
             runtime: rooibos_runtime::Runtime::initialize(backend),
         }
+    }
+}
+
+impl<P> TestHarness<P>
+where
+    P: 'static,
+{
+    #[cfg(feature = "runtime")]
+    pub fn set_default_timeout(timeout: Duration) {
+        DEFAULT_TIMEOUT.with(|t| *t.write() = timeout);
+    }
+
+    pub async fn mount<F, M>(&mut self, params: P, f: F)
+    where
+        F: FnOnce(P) -> M + Send + 'static,
+        M: Render,
+        <M as Render>::DomState: 'static,
+    {
+        self.runtime.mount(&mut self.terminal, params, f).await;
+        render_terminal(&mut self.terminal).await.unwrap();
+        focus_next();
     }
 
     pub fn terminal(&self) -> &NonblockingTerminal<ratatui::backend::TestBackend> {

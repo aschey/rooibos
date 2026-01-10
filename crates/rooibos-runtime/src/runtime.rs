@@ -7,6 +7,7 @@ use std::time::Duration;
 
 pub use background_service::ServiceContext;
 use background_service::{Manager, TaskId};
+use educe::Educe;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
 use ratatui::Viewport;
 use ratatui::layout::Position;
@@ -30,8 +31,9 @@ use crate::{
     set_panic_hook, wasm_compat, with_state, with_state_mut,
 };
 
-#[derive(Debug)]
-pub struct Runtime<B: Backend> {
+#[derive(Educe)]
+#[educe(Debug)]
+pub struct Runtime<B: Backend, P = ()> {
     settings: RuntimeSettings,
     runtime_command_tx: broadcast::Sender<RuntimeCommand>,
     runtime_command_rx: broadcast::Receiver<RuntimeCommand>,
@@ -48,6 +50,7 @@ pub struct Runtime<B: Backend> {
     service_manager: Manager,
     service_context: ServiceContext,
     signal_handler_running: bool,
+    before_read_events: Arc<dyn Fn() -> P + Send + Sync>,
 }
 
 #[derive(Debug, Clone)]
@@ -67,7 +70,7 @@ pub enum TickResult {
     Exit(ExitPayload),
 }
 
-impl<B> Runtime<B>
+impl<B> Runtime<B, ()>
 where
     B: Backend + 'static,
     B::TuiBackend: wasm_compat::Send + wasm_compat::Sync + 'static,
@@ -120,6 +123,39 @@ where
             service_manager,
             service_context,
             signal_handler_running: false,
+            before_read_events: Arc::new(|| {}),
+        }
+    }
+}
+
+impl<B, P> Runtime<B, P>
+where
+    P: 'static,
+    B: Backend + 'static,
+    B::TuiBackend: wasm_compat::Send + wasm_compat::Sync + 'static,
+{
+    pub fn with_init_params<F, NP>(self, f: F) -> Runtime<B, NP>
+    where
+        F: Fn() -> NP + Send + Sync + 'static,
+    {
+        Runtime {
+            settings: self.settings,
+            runtime_command_tx: self.runtime_command_tx,
+            runtime_command_rx: self.runtime_command_rx,
+            render_debouncer: self.render_debouncer,
+            term_command_rx: self.term_command_rx,
+            term_event_tx: self.term_event_tx,
+            term_event_rx: self.term_event_rx,
+            term_parser_tx: self.term_parser_tx,
+            dom_update_rx: self.dom_update_rx,
+            backend: self.backend,
+            parser_running: self.parser_running,
+            input_task_id: self.input_task_id,
+            input_task_cancellation: self.input_task_cancellation,
+            service_manager: self.service_manager,
+            service_context: self.service_context,
+            signal_handler_running: self.signal_handler_running,
+            before_read_events: Arc::new(f),
         }
     }
 
@@ -140,9 +176,13 @@ where
         Ok(())
     }
 
-    pub async fn mount<F, M>(&self, terminal: &mut NonblockingTerminal<B::TuiBackend>, f: F)
-    where
-        F: FnOnce() -> M + 'static,
+    pub async fn mount<F, M>(
+        &self,
+        terminal: &mut NonblockingTerminal<B::TuiBackend>,
+        params: P,
+        f: F,
+    ) where
+        F: FnOnce(P) -> M + 'static,
         M: Render,
         <M as Render>::DomState: 'static,
     {
@@ -151,7 +191,7 @@ where
             .with_terminal_mut(move |t| backend.window_size(t.backend_mut()))
             .await
             .ok();
-        mount(f, window_size);
+        mount(|| f(params), window_size);
     }
 
     pub fn create_terminal(&self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
@@ -255,7 +295,7 @@ where
 
     pub async fn run<F, M>(self, f: F) -> Result<ExitCode, RuntimeError>
     where
-        F: FnOnce() -> M + 'static,
+        F: FnOnce(P) -> M + 'static,
         M: Render,
         <M as Render>::DomState: 'static,
     {
@@ -269,16 +309,17 @@ where
         f: F,
     ) -> Result<ExitCode, RuntimeError>
     where
-        F: FnOnce() -> M + 'static,
+        F: FnOnce(P) -> M + 'static,
         M: Render,
         <M as Render>::DomState: 'static,
     {
+        let params = (self.before_read_events)();
         self.spawn_signal_handler()
             .map_err(RuntimeError::SetupFailure)?;
         self.configure_terminal_events()
             .await
             .map_err(RuntimeError::SetupFailure)?;
-        self.mount(&mut terminal, f).await;
+        self.mount(&mut terminal, params, f).await;
 
         self.draw(&mut terminal).await;
         focus_next();

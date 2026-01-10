@@ -19,7 +19,7 @@ macro_rules! assert_snapshot {
 async fn test_exec() {
     let mut harness = TestHarness::new(40, 10).await;
     harness
-        .mount(|| {
+        .mount((), |_| {
             if cfg!(windows) {
                 app("cmd".to_string(), vec!["/C".to_string(), "dir".to_string()])
             } else {

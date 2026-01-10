@@ -1,12 +1,13 @@
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use rooibos::components::Image;
+use rooibos::components::{Image, Picker};
 use rooibos::keybind::{Bind, key, keys};
 use rooibos::reactive::dom::Render;
 use rooibos::reactive::dom::layout::{height, padding, padding_top, width};
+use rooibos::reactive::graph::owner::StoredValue;
 use rooibos::reactive::graph::signal::RwSignal;
-use rooibos::reactive::graph::traits::{GetUntracked, Update};
+use rooibos::reactive::graph::traits::{GetUntracked, GetValue, Update};
 use rooibos::reactive::{col, wgt};
 use rooibos::runtime::Runtime;
 use rooibos::runtime::error::RuntimeError;
@@ -17,12 +18,14 @@ type Result = std::result::Result<ExitCode, RuntimeError>;
 #[rooibos::main]
 async fn main() -> Result {
     Runtime::initialize(DefaultBackend::auto().await?)
+        .with_init_params(|| Picker::from_query_stdio().unwrap())
         .run(app)
         .await
 }
 
-fn app() -> impl Render {
+fn app(picker: Picker) -> impl Render {
     let image_length = RwSignal::new(10);
+    let picker = StoredValue::new(picker);
     let image_url = RwSignal::new(PathBuf::from("./examples/assets/cat.jpg"));
 
     col![
@@ -33,7 +36,7 @@ fn app() -> impl Render {
         ),
         col![
             style(width(image_length), height(image_length), padding_top(1)),
-            Image::from_url(image_url).render()
+            Image::from_url(picker.get_value(), image_url).render()
         ]
     ]
     .on_key_down(

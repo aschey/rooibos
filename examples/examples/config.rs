@@ -33,7 +33,7 @@ async fn main() -> Result<ExitCode, RuntimeError> {
     provide_config(config);
 
     Runtime::initialize(DefaultBackend::auto().await?)
-        .run(app)
+        .run(|_| app())
         .await
 }
 

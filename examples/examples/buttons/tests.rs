@@ -18,7 +18,7 @@ macro_rules! assert_snapshot {
 #[rooibos::test]
 async fn test_buttons() {
     let mut harness = TestHarness::new(25, 10).await;
-    harness.mount(app).await;
+    harness.mount((), |_| app()).await;
 
     let root_node = root();
     assert_snapshot!(harness);

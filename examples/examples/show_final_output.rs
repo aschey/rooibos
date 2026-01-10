@@ -20,7 +20,7 @@ async fn main() -> Result {
         RuntimeSettings::default().viewport(Viewport::Inline(1)),
         DefaultBackend::new(TerminalSettings::stdout()?.alternate_screen(false)).await,
     )
-    .run(app)
+    .run(|_| app())
     .await
 }
 

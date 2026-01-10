@@ -29,7 +29,7 @@ async fn main() -> Result {
     subscriber.init();
 
     let runtime = Runtime::initialize(DefaultBackend::auto().await?);
-    runtime.run(app).await
+    runtime.run(|_| app()).await
 }
 
 fn app() -> impl Render {
