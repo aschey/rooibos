@@ -340,6 +340,8 @@ pub struct SshTuiBackend {
 }
 
 impl ratatui::backend::Backend for SshTuiBackend {
+    type Error = io::Error;
+
     fn draw<'a, I>(&mut self, content: I) -> io::Result<()>
     where
         I: Iterator<Item = (u16, u16, &'a ratatui::buffer::Cell)>,
@@ -369,6 +371,13 @@ impl ratatui::backend::Backend for SshTuiBackend {
 
     fn flush(&mut self) -> io::Result<()> {
         self.inner.flush()
+    }
+
+    fn clear_region(
+        &mut self,
+        clear_type: ratatui::prelude::backend::ClearType,
+    ) -> Result<(), Self::Error> {
+        self.inner.clear_region(clear_type)
     }
 
     fn size(&self) -> io::Result<Size> {

@@ -1,6 +1,8 @@
-use ratatui::widgets::{StatefulWidget, Widget, WidgetRef};
+use ratatui::widgets::{StatefulWidget, Widget};
 use rooibos_dom::MeasureNode;
-use rooibos_dom::widgets::{RenderStatefulWidget, RenderWidget, RenderWidgetRef, WidgetRole};
+use rooibos_dom::widgets::{
+    RenderStatefulWidget, RenderWidget, RenderWidgetMark, RenderWidgetRef, WidgetRole,
+};
 
 use crate::dom::DomWidget;
 
@@ -30,12 +32,13 @@ macro_rules! wgt_owned {
     };
 }
 
-pub fn widget<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
+pub fn widget<P, F, W, M>(props: P, widget_props: F) -> DomWidget<P>
 where
     F: Fn() -> W + 'static,
-    W: WidgetRef + WidgetRole + MeasureNode + 'static,
+    W: RenderWidgetMark<M> + WidgetRole + MeasureNode + 'static,
+    M: 'static,
 {
-    DomWidget::new_with_properties(props, move || RenderWidgetRef(widget_props()))
+    DomWidget::new_with_properties(props, move || RenderWidgetRef::new(widget_props()))
 }
 
 pub fn widget_owned<P, F, W>(props: P, widget_props: F) -> DomWidget<P>
@@ -51,6 +54,7 @@ where
     F1: Fn() -> W + 'static,
     F2: Fn() -> W::State + 'static,
     W: StatefulWidget + MeasureNode + WidgetRole + Clone + 'static,
+    <W as StatefulWidget>::State: Sized,
 {
     DomWidget::new_with_properties(props, move || RenderStatefulWidget {
         widget: widget_props(),

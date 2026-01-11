@@ -35,12 +35,6 @@ enum TermRequest {
     InsertText { height: u16, text: Text<'static> },
 }
 
-enum TermResponse {
-    WindowSize(io::Result<WindowSize>),
-    Size(io::Result<Size>),
-    Empty,
-}
-
 pub struct NonblockingTerminal<B>
 where
     B: Backend,
@@ -56,7 +50,7 @@ where
         Self { terminal }
     }
 
-    pub async fn window_size(&mut self) -> io::Result<WindowSize> {
+    pub async fn window_size(&mut self) -> Result<WindowSize, B::Error> {
         self.terminal.backend_mut().window_size()
     }
 
@@ -84,7 +78,7 @@ where
         self.terminal.current_buffer_mut().area
     }
 
-    pub async fn size(&mut self) -> Result<Size, io::Error> {
+    pub async fn size(&mut self) -> Result<Size, B::Error> {
         self.terminal.size()
     }
 

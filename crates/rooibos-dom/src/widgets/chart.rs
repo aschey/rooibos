@@ -1,6 +1,6 @@
 use ratatui::prelude::Constraint::*;
 use ratatui::prelude::*;
-use ratatui::widgets::{Axis, Block, GraphType, WidgetRef};
+use ratatui::widgets::{Axis, Block, GraphType};
 use style::Styled;
 use taffy::AvailableSpace;
 
@@ -121,8 +121,8 @@ impl Styled for Chart<'_> {
     }
 }
 
-impl WidgetRef for Chart<'_> {
-    fn render_ref(&self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
+impl Widget for &Chart<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         let mut chart = ratatui::widgets::Chart::new(
             self.datasets
                 .iter()
@@ -142,8 +142,8 @@ impl WidgetRef for Chart<'_> {
 }
 
 impl Widget for Chart<'_> {
-    fn render(self, area: Rect, buf: &mut ratatui::prelude::Buffer) {
-        self.render_ref(area, buf)
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        (&self).render(area, buf)
     }
 }
 

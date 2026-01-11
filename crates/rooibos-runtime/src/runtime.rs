@@ -132,6 +132,7 @@ impl<B, P> Runtime<B, P>
 where
     P: 'static,
     B: Backend + 'static,
+    <B::TuiBackend as ratatui::backend::Backend>::Error: Send + Sync,
     B::TuiBackend: wasm_compat::Send + wasm_compat::Sync + 'static,
 {
     pub fn with_init_params<F, NP>(self, f: F) -> Runtime<B, NP>
@@ -194,14 +195,15 @@ where
         mount(|| f(params), window_size);
     }
 
-    pub fn create_terminal(&self) -> io::Result<NonblockingTerminal<B::TuiBackend>> {
+    pub fn create_terminal(&self) -> Result<NonblockingTerminal<B::TuiBackend>, RuntimeError> {
         let tui_backend = self.backend.create_tui_backend()?;
         let mut terminal = ratatui::Terminal::with_options(
             tui_backend,
             ratatui::TerminalOptions {
                 viewport: self.settings.viewport.clone(),
             },
-        )?;
+        )
+        .map_err(|e| RuntimeError::Backend(Box::new(e)))?;
         self.backend.setup_terminal(terminal.backend_mut())?;
         Ok(NonblockingTerminal::new(terminal))
     }
@@ -299,7 +301,7 @@ where
         M: Render,
         <M as Render>::DomState: 'static,
     {
-        let terminal = self.create_terminal().map_err(RuntimeError::SetupFailure)?;
+        let terminal = self.create_terminal()?;
         self.run_with_terminal(terminal, f).await
     }
 
@@ -332,7 +334,7 @@ where
                 }
                 TickResult::Restart => {
                     terminal.join().await;
-                    terminal = self.create_terminal().map_err(RuntimeError::SetupFailure)?;
+                    terminal = self.create_terminal()?;
                     self.configure_terminal_events()
                         .await
                         .map_err(RuntimeError::SetupFailure)?;
@@ -372,7 +374,13 @@ where
         if self.show_final_output() {
             let y = terminal.area().y;
             let height = match self.settings.viewport {
-                Viewport::Fullscreen => terminal.size().await?.height,
+                Viewport::Fullscreen => {
+                    terminal
+                        .size()
+                        .await
+                        .map_err(|e| RuntimeError::Backend(Box::new(e)))?
+                        .height
+                }
                 Viewport::Inline(size) => size,
                 Viewport::Fixed(rect) => rect.height,
             };

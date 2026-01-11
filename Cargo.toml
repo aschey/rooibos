@@ -24,31 +24,31 @@ rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
 # leptos
 next_tuple = "0.1.0"
 either_of = "0.1.6"
-reactive_graph = "0.2.11"
+reactive_graph = "0.2.12"
 tachys = { git = "https://github.com/aschey/leptos", rev = "e81b26821082b8b8b0b07bb4d75b922a7ccea673" }
 throw_error = "0.3.1"
-reactive_stores = "0.3.0"
+reactive_stores = "0.3.1"
 any_spawner = "0.3.0"
 
 # ratatui
-ratatui = { version = "0.29", default-features = false }
-tui-textarea = { version = "0.7", default-features = false }
-ratatui-image = "9"
-throbber-widgets-tui = "0.9.0"
-tui-term = "0.2.0"
-ratzilla = "0.2.0"
-modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
+ratatui = { version = "0.30", default-features = false }
+tui-textarea = { git = "https://github.com/0xferrous/tui-textarea", rev = "b6bf812d1f5edab4f311f56d405a47341e9423cf", default-features = false }
+ratatui-image = { version = "10" }
+throbber-widgets-tui = "0.10.0"
+tui-term = "0.3.0"
+ratzilla = { git = "https://github.com/orhun/ratzilla", rev = "603d99863bc6016a3c30366bc8c7faf14f650ea8" }
+modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
 
 # other TUI things
 termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
-modalkit = { git = "https://github.com/aschey/modalkit", rev = "d79759555060ce9d4244ba7e7de8591c15d4f9ab" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "f657863f80dc1452fb34028c2a9c7034a6ea2b18" }
+modalkit = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
+tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "b282a024860b4140daf7ea5555a8bf8c7e1c76de" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
-terminput-termina = "0.1.2"
-termprofile = "0.1.2"
+terminput-termina = "0.1.5"
+termprofile = "0.2.0"
 
 # proc macros
 manyhow = "0.11"
@@ -75,8 +75,8 @@ paste = "1"
 taffy = "0.9.2"
 thiserror = "2"
 textwrap = "0.16.2"
-unicode-width = "0.2.0"
-tachyonfx = { version = "0.20", default-features = false }
+unicode-width = "0.2.2"
+tachyonfx = { version = "0.22", default-features = false }
 clap = "4.5.32"
 shlex = "1.3.0"
 clap_complete = "4.5.46"
@@ -106,10 +106,6 @@ serde = "1.0.219"
 axum = "0.8.1"
 confique = { version = "0.4" }
 color-eyre = "0.6.3"
-insta = "1.43.0"
-tui-tree-widget = "0.23.0"
+insta = "1.46.0"
+tui-tree-widget = "0.24.0"
 wasm-bindgen-futures = "0.4.50"
-
-
-[patch.crates-io]
-ratatui = { git = "https://github.com/aschey/ratatui", rev = "9c095537802f3bdb7d82b10bda226540f152421e" }

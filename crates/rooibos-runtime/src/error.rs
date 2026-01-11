@@ -19,6 +19,8 @@ pub enum RuntimeError {
     IoFailure(#[from] io::Error),
     #[error("internal error: {0}")]
     Internal(Box<dyn Error + Send + Sync>),
+    #[error("backend-specific error: {0}")]
+    Backend(Box<dyn Error + Send + Sync>),
     #[error("{0}")]
     UserDefined(Arc<Box<dyn Error + Send + Sync>>),
 }

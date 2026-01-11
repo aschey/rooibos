@@ -77,10 +77,10 @@ fn demo_line_gauge(
         LineGauge::default()
             .block(Block::new().title("LineGauge:"))
             .filled_style(Style::new().magenta())
-            .line_set(if enhanced_graphics {
-                symbols::line::THICK
+            .filled_symbol(if enhanced_graphics {
+                symbols::line::THICK_HORIZONTAL
             } else {
-                symbols::line::NORMAL
+                symbols::line::HORIZONTAL
             })
             .ratio(progress.get())
     )

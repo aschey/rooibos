@@ -286,7 +286,8 @@ impl Counter {
         } else {
             Borders::all().empty()
         };
-        let widget = DomWidgetNode::new(move || RenderWidgetRef(format!("count: {}", model.count)));
+        let widget =
+            DomWidgetNode::new(move || RenderWidgetRef::new(format!("count: {}", model.count)));
         widget.build();
 
         let node = DomNode::widget(widget.clone())

@@ -9,7 +9,7 @@ pub use node_tree::*;
 use ratatui::Frame;
 use ratatui::backend::Backend;
 use ratatui::text::Line;
-use ratatui::widgets::{Paragraph, WidgetRef, Wrap};
+use ratatui::widgets::{Paragraph, Widget, Wrap};
 use tokio::sync::watch;
 
 use crate::NonblockingTerminal;
@@ -221,7 +221,7 @@ pub fn render_dom(frame: &mut Frame) {
     render_size.y = area.y;
 
     if PRINT_DOM.with(|p| p.load(Ordering::Relaxed)) {
-        print_dom().render_ref(buf.area, buf);
+        print_dom().render(buf.area, buf);
     } else {
         with_nodes_mut(|nodes| {
             nodes.recompute_full_layout(render_size);
@@ -239,6 +239,7 @@ pub fn render_dom(frame: &mut Frame) {
 pub async fn render_terminal<B>(terminal: &mut NonblockingTerminal<B>) -> Result<(), io::Error>
 where
     B: Backend + wasm_compat::sync::Send + wasm_compat::sync::Sync + 'static,
+    B::Error: Send,
 {
     draw(terminal, render_dom).await
 }
@@ -246,6 +247,7 @@ where
 async fn draw<B, F>(terminal: &mut NonblockingTerminal<B>, render_callback: F) -> io::Result<()>
 where
     B: Backend + wasm_compat::sync::Send + wasm_compat::sync::Sync + 'static,
+    B::Error: Send,
     F: FnOnce(&mut Frame),
 {
     terminal.auto_resize().await;

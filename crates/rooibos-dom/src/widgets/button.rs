@@ -1,7 +1,7 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::text::Text;
-use ratatui::widgets::{Widget, WidgetRef};
+use ratatui::widgets::Widget;
 
 use super::{Role, WidgetRole};
 use crate::MeasureNode;
@@ -36,15 +36,15 @@ impl<'a> Button<'a> {
     }
 }
 
-impl WidgetRef for Button<'_> {
-    fn render_ref(&self, area: Rect, buf: &mut Buffer) {
-        self.text.render_ref(area, buf);
+impl Widget for &Button<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        (&self.text).render(area, buf);
     }
 }
 
 impl Widget for Button<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        self.render_ref(area, buf);
+        (&self).render(area, buf);
     }
 }
 

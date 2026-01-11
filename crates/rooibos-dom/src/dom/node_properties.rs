@@ -9,7 +9,7 @@ use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::widgets::{
-    Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget, WidgetRef,
+    Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
 };
 #[cfg(feature = "effects")]
 use tachyonfx::EffectRenderer;
@@ -395,7 +395,7 @@ impl NodeProperties {
         if let Some(background) = self.background {
             block = block.bg(background);
         }
-        block.render_ref(bounds, buf);
+        block.render(bounds, buf);
     }
 
     fn render_scrollbar(

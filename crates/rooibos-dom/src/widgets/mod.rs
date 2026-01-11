@@ -2,10 +2,12 @@ mod button;
 mod chart;
 
 use std::borrow::Cow;
+use std::marker::PhantomData;
 
 pub use button::*;
 pub use chart::*;
 use ratatui::Frame;
+use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{List, Paragraph, StatefulWidget, Tabs, Widget, WidgetRef};
@@ -136,31 +138,75 @@ impl WidgetRole for ratatui::widgets::Sparkline<'_> {
     }
 }
 
-pub struct RenderWidgetRef<W>(pub W)
-where
-    W: WidgetRef + 'static;
+pub trait RenderWidgetMark<M> {
+    fn render(&self, area: Rect, buf: &mut Buffer);
+}
 
-impl<W> RenderNode for RenderWidgetRef<W>
+#[doc(hidden)]
+pub struct __RefRender;
+
+impl<T> RenderWidgetMark<__RefRender> for T
 where
-    W: WidgetRef + 'static,
+    for<'a> &'a T: Widget,
 {
-    fn render(&mut self, rect: Rect, frame: &mut Frame) {
-        self.0.render_ref(rect, frame.buffer_mut())
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        (&self).render(area, buf);
     }
 }
 
-impl<W> WidgetRole for RenderWidgetRef<W>
+#[doc(hidden)]
+pub struct __OwnedRefRender;
+
+impl<T> RenderWidgetMark<__OwnedRefRender> for T
 where
-    W: WidgetRef + WidgetRole,
+    T: WidgetRef,
+{
+    fn render(&self, area: Rect, buf: &mut Buffer) {
+        self.render_ref(area, buf);
+    }
+}
+
+pub struct RenderWidgetRef<W, M>
+where
+    W: RenderWidgetMark<M>,
+{
+    widget: W,
+    _phantom: PhantomData<M>,
+}
+
+impl<W, M> RenderWidgetRef<W, M>
+where
+    W: RenderWidgetMark<M>,
+{
+    pub fn new(widget: W) -> Self {
+        Self {
+            widget,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl<W, M> RenderNode for RenderWidgetRef<W, M>
+where
+    W: RenderWidgetMark<M>,
+{
+    fn render(&mut self, rect: Rect, frame: &mut Frame) {
+        self.widget.render(rect, frame.buffer_mut())
+    }
+}
+
+impl<W, M> WidgetRole for RenderWidgetRef<W, M>
+where
+    W: WidgetRole + RenderWidgetMark<M>,
 {
     fn widget_role() -> Option<Role> {
         W::widget_role()
     }
 }
 
-impl<W> MeasureNode for RenderWidgetRef<W>
+impl<W, M> MeasureNode for RenderWidgetRef<W, M>
 where
-    W: WidgetRef + MeasureNode,
+    W: MeasureNode + RenderWidgetMark<M>,
 {
     fn measure(
         &self,
@@ -168,11 +214,12 @@ where
         available_space: taffy::Size<taffy::AvailableSpace>,
         style: &taffy::Style,
     ) -> taffy::Size<f32> {
-        self.0.measure(known_dimensions, available_space, style)
+        self.widget
+            .measure(known_dimensions, available_space, style)
     }
 
     fn estimate_size(&self) -> taffy::Size<f32> {
-        self.0.estimate_size()
+        self.widget.estimate_size()
     }
 }
 

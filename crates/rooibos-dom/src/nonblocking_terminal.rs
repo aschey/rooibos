@@ -1,4 +1,3 @@
-use std::io;
 use std::sync::Arc;
 
 use ratatui::backend::WindowSize;
@@ -35,9 +34,12 @@ enum TermRequest {
     InsertText { height: u16, text: Text<'static> },
 }
 
-enum TermResponse {
-    WindowSize(io::Result<WindowSize>),
-    Size(io::Result<Size>),
+enum TermResponse<B>
+where
+    B: Backend,
+{
+    WindowSize(Result<WindowSize, B::Error>),
+    Size(Result<Size, B::Error>),
     Empty,
 }
 
@@ -46,17 +48,18 @@ where
     B: Backend,
 {
     terminal: Arc<RwLock<ratatui::Terminal<B>>>,
-    requester: BidiChannel<TermRequest, TermResponse>,
+    requester: BidiChannel<TermRequest, TermResponse<B>>,
     handle: JoinHandle<()>,
 }
 
 impl<B> NonblockingTerminal<B>
 where
     B: Backend + Send + Sync + 'static,
+    B::Error: Send,
 {
     pub fn new(terminal: ratatui::Terminal<B>) -> Self {
         let terminal = Arc::new(RwLock::new(terminal));
-        let (requester, mut handle) = channel::<TermRequest, TermResponse>(1);
+        let (requester, mut handle) = channel::<TermRequest, TermResponse<B>>(1);
 
         let handle = tokio::task::spawn_blocking({
             let terminal = terminal.clone();
@@ -128,7 +131,7 @@ where
         }
     }
 
-    pub async fn window_size(&mut self) -> io::Result<WindowSize> {
+    pub async fn window_size(&mut self) -> Result<WindowSize, B::Error> {
         self.requester
             .tx
             .send(TermRequest::WindowSize)
@@ -165,7 +168,7 @@ where
         self.terminal.write().current_buffer_mut().area
     }
 
-    pub async fn size(&mut self) -> Result<Size, io::Error> {
+    pub async fn size(&mut self) -> Result<Size, B::Error> {
         self.requester.tx.send(TermRequest::Size).await.unwrap();
         let TermResponse::Size(size) = self.requester.rx.recv().await.unwrap() else {
             unreachable!()

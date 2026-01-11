@@ -50,7 +50,9 @@ where
     let window_size = terminal.backend_mut().window_size().ok();
 
     mount(f, window_size);
-    terminal.draw(render_dom)?;
+    terminal
+        .draw(render_dom)
+        .map_err(|e| io::Error::other(e.to_string()))?;
     terminal.backend_mut().write_all(b"\r\n")?;
     Ok(())
 }

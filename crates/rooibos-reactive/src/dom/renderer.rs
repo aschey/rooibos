@@ -56,7 +56,7 @@ impl Renderer for RooibosDom {
     fn set_text(node: &Self::Text, text: &str) {
         let text = text.to_string();
         node.replace_widget(rooibos_dom::DomWidgetNode::new(move || {
-            RenderWidgetRef(text.clone())
+            RenderWidgetRef::new(text.clone())
         }));
         node.clone().build();
     }

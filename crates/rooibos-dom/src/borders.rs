@@ -1,6 +1,6 @@
 use ratatui::symbols::border;
+use ratatui::text::Line;
 use ratatui::widgets::Block;
-use ratatui::widgets::block::Title;
 use taffy::LengthPercentage;
 use tui_theme::{Color, Style, Styled};
 
@@ -21,7 +21,7 @@ pub enum BorderType {
     Empty,
 }
 
-impl From<BorderType> for border::Set {
+impl From<BorderType> for border::Set<'_> {
     fn from(value: BorderType) -> Self {
         match value {
             BorderType::Solid => border::PLAIN,
@@ -44,8 +44,11 @@ impl From<BorderType> for border::Set {
 pub struct Borders {
     borders: ratatui::widgets::Borders,
     border_type: BorderType,
-    titles: Vec<Title<'static>>,
+    title: Option<Line<'static>>,
+    title_top: Option<Line<'static>>,
+    title_bottom: Option<Line<'static>>,
     style: Style,
+    title_style: Style,
 }
 
 impl Default for Borders {
@@ -53,8 +56,11 @@ impl Default for Borders {
         Self {
             borders: ratatui::widgets::Borders::default(),
             border_type: BorderType::default(),
-            titles: Vec::new(),
+            title: Option::None,
+            title_top: Option::None,
+            title_bottom: Option::None,
             style: Style::default().fg(Color::Reset),
+            title_style: Style::default(),
         }
     }
 }
@@ -176,9 +182,25 @@ impl Borders {
 
     pub fn title<T>(mut self, title: T) -> Self
     where
-        T: Into<Title<'static>>,
+        T: Into<Line<'static>>,
     {
-        self.titles.push(title.into());
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn title_top<T>(mut self, title: T) -> Self
+    where
+        T: Into<Line<'static>>,
+    {
+        self.title_top = Some(title.into());
+        self
+    }
+
+    pub fn title_bottom<T>(mut self, title: T) -> Self
+    where
+        T: Into<Line<'static>>,
+    {
+        self.title_bottom = Some(title.into());
         self
     }
 
@@ -187,15 +209,28 @@ impl Borders {
         self
     }
 
+    pub fn title_style(mut self, style: Style) -> Self {
+        self.title_style = style;
+        self
+    }
+
     pub fn into_block(self) -> Block<'static> {
         let mut block = Block::new()
             .borders(self.borders)
             .border_set(self.border_type.into())
-            .border_style(self.style);
+            .border_style(self.style)
+            .title_style(self.title_style);
 
-        for title in self.titles {
+        if let Some(title) = self.title {
             block = block.title(title);
         }
+        if let Some(title) = self.title_top {
+            block = block.title_top(title);
+        }
+        if let Some(title) = self.title_bottom {
+            block = block.title_bottom(title);
+        }
+
         block
     }
 
