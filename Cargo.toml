@@ -33,7 +33,7 @@ any_spawner = "0.3.0"
 # ratatui
 ratatui = { version = "0.30", default-features = false }
 tui-textarea = { git = "https://github.com/0xferrous/tui-textarea", rev = "b6bf812d1f5edab4f311f56d405a47341e9423cf", default-features = false }
-ratatui-image = { version = "10" }
+ratatui-image = { version = "10", default-features = false }
 throbber-widgets-tui = "0.10.0"
 tui-term = "0.3.0"
 ratzilla = { git = "https://github.com/orhun/ratzilla", rev = "603d99863bc6016a3c30366bc8c7faf14f650ea8" }
@@ -88,9 +88,9 @@ futures-util = "0.3"
 background-service = { git = "https://github.com/aschey/background-service-rs", rev = "e932670ce7998022d8cf56a593f2e39c3c0362b5" }
 proc-exit = "2.0.2"
 console_error_panic_hook = "0.1"
-signal-hook = "0.3"
+signal-hook = "0.4"
 async-signal = "0.2"
-russh = "0.54"
+russh = "0.56"
 tap = "1"
 tokio-stream = "0.1.17"
 web-sys = "0.3.77"
@@ -101,7 +101,7 @@ stream-cancel = "0.8"
 tracing-subscriber = "0.3.19"
 tracing-appender = "0.2.3"
 rand = "0.8.5"
-reqwest = "0.12.15"
+reqwest = "0.13.1"
 serde = "1.0.219"
 axum = "0.8.1"
 confique = { version = "0.4" }
