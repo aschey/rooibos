@@ -18,4 +18,4 @@ terminput-web-sys = { workspace = true }
 wasm-compat = { workspace = true }
 stream-cancel = { workspace = true }
 tokio-util = { workspace = true }
-tui-theme = { workspace = true }
+rooibos-theme = { workspace = true }

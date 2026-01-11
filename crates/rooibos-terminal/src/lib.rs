@@ -8,7 +8,7 @@ use std::io;
 use futures_util::Stream;
 pub use stream::*;
 use tokio_util::sync::CancellationToken;
-use tui_theme::ColorPalette;
+use rooibos_theme::ColorPalette;
 
 #[cfg(all(feature = "termina", not(target_arch = "wasm32")))]
 pub type DefaultBackend<T> = termina::TerminaBackend<T>;
@@ -73,7 +73,7 @@ pub trait Backend: Send + Sync {
 
     fn color_palette(&self) -> ColorPalette;
 
-    fn profile(&self) -> tui_theme::TermProfile;
+    fn profile(&self) -> rooibos_theme::TermProfile;
 
     fn async_input_stream(&self, cancellation_token: CancellationToken) -> impl AsyncInputStream;
 

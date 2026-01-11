@@ -14,7 +14,7 @@ unicode-width = { workspace = true }
 tokio-stream = { workspace = true }
 stream-cancel = { workspace = true }
 tokio-util = { workspace = true }
-tui-theme = { workspace = true }
+rooibos-theme = { workspace = true }
 
 [features]
 default = ["runtime"]

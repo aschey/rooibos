@@ -7,7 +7,7 @@ use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::wgt;
-use tui_theme::Style;
+use rooibos_theme::Style;
 
 use crate::WrappingList;
 

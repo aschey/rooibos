@@ -1,0 +1,27 @@
+[package]
+name = "rooibos-theme"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ratatui = { workspace = true, features = ["palette", "underline-color"] }
+rooibos-theme-macros = { workspace = true }
+palette = { workspace = true, features = ["serializing"] }
+serde = { workspace = true, features = ["derive"], optional = true }
+termprofile = { workspace = true, features = ["convert", "ratatui"] }
+regex = { workspace = true }
+anstyle = { workspace = true }
+terminal-colorsaurus = { workspace = true }
+bitflags = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+rstest = { workspace = true }
+
+[features]
+serde = ["dep:serde", "bitflags/serde"]
+color-cache = ["termprofile/color-cache"]
+windows-version = ["termprofile/windows-version"]
+terminfo = ["termprofile/terminfo"]
+query-detect = ["termprofile/query-detect"]

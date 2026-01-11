@@ -14,8 +14,8 @@ use terminput_termina::to_terminput;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
-use tui_theme::profile::{DetectorSettings, QueryTerminal};
-use tui_theme::{ColorPalette, SetTheme, TermProfile};
+use rooibos_theme::profile::{DetectorSettings, QueryTerminal};
+use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
@@ -473,11 +473,11 @@ impl<W: Write> Backend for TerminaBackend<W> {
         self.get_writer().write_all(buf)
     }
 
-    fn color_palette(&self) -> tui_theme::ColorPalette {
+    fn color_palette(&self) -> rooibos_theme::ColorPalette {
         ColorPalette::detect()
     }
 
-    fn profile(&self) -> tui_theme::TermProfile {
+    fn profile(&self) -> rooibos_theme::TermProfile {
         TermProfile::current()
     }
 

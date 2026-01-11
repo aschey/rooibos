@@ -26,7 +26,7 @@ tachyonfx = { workspace = true, default-features = false, features = [
   "std",
 ], optional = true }
 itertools = { workspace = true }
-tui-theme = { workspace = true }
+rooibos-theme = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }

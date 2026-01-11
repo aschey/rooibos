@@ -1,0 +1,23 @@
+[package]
+name = "rooibos-util"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+rooibos-theme = { workspace = true }
+regex = { workspace = true }
+palette = { workspace = true }
+convert_case = { workspace = true }
+open = { workspace = true }
+base64 = { workspace = true }
+dialoguer = { workspace = true }
+crossterm = { workspace = true }
+anstyle = { workspace = true }
+anstyle-crossterm = { workspace = true }
+indexmap = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+fs-err = { workspace = true }
+include_dir = { workspace = true, features = ["metadata"] }

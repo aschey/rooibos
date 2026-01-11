@@ -18,7 +18,7 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
-use tui_theme::{ColorPalette, TermProfile};
+use rooibos_theme::{ColorPalette, TermProfile};
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::wasm_bindgen::prelude::Closure;
 use web_sys::{ClipboardEvent, KeyboardEvent, MouseEvent, WheelEvent, window};

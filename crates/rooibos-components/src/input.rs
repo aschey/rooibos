@@ -21,7 +21,7 @@ use rooibos_reactive::graph::traits::{
 use rooibos_reactive::graph::wrappers::read::Signal;
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
-use tui_theme::Style;
+use rooibos_theme::Style;
 use wasm_compat::futures::spawn_local;
 
 use crate::ColorThemeReactiveColorTheme;

@@ -12,6 +12,8 @@ use rooibos_dom::Event;
 use rooibos_runtime::CancellationToken;
 use rooibos_terminal::termina::{TerminaBackend, tui};
 use rooibos_terminal::{self, AsyncInputStream, Backend, MaybeBuffered};
+use rooibos_theme::profile::{DetectorSettings, IsTerminal, QueryTerminal, TermVars};
+use rooibos_theme::{ColorPalette, TermProfile};
 use stream_cancel::StreamExt;
 use termina::escape::csi::{self, Csi, Device, Sgr};
 use termina::escape::dcs::{Dcs, DcsResponse};
@@ -21,8 +23,6 @@ use termprofile::DcsEvent;
 use tokio::sync::mpsc;
 use tokio::time::timeout;
 use tokio_stream::wrappers::ReceiverStream;
-use tui_theme::profile::{DetectorSettings, IsTerminal, QueryTerminal, TermVars};
-use tui_theme::{ColorPalette, TermProfile};
 
 use crate::{ArcHandle, SshParams};
 
@@ -313,7 +313,7 @@ impl Backend for SshBackend {
         ColorPalette::default()
     }
 
-    fn profile(&self) -> tui_theme::TermProfile {
+    fn profile(&self) -> rooibos_theme::TermProfile {
         self.profile
     }
 

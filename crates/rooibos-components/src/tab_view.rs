@@ -12,7 +12,7 @@ use rooibos_reactive::graph::IntoReactiveValue;
 use rooibos_reactive::graph::traits::{Get, With};
 use rooibos_reactive::graph::wrappers::read::{MaybeProp, Signal};
 use rooibos_reactive::{col, wgt};
-use tui_theme::{Style, Styled};
+use rooibos_theme::{Style, Styled};
 
 use crate::Keyed;
 use crate::wrapping_list::KeyedWrappingList;

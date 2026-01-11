@@ -2,6 +2,13 @@
 members = ["./crates/*", "examples", "examples/wasm", "integration-tests"]
 resolver = "3"
 
+[workspace.package]
+edition = "2024"
+authors = ["Austin Schey <aschey13@gmail.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/aschey/rooibos"
+homepage = "https://github.com/aschey/rooibos"
+
 [workspace.dependencies]
 # workspace crates
 rooibos = { path = "./crates/rooibos" }
@@ -20,6 +27,9 @@ rooibos-router = { path = "./crates/rooibos-router" }
 rooibos-router-macros = { path = "./crates/rooibos-router-macros" }
 rooibos-keybind = { path = "./crates/rooibos-keybind" }
 rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
+rooibos-theme = { path = "./crates/rooibos-theme" }
+rooibos-theme-macros = { path = "./crates/rooibos-theme-macros" }
+rooibos-util = { path = "./crates/rooibos-util" }
 
 # leptos
 next_tuple = "0.1.0"
@@ -44,11 +54,11 @@ termina = "0.1.1"
 vt100 = "0.15"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
-tui-theme = { git = "https://github.com/aschey/tui-theme", rev = "b282a024860b4140daf7ea5555a8bf8c7e1c76de" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
 terminput-termina = "0.1.5"
 termprofile = "0.2.0"
+anstyle-crossterm = "4"
 
 # proc macros
 manyhow = "0.11"
@@ -56,6 +66,7 @@ proc-macro2 = "1"
 quote = "1"
 syn = "2"
 proc-macro-crate = "3"
+darling = "0.23"
 
 # misc
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87" }
@@ -96,6 +107,17 @@ tokio-stream = "0.1.17"
 web-sys = "0.3.77"
 itertools = "0.14"
 stream-cancel = "0.8"
+anstyle = "1"
+palette = "0.7.6"
+regex = "1.11"
+terminal-colorsaurus = "1"
+base64 = "0.22"
+crossterm = "0.29"
+dialoguer = "0.12"
+fs-err = "3"
+include_dir = "0.7.4"
+indexmap = "2"
+open = "5"
 
 # examples/testing
 tracing-subscriber = "0.3.19"
@@ -109,3 +131,4 @@ color-eyre = "0.6.3"
 insta = "1.46.0"
 tui-tree-widget = "0.24.0"
 wasm-bindgen-futures = "0.4.50"
+rstest = "0.26"

@@ -7,11 +7,17 @@ use syn::spanned::Spanned;
 use syn::{Data, DeriveInput, Fields, Ident, Path, Type};
 
 fn is_style(s: &str) -> bool {
-    matches!(s, "Style" | "tui_theme::Style" | "ratatui::style::Style")
+    matches!(
+        s,
+        "Style" | "rooibos_theme::Style" | "ratatui::style::Style"
+    )
 }
 
 fn is_color(s: &str) -> bool {
-    matches!(s, "Color" | "tui_theme::Color" | "ratatui::style::Color")
+    matches!(
+        s,
+        "Color" | "rooibos_theme::Color" | "ratatui::style::Color"
+    )
 }
 
 fn filter_fields<F>(fields: &Fields, filter: F) -> Vec<&Ident>
@@ -74,7 +80,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
     }
     let struct_name = &input.ident;
 
-    let tui_theme = get_import("tui-theme");
+    let rooibos_theme = get_import("rooibos-theme");
     let other_fields = data_struct
         .map(|d| get_other_fields(&d.fields))
         .unwrap_or_default();
@@ -403,7 +409,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
         impl<T, U> #style_trait<T, #primitive_marker> for U
         where
-            U: #tui_theme::Styled<Item = T> + Clone + Send + Sync + 'static,
+            U: #rooibos_theme::Styled<Item = T> + Clone + Send + Sync + 'static,
             T: Send + Sync + 'static
         {
             #style_impl_fns
@@ -424,7 +430,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
         impl<'a, T, U> #color_trait<T, #primitive_marker> for U
         where
-            U: #tui_theme::Stylize<'a, T> + Clone + Send + Sync + 'static,
+            U: #rooibos_theme::Stylize<'a, T> + Clone + Send + Sync + 'static,
             T: Send + Sync + 'static
 
         {
@@ -444,7 +450,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             #color_ext_fns
         }
 
-        impl #color_ext_trait for #tui_theme::Color {
+        impl #color_ext_trait for #rooibos_theme::Color {
             #color_ext_impl_fns
         }
 
@@ -456,7 +462,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             #style_ext_fns
         }
 
-        impl #style_ext_trait for #tui_theme::Style {
+        impl #style_ext_trait for #rooibos_theme::Style {
             #style_ext_impl_fns
         }
 

@@ -10,7 +10,7 @@ use rooibos_dom::{AsDomNode, Borders, NodeId};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
-use tui_theme::Color;
+use rooibos_theme::Color;
 
 use super::layout::{
     AlignContent, AlignItems, AlignSelf, AspectRatio, Background, BorderProp, Class, Clear,

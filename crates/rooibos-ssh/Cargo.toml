@@ -22,7 +22,7 @@ background-service = { workspace = true }
 tokio-stream = { workspace = true, features = ["sync"] }
 termina = { workspace = true }
 stream-cancel = { workspace = true }
-tui-theme = { workspace = true }
+rooibos-theme = { workspace = true }
 termprofile = { workspace = true, features = ["query-detect", "terminfo"] }
 
 [features]

@@ -16,7 +16,7 @@ use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{IntoSignal, StateProp, delay, use_state_prop, wgt};
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
-use tui_theme::Style;
+use rooibos_theme::Style;
 
 use crate::{BorderPropertiesBorderTypeReactiveExt, ColorThemeReactiveColorTheme};
 

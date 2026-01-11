@@ -20,11 +20,11 @@ stream-cancel = { workspace = true }
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 terminput-termina = { workspace = true, optional = true }
 termina = { workspace = true, optional = true }
-tui-theme = { workspace = true }
+rooibos-theme = { workspace = true }
 termprofile = { workspace = true, features = ["query-detect", "terminfo"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-tui-theme = { workspace = true }
+rooibos-theme = { workspace = true }
 
 [features]
 termina = ["dep:termina", "dep:terminput-termina"]

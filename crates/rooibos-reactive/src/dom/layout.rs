@@ -10,7 +10,7 @@ use reactive_graph::wrappers::read::Signal;
 pub use rooibos_dom::{BorderType, Borders};
 use rooibos_dom::{FocusDirection, FocusMode, NodeId};
 use taffy::Display;
-use tui_theme::Color;
+use rooibos_theme::Color;
 use wasm_compat::sync::Mutex;
 
 use super::{DomNode, with_nodes_mut};

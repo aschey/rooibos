@@ -44,7 +44,7 @@ pub mod error {
 #[doc(hidden)]
 #[cfg(not(target_arch = "wasm32"))]
 pub use tokio as __tokio;
-use tui_theme::{ColorPalette, SetTheme, TermProfile};
+use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen as __wasm_bindgen;

@@ -11,10 +11,10 @@ use ratatui::layout::{Position, Rect};
 use ratatui::widgets::{
     Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
 };
+use rooibos_theme::{Color, Stylize};
 #[cfg(feature = "effects")]
 use tachyonfx::EffectRenderer;
 use terminput::ScrollDirection;
-use tui_theme::{Color, Stylize};
 
 use super::node_tree::{DomNodeKey, NodeTree};
 use super::{ContentRect, NodeId, NodeType, next_node_id, refresh_dom};

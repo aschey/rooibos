@@ -19,7 +19,7 @@ pub use throbber_widgets_tui::symbols::throbber::*;
 use throbber_widgets_tui::{Throbber, ThrobberState};
 use tokio_util::future::FutureExt;
 use tokio_util::sync::CancellationToken;
-use tui_theme::Style;
+use rooibos_theme::Style;
 use wasm_compat::futures::spawn_local;
 
 #[derive(Clone, Copy)]

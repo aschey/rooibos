@@ -30,11 +30,11 @@ use rooibos_reactive::graph::graph::ReactiveNode;
 use rooibos_reactive::graph::signal::ArcTrigger;
 use rooibos_reactive::graph::traits::{Get, Track};
 use rooibos_reactive::graph::wrappers::read::Signal;
+use rooibos_theme::{Color, SetTheme, Theme};
 pub use show::*;
 pub use tab_view::*;
 #[cfg(all(feature = "terminal-widget", not(target_arch = "wasm32")))]
 pub use terminal::*;
-use tui_theme::{Color, SetTheme, Theme};
 pub use wrapping_list::*;
 
 #[derive(ReactiveTheme, Theme, Clone, Copy, Default, Debug)]
@@ -79,7 +79,7 @@ thread_local! {
                 active: Color::Green,
                 disabled_light: Color::Gray,
                 disabled_dark: Color::DarkGray,
-                border: tui_theme::Color::Gray,
+                border: Color::Gray,
                 border_focused: Color::Blue,
                 border_disabled: Color::DarkGray,
             },

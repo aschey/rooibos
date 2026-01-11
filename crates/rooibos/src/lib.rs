@@ -16,6 +16,10 @@ pub mod components {
     pub use rooibos_components::*;
 }
 
+pub mod theme {
+    pub use rooibos_theme::*;
+}
+
 #[cfg(feature = "config")]
 pub mod config {
     pub use rooibos_config::*;
@@ -47,5 +51,5 @@ pub mod web {
     pub use rooibos_web::*;
 }
 
+pub use ratatui as tui;
 pub use rooibos_reactive_macros::*;
-pub use {ratatui as tui, tui_theme as theme};

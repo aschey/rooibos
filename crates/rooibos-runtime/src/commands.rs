@@ -18,7 +18,7 @@ use rooibos_reactive::graph::owner::Owner;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
-use tui_theme::{ColorPalette, SetTheme, TermProfile};
+use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 
 use crate::{
     ControlFlow, ExitPayload, OsSignal, RuntimeCommand, RuntimeState, with_all_state, with_state,

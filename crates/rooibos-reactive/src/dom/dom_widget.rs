@@ -11,7 +11,7 @@ use rooibos_dom::events::{
 };
 use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
-use tui_theme::Color;
+use rooibos_theme::Color;
 use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;
