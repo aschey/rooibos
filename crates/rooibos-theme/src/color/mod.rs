@@ -7,6 +7,9 @@ use std::time::Duration;
 
 use ::palette::{Darken, Lighten};
 use palette::Srgb;
+use reactive_graph::wrappers::read::Signal;
+use rooibos_reactive::IntoSignal;
+use rooibos_reactive::dom::layout::IntoColorSignal;
 use termprofile::{AdaptableColor, AdaptableStyle, DetectorSettings, QueryTerminal, TermVars};
 
 mod convert;
@@ -54,6 +57,12 @@ impl From<TermProfile> for termprofile::TermProfile {
             TermProfile::Ansi256 => termprofile::TermProfile::Ansi256,
             TermProfile::TrueColor => termprofile::TermProfile::TrueColor,
         }
+    }
+}
+
+impl IntoColorSignal for Color {
+    fn into_color_signal(self) -> Signal<ratatui::style::Color> {
+        (move || self.into()).signal()
     }
 }
 

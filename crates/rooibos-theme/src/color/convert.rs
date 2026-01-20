@@ -6,6 +6,7 @@ use palette::{
     FromColor, Hsl, Hsluv, Hsv, Hwb, Lab, Lch, Lchuv, LinSrgb, Luv, Okhsl, Okhsv, Okhwb, Oklab,
     Oklch, Srgb, Xyz, Yxy,
 };
+use reactive_graph::traits::GetUntracked;
 
 use super::{Color, indexed_to_rgb};
 use crate::SetTheme;
@@ -52,9 +53,9 @@ impl Color {
             Self::Rgb(r, g, b) => Srgb::new(r, g, b),
             Self::Reset => {
                 if is_fg {
-                    Self::terminal_fg().to_rgb_fg()
+                    Self::terminal_fg().get_untracked().to_rgb_fg()
                 } else {
-                    Self::terminal_bg().to_rgb_bg()
+                    Self::terminal_bg().get_untracked().to_rgb_bg()
                 }
             }
             Self::Black => indexed_to_rgb(0),

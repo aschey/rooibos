@@ -4,9 +4,9 @@ use std::io::{self, stdout};
 use anstyle_crossterm::to_crossterm;
 use crossterm::style::Stylize;
 use indexmap::{IndexMap, IndexSet};
-use rooibos_util::{EmbedOrPath, theme_selector};
 use rooibos_theme::profile::DetectorSettings;
 use rooibos_theme::{Color, ColorPalette, NamedColor, SetTheme, Style, TermProfile};
+use rooibos_util::{EmbedOrPath, theme_selector};
 
 use crate::{parse_theme_css, read_themes_from_path};
 
@@ -97,8 +97,8 @@ impl PrintableTheme {
 }
 
 pub fn print(theme_dir: &EmbedOrPath) -> io::Result<()> {
-    ColorPalette::detect().set_global();
-    TermProfile::detect(&stdout(), DetectorSettings::new()).set_global();
+    ColorPalette::detect().set();
+    TermProfile::detect(&stdout(), DetectorSettings::new()).set();
     let columns = crossterm::terminal::window_size().unwrap().columns;
 
     let mut theme_files = read_themes_from_path(theme_dir);

@@ -14,11 +14,11 @@ use rooibos_reactive::graph::signal::RwSignal;
 use rooibos_reactive::graph::traits::{Get, GetValue, Set, WithValue};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{IntoSignal, StateProp, delay, use_state_prop, wgt};
+use rooibos_theme::Style;
 use tokio::sync::broadcast;
 use tokio::task::spawn_local;
-use rooibos_theme::Style;
 
-use crate::{BorderPropertiesBorderTypeReactiveExt, ColorThemeReactiveColorTheme};
+use crate::{BorderPropertiesBorderTypeExt, ColorThemeColorTheme};
 
 #[derive(Clone, Copy)]
 pub struct ButtonRef {
@@ -77,7 +77,7 @@ impl Button {
             on_click: Rc::new(RefCell::new(|| {})),
             layout_props: LayoutProps::default(),
             button_style: StateProp::new(Style::default())
-                .disabled(|s: Style| s.fg_disabled_light().bg_disabled_dark().get()),
+                .disabled(|s: Style| s.fg_disabled_light().get().bg_disabled_dark().get()),
             active_button_style: Style::new().into(),
             button_borders: StateProp::new(
                 (|| {

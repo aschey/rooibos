@@ -1,17 +1,26 @@
 use ratatui::style::{Styled, Stylize};
+use reactive_graph::owner::{Owner, provide_context};
+use reactive_graph::traits::Get;
 use rooibos_theme::{
     Color, ColorPalette, ColorPaletteColorThemeExt, ColorScheme, Modifier, SetTheme, Style,
-    TermProfile,
+    TermProfile, ThemeContext,
 };
 use rstest::rstest;
 
 #[test]
 fn set_color() {
+    let owner = Owner::new();
+    owner.set();
+    TermProfile::TrueColor.set();
     assert_eq!("a".fg(Color::Red), "a".fg(ratatui::style::Color::Red));
 }
 
 #[test]
 fn set_style() {
+    let owner = Owner::new();
+    owner.set();
+    TermProfile::TrueColor.set();
+
     assert_eq!(
         "a".set_style(Style::new().fg(Color::Red)),
         "a".set_style(ratatui::style::Style::new().fg(ratatui::style::Color::Red))
@@ -29,7 +38,10 @@ fn set_style() {
 #[case(TermProfile::NoColor)]
 #[case(TermProfile::NoTty)]
 fn profile_color(#[case] profile: TermProfile) {
-    profile.set_local();
+    let owner = Owner::new();
+    owner.set();
+
+    profile.set();
     let color = Color::Rgb(120, 67, 84);
     let color_adapted: ratatui::style::Color =
         profile.adapt_color(color.into()).unwrap_or_default();
@@ -43,7 +55,10 @@ fn profile_color(#[case] profile: TermProfile) {
 #[case(TermProfile::NoColor)]
 #[case(TermProfile::NoTty)]
 fn profile_style(#[case] profile: TermProfile) {
-    profile.set_local();
+    let owner = Owner::new();
+    owner.set();
+
+    profile.set();
     let style = Style::new()
         .fg(Color::Rgb(120, 67, 84))
         .add_modifier(Modifier::UNDERLINED);
@@ -53,7 +68,10 @@ fn profile_style(#[case] profile: TermProfile) {
 
 #[test]
 fn parse_color() {
-    TermProfile::Ansi256.set_local();
+    let owner = Owner::new();
+    owner.set();
+
+    TermProfile::Ansi256.set();
     let color: Color = "chartreuse".parse().unwrap();
     let color_adapted = color.into_adaptive();
     assert!(matches!(color_adapted, Color::Indexed(_)));
@@ -61,13 +79,19 @@ fn parse_color() {
 
 #[test]
 fn terminal_colors() {
+    let owner = Owner::new();
+    owner.set();
+    provide_context(ThemeContext::default());
+
     let palette = ColorPalette {
         terminal_fg: Color::White,
         terminal_bg: Color::Black,
         color_scheme: ColorScheme::Dark,
     };
-    palette.set_local();
-    assert_eq!(palette.terminal_fg, Color::terminal_fg());
-    assert_eq!(palette.terminal_bg, Color::terminal_bg());
+    palette.set();
+    TermProfile::TrueColor.set();
+
+    assert_eq!(palette.terminal_fg, Color::terminal_fg().get());
+    assert_eq!(palette.terminal_bg, Color::terminal_bg().get());
     assert_eq!(palette.color_scheme, ColorScheme::current());
 }

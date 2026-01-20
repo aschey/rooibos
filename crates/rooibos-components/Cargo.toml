@@ -11,7 +11,6 @@ tui-textarea = { workspace = true, default-features = false, features = [
 ], optional = true }
 rooibos-dom = { workspace = true }
 rooibos-reactive = { workspace = true }
-rooibos-component-macros = { workspace = true }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
   "all",
 ] }

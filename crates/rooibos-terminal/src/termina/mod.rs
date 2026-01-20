@@ -7,6 +7,8 @@ use std::time::Duration;
 
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
+use rooibos_theme::profile::{DetectorSettings, QueryTerminal};
+use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 use termina::escape::csi::{self, Csi, KittyKeyboardFlags};
 use termina::escape::osc::{self, Selection};
 use termina::{EventReader, PlatformTerminal, Terminal};
@@ -14,8 +16,6 @@ use terminput_termina::to_terminput;
 use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
-use rooibos_theme::profile::{DetectorSettings, QueryTerminal};
-use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 
 use super::Backend;
 use crate::termina::macros::{decreset, decset};
@@ -64,8 +64,8 @@ impl TerminalSettings<Stdout> {
     where
         Q: QueryTerminal,
     {
-        TermProfile::detect(&stdout(), settings).set_global();
-        ColorPalette::detect().set_global();
+        TermProfile::detect(&stdout(), settings).set();
+        ColorPalette::detect().set();
         Self::from_writer(stdout)
     }
 
@@ -81,8 +81,8 @@ impl TerminalSettings<Stderr> {
     where
         Q: QueryTerminal,
     {
-        TermProfile::detect(&stderr(), settings).set_global();
-        ColorPalette::detect().set_global();
+        TermProfile::detect(&stderr(), settings).set();
+        ColorPalette::detect().set();
         Self::from_writer(stderr)
     }
 
@@ -102,8 +102,8 @@ impl TerminalSettings<AutoStream> {
             StreamImpl::Stdout(out) => TermProfile::detect(&out, settings),
             StreamImpl::Stderr(err) => TermProfile::detect(&err, settings),
         }
-        .set_global();
-        ColorPalette::detect().set_global();
+        .set();
+        ColorPalette::detect().set();
         Self::from_writer(AutoStream::new)
     }
 

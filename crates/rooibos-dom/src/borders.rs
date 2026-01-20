@@ -1,8 +1,8 @@
+use ratatui::style::{Color, Style, Styled};
 use ratatui::symbols::border;
 use ratatui::text::Line;
 use ratatui::widgets::Block;
 use taffy::LengthPercentage;
-use rooibos_theme::{Color, Style, Styled};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum BorderType {

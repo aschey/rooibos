@@ -1,5 +1,6 @@
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
+use ratatui::style::Color;
 use reactive_graph::IntoReactiveValue;
 use reactive_graph::wrappers::read::Signal;
 use rooibos_dom::events::{
@@ -10,7 +11,6 @@ use rooibos_dom::{AsDomNode, Borders, NodeId};
 use tachys::prelude::Renderer;
 use tachys::view::{Mountable, Render};
 pub use taffy;
-use rooibos_theme::Color;
 
 use super::layout::{
     AlignContent, AlignItems, AlignSelf, AspectRatio, Background, BorderProp, Class, Clear,

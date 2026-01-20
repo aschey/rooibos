@@ -7,10 +7,10 @@ use std::{cmp, mem};
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
+use ratatui::style::Color;
 use slotmap::{SlotMap, new_key_type};
 use taffy::{AvailableSpace, NodeId, Overflow, Point, Size, Style, TaffyTree};
 use terminput::{KeyCode, KeyEvent, KeyEventKind, SHIFT, ScrollDirection, key};
-use rooibos_theme::Color;
 
 use super::{FocusMode, MeasureNode, NodeProperties, dom_node, refresh_dom};
 use crate::events::{Event, EventHandlers, queue_event};

@@ -7,6 +7,7 @@ license.workspace = true
 [dependencies]
 ratatui = { workspace = true, features = ["palette", "underline-color"] }
 rooibos-theme-macros = { workspace = true }
+rooibos-reactive = { workspace = true }
 palette = { workspace = true, features = ["serializing"] }
 serde = { workspace = true, features = ["derive"], optional = true }
 termprofile = { workspace = true, features = ["convert", "ratatui"] }
@@ -15,6 +16,7 @@ anstyle = { workspace = true }
 terminal-colorsaurus = { workspace = true }
 bitflags = { workspace = true }
 thiserror = { workspace = true }
+reactive_graph = { workspace = true }
 
 [dev-dependencies]
 rstest = { workspace = true }

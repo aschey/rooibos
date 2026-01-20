@@ -1,4 +1,3 @@
-use darling::FromDeriveInput;
 use itertools::Itertools;
 use manyhow::{Emitter, bail, manyhow};
 use proc_macro_crate::{FoundCrate, crate_name};
@@ -78,27 +77,27 @@ fn get_subtheme_fields(fields: &Fields) -> Vec<(&Ident, &Type)> {
         .collect()
 }
 
-fn method_name(ident: Ident, opts: &ThemeOpts) -> Ident {
-    if let Some(prefix) = &opts.prefix {
-        Ident::new(&format!("{prefix}_{ident}"), Span::call_site())
-    } else {
-        ident
-    }
-}
+// fn method_name(ident: Ident, opts: &ThemeOpts) -> Ident {
+//     if let Some(prefix) = &opts.prefix {
+//         Ident::new(&format!("{prefix}_{ident}"), Span::call_site())
+//     } else {
+//         ident
+//     }
+// }
 
-#[derive(Debug, FromDeriveInput, Default)]
-#[darling(attributes(theme))]
-struct ThemeOpts {
-    prefix: Option<String>,
-}
+// #[derive(Debug, FromDeriveInput, Default)]
+// #[darling(attributes(theme))]
+// struct ThemeOpts {
+//     prefix: Option<String>,
+// }
 
 #[manyhow(proc_macro_derive(Theme, attributes(subtheme, theme)))]
-pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Result {
-    let opts = ThemeOpts::from_derive_input(&input)
-        .inspect_err(|e| {
-            emitter.emit(manyhow::ErrorMessage::new(e.span(), e.to_string()));
-        })
-        .unwrap_or_default();
+pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Result {
+    // let _opts = ThemeOpts::from_derive_input(&input)
+    //     .inspect_err(|e| {
+    //         emitter.emit(manyhow::ErrorMessage::new(e.span(), e.to_string()));
+    //     })
+    //     .unwrap_or_default();
     let data_struct = if let Data::Struct(data_struct) = &input.data {
         Some(data_struct)
     } else {
@@ -114,11 +113,11 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
     let struct_name = &input.ident;
     let struct_name_upper = struct_name.to_string().to_ascii_uppercase();
 
-    let global_theme = Ident::new(
+    let _global_theme = Ident::new(
         &format!("__{struct_name_upper}__GLOBAL_THEME"),
         Span::call_site(),
     );
-    let local_theme = Ident::new(
+    let _local_theme = Ident::new(
         &format!("__{struct_name_upper}__LOCAL_THEME"),
         Span::call_site(),
     );
@@ -131,18 +130,18 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .map(|d| get_other_fields(&d.fields))
         .unwrap_or_default();
 
-    let subtheme_set_local: TokenStream = subtheme_fields
+    let subtheme_set: TokenStream = subtheme_fields
         .iter()
-        .map(|(f, _)| quote!(#rooibos_theme::SetTheme::set_local(&self.#f);))
+        .map(|(f, _)| quote!(#rooibos_theme::SetTheme::set(&self.#f);))
         .collect();
-    let subtheme_set_global: TokenStream = subtheme_fields
-        .iter()
-        .map(|(f, _)| quote!(#rooibos_theme::SetTheme::set_global(&self.#f);))
-        .collect();
-    let subtheme_unset_local: TokenStream = subtheme_fields
-        .iter()
-        .map(|(_, ty)| quote!(<#ty as #rooibos_theme::SetTheme>::unset_local();))
-        .collect();
+    // let subtheme_set_global: TokenStream = subtheme_fields
+    //     .iter()
+    //     .map(|(f, _)| quote!(#rooibos_theme::SetTheme::set_global(&self.#f);))
+    //     .collect();
+    // let subtheme_unset_local: TokenStream = subtheme_fields
+    //     .iter()
+    //     .map(|(_, ty)| quote!(<#ty as #rooibos_theme::SetTheme>::unset_local();))
+    //     .collect();
 
     let style_trait = Ident::new(&(struct_name.to_string() + "Style"), Span::call_site());
     let style_ext_trait = Ident::new(&(struct_name.to_string() + "StyleExt"), Span::call_site());
@@ -151,6 +150,7 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         &(struct_name.to_string() + "ColorThemeExt"),
         Span::call_site(),
     );
+    let signal = quote!(rooibos_reactive::graph::wrappers::read::Signal);
 
     let other_traits: TokenStream = other_fields
         .iter()
@@ -170,15 +170,20 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
             let methods: Vec<_> = group
                 .into_iter()
                 .map(|(ident, _)| {
-                    let method = method_name((*ident).clone(), &opts);
                     (
                         quote! {
-                            fn #method() -> #ty;
+                            fn #ident() -> #signal<#ty>;
                         },
                         quote! {
-                            fn #method() -> #ty {
-                                use #rooibos_theme::SetTheme;
-                                #struct_name::with_theme(|t| t.#ident.clone())
+                            fn #ident() -> #signal<#ty> {
+                                use rooibos_reactive::IntoSignal;
+                                use rooibos_reactive::graph::traits::Track;
+
+                                let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                                (move || {
+                                    trigger.track();
+                                    rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| t.#ident.clone()).unwrap()
+                                }).signal()
                             }
                         },
                     )
@@ -211,7 +216,7 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .map(|f| {
             let style_fn = Ident::new(&format!("style_{f}"), Span::call_site());
             quote! {
-                fn #style_fn(self) -> T;
+                fn #style_fn(self) -> #signal<T>;
             }
         })
         .collect();
@@ -224,10 +229,17 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let style_fn = Ident::new(&format!("style_{f}"), Span::call_site());
-            let style_fn = method_name(style_fn, &opts);
             quote! {
-                fn #style_fn(self) -> T {
-                    <#struct_name as #rooibos_theme::SetTheme>::with_theme(|t| self.set_style(t.#f))
+                fn #style_fn(self) -> #signal<T> {
+                    use rooibos_reactive::IntoSignal;
+                    use rooibos_reactive::graph::traits::Track;
+
+                    let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                    let this = self.clone();
+                    (move || {
+                        trigger.track();
+                        rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| this.clone().set_style(t.#f)).unwrap()
+                    }).signal()
                 }
             }
         })
@@ -237,15 +249,12 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let fg_fn = Ident::new(&format!("fg_{f}"), Span::call_site());
-            let fg_fn = method_name(fg_fn, &opts);
             let bg_fn = Ident::new(&format!("bg_{f}"), Span::call_site());
-            let bg_fn = method_name(bg_fn, &opts);
             let underline_fn = Ident::new(&format!("underline_{f}"), Span::call_site());
-            let underline_fn = method_name(underline_fn, &opts);
             quote! {
-                fn #fg_fn(self) -> T;
-                fn #bg_fn(self) -> T;
-                fn #underline_fn(self) -> T;
+                fn #fg_fn(self) -> #signal<T>;
+                fn #bg_fn(self) -> #signal<T>;
+                fn #underline_fn(self) -> #signal<T>;
             }
         })
         .collect();
@@ -254,10 +263,9 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let color_fn = Ident::new(&f.to_string(), Span::call_site());
-            let color_fn = method_name(color_fn, &opts);
 
             quote! {
-                fn #color_fn() -> Self;
+                fn #color_fn() -> #signal<Self>;
             }
         })
         .collect();
@@ -266,10 +274,9 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let style_fn = Ident::new(&f.to_string(), Span::call_site());
-            let style_fn = method_name(style_fn, &opts);
 
             quote! {
-                fn #style_fn() -> Self;
+                fn #style_fn() -> #signal<Self>;
             }
         })
         .collect();
@@ -281,11 +288,16 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
                 .filter_map(|f| {
                     if let Some(ident) = &f.ident {
                         let ty = &f.ty;
-                        let method = method_name(ident.clone(), &opts);
                         Some(quote! {
-                            pub fn #method() -> #ty {
-                                use #rooibos_theme::SetTheme;
-                                #struct_name::with_theme(|t| t.#ident.clone())
+                            pub fn #ident() -> #signal<#ty> {
+                                use rooibos_reactive::IntoSignal;
+                                use rooibos_reactive::graph::traits::Track;
+
+                                let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                                (move || {
+                                    trigger.track();
+                                    rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| t.#ident.clone()).unwrap()
+                                }).signal()
                             }
                         })
                     } else {
@@ -300,26 +312,44 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let fg_fn = Ident::new(&format!("fg_{f}"), Span::call_site());
-            let fg_fn = method_name(fg_fn, &opts);
             let bg_fn = Ident::new(&format!("bg_{f}"), Span::call_site());
-            let bg_fn = method_name(bg_fn, &opts);
             let underline_fn = Ident::new(&format!("underline_{f}"), Span::call_site());
-            let underline_fn = method_name(underline_fn, &opts);
 
             quote! {
-                fn #fg_fn(self) -> T {
-                    use #rooibos_theme::SetTheme;
-                    #struct_name::with_theme(|t| self.fg(t.#f))
+                fn #fg_fn(self) -> #signal<T> {
+                    use rooibos_reactive::IntoSignal;
+                    use rooibos_reactive::graph::traits::Track;
+
+                    let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                    let this = self.clone();
+                    (move || {
+                        trigger.track();
+                        rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| this.clone().fg(t.#f)).unwrap()
+                    }).signal()
                 }
 
-                fn #bg_fn(self) -> T {
-                    use #rooibos_theme::SetTheme;
-                    #struct_name::with_theme(|t| self.bg(t.#f))
+                fn #bg_fn(self) -> #signal<T> {
+                    use rooibos_reactive::IntoSignal;
+                    use rooibos_reactive::graph::traits::Track;
+
+                    let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                    let this = self.clone();
+                    (move || {
+                        trigger.track();
+                        rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| this.clone().bg(t.#f)).unwrap()
+                    }).signal()
                 }
 
-                fn #underline_fn(self) -> T {
-                    use #rooibos_theme::SetTheme;
-                    #struct_name::with_theme(|t| self.underline_color(t.#f))
+                fn #underline_fn(self) -> #signal<T> {
+                    use rooibos_reactive::IntoSignal;
+                    use rooibos_reactive::graph::traits::Track;
+
+                    let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                    let this = self.clone();
+                    (move || {
+                        trigger.track();
+                        rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| this.clone().underline_color(t.#f)).unwrap()
+                    }).signal()
                 }
 
             }
@@ -330,12 +360,17 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let color_fn = Ident::new(&f.to_string(), Span::call_site());
-            let color_fn = method_name(color_fn, &opts);
 
             quote! {
-                fn #color_fn() -> Self {
-                    use #rooibos_theme::SetTheme;
-                    #struct_name::with_theme(|t| t.#f.into())
+                fn #color_fn() -> #signal<Self> {
+                    use rooibos_reactive::IntoSignal;
+                    use rooibos_reactive::graph::traits::Track;
+
+                    let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                    (move || {
+                        trigger.track();
+                        rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| t.#f.into()).unwrap()
+                    }).signal()
                 }
             }
         })
@@ -345,46 +380,45 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
         .iter()
         .map(|f| {
             let style_fn = Ident::new(&f.to_string(), Span::call_site());
-            let style_fn = method_name(style_fn, &opts);
 
             quote! {
-                fn #style_fn() -> Self {
-                    use #rooibos_theme::SetTheme;
-                    #struct_name::with_theme(|t| t.#f.into())
+                fn #style_fn() -> #signal<Self> {
+                    use rooibos_reactive::IntoSignal;
+                    use rooibos_reactive::graph::traits::Track;
+
+                    let trigger = rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.clone()).unwrap();
+                    (move || {
+                        trigger.track();
+                        rooibos_reactive::graph::owner::with_context::<#struct_name, _>(|t| t.#f.into()).unwrap()
+                    }).signal()
                 }
             }
         })
         .collect();
 
     Ok(quote! {
-        #rooibos_theme::__local_override!(#struct_name, #global_theme, #local_theme);
-
         impl #rooibos_theme::SetTheme for #struct_name {
             type Theme = Self;
 
-            fn set_local(&self) {
-                #subtheme_set_local
-                self.__override_set_local();
-            }
-
-            fn set_global(&self) {
-                #subtheme_set_global
-                self.__override_set_global();
-            }
-
-            fn unset_local() {
-                #subtheme_unset_local
-                Self::__override_unset_local();
+            fn set(&self) {
+                #subtheme_set
+                if rooibos_reactive::graph::owner::update_context::<#struct_name, _>(|val| {
+                    std::mem::replace(val, self.clone())
+                }).is_none() {
+                    rooibos_reactive::graph::owner::provide_context(self.clone());
+                }
             }
 
             fn current() -> Self {
-                Self::__override_current()
+                rooibos_reactive::graph::owner::use_context::<#struct_name>().unwrap()
             }
 
             fn with_theme< F, T>(f: F) -> T
             where
-                F: FnOnce(&Self::Theme) -> T {
-                Self::__override_with_value(f)
+                F: FnOnce(&Self::Theme) -> T,
+                T: Send + Sync
+            {
+                rooibos_reactive::graph::owner::with_context::<#struct_name, _>(f).unwrap()
             }
         }
 
@@ -392,29 +426,35 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
             #impl_fns
         }
 
-        pub trait #style_trait<T> {
+        pub trait #style_trait<T> where T: Clone + Send + Sync + 'static {
             #style_trait_fns
         }
 
         impl<T, U> #style_trait<T> for U
         where
-            U: #rooibos_theme::Styled<Item = T>
+            T:  Clone + Send + Sync + 'static,
+            U: #rooibos_theme::Styled<Item = T> + Clone + Send + Sync + 'static
         {
             #style_impl_fns
         }
 
-        pub trait #color_trait<T> {
+        pub trait #color_trait<T>
+        where
+            T: Clone + Send + Sync + 'static,
+            Self: Clone + Send + Sync + 'static
+        {
             #color_trait_fns
         }
 
         impl<'a, T, U> #color_trait<T> for U
         where
-            U: #rooibos_theme::Stylize<'a, T>,
+            T: Clone + Send + Sync + 'static,
+            U: #rooibos_theme::Stylize<'a, T> + Clone + Send + Sync + 'static,
         {
             #color_impl_fns
         }
 
-        pub trait #color_ext_trait {
+        pub trait #color_ext_trait where Self: Clone + Send + Sync + 'static {
             #color_ext_fns
         }
 
@@ -426,7 +466,7 @@ pub fn derive_theme(input: DeriveInput, emitter: &mut Emitter) -> manyhow::Resul
             #color_ext_impl_fns
         }
 
-        pub trait #style_ext_trait {
+        pub trait #style_ext_trait where Self: Clone + Send + Sync + 'static {
             #style_ext_fns
         }
 

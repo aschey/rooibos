@@ -127,7 +127,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
                         },
                         quote! {
                             fn #ident() -> Signal<#ty> {
-                                let trigger = THEME.with(|t| t.trigger.clone());
+                                let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone()).unwrap();
                                 (move || {
                                     trigger.track();
                                     Self::#base_method()
@@ -179,7 +179,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             let base_method = Ident::new(&format!("__internal_style_{f}"), Span::call_site());
             quote! {
                 fn #style_fn(self) -> Signal<T> {
-                    let trigger = THEME.with(|t| t.trigger.clone());
+                    let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone()).unwrap();
                     (move || {
                         trigger.track();
                         Self::#base_method()
@@ -255,7 +255,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
                             Ident::new(&format!("__internal_{ident}"), Span::call_site());
                         Some(quote! {
                             pub fn #ident() -> Signal<#ty> {
-                                let trigger = THEME.with(|t| t.trigger.clone());
+                                let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone()).unwrap();
                                 (move || {
                                     trigger.track();
                                     Self::#base_method()
@@ -285,7 +285,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
             quote! {
                 fn #fg_fn(self) -> Signal<T> {
-                    let trigger = THEME.with(|t| t.trigger.clone());
+                    let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone());
                     let this = self.clone();
                     (move || {
                         trigger.track();
@@ -294,7 +294,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
                 }
 
                 fn #bg_fn(self) -> Signal<T> {
-                    let trigger = THEME.with(|t| t.trigger.clone());
+                    let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone());
                     let this = self.clone();
                     (move || {
                         trigger.track();
@@ -303,7 +303,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
                 }
 
                 fn #underline_fn(self) -> Signal<T> {
-                    let trigger = THEME.with(|t| t.trigger.clone());
+                    let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone());
                     let this = self.clone();
                     (move || {
                         trigger.track();
@@ -356,7 +356,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
             quote! {
                 fn #color_fn() -> Signal<Self> {
-                    let trigger = THEME.with(|t| t.trigger.clone());
+                    let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone());
                     (move || {
                         trigger.track();
                         Self::#base_color_fn()
@@ -374,7 +374,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
             quote! {
                 fn #style_fn() -> Signal<Self> {
-                    let trigger = THEME.with(|t| t.trigger.clone());
+                    let trigger = with_context::<ThemeContext, _>(|t| t.trigger.clone()).unwrap();
                     (move || {
                         trigger.track();
                         Self::#base_style_fn()
@@ -393,12 +393,14 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             #impl_fns
 
             pub fn set_global(&self) {
-                THEME.with(|t| t.trigger.mark_dirty());
+                let context = use_context::<ThemeContext>();
+                context.trigger.mark_dirty();
                 SetTheme::set_global(self);
             }
 
             pub fn set_local(&self) {
-                THEME.with(|t| t.trigger.mark_dirty());
+                let context = use_context::<ThemeContext>();
+                context.trigger.mark_dirty();
                 SetTheme::set_local(self);
             }
         }

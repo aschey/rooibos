@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use next_tuple::NextTuple;
 use ratatui::layout::Rect;
+use ratatui::style::Color;
 use reactive_graph::IntoReactiveValue;
 use reactive_graph::effect::RenderEffect;
 use reactive_graph::wrappers::read::Signal;
@@ -11,7 +12,6 @@ use rooibos_dom::events::{
 };
 use rooibos_dom::{AsDomNode, BuildNodeRenderer, NodeId};
 use tachys::prelude::*;
-use rooibos_theme::Color;
 use wasm_compat::sync::RwLock;
 
 use super::dom_node::DomNode;

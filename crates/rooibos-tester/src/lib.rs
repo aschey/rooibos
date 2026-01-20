@@ -86,9 +86,19 @@ impl TestHarness<()> {
         width: u16,
         height: u16,
     ) -> Self {
+        use rooibos_theme::{Color, ColorPalette, ColorScheme, SetTheme, TermProfile};
+
         let backend = TestBackend::new(width, height);
         let event_tx = backend.event_tx();
         let mut runtime = Runtime::initialize_with(runtime_settings, backend);
+        TermProfile::TrueColor.set();
+        ColorPalette {
+            terminal_fg: Color::White,
+            terminal_bg: Color::Black,
+            color_scheme: ColorScheme::Dark,
+        }
+        .set();
+
         let terminal = runtime.create_terminal().unwrap();
         runtime.configure_terminal_events().await.unwrap();
 

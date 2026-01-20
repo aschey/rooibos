@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use next_tuple::NextTuple;
+use ratatui::style::Color;
 use reactive_graph::IntoReactiveValue;
 use reactive_graph::computed::Memo;
 use reactive_graph::effect::RenderEffect;
@@ -10,7 +11,6 @@ use reactive_graph::wrappers::read::Signal;
 pub use rooibos_dom::{BorderType, Borders};
 use rooibos_dom::{FocusDirection, FocusMode, NodeId};
 use taffy::Display;
-use rooibos_theme::Color;
 use wasm_compat::sync::Mutex;
 
 use super::{DomNode, with_nodes_mut};
@@ -150,7 +150,14 @@ impl Property for BorderProp {
     }
 }
 
-signal_wrapper!(Background, background, Color, Color::default());
+custom_signal_wrapper!(
+    Background,
+    background,
+    Color,
+    Color::default(),
+    IntoColorSignal,
+    IntoColorSignal::into_color_signal
+);
 
 impl Property for Background {
     type State = RenderEffect<()>;
@@ -452,7 +459,7 @@ macro_rules! dimension_layout_prop {
 }
 
 macro_rules! custom_layout_prop_opt {
-    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $impl_trait:ident, $f:expr,$($props:tt)+) => {
+    ($struct_name:ident, $fn:ident, $inner:ty, $default:expr, $impl_trait:ident, $f:expr, $($props:tt)+) => {
         custom_signal_wrapper!($struct_name, $fn, $inner, $default, $impl_trait, $f);
         update_layout_opt!($struct_name, $($props)+);
     };
@@ -678,7 +685,48 @@ pub trait IntoDimensionSignal {
     fn into_dimension_signal(self) -> Signal<Dimension>;
 }
 
+pub trait IntoColorSignal {
+    fn into_color_signal(self) -> Signal<Color>;
+}
+
+impl<T> IntoColorSignal for Signal<T>
+where
+    T: Into<Color> + Clone + Send + Sync + 'static,
+{
+    fn into_color_signal(self) -> Signal<Color> {
+        (move || self.get().into()).signal()
+    }
+}
+
+impl<T> IntoColorSignal for Memo<T>
+where
+    T: Into<Color> + Clone + Send + Sync + 'static,
+{
+    fn into_color_signal(self) -> Signal<Color> {
+        (move || self.get().into()).signal()
+    }
+}
+
+impl<T> IntoColorSignal for ReadSignal<T>
+where
+    T: Into<Color> + Clone + Send + Sync + 'static,
+{
+    fn into_color_signal(self) -> Signal<Color> {
+        (move || self.get().into()).signal()
+    }
+}
+
+impl<T> IntoColorSignal for RwSignal<T>
+where
+    T: Into<Color> + Clone + Send + Sync + 'static,
+{
+    fn into_color_signal(self) -> Signal<Color> {
+        (move || self.get().into()).signal()
+    }
+}
+
 impl_signal_into!(IntoDimensionSignal, into_dimension_signal, Dimension);
+//impl_signal_into!(IntoColorSignal, into_color_signal, Color);
 
 impl_signal_derives!(IntoDimensionSignal, into_dimension_signal, Dimension, u32);
 
@@ -739,6 +787,12 @@ pub fn val(val: impl IntoDimensionSignal) -> Signal<Dimension> {
 
 pub const fn auto() -> Dimension {
     Dimension::Auto
+}
+
+impl IntoColorSignal for Color {
+    fn into_color_signal(self) -> Signal<Color> {
+        self.into()
+    }
 }
 
 pub const fn scroll() -> taffy::Overflow {

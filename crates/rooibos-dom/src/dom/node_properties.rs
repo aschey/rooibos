@@ -8,10 +8,10 @@ use educe::Educe;
 use ratatui::Frame;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
+use ratatui::style::{Color, Stylize};
 use ratatui::widgets::{
     Clear, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget, Widget,
 };
-use rooibos_theme::{Color, Stylize};
 #[cfg(feature = "effects")]
 use tachyonfx::EffectRenderer;
 use terminput::ScrollDirection;

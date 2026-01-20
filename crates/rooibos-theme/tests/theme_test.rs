@@ -1,6 +1,9 @@
 use ratatui::widgets::Borders;
+use reactive_graph::owner::{Owner, provide_context};
+use reactive_graph::traits::Get;
 use rooibos_theme::{
-    Adaptive, Color, ColorPalette, ColorScheme, Dark, Light, SetTheme, Style, Theme, palette,
+    Adaptive, Color, ColorPalette, ColorScheme, Dark, Light, SetTheme, Style, Theme, ThemeContext,
+    palette,
 };
 
 #[derive(Theme, Default, Clone, Debug, PartialEq, Eq)]
@@ -17,13 +20,6 @@ struct AppStyleTheme {
 
 #[derive(Theme, Default, Clone, Debug, PartialEq, Eq)]
 struct AppColorTheme2 {
-    primary2: Color,
-    secondary2: Color,
-}
-
-#[derive(Theme, Default, Clone, Debug, PartialEq, Eq)]
-#[theme(prefix = "base")]
-struct AppColorTheme3 {
     primary2: Color,
     secondary2: Color,
 }
@@ -47,49 +43,66 @@ struct AppTheme {
 }
 
 #[test]
-fn set_color() {
+fn set_color_theme() {
+    let owner = Owner::new();
+    owner.set();
+    provide_context(ThemeContext::default());
+
     let theme = AppColorTheme {
         primary: Color::White,
         secondary: Color::Black,
     };
-    theme.set_local();
+    theme.set();
+
     assert_eq!(theme, AppColorTheme::current());
-    assert_eq!(theme.primary, AppColorTheme::primary());
-    assert_eq!(theme.secondary, AppColorTheme::secondary());
-    assert_eq!(theme.primary, Color::primary());
-    assert_eq!(theme.secondary, Color::secondary());
+    assert_eq!(theme.primary, AppColorTheme::primary().get());
+    assert_eq!(theme.secondary, AppColorTheme::secondary().get());
+    assert_eq!(theme.primary, Color::primary().get());
+    assert_eq!(theme.secondary, Color::secondary().get());
 }
 
 #[test]
 fn set_style() {
+    let owner = Owner::new();
+    owner.set();
+    provide_context(ThemeContext::default());
+
     let theme = AppStyleTheme {
         primary: Style::default().fg(palette::RosePine::ROSE_500),
         secondary: Style::default().fg(palette::RosePine::ROSE_100),
     };
-    theme.set_local();
+    theme.set();
     assert_eq!(theme, AppStyleTheme::current());
-    assert_eq!(theme.primary, AppStyleTheme::primary());
-    assert_eq!(theme.secondary, AppStyleTheme::secondary());
-    assert_eq!(theme.primary, Style::primary());
-    assert_eq!(theme.secondary, Style::secondary());
+    assert_eq!(theme.primary, AppStyleTheme::primary().get());
+    assert_eq!(theme.secondary, AppStyleTheme::secondary().get());
+    assert_eq!(theme.primary, Style::primary().get());
+    assert_eq!(theme.secondary, Style::secondary().get());
 }
 
 #[test]
 fn set_custom() {
+    let owner = Owner::new();
+    owner.set();
+    provide_context(ThemeContext::default());
+
     let theme = BorderTheme {
         primary: Borders::TOP,
         secondary: Borders::BOTTOM,
     };
-    theme.set_local();
+    theme.set();
     assert_eq!(theme, BorderTheme::current());
-    assert_eq!(theme.primary, BorderTheme::primary());
-    assert_eq!(theme.secondary, BorderTheme::secondary());
-    assert_eq!(theme.primary, Borders::primary());
-    assert_eq!(theme.secondary, Borders::secondary());
+    assert_eq!(theme.primary, BorderTheme::primary().get());
+    assert_eq!(theme.secondary, BorderTheme::secondary().get());
+    assert_eq!(theme.primary, Borders::primary().get());
+    assert_eq!(theme.secondary, Borders::secondary().get());
 }
 
 #[test]
 fn set_nested() {
+    let owner = Owner::new();
+    owner.set();
+    provide_context(ThemeContext::default());
+
     let theme = AppTheme {
         color: AppColorTheme {
             primary: Color::Red,
@@ -108,24 +121,27 @@ fn set_nested() {
             secondary: Style::default().fg(palette::RosePine::ROSE_100),
         },
     };
-    theme.set_local();
+    theme.set();
     assert_eq!(theme, AppTheme::current());
     assert_eq!(theme.color, AppColorTheme::current());
     assert_eq!(theme.color2, AppColorTheme2::current());
     assert_eq!(theme.borders, BorderTheme::current());
     assert_eq!(theme.style, AppStyleTheme::current());
-    assert_eq!(theme.color.primary, Color::primary());
-    assert_eq!(theme.color.secondary, Color::secondary());
-    assert_eq!(theme.color2.primary2, Color::primary2());
-    assert_eq!(theme.color2.secondary2, Color::secondary2());
-    assert_eq!(theme.style.primary, Style::primary());
-    assert_eq!(theme.style.secondary, Style::secondary());
-    assert_eq!(theme.borders.primary, Borders::primary());
-    assert_eq!(theme.borders.secondary, Borders::secondary());
+    assert_eq!(theme.color.primary, Color::primary().get());
+    assert_eq!(theme.color.secondary, Color::secondary().get());
+    assert_eq!(theme.color2.primary2, Color::primary2().get());
+    assert_eq!(theme.color2.secondary2, Color::secondary2().get());
+    assert_eq!(theme.style.primary, Style::primary().get());
+    assert_eq!(theme.style.secondary, Style::secondary().get());
+    assert_eq!(theme.borders.primary, Borders::primary().get());
+    assert_eq!(theme.borders.secondary, Borders::secondary().get());
 }
 
 #[test]
 fn adaptive() {
+    let owner = Owner::new();
+    owner.set();
+
     let borders1 = BorderTheme {
         primary: Borders::TOP,
         secondary: Borders::BOTTOM,
@@ -141,19 +157,8 @@ fn adaptive() {
         terminal_bg: Color::Black,
         color_scheme: ColorScheme::Dark,
     }
-    .set_local();
+    .set();
 
-    Adaptive::new(Dark(borders1.clone()), Light(borders2)).set_local();
+    Adaptive::new(Dark(borders1.clone()), Light(borders2)).set();
     assert_eq!(borders1, BorderTheme::current());
-}
-
-#[test]
-fn prefix() {
-    let theme = AppColorTheme3 {
-        primary2: Color::Black,
-        secondary2: Color::White,
-    };
-    theme.set_local();
-    assert_eq!(theme.primary2, AppColorTheme3::base_primary2());
-    assert_eq!(theme.secondary2, AppColorTheme3::base_secondary2());
 }

@@ -11,11 +11,17 @@ extern crate self as rooibos_theme;
 use std::ops::{Deref, DerefMut, Index};
 
 pub use color::*;
+use rooibos_reactive::graph::signal::ArcTrigger;
 pub use rooibos_theme_macros::*;
 pub use style::*;
 pub use theme::*;
 pub mod profile {
     pub use termprofile::{DetectorSettings, IsTerminal, QueryTerminal, TermVars};
+}
+
+#[derive(Clone, Default)]
+pub struct ThemeContext {
+    pub trigger: ArcTrigger,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Theme, Default)]
@@ -188,16 +194,8 @@ where
 {
     type Theme = T::Theme;
 
-    fn set_global(&self) {
-        self.adapt().set_global();
-    }
-
-    fn unset_local() {
-        T::unset_local();
-    }
-
-    fn set_local(&self) {
-        self.adapt().set_local();
+    fn set(&self) {
+        self.adapt().set();
     }
 
     fn current() -> Self::Theme {
@@ -206,6 +204,7 @@ where
 
     fn with_theme<F, R>(f: F) -> R
     where
+        R: Send + Sync + 'static,
         F: FnOnce(&Self::Theme) -> R,
     {
         T::with_theme(f)
@@ -215,15 +214,12 @@ where
 pub trait SetTheme {
     type Theme;
 
-    fn set_local(&self);
-
-    fn unset_local();
-
-    fn set_global(&self);
+    fn set(&self);
 
     fn current() -> Self::Theme;
 
     fn with_theme<F, T>(f: F) -> T
     where
+        T: Send + Sync + 'static,
         F: FnOnce(&Self::Theme) -> T;
 }

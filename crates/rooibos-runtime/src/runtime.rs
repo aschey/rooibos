@@ -11,13 +11,16 @@ use educe::Educe;
 use futures_util::{FutureExt as _, StreamExt, pin_mut};
 use ratatui::Viewport;
 use ratatui::layout::Position;
+use rooibos_components::default_theme;
 use rooibos_dom::events::dispatch_event;
 use rooibos_dom::{
     DomUpdateReceiver, Event, NonblockingTerminal, dom_update_receiver, focus_next,
     render_terminal, unmount,
 };
 use rooibos_reactive::dom::{Render, mount};
+use rooibos_reactive::graph::owner::provide_context;
 use rooibos_terminal::{self, Backend};
+use rooibos_theme::{SetTheme, ThemeContext};
 use tokio::sync::broadcast;
 pub use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
@@ -81,6 +84,9 @@ where
 
     pub fn initialize_with(settings: RuntimeSettings, backend: B) -> Self {
         set_panic_hook();
+
+        provide_context(ThemeContext::default());
+        default_theme().set();
         let backend = Arc::new(backend);
 
         let (term_parser_tx, _) = broadcast::channel(32);

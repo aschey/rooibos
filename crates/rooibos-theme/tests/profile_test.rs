@@ -1,3 +1,4 @@
+use reactive_graph::owner::Owner;
 use rooibos_theme::palette::Catppuccin;
 use rooibos_theme::{
     Adaptive, Color, ColorPalette, ColorScheme, Dark, Light, ProfileVariant, SetTheme, TermProfile,
@@ -5,12 +6,14 @@ use rooibos_theme::{
 
 #[test]
 fn adaptive() {
+    let owner = Owner::new();
+    owner.set();
     ColorPalette {
         terminal_fg: Color::White,
         terminal_bg: Color::Black,
         color_scheme: ColorScheme::Dark,
     }
-    .set_local();
+    .set();
 
     let adaptive = Adaptive::new(Dark("dark"), Light("light"));
     assert_eq!(&"dark", adaptive.adapt());
@@ -23,7 +26,7 @@ fn adaptive() {
         terminal_bg: Color::White,
         color_scheme: ColorScheme::Light,
     }
-    .set_local();
+    .set();
 
     assert_eq!(&"light", adaptive.adapt());
     let color = Catppuccin::GRAY[(Dark(0), Light(10))];
@@ -32,13 +35,15 @@ fn adaptive() {
 
 #[test]
 fn profile_variant() {
+    let owner = Owner::new();
+    owner.set();
     let variant = ProfileVariant::new("default").ansi_256("256").ansi_16("16");
-    TermProfile::TrueColor.set_local();
+    TermProfile::TrueColor.set();
     assert_eq!("default", variant.adapt());
 
-    TermProfile::Ansi256.set_local();
+    TermProfile::Ansi256.set();
     assert_eq!("256", variant.adapt());
 
-    TermProfile::Ansi16.set_local();
+    TermProfile::Ansi16.set();
     assert_eq!("16", variant.adapt());
 }

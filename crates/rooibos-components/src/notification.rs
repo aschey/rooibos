@@ -17,7 +17,7 @@ use rooibos_reactive::{IntoSignal, col, for_each, wgt};
 use tokio::sync::broadcast;
 use wasm_compat::futures::{sleep, spawn};
 
-use crate::{BorderPropertiesBorderTypeReactiveExt, ColorThemeReactiveColorTheme};
+use crate::{BorderPropertiesBorderTypeExt, ColorThemeColorTheme};
 
 #[derive(Clone, Debug)]
 pub struct NotificationContext {

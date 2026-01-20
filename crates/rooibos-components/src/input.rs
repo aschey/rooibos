@@ -19,12 +19,12 @@ use rooibos_reactive::graph::traits::{
     Get, GetUntracked, GetValue, Set, Track, Update, UpdateUntracked, With,
 };
 use rooibos_reactive::graph::wrappers::read::Signal;
+use rooibos_theme::Style;
 use tokio::sync::broadcast;
 use tui_textarea::{CursorMove, TextArea};
-use rooibos_theme::Style;
 use wasm_compat::futures::spawn_local;
 
-use crate::ColorThemeReactiveColorTheme;
+use crate::ColorThemeColorTheme;
 
 #[derive(Clone, Copy)]
 pub struct InputRef {

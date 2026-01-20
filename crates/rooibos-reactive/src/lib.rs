@@ -44,7 +44,6 @@ pub mod error {
 #[doc(hidden)]
 #[cfg(not(target_arch = "wasm32"))]
 pub use tokio as __tokio;
-use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 #[doc(hidden)]
 #[cfg(target_arch = "wasm32")]
 pub use wasm_bindgen as __wasm_bindgen;
@@ -219,15 +218,11 @@ where
 
 pub fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
     let fut = ScopedFuture::new(fut);
-    let profile = TermProfile::current();
-    let palette = ColorPalette::current();
+    // let profile = TermProfile::current();
+    // let palette = ColorPalette::current();
 
     #[cfg(not(target_arch = "wasm32"))]
-    Executor::spawn(async move {
-        profile.set_local();
-        palette.set_local();
-        fut.await
-    });
+    Executor::spawn(fut);
 
     #[cfg(target_family = "wasm")]
     Executor::spawn_local(fut);
@@ -244,12 +239,12 @@ where
     R: Send + 'static,
 {
     let owner = Owner::current().unwrap_or_default();
-    let profile = TermProfile::current();
-    let palette = ColorPalette::current();
+    // let profile = TermProfile::current();
+    // let palette = ColorPalette::current();
 
     tokio::task::spawn_blocking(move || {
-        profile.set_local();
-        palette.set_local();
+        // profile.set_local();
+        // palette.set_local();
         owner.with(f)
     })
 }
@@ -262,12 +257,12 @@ where
     T: Send + 'static,
 {
     let owner = Owner::current().unwrap_or_default();
-    let profile = TermProfile::current();
-    let palette = ColorPalette::current();
+    // let profile = TermProfile::current();
+    // let palette = ColorPalette::current();
 
     thread::spawn(move || {
-        profile.set_local();
-        palette.set_local();
+        // profile.set_local();
+        // palette.set_local();
         owner.with(f)
     })
 }
