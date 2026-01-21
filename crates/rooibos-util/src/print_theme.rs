@@ -4,6 +4,7 @@ use std::io::{self, stdout};
 use anstyle_crossterm::to_crossterm;
 use crossterm::style::Stylize;
 use indexmap::{IndexMap, IndexSet};
+use reactive_graph::owner::Owner;
 use rooibos_theme::profile::DetectorSettings;
 use rooibos_theme::{Color, ColorPalette, NamedColor, SetTheme, Style, TermProfile};
 use rooibos_util::{EmbedOrPath, theme_selector};
@@ -97,9 +98,11 @@ impl PrintableTheme {
 }
 
 pub fn print(theme_dir: &EmbedOrPath) -> io::Result<()> {
+    let owner = Owner::new();
+    owner.set();
     ColorPalette::detect().set();
     TermProfile::detect(&stdout(), DetectorSettings::new()).set();
-    let columns = crossterm::terminal::window_size().unwrap().columns;
+    let (columns, _) = crossterm::terminal::size().unwrap();
 
     let mut theme_files = read_themes_from_path(theme_dir);
     let selection = theme_selector(&theme_files)?;

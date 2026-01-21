@@ -10,6 +10,7 @@ serde = { workspace = true, features = ["derive"] }
 rooibos-theme = { workspace = true }
 regex = { workspace = true }
 palette = { workspace = true }
+reactive_graph = { workspace = true }
 convert_case = { workspace = true }
 open = { workspace = true }
 base64 = { workspace = true }
