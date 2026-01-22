@@ -6,12 +6,16 @@ use convert_case::{Case, Casing};
 use fs::File;
 use fs_err as fs;
 use indexmap::IndexMap;
-use rooibos_util::{EmbedOrFile, EmbedOrPath};
 use rooibos_theme::Color;
+use rooibos_util::{EmbedOrFile, EmbedOrPath};
 
 use crate::{parse_theme_css, read_themes_from_path};
 
-pub fn generate(crate_dir: &Path, theme_dir: &EmbedOrPath, palette_dir: &Path) -> io::Result<()> {
+pub fn generate(
+    cargo_root_dir: &Path,
+    theme_dir: &EmbedOrPath,
+    palette_dir: &Path,
+) -> io::Result<()> {
     // palettes created with https://www.tints.dev
     //  let palette_dir = Path::new("../tui-theme/src/palette");
     fs::remove_dir_all(palette_dir)?;
@@ -29,7 +33,7 @@ pub fn generate(crate_dir: &Path, theme_dir: &EmbedOrPath, palette_dir: &Path) -
 
     Command::new("cargo")
         .args(["+nightly", "fmt"])
-        .current_dir(crate_dir)
+        .current_dir(cargo_root_dir)
         .output()
         .unwrap();
 

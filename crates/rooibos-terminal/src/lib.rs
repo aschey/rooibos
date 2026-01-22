@@ -6,9 +6,9 @@ use std::fmt::Display;
 use std::io;
 
 use futures_util::Stream;
+use rooibos_theme::ColorPalette;
 pub use stream::*;
 use tokio_util::sync::CancellationToken;
-use rooibos_theme::ColorPalette;
 
 #[cfg(all(feature = "termina", not(target_arch = "wasm32")))]
 pub type DefaultBackend<T> = termina::TerminaBackend<T>;

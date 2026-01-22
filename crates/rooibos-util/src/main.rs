@@ -11,7 +11,7 @@ mod print_theme;
 #[derive(Args)]
 struct GenerateArgs {
     #[arg(long)]
-    crate_dir: PathBuf,
+    cargo_root_dir: PathBuf,
     #[arg(long)]
     src_dir: PathBuf,
     #[arg(long)]
@@ -30,10 +30,10 @@ fn main() -> io::Result<()> {
 
     match action {
         Action::Generate(GenerateArgs {
-            crate_dir,
+            cargo_root_dir,
             src_dir,
             dest_dir,
-        }) => generate_theme::generate(&crate_dir, &EmbedOrPath::Path(src_dir), &dest_dir),
+        }) => generate_theme::generate(&cargo_root_dir, &EmbedOrPath::Path(src_dir), &dest_dir),
         Action::Open { theme_path } => {
             open_theme::open(&EmbedOrPath::from_optional_path(theme_path))
         }

@@ -3,12 +3,12 @@ use std::io;
 use ratatui::backend::WindowSize;
 use ratatui::layout::Size;
 use rooibos_terminal::{AsyncInputStream, Backend, ClipboardKind};
+use rooibos_theme::{ColorPalette, TermProfile};
 use stream_cancel::StreamExt;
 use tokio::sync::broadcast;
 use tokio_stream::StreamExt as _;
 use tokio_stream::wrappers::BroadcastStream;
 use tokio_util::sync::CancellationToken;
-use rooibos_theme::{ColorPalette, TermProfile};
 
 pub struct TestBackend {
     width: u16,

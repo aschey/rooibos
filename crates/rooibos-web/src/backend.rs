@@ -9,6 +9,7 @@ use ratzilla::ratatui::layout::Size;
 use ratzilla::{CanvasBackend, WebGl2Backend};
 use rooibos_dom::Event;
 use rooibos_terminal::{AsyncInputStream, ClipboardKind};
+use rooibos_theme::{ColorPalette, TermProfile};
 use stream_cancel::StreamExt;
 use terminput_web_sys::{
     self, to_terminput_key, to_terminput_mouse, to_terminput_mouse_scroll, to_terminput_paste,
@@ -18,7 +19,6 @@ use tokio::sync::mpsc;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::sync::CancellationToken;
 use tracing::info;
-use rooibos_theme::{ColorPalette, TermProfile};
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::wasm_bindgen::prelude::Closure;
 use web_sys::{ClipboardEvent, KeyboardEvent, MouseEvent, WheelEvent, window};

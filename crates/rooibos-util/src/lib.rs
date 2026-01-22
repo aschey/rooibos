@@ -47,7 +47,7 @@ impl EmbedOrPath {
     }
 
     pub fn read_css(&self) -> Vec<ThemeFile> {
-        match self {
+        let mut files: Vec<_> = match self {
             Self::Embed => THEMES_DIR
                 .entries()
                 .iter()
@@ -59,7 +59,10 @@ impl EmbedOrPath {
                 .filter(|f| is_css_file(&EmbedOrPath::Path(f.clone())))
                 .map(|f| ThemeFile::from_file(EmbedOrFile::File(File::open(f).unwrap())))
                 .collect(),
-        }
+        };
+        // Sort to ensure consistent ordering in output
+        files.sort_by(|a, b| a.name.cmp(&b.name));
+        files
     }
 }
 

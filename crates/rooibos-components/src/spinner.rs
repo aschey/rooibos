@@ -14,12 +14,12 @@ use rooibos_reactive::graph::signal::{ReadSignal, signal};
 use rooibos_reactive::graph::traits::{Get as _, GetUntracked, Update};
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_reactive::{IntoSignal, wgt};
+use rooibos_theme::Style;
 pub use throbber_widgets_tui::WhichUse as SpinnerDisplay;
 pub use throbber_widgets_tui::symbols::throbber::*;
 use throbber_widgets_tui::{Throbber, ThrobberState};
 use tokio_util::future::FutureExt;
 use tokio_util::sync::CancellationToken;
-use rooibos_theme::Style;
 use wasm_compat::futures::spawn_local;
 
 #[derive(Clone, Copy)]
