@@ -77,27 +77,8 @@ fn get_subtheme_fields(fields: &Fields) -> Vec<(&Ident, &Type)> {
         .collect()
 }
 
-// fn method_name(ident: Ident, opts: &ThemeOpts) -> Ident {
-//     if let Some(prefix) = &opts.prefix {
-//         Ident::new(&format!("{prefix}_{ident}"), Span::call_site())
-//     } else {
-//         ident
-//     }
-// }
-
-// #[derive(Debug, FromDeriveInput, Default)]
-// #[darling(attributes(theme))]
-// struct ThemeOpts {
-//     prefix: Option<String>,
-// }
-
 #[manyhow(proc_macro_derive(Theme, attributes(subtheme, theme)))]
 pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Result {
-    // let _opts = ThemeOpts::from_derive_input(&input)
-    //     .inspect_err(|e| {
-    //         emitter.emit(manyhow::ErrorMessage::new(e.span(), e.to_string()));
-    //     })
-    //     .unwrap_or_default();
     let data_struct = if let Data::Struct(data_struct) = &input.data {
         Some(data_struct)
     } else {
@@ -134,14 +115,6 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
         .iter()
         .map(|(f, _)| quote!(#rooibos_theme::SetTheme::set(&self.#f);))
         .collect();
-    // let subtheme_set_global: TokenStream = subtheme_fields
-    //     .iter()
-    //     .map(|(f, _)| quote!(#rooibos_theme::SetTheme::set_global(&self.#f);))
-    //     .collect();
-    // let subtheme_unset_local: TokenStream = subtheme_fields
-    //     .iter()
-    //     .map(|(_, ty)| quote!(<#ty as #rooibos_theme::SetTheme>::unset_local();))
-    //     .collect();
 
     let style_trait = Ident::new(&(struct_name.to_string() + "Style"), Span::call_site());
     let style_ext_trait = Ident::new(&(struct_name.to_string() + "StyleExt"), Span::call_site());
@@ -415,8 +388,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
             fn with_theme< F, T>(f: F) -> T
             where
-                F: FnOnce(&Self::Theme) -> T,
-                T: Send + Sync
+                F: FnOnce(&Self::Theme) -> T
             {
                 rooibos_reactive::graph::owner::with_context::<#struct_name, _>(f).unwrap()
             }
@@ -426,13 +398,13 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             #impl_fns
         }
 
-        pub trait #style_trait<T> where T: Clone + Send + Sync + 'static {
+        pub trait #style_trait<T> where T: Send + Sync + 'static {
             #style_trait_fns
         }
 
         impl<T, U> #style_trait<T> for U
         where
-            T:  Clone + Send + Sync + 'static,
+            T: Send + Sync + 'static,
             U: #rooibos_theme::Styled<Item = T> + Clone + Send + Sync + 'static
         {
             #style_impl_fns
@@ -440,7 +412,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
         pub trait #color_trait<T>
         where
-            T: Clone + Send + Sync + 'static,
+            T: Send + Sync + 'static,
             Self: Clone + Send + Sync + 'static
         {
             #color_trait_fns
@@ -448,13 +420,13 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
 
         impl<'a, T, U> #color_trait<T> for U
         where
-            T: Clone + Send + Sync + 'static,
+            T: Send + Sync + 'static,
             U: #rooibos_theme::Stylize<'a, T> + Clone + Send + Sync + 'static,
         {
             #color_impl_fns
         }
 
-        pub trait #color_ext_trait where Self: Clone + Send + Sync + 'static {
+        pub trait #color_ext_trait where Self: Sized + Send + Sync + 'static {
             #color_ext_fns
         }
 
@@ -466,7 +438,7 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
             #color_ext_impl_fns
         }
 
-        pub trait #style_ext_trait where Self: Clone + Send + Sync + 'static {
+        pub trait #style_ext_trait where Self: Sized + Send + Sync + 'static {
             #style_ext_fns
         }
 

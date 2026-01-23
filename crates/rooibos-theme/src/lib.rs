@@ -204,7 +204,6 @@ where
 
     fn with_theme<F, R>(f: F) -> R
     where
-        R: Send + Sync + 'static,
         F: FnOnce(&Self::Theme) -> R,
     {
         T::with_theme(f)
@@ -220,6 +219,5 @@ pub trait SetTheme {
 
     fn with_theme<F, T>(f: F) -> T
     where
-        T: Send + Sync + 'static,
         F: FnOnce(&Self::Theme) -> T;
 }
