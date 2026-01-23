@@ -380,6 +380,8 @@ pub fn derive_theme(input: DeriveInput, _emitter: &mut Emitter) -> manyhow::Resu
                 }).is_none() {
                     rooibos_reactive::graph::owner::provide_context(self.clone());
                 }
+                use rooibos_reactive::graph::traits::Notify;
+                rooibos_reactive::graph::owner::with_context::<rooibos_theme::ThemeContext, _>(|t| t.trigger.notify());
             }
 
             fn current() -> Self {
