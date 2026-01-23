@@ -27,7 +27,6 @@ rooibos-router = { path = "./crates/rooibos-router" }
 rooibos-router-macros = { path = "./crates/rooibos-router-macros" }
 rooibos-keybind = { path = "./crates/rooibos-keybind" }
 rooibos-keybind-macros = { path = "./crates/rooibos-keybind-macros" }
-rooibos-style = { path = "./crates/rooibos-style" }
 rooibos-theme = { path = "./crates/rooibos-theme" }
 rooibos-theme-macros = { path = "./crates/rooibos-theme-macros" }
 rooibos-util = { path = "./crates/rooibos-util" }

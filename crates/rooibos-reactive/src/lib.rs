@@ -218,8 +218,6 @@ where
 
 pub fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
     let fut = ScopedFuture::new(fut);
-    // let profile = TermProfile::current();
-    // let palette = ColorPalette::current();
 
     #[cfg(not(target_arch = "wasm32"))]
     Executor::spawn(fut);
@@ -239,8 +237,6 @@ where
     R: Send + 'static,
 {
     let owner = Owner::current().unwrap_or_default();
-    // let profile = TermProfile::current();
-    // let palette = ColorPalette::current();
 
     tokio::task::spawn_blocking(move || {
         // profile.set_local();
@@ -257,14 +253,8 @@ where
     T: Send + 'static,
 {
     let owner = Owner::current().unwrap_or_default();
-    // let profile = TermProfile::current();
-    // let palette = ColorPalette::current();
 
-    thread::spawn(move || {
-        // profile.set_local();
-        // palette.set_local();
-        owner.with(f)
-    })
+    thread::spawn(move || owner.with(f))
 }
 
 pub async fn tick() {

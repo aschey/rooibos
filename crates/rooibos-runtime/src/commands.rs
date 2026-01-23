@@ -313,8 +313,6 @@ where
 struct ScopedBackgroundService<S> {
     service: S,
     owner: Owner,
-    profile: TermProfile,
-    palette: ColorPalette,
 }
 
 impl<S> ScopedBackgroundService<S> {
@@ -322,8 +320,6 @@ impl<S> ScopedBackgroundService<S> {
         Self {
             service,
             owner: Owner::current().unwrap_or_default(),
-            profile: state.profile,
-            palette: state.palette,
         }
     }
 }
@@ -345,8 +341,6 @@ where
         context: ServiceContext,
     ) -> std::result::Result<(), background_service::error::BoxedError> {
         self.owner.set();
-        self.palette.set();
-        self.profile.set();
         ScopedFuture::new(self.service.run(context)).await
     }
 }
@@ -355,8 +349,6 @@ where
 struct ScopedBlockingBackgroundService<S> {
     service: S,
     owner: Owner,
-    profile: TermProfile,
-    palette: ColorPalette,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -365,8 +357,6 @@ impl<S> ScopedBlockingBackgroundService<S> {
         Self {
             service,
             owner: Owner::current().unwrap_or_default(),
-            profile: state.profile,
-            palette: state.palette,
         }
     }
 }
@@ -386,8 +376,6 @@ where
 
     fn run(self, context: ServiceContext) -> Result<(), background_service::error::BoxedError> {
         self.owner.set();
-        self.palette.set();
-        self.profile.set();
         self.service.run(context)
     }
 }
