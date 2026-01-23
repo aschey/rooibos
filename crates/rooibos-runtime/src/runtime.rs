@@ -92,10 +92,8 @@ where
         let (term_parser_tx, _) = broadcast::channel(32);
 
         let runtime_command_tx = with_state(|s| s.runtime_command_tx.clone());
-        with_state_mut(|s| {
-            s.palette = backend.color_palette();
-            s.profile = backend.profile();
-        });
+        backend.color_palette().set();
+        backend.profile().set();
         let service_manager = Manager::new(
             CancellationToken::new(),
             background_service::Settings::default(),

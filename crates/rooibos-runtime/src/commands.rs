@@ -15,14 +15,11 @@ use ratatui::backend::Backend as TuiBackend;
 use ratatui::text::Text;
 use rooibos_reactive::graph::computed::ScopedFuture;
 use rooibos_reactive::graph::owner::Owner;
-use rooibos_theme::{ColorPalette, SetTheme, TermProfile};
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
 use tokio::task::LocalSet;
 
-use crate::{
-    ControlFlow, ExitPayload, OsSignal, RuntimeCommand, RuntimeState, with_all_state, with_state,
-};
+use crate::{ControlFlow, ExitPayload, OsSignal, RuntimeCommand, with_all_state, with_state};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub type OnFinishFn = dyn FnOnce(ExitStatus, Option<tokio::process::ChildStdout>, Option<tokio::process::ChildStderr>)
@@ -163,7 +160,7 @@ pub fn set_clipboard<T: Display>(
 }
 
 pub fn spawn_service<S: BackgroundService + Send + 'static>(service: S) -> TaskId {
-    with_state(|s| s.context.spawn(ScopedBackgroundService::new(service, s)))
+    with_state(|s| s.context.spawn(ScopedBackgroundService::new(service)))
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -173,7 +170,7 @@ pub fn spawn_service_on<S: BackgroundService + Send + 'static>(
 ) -> TaskId {
     with_state(|s| {
         s.context
-            .spawn_on(ScopedBackgroundService::new(service, s), handle)
+            .spawn_on(ScopedBackgroundService::new(service), handle)
     })
 }
 
@@ -195,7 +192,7 @@ pub fn spawn_blocking_service<S: background_service::BlockingBackgroundService +
 ) -> TaskId {
     with_state(|s| {
         s.context
-            .spawn_blocking(ScopedBlockingBackgroundService::new(service, s))
+            .spawn_blocking(ScopedBlockingBackgroundService::new(service))
     })
 }
 
@@ -208,7 +205,7 @@ pub fn spawn_blocking_service_on<
 ) -> TaskId {
     with_state(|s| {
         s.context
-            .spawn_blocking_on(ScopedBlockingBackgroundService::new(service, s), handle)
+            .spawn_blocking_on(ScopedBlockingBackgroundService::new(service), handle)
     })
 }
 
@@ -218,7 +215,7 @@ pub fn spawn_thread<S: background_service::BlockingBackgroundService + Send + 's
 ) -> TaskId {
     with_state(|s| {
         s.context
-            .spawn_thread(ScopedBlockingBackgroundService::new(service, s))
+            .spawn_thread(ScopedBlockingBackgroundService::new(service))
     })
 }
 
@@ -316,7 +313,7 @@ struct ScopedBackgroundService<S> {
 }
 
 impl<S> ScopedBackgroundService<S> {
-    fn new(service: S, state: &RuntimeState) -> Self {
+    fn new(service: S) -> Self {
         Self {
             service,
             owner: Owner::current().unwrap_or_default(),
@@ -353,7 +350,7 @@ struct ScopedBlockingBackgroundService<S> {
 
 #[cfg(not(target_arch = "wasm32"))]
 impl<S> ScopedBlockingBackgroundService<S> {
-    fn new(service: S, state: &RuntimeState) -> Self {
+    fn new(service: S) -> Self {
         Self {
             service,
             owner: Owner::current().unwrap_or_default(),

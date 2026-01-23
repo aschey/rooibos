@@ -63,7 +63,7 @@ pub fn default_theme() -> AppTheme {
             active: Color::Green,
             disabled_light: Color::Gray,
             disabled_dark: Color::DarkGray,
-            border: rooibos_theme::Color::Gray,
+            border: Color::Gray,
             border_focused: Color::Blue,
             border_disabled: Color::DarkGray,
         },

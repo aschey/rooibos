@@ -9,7 +9,6 @@ use background_service::{Manager, ServiceContext};
 use rooibos_dom::{ViewportSize, on_window_focus_changed, with_nodes_mut};
 use rooibos_reactive::graph::signal::{ArcReadSignal, ReadSignal, arc_signal};
 use rooibos_reactive::graph::traits::Set;
-use rooibos_theme::{ColorPalette, TermProfile};
 use tokio::sync::broadcast;
 use tokio::task_local;
 use tokio_util::sync::CancellationToken;
@@ -89,8 +88,6 @@ pub(crate) struct RuntimeState {
     pub(crate) on_os_signal: wasm_compat::Mutex<Box<OnOsSignalFn>>,
     pub(crate) window_size: ArcReadSignal<ViewportSize>,
     pub(crate) window_focused: ArcReadSignal<bool>,
-    pub(crate) profile: TermProfile,
-    pub(crate) palette: ColorPalette,
 }
 
 impl RuntimeState {
@@ -128,8 +125,6 @@ impl RuntimeState {
             service_manager: Some(service_manager),
             window_size,
             window_focused,
-            palette: ColorPalette::default(),
-            profile: TermProfile::TrueColor,
         }
     }
 }
