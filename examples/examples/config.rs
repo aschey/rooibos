@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
+use confique::yaml;
 use rooibos::config::watch_config::ConfigDir;
-use rooibos::config::watch_config::backend::confique::{AppConfig, ConfigSettings};
+use rooibos::config::watch_config::backend::confique::{AppConfig, ConfigSettings, ConfiqueConfig};
 use rooibos::config::watch_config::confique::Config;
 use rooibos::config::{provide_config, use_config};
 use rooibos::reactive::dom::layout::{Borders, borders, height, margin, max_width, padding};
@@ -23,11 +24,25 @@ struct AppConfigExample {
     pub optional: Option<String>,
 }
 
+#[derive(Clone)]
+struct ConfigBuilder;
+
+impl ConfiqueConfig<AppConfigExample> for ConfigBuilder {
+    fn builder(&self, path: &std::path::Path) -> confique::Builder<AppConfigExample> {
+        AppConfigExample::builder().file(path)
+    }
+
+    fn template(&self) -> String {
+        yaml::template::<AppConfigExample>(yaml::FormatOptions::default())
+    }
+}
+
 #[rooibos::main]
 async fn main() -> Result<ExitCode, RuntimeError> {
-    let config = AppConfig::<AppConfigExample>::new(ConfigSettings::new(
+    let config = AppConfig::new(ConfigSettings::new(
         ConfigDir::Custom("./.config".into()),
         "config.yml".to_owned(),
+        ConfigBuilder,
     ))
     .unwrap();
     provide_config(config);
@@ -38,7 +53,7 @@ async fn main() -> Result<ExitCode, RuntimeError> {
 }
 
 fn app() -> impl Render {
-    let config = use_config::<AppConfig<AppConfigExample>>();
+    let config = use_config::<AppConfig<_, ConfigBuilder>>();
     col![
         style(padding(1)),
         wgt!(

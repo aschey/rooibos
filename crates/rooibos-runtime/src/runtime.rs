@@ -86,14 +86,14 @@ where
         set_panic_hook();
 
         provide_context(ThemeContext::default());
-        default_theme().set();
         let backend = Arc::new(backend);
+        default_theme().set();
+        backend.color_palette().set();
+        backend.profile().set();
 
         let (term_parser_tx, _) = broadcast::channel(32);
 
         let runtime_command_tx = with_state(|s| s.runtime_command_tx.clone());
-        backend.color_palette().set();
-        backend.profile().set();
         let service_manager = Manager::new(
             CancellationToken::new(),
             background_service::Settings::default(),

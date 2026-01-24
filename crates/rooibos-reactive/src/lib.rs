@@ -222,7 +222,7 @@ pub fn spawn(fut: impl Future<Output = ()> + Send + 'static) {
     #[cfg(not(target_arch = "wasm32"))]
     Executor::spawn(fut);
 
-    #[cfg(target_family = "wasm")]
+    #[cfg(target_arch = "wasm32")]
     Executor::spawn_local(fut);
 }
 

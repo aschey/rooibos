@@ -17,7 +17,6 @@ rooibos-dom = { path = "./crates/rooibos-dom" }
 rooibos-runtime = { path = "./crates/rooibos-runtime" }
 rooibos-reactive-macros = { path = "./crates/rooibos-reactive-macros" }
 rooibos-components = { path = "./crates/rooibos-components" }
-rooibos-component-macros = { path = "./crates/rooibos-component-macros" }
 rooibos-config = { path = "./crates/rooibos-config" }
 rooibos-tester = { path = "./crates/rooibos-tester" }
 rooibos-terminal = { path = "./crates/rooibos-terminal" }
@@ -46,7 +45,7 @@ tui-textarea = { git = "https://github.com/0xferrous/tui-textarea", rev = "b6bf8
 ratatui-image = { version = "10", default-features = false }
 throbber-widgets-tui = "0.10.0"
 tui-term = "0.3.0"
-ratzilla = { git = "https://github.com/orhun/ratzilla", rev = "603d99863bc6016a3c30366bc8c7faf14f650ea8" }
+ratzilla = "0.3"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
 
 # other TUI things
@@ -77,7 +76,7 @@ image = { version = "0.25" }
 tokio-util = "0.7.16"
 getrandom = "0.3"
 derive_more = "2"
-watch-config = { git = "https://github.com/aschey/watch-config", rev = "f5f5c93201c4b896426a2112d6830120823189d8" }
+watch-config = { git = "https://github.com/aschey/watch-config", rev = "8720d2d7c66ca542848c7b3501920d2c5aa55c87" }
 slotmap = "1"
 bitflags = "2"
 futures = "0.3"
@@ -132,3 +131,4 @@ insta = "1.46.0"
 tui-tree-widget = "0.24.0"
 wasm-bindgen-futures = "0.4.50"
 rstest = "0.26"
+wasm-tracing = "2"

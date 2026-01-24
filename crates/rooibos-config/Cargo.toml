@@ -13,7 +13,4 @@ tokio = { workspace = true }
 [features]
 schematic = ["watch-config/schematic"]
 confique = ["watch-config/confique"]
-json = ["watch-config/json"]
-toml = ["watch-config/toml"]
-yaml = ["watch-config/yaml"]
-pkl = ["watch-config/pkl"]
+figment = ["watch-config/figment"]
