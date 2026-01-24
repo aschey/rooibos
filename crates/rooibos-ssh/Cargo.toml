@@ -24,8 +24,6 @@ termina = { workspace = true }
 stream-cancel = { workspace = true }
 rooibos-theme = { workspace = true }
 termprofile = { workspace = true, features = ["query-detect", "terminfo"] }
-# temp workaround for build issues
-rand_core = { version = "=0.10.0-rc-3" }
 
 [features]
 scrolling-regions = ["ratatui/scrolling-regions"]
