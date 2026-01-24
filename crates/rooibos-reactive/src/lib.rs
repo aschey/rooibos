@@ -58,6 +58,19 @@ pub fn execute_with_owner<T>(f: impl FnOnce() -> T) -> T {
     res
 }
 
+pub async fn execute_with_owner_async<F, T>(f: F) -> T
+where
+    F: Future<Output = T>,
+{
+    let owner = Owner::new();
+    owner.set();
+    let res = f.await;
+
+    owner.cleanup();
+    drop(owner);
+    res
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn run_with_executor<T, F>(f: F) -> T
 where

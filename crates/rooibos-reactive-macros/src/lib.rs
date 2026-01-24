@@ -80,7 +80,7 @@ fn create_main(
         quote! {
             #[#reactive::__wasm_bindgen::prelude::wasm_bindgen(#attrs)]
             #vis #func_sig {
-                #reactive::execute_with_owner(move || ___async_main(#func_param_idents)).await
+                #reactive::execute_with_owner_async(___async_main(#func_param_idents)).await
             }
 
             async fn ___async_main(#inputs) #output {
