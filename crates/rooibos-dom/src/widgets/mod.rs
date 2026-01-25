@@ -23,6 +23,17 @@ pub enum Role {
     Text,
 }
 
+impl From<Role> for accesskit::Role {
+    fn from(value: Role) -> Self {
+        match value {
+            Role::Button => accesskit::Role::Button,
+            Role::TextInput => accesskit::Role::TextInput,
+            Role::Image => accesskit::Role::Image,
+            Role::Text => accesskit::Role::Label,
+        }
+    }
+}
+
 pub trait WidgetRole {
     fn widget_role() -> Option<Role>;
 }

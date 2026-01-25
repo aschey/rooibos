@@ -5,6 +5,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::{cmp, mem};
 
+use accesskit::TreeUpdate;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
 use ratatui::style::Color;
@@ -14,7 +15,7 @@ use terminput::{KeyCode, KeyEvent, KeyEventKind, SHIFT, ScrollDirection, key};
 
 use super::{FocusMode, MeasureNode, NodeProperties, dom_node, refresh_dom};
 use crate::events::{Event, EventHandlers, queue_event};
-use crate::{AsDomNode, Borders, DomNode, NodeType};
+use crate::{AsDomNode, Borders, DomNode, NodeType, push_accesskit_tree_update};
 
 new_key_type! { pub struct DomNodeKey; }
 
@@ -194,10 +195,23 @@ pub(crate) struct TreeValue {
     layout_id: Option<NodeId>,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 struct Context {
     offset: Point<f32>,
     key: DomNodeKey,
+    accesskit_node: accesskit::Node,
+    accesskit_node_id: accesskit::NodeId,
+}
+
+impl Default for Context {
+    fn default() -> Self {
+        Self {
+            offset: Point::default(),
+            key: DomNodeKey::default(),
+            accesskit_node: accesskit::Node::default(),
+            accesskit_node_id: accesskit::NodeId(0),
+        }
+    }
 }
 
 static ROOT_ID: AtomicU32 = AtomicU32::new(1);
@@ -275,9 +289,12 @@ pub(crate) enum FocusEventType {
     PreviousList,
 }
 
+const ACCESSKIT_WINDOW_ID: accesskit::NodeId = accesskit::NodeId(0);
+
 pub struct NodeTree {
     dom_nodes: SlotMap<DomNodeKey, TreeValue>,
     layout_tree: TaffyTree<Context>,
+    //accesskit_tree: accesskit::Tree,
     roots: BTreeMap<RootId, Box<dyn AsDomNode>>,
     viewport_size: ViewportSize,
     focused: Option<crate::NodeId>,
@@ -304,8 +321,16 @@ impl Default for NodeTree {
 
 impl NodeTree {
     pub(crate) fn new() -> Self {
+        let accesskit_tree = accesskit::Tree::new(ACCESSKIT_WINDOW_ID);
+        push_accesskit_tree_update(TreeUpdate {
+            nodes: vec![],
+            tree: Some(accesskit_tree),
+            tree_id: accesskit::TreeId::ROOT,
+            focus: ACCESSKIT_WINDOW_ID,
+        });
         Self {
             layout_tree: TaffyTree::<Context>::new(),
+            //accesskit_tree,
             roots: BTreeMap::default(),
             dom_nodes: Default::default(),
             focused: None,
@@ -616,11 +641,20 @@ impl NodeTree {
     fn compute_location(&mut self, child: NodeId, parent_offset: &Point<f32>) {
         let child_layout = *self.layout_tree.layout(child).unwrap();
         let context = self.layout_tree.get_node_context_mut(child).unwrap();
+
         let new_x = child_layout.location.x + parent_offset.x;
         let new_y = child_layout.location.y + parent_offset.y;
         // if context.0.x != new_x || context.0.y != new_y {
         context.offset.x = new_x;
         context.offset.y = new_y;
+        let width = child_layout.content_size.width as f64;
+        let height = child_layout.content_size.height as f64;
+        context.accesskit_node.set_bounds(accesskit::Rect {
+            x0: new_x as f64,
+            y0: new_y as f64,
+            x1: new_x as f64 + width,
+            y1: new_y as f64 + height,
+        });
     }
 
     pub fn update_layout<F>(&mut self, node: DomNodeKey, mut f: F)
@@ -714,6 +748,15 @@ impl NodeTree {
             .layout_tree
             .new_leaf_with_context(style, Context::default())
             .unwrap();
+        let accesskit_role = match &val.node_type {
+            // handled above
+            NodeType::FocusScope(_) => unreachable!(),
+            NodeType::Layout | NodeType::Placeholder => accesskit::Role::GenericContainer,
+            NodeType::Widget(widget) => widget
+                .role
+                .map(|r| r.into())
+                .unwrap_or(accesskit::Role::GenericContainer),
+        };
         let key = self.dom_nodes.insert(TreeValue {
             inner: val,
             layout_id: Some(layout_node),
@@ -721,10 +764,13 @@ impl NodeTree {
         if let NodeType::Widget(widget) = &mut self.dom_nodes[key].inner.node_type {
             widget.set_key(key);
         }
-        self.layout_tree
-            .get_node_context_mut(layout_node)
-            .unwrap()
-            .key = key;
+        let context = self.layout_tree.get_node_context_mut(layout_node).unwrap();
+        context.key = key;
+        context.accesskit_node = accesskit::Node::new(accesskit_role);
+        context
+            .accesskit_node
+            .set_tree_id(accesskit::TreeId(accesskit::Uuid::new_v4()));
+        context.accesskit_node_id = accesskit::NodeId(layout_node.into());
         key
     }
 
@@ -739,6 +785,7 @@ impl NodeTree {
         if child.inner.z_index.is_some() && parent.inner.z_index != child.inner.z_index {
             return;
         }
+        let parent_layout_id = parent.layout_id;
         if let Some(reference) = reference {
             if let Some(reference_pos) = self.dom_nodes[parent_key]
                 .inner
@@ -801,6 +848,53 @@ impl NodeTree {
             self.set_parent_enabled(false, child_key);
         }
         self.set_unmounted(child_key, false);
+        let child_nodes = self.nearest_layout_children(child_key);
+
+        let mut updates = Vec::new();
+        let mut children = Vec::new();
+        for child_node in child_nodes
+            .into_iter()
+            .filter_map(|c| self.dom_nodes[c].layout_id)
+        {
+            let context = self.layout_tree.get_node_context(child_node).unwrap();
+            updates.push((context.accesskit_node_id, context.accesskit_node.clone()));
+            children.push(context.accesskit_node_id);
+        }
+        let focused = self
+            .focused_key
+            .map(|k| {
+                let layout_id = self.dom_nodes[k].layout_id.unwrap();
+                self.layout_tree
+                    .get_node_context(layout_id)
+                    .unwrap()
+                    .accesskit_node_id
+            })
+            .unwrap_or(ACCESSKIT_WINDOW_ID);
+        if let Some(parent_layout_id) = parent_layout_id {
+            let parent_context = self
+                .layout_tree
+                .get_node_context_mut(parent_layout_id)
+                .unwrap();
+            parent_context.accesskit_node.set_children(children);
+            updates.push((
+                parent_context.accesskit_node_id,
+                parent_context.accesskit_node.clone(),
+            ));
+            push_accesskit_tree_update(TreeUpdate {
+                nodes: updates,
+                tree: None,
+                tree_id: parent_context.accesskit_node.tree_id().unwrap(),
+                focus: focused,
+            });
+        } else {
+            push_accesskit_tree_update(TreeUpdate {
+                nodes: updates,
+                tree: None,
+                tree_id: accesskit::TreeId::ROOT,
+                focus: focused,
+            });
+        }
+
         refresh_dom();
     }
 

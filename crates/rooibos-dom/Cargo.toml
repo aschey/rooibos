@@ -26,6 +26,8 @@ tachyonfx = { workspace = true, default-features = false, features = [
   "std",
 ], optional = true }
 itertools = { workspace = true }
+accesskit = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }

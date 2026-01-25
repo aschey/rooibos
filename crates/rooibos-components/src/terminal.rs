@@ -88,7 +88,7 @@ impl Terminal {
         // due to the fact that signals should not block
         let parse_trigger = Trigger::new();
         let TerminalRef { master, .. } = terminal_ref;
-        let parser = Arc::new(Mutex::new(vt100::Parser::new(1, 1, 0)));
+        let parser = Arc::new(Mutex::new(Parser::new(1, 1, 0)));
         let master_ = master.get_value();
         let master_ = master_.lock().unwrap();
         let mut reader = master_.try_clone_reader().unwrap();
@@ -155,7 +155,11 @@ impl Terminal {
                     pixel_height: 0,
                 })
                 .unwrap();
-            parser.lock().unwrap().set_size(rect.height, rect.width);
+            parser
+                .lock()
+                .unwrap()
+                .screen_mut()
+                .set_size(rect.height, rect.width);
             parse_trigger.notify();
         })
     }

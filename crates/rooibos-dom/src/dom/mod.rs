@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::io;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
+use accesskit::TreeUpdate;
 pub use dom_node::*;
 pub use dom_widget::*;
 pub use node_properties::*;
@@ -45,6 +46,7 @@ thread_local! {
     static PRINT_DOM: AtomicBool = const { AtomicBool::new(false) };
     static PENDING_RESIZE: AtomicBool = const { AtomicBool::new(true) };
     static PENDING_EVENTS: RefCell<Vec<Event>> = const { RefCell::new(Vec::new()) };
+    static TREE_UPDATES: RefCell<Vec<TreeUpdate>> = const { RefCell::new(Vec::new()) };
     static ON_WINDOW_FOCUS_CHANGE: RefCell<Box<dyn FnMut(bool)>> = {
         RefCell::new(Box::new(|_focused| {}))
     };
@@ -91,6 +93,10 @@ pub(crate) fn set_pending_resize() {
 
 pub(crate) fn push_pending_event(event: Event) {
     PENDING_EVENTS.with(|e| e.borrow_mut().push(event));
+}
+
+pub(crate) fn push_accesskit_tree_update(tree_update: TreeUpdate) {
+    TREE_UPDATES.with(|u| u.borrow_mut().push(tree_update));
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {

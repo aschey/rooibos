@@ -44,13 +44,13 @@ ratatui = { version = "0.30", default-features = false }
 tui-textarea = { git = "https://github.com/0xferrous/tui-textarea", rev = "b6bf812d1f5edab4f311f56d405a47341e9423cf", default-features = false }
 ratatui-image = { version = "10", default-features = false }
 throbber-widgets-tui = "0.10.0"
-tui-term = "0.3.0"
+tui-term = "0.3.1"
 ratzilla = "0.3"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
 
 # other TUI things
 termina = "0.1.1"
-vt100 = "0.15"
+vt100 = "0.16"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
 terminput = "0.5.9"
@@ -117,6 +117,9 @@ fs-err = "3"
 include_dir = "0.7.4"
 indexmap = "2"
 open = "5"
+accesskit = "0.23"
+accesskit_winit = "0.31"
+uuid = "1"
 
 # examples/testing
 tracing-subscriber = "0.3.19"
