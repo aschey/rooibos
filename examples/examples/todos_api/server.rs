@@ -26,7 +26,7 @@ async fn todos_get(State(db): State<Db>) -> Result<impl IntoResponse, StatusCode
     let todos = db.read().unwrap();
 
     let mut todos = todos.values().cloned().collect::<Vec<_>>();
-    todos.sort_by(|t1, t2| t1.id.cmp(&t2.id));
+    todos.sort_by_key(|t| t.id);
 
     Ok(Json(todos))
 }

@@ -15,7 +15,7 @@ fn adaptive() {
     }
     .set();
 
-    let adaptive = Adaptive::new(Dark("dark"), Light("light"));
+    let adaptive = Adaptive(Light("light"), Dark("dark"));
     assert_eq!(&"dark", adaptive.adapt());
 
     let color = Catppuccin::GRAY[(Dark(0), Light(10))];

@@ -159,6 +159,6 @@ fn adaptive() {
     }
     .set();
 
-    Adaptive::new(Dark(borders1.clone()), Light(borders2)).set();
+    Adaptive(Light(borders2), Dark(borders1.clone())).set();
     assert_eq!(borders1, BorderTheme::current());
 }

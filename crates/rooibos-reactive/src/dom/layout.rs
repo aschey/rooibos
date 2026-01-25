@@ -566,7 +566,7 @@ pub const fn vertical_list() -> FocusMode {
 }
 
 pub const fn horizontal_list() -> FocusMode {
-    FocusMode::List(FocusDirection::Vertical)
+    FocusMode::List(FocusDirection::Horizontal)
 }
 
 pub const fn tab() -> FocusMode {

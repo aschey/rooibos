@@ -40,25 +40,13 @@ impl From<terminal_colorsaurus::ThemeMode> for ColorScheme {
     }
 }
 
-pub struct Adaptive<T> {
-    dark: T,
-    light: T,
-    choice: Option<ColorScheme>,
-}
+pub struct Adaptive<T>(pub Light<T>, pub Dark<T>);
 
 impl<T> Adaptive<T> {
-    pub fn new(dark: Dark<T>, light: Light<T>) -> Self {
-        Self {
-            dark: dark.0,
-            light: light.0,
-            choice: None,
-        }
-    }
-
     pub fn adapt(&self) -> &T {
-        match self.choice.unwrap_or_else(ColorScheme::current) {
-            ColorScheme::Dark => &self.dark,
-            ColorScheme::Light => &self.light,
+        match ColorScheme::current() {
+            ColorScheme::Light => &self.0.0,
+            ColorScheme::Dark => &self.1.0,
         }
     }
 }

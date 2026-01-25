@@ -15,8 +15,8 @@ use rooibos::keybind::{CommandBar, CommandHandler, Commands};
 use rooibos::reactive::any_view::IntoAny as _;
 use rooibos::reactive::dom::layout::{
     Borders, absolute, align_items, background, borders, center, clear, focus_mode, full, height,
-    justify_content, margin, overflow_y, padding, padding_left, position, scroll, show,
-    vertical_list, width,
+    horizontal_list, justify_content, margin, overflow_y, padding, padding_left, position, scroll,
+    show, vertical_list, width,
 };
 use rooibos::reactive::dom::{
     NodeId, Render, RenderAny, UpdateLayoutProps, after_render, focus_id, line, span, text,
@@ -30,11 +30,12 @@ use rooibos::reactive::graph::signal::RwSignal;
 use rooibos::reactive::graph::traits::{Get, Set, Track};
 use rooibos::reactive::graph::wrappers::read::Signal;
 use rooibos::reactive::{
-    IntoText, StateProp, col, fallback, focus_scope, row, transition, use_state_prop, wgt,
+    IntoText, StateProp, col, fallback, focus_scope, for_each, row, transition,
+    use_state_prop, wgt,
 };
 use rooibos::runtime::{Runtime, RuntimeSettings, max_viewport_width};
 use rooibos::terminal::DefaultBackend;
-use rooibos::theme::{Color, Stylize};
+use rooibos::theme::{Adaptive, Color, Dark, Light, Stylize};
 use server::run_server;
 
 #[derive(clap::Parser, Commands, Clone, Debug, PartialEq, Eq)]
@@ -216,17 +217,18 @@ fn todos_body(editing_id: RwSignal<Option<u32>>, notification_timeout: Duration)
     });
 
     transition!(
-        wgt!(line!(" Loading...".gray())),
+        wgt!(" Loading...".gray()),
         todos.await.map(|todos| {
             if todos.is_empty() {
                 wgt!("No todos".gray()).into_any()
             } else {
                 focus_scope!(
                     style(focus_mode(vertical_list())),
-                    todos
-                        .into_iter()
-                        .map(|t| todo_item(t.id, t.text, editing_id))
-                        .collect::<Vec<_>>()
+                    for_each(
+                        move || todos.clone(),
+                        |t| t.id,
+                        move |t| todo_item(t.id, t.text, editing_id)
+                    )
                 )
                 .into_any()
             }
@@ -270,7 +272,7 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
 
     let (row_bg, set_row_state) = use_state_prop(
         StateProp::new(Color::default())
-            .focused(|_| Color::Indexed(237))
+            .focused(|_| *Adaptive(Light(Color::White), Dark(Color::Black)).adapt())
             .direct_focus(false),
     );
 
@@ -280,8 +282,11 @@ fn todo_item(id: u32, text: String, editing_id: RwSignal<Option<u32>>) -> impl R
     row![
         style(background(row_bg)),
         col![style(margin(1)), format!("{id}.")],
-        add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
-        delete_button(id),
+        focus_scope!(
+            style(focus_mode(horizontal_list())),
+            add_edit_button(id, editing, add_edit_id, editing_id, input_ref),
+            delete_button(id)
+        ),
         Show::new()
             .fallback(move || col![style(margin(1)), wgt!(text.get())])
             .render(editing, move || {
