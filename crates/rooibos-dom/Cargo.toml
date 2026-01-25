@@ -27,7 +27,7 @@ tachyonfx = { workspace = true, default-features = false, features = [
 ], optional = true }
 itertools = { workspace = true }
 accesskit = { workspace = true }
-uuid = { workspace = true, features = ["v4"] }
+uuid = { workspace = true, features = ["v4", "js"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
