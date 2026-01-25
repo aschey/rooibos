@@ -150,7 +150,7 @@ pub fn root() -> DomNodeRepr {
 
 fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Line<'static>> {
     let node = &dom_ref[key];
-    let NodeTypeStructure { name, attrs } = node.node_type.structure();
+    let NodeTypeStructure { name } = node.node_type.structure();
     let node_name = node.name.clone();
     if node_name == "Placeholder" {
         return vec![];
@@ -161,9 +161,6 @@ fn print_dom_inner(dom_ref: &NodeTree, key: DomNodeKey, indent: &str) -> Vec<Lin
         node.parent
     );
 
-    if let Some(attrs) = attrs {
-        line += &format!(" {attrs}");
-    }
     line += &format!(" display={:?}", dom_ref.try_style(key).map(|s| s.display));
     line += &format!(" layout={:?}>", dom_ref.try_rect(key));
     // line += &format!(" constraint={}>", node.constraint.borrow().clone());

@@ -79,7 +79,6 @@ impl From<&str> for NodeId {
 
 pub(crate) struct NodeTypeStructure {
     pub(crate) name: &'static str,
-    pub(crate) attrs: Option<String>,
 }
 
 #[derive(Clone, PartialEq, Eq, Default)]
@@ -94,21 +93,11 @@ pub enum NodeType {
 impl NodeType {
     pub(crate) fn structure(&self) -> NodeTypeStructure {
         match self {
-            NodeType::Layout => NodeTypeStructure {
-                name: "Layout",
-                attrs: None,
-            },
-            NodeType::FocusScope(_) => NodeTypeStructure {
-                name: "FocusScope",
-                attrs: None,
-            },
-            NodeType::Widget(_) => NodeTypeStructure {
-                name: "Widget",
-                attrs: None,
-            },
+            NodeType::Layout => NodeTypeStructure { name: "Layout" },
+            NodeType::FocusScope(_) => NodeTypeStructure { name: "FocusScope" },
+            NodeType::Widget(_) => NodeTypeStructure { name: "Widget" },
             NodeType::Placeholder => NodeTypeStructure {
                 name: "Placeholder",
-                attrs: None,
             },
         }
     }
