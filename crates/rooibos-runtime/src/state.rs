@@ -75,6 +75,8 @@ pub enum OsSignal {
     Term,
     Tstp,
     Cont,
+    Usr1,
+    Usr2,
 }
 
 pub(crate) struct RuntimeState {
