@@ -210,6 +210,14 @@ where
             .unwrap()
     }
 
+    pub fn with_terminal_mut_blocking<F, R>(&mut self, mut f: F) -> R
+    where
+        F: FnMut(&mut Terminal<B>) -> R,
+    {
+        let mut terminal = self.terminal.write();
+        f(&mut terminal)
+    }
+
     pub async fn with_terminal<F, R>(&self, mut f: F) -> R
     where
         F: FnMut(&Terminal<B>) -> R + Send + 'static,
@@ -219,6 +227,14 @@ where
         tokio::task::spawn_blocking(move || f(&terminal.read()))
             .await
             .unwrap()
+    }
+
+    pub fn with_terminal_blocking<F, R>(&mut self, mut f: F) -> R
+    where
+        F: FnMut(&Terminal<B>) -> R,
+    {
+        let terminal = self.terminal.read();
+        f(&terminal)
     }
 
     pub async fn join(self) {

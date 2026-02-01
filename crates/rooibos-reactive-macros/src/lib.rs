@@ -58,32 +58,40 @@ fn create_main(
     func_copy.sig.ident = Ident::new(&format!("__{}", func.sig.ident), Span::call_site());
 
     let reactive = get_reactive_import();
-    let output = func.sig.output.clone();
 
     let func_copy_ident = func_copy.sig.ident.clone();
 
     let func_sig = func.sig.clone();
-    let inputs = func.sig.inputs.clone();
-    let func_param_idents: Vec<Box<Pat>> = func
+
+    let func_param_idents: Vec<Ident> = func
         .sig
         .inputs
         .iter()
         .filter_map(|arg| match arg {
             FnArg::Receiver(_) => None,
-            FnArg::Typed(PatType { pat, .. }) => Some(pat.clone()),
+            FnArg::Typed(PatType { pat, .. }) => match &**pat {
+                Pat::Ident(i) => Some(i.ident.clone()),
+                _ => None,
+            },
         })
         .collect();
     let func_param_idents = quote!(#(#func_param_idents),*);
+
+    let mut func_copy2 = func_copy.clone();
+    let async_main_ident = Ident::new(&format!("__async_{}", func.sig.ident), Span::call_site());
+    func_copy2.sig.ident = async_main_ident.clone();
+    let mut async_main = func_copy2.sig;
+    async_main.asyncness = Some(syn::token::Async(Span::call_site()));
 
     let test_attr = if is_test { quote!(#[test]) } else { quote!() };
     let res = if is_wasm {
         quote! {
             #[#reactive::__wasm_bindgen::prelude::wasm_bindgen(#attrs)]
             #vis #func_sig {
-                #reactive::execute_with_owner_async(___async_main(#func_param_idents)).await
+                #reactive::execute_with_owner_async(#async_main_ident(#func_param_idents)).await
             }
 
-            async fn ___async_main(#inputs) #output {
+            #async_main {
                 #reactive::run_with_executor(#func_copy_ident(#func_param_idents)).await
             }
 
@@ -98,11 +106,11 @@ fn create_main(
         quote! {
             #test_attr
             #vis #func_sig {
-                #reactive::execute_with_owner(move || ___async_main(#func_param_idents))
+                #reactive::execute_with_owner(move || #async_main_ident(#func_param_idents))
             }
 
             #[::#reactive::__tokio::main(#attrs)]
-            async fn ___async_main(#inputs) #output {
+            #async_main {
                 #reactive::run_with_executor(#func_copy_ident(#func_param_idents)).await
             }
 

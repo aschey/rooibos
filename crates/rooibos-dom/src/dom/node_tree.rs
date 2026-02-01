@@ -681,6 +681,13 @@ impl NodeTree {
         self.try_rect(key).unwrap()
     }
 
+    pub(crate) fn get_accesskit_node_id(&self, key: NodeId) -> accesskit::NodeId {
+        self.layout_tree
+            .get_node_context(key)
+            .unwrap()
+            .accesskit_node_id
+    }
+
     pub(crate) fn try_rect(&self, key: DomNodeKey) -> Option<ContentRect> {
         let layout_id = self.dom_nodes[key].layout_id?;
         let context = self.layout_tree.get_node_context(layout_id).unwrap();
@@ -722,6 +729,14 @@ impl NodeTree {
 
     pub(crate) fn iter_nodes(&self) -> slotmap::basic::Iter<'_, DomNodeKey, TreeValue> {
         self.dom_nodes.iter()
+    }
+
+    pub(crate) fn iter_layout_nodes(
+        &self,
+    ) -> impl Iterator<Item = (DomNodeKey, taffy::NodeId, &TreeValue)> {
+        self.dom_nodes
+            .iter()
+            .filter_map(|(k, v)| v.layout_id.map(|i| (k, i, v)))
     }
 
     pub(crate) fn contains_key(&self, key: DomNodeKey) -> bool {

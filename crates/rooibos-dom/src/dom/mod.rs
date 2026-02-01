@@ -1,6 +1,6 @@
 use std::cell::RefCell;
-use std::io;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::{io, mem};
 
 use accesskit::TreeUpdate;
 pub use dom_node::*;
@@ -97,6 +97,13 @@ pub(crate) fn push_pending_event(event: Event) {
 
 pub(crate) fn push_accesskit_tree_update(tree_update: TreeUpdate) {
     TREE_UPDATES.with(|u| u.borrow_mut().push(tree_update));
+}
+
+pub fn process_accesskit_tree_updates<F>(mut f: F)
+where
+    F: FnMut(Vec<TreeUpdate>),
+{
+    TREE_UPDATES.with(|u| f(mem::take(&mut *u.borrow_mut())))
 }
 
 pub fn dom_update_receiver() -> DomUpdateReceiver {
@@ -287,6 +294,21 @@ pub fn try_focus_id(id: impl Into<NodeId>) -> Result<(), NodeNotFound> {
             Ok(())
         } else {
             Err(NodeNotFound(id))
+        }
+    })
+}
+
+pub fn focus_accesskit_id(id: accesskit::NodeId) {
+    with_nodes_mut(|nodes| {
+        let found_node = nodes.iter_layout_nodes().find_map(|(key, layout_key, _)| {
+            if nodes.get_accesskit_node_id(layout_key) == id {
+                Some(key)
+            } else {
+                None
+            }
+        });
+        if let Some(found_node) = found_node {
+            nodes.set_focused(Some(found_node));
         }
     })
 }

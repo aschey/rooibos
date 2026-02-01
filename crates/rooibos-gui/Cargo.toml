@@ -1,0 +1,23 @@
+[package]
+name = "rooibos-gui"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ratatui = { workspace = true }
+rooibos-terminal = { workspace = true }
+rooibos-theme = { workspace = true }
+rooibos-runtime = { workspace = true }
+rooibos-reactive-macros = { workspace = true }
+rooibos-reactive = { workspace = true }
+rooibos-dom = { workspace = true }
+rooibos-keybind = { workspace = true }
+tokio-util = { workspace = true }
+futures = { workspace = true }
+accesskit_winit = { workspace = true }
+accesskit = { workspace = true }
+winit = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+
+[features]
+scrolling-regions = ["ratatui/scrolling-regions"]
