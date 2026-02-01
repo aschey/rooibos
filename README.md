@@ -312,12 +312,12 @@ For details on internals and the reason behind certain design decisions, see
 
 ## Backend Support Status
 
-| Crate                                               | Backend                                                                             | Type     | Status      |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------- | -------- | ----------- |
-| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termina](https://docs.rs/termina/latest/termina/)                                  | Terminal | Implemented |
-| [**`rooibos-tester`**](./crates/rooibos-tester)     | [in-memory](https://docs.rs/ratatui/latest/ratatui/backend/struct.TestBackend.html) | Testing  | Implemented |
-| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)                                        | SSH      | Implemented |
-| [**`rooibos-web`**](./crates/rooibos-web)           | [ratzilla](https://docs.rs/ratzilla/latest/ratzilla/)                               | Web      | Implemented |
-| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                                           | Desktop  | Planned     |
-| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                                           | Mobile   | Planned     |
-| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                                           | Games    | Planned     |
+| Crate                                               | Backend                                                                             | Type           | Status      |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------- | ----------- |
+| [**`rooibos-terminal`**](./crates/rooibos-terminal) | [termina](https://docs.rs/termina/latest/termina/)                                  | Terminal       | Implemented |
+| [**`rooibos-tester`**](./crates/rooibos-tester)     | [in-memory](https://docs.rs/ratatui/latest/ratatui/backend/struct.TestBackend.html) | Testing        | Implemented |
+| [**`rooibos-ssh`**](./crates/rooibos-ssh)           | [russh](https://docs.rs/russh/latest/russh/)                                        | SSH            | Implemented |
+| [**`rooibos-web`**](./crates/rooibos-web)           | [ratzilla](https://docs.rs/ratzilla/latest/ratzilla/)                               | Web            | Implemented |
+| **`rooibos-gui`**                                   | [vello](https://docs.rs/vello/latest/vello/)                                        | Desktop/Mobile | In Progress |
+| **`rooibos-egui`**                                  | [egui](https://docs.rs/egui/latest/egui/)                                           | Desktop/Mobile | Planned     |
+| **`rooibos-bevy`**                                  | [bevy](https://docs.rs/bevy/latest/bevy/)                                           | Games          | Planned     |
