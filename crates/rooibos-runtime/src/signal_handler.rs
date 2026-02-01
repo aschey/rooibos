@@ -45,6 +45,8 @@ impl SignalHandler {
                 Signal::Term,
                 Signal::Tstp,
                 Signal::Cont,
+                Signal::Usr1,
+                Signal::Usr2,
             ]);
             #[cfg(windows)]
             let signals = Signals::new([Signal::Int]);
@@ -77,6 +79,9 @@ impl SignalHandler {
             Signal::Cont => {
                 let _ = self.runtime_command_tx.send(RuntimeCommand::Resume);
             }
+            Signal::Usr1 | Signal::Usr2 => {
+                // SIGUSR1 and SIGUSR2 have no default behavior
+            }
             signal => {
                 let code = match signal {
                     Signal::Int => proc_exit::SIGINT,
@@ -103,6 +108,8 @@ fn map_signal(signal: async_signal::Signal) -> crate::OsSignal {
         Signal::Term => crate::OsSignal::Term,
         Signal::Tstp => crate::OsSignal::Tstp,
         Signal::Cont => crate::OsSignal::Cont,
+        Signal::Usr1 => crate::OsSignal::Usr1,
+        Signal::Usr2 => crate::OsSignal::Usr2,
         _ => unreachable!(),
     }
 }
