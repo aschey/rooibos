@@ -165,7 +165,7 @@ where
     #[cfg(feature = "runtime")]
     pub async fn wait_for<F>(&mut self, f: F) -> Result<(), Buffer>
     where
-        F: AsyncFnMut(&Self, Option<TickResult>) -> bool,
+        F: AsyncFnMut(&Self, &TickEvents) -> bool,
     {
         DEFAULT_TIMEOUT
             .with(|t| self.wait_for_timeout(f, *t.read()))
@@ -299,19 +299,18 @@ where
     #[cfg(feature = "runtime")]
     pub async fn wait_for_timeout<F>(&mut self, mut f: F, timeout: Duration) -> Result<(), Buffer>
     where
-        F: AsyncFnMut(&Self, Option<TickResult>) -> bool,
+        F: AsyncFnMut(&Self, &TickEvents) -> bool,
     {
         use rooibos_dom::render_terminal;
 
         let start = Instant::now();
+        let mut last_tick_events = TickEvents::default();
         loop {
-            let mut last_tick_result = None;
             tokio::select! {
                 biased;
 
                 tick_result = self.runtime.tick() => {
                     let tick_result = tick_result.unwrap();
-                    last_tick_result = Some(tick_result.clone());
                     match tick_result {
                         TickResult::Redraw => {
                             render_terminal(&mut self.terminal).await.unwrap();
@@ -322,6 +321,7 @@ where
                             new_term.join().await;
                             self.runtime.configure_terminal_events().await.unwrap();
                             render_terminal(&mut self.terminal).await.unwrap();
+                            last_tick_events.restart = true;
                         }
                         TickResult::Exit(_) => {
                             panic!("application exited");
@@ -333,13 +333,18 @@ where
                         }
                         TickResult::Continue => {}
                     }
+                    // Don't check output until debounce timeout has completed
+                    // This ensures we don't check the output against partial updates
+                    continue;
                 },
                 _ = tokio::time::sleep(Duration::from_millis(10)) => {}
             }
-            if f(self, last_tick_result).await {
+            if f(self, &last_tick_events).await {
                 // Ensure the screen is updated in case we're still in a debouncer timeout
                 render_terminal(&mut self.terminal).await.unwrap();
                 return Ok(());
+            } else {
+                last_tick_events = TickEvents::default();
             }
             if Instant::now().duration_since(start) > timeout {
                 return Err(self.buffer().await.clone());
@@ -409,4 +414,9 @@ where
     pub async fn get_position_of_text(&self, text: impl AsRef<str>) -> Rect {
         self.find_position_of_text(text).await.unwrap()
     }
+}
+
+#[derive(Clone, Default)]
+pub struct TickEvents {
+    pub restart: bool,
 }

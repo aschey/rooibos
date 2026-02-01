@@ -1,5 +1,4 @@
 use rooibos::reactive::KeyCode;
-use rooibos::runtime::TickResult;
 use rooibos::tester::TestHarness;
 
 use crate::app;
@@ -33,7 +32,7 @@ async fn test_exec() {
 
     // Wait for process to finish
     harness
-        .wait_for(async |_, last_tick_result| matches!(last_tick_result, Some(TickResult::Restart)))
+        .wait_for(async |_, tick_events| tick_events.restart)
         .await
         .unwrap();
     harness
