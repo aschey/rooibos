@@ -1,5 +1,6 @@
 use ratatui::style::{Color, Style, Styled};
 use ratatui::symbols::border;
+use ratatui::symbols::merge::MergeStrategy;
 use ratatui::text::Line;
 use ratatui::widgets::Block;
 use taffy::LengthPercentage;
@@ -49,6 +50,7 @@ pub struct Borders {
     title_bottom: Option<Line<'static>>,
     style: Style,
     title_style: Style,
+    merge_strategy: MergeStrategy,
 }
 
 impl Default for Borders {
@@ -61,6 +63,7 @@ impl Default for Borders {
             title_bottom: Option::None,
             style: Style::default().fg(Color::Reset),
             title_style: Style::default(),
+            merge_strategy: MergeStrategy::default(),
         }
     }
 }
@@ -214,12 +217,18 @@ impl Borders {
         self
     }
 
+    pub fn merge(mut self, merge_strategy: MergeStrategy) -> Self {
+        self.merge_strategy = merge_strategy;
+        self
+    }
+
     pub fn into_block(self) -> Block<'static> {
         let mut block = Block::new()
             .borders(self.borders)
             .border_set(self.border_type.into())
             .border_style(self.style)
-            .title_style(self.title_style);
+            .title_style(self.title_style)
+            .merge_borders(self.merge_strategy);
 
         if let Some(title) = self.title {
             block = block.title(title);
