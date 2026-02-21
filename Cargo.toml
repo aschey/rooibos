@@ -34,9 +34,9 @@ rooibos-util = { path = "./crates/rooibos-util" }
 next_tuple = "0.1.0"
 either_of = "0.1.6"
 reactive_graph = "0.2.13"
-tachys = { git = "https://github.com/aschey/leptos", rev = "446c6b844d5ff31e77e61048162899463965a21b" }
+tachys = { git = "https://github.com/aschey/leptos", rev = "247a77b762957d304c5ff0c5292448156d7ab37b" }
 throw_error = "0.3.1"
-reactive_stores = "0.4.0"
+reactive_stores = "0.3.1"
 any_spawner = "0.3.0"
 
 # ratatui
