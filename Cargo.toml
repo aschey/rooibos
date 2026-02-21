@@ -41,7 +41,7 @@ any_spawner = "0.3.0"
 
 # ratatui
 ratatui = { version = "0.30", default-features = false }
-tui-textarea = { git = "https://github.com/0xferrous/tui-textarea", rev = "b6bf812d1f5edab4f311f56d405a47341e9423cf", default-features = false }
+ratatui-textarea = { version = "0.8", default-features = false }
 ratatui-image = { version = "10", default-features = false }
 throbber-widgets-tui = "0.10.0"
 tui-term = "0.3.1"

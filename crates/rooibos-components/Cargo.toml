@@ -6,9 +6,7 @@ edition = "2024"
 [dependencies]
 next_tuple = { workspace = true }
 either_of = { workspace = true }
-tui-textarea = { workspace = true, default-features = false, features = [
-  "ratatui",
-], optional = true }
+ratatui-textarea = { workspace = true, default-features = false, optional = true }
 rooibos-dom = { workspace = true }
 rooibos-reactive = { workspace = true }
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87", features = [
@@ -32,8 +30,8 @@ vt100 = { workspace = true, optional = true }
 portable-pty = { workspace = true, optional = true }
 
 [features]
-input-search = ["tui-textarea/search"]
+input-search = ["ratatui-textarea/search"]
 terminal-widget = ["tui-term", "vt100", "portable-pty"]
 image = ["dep:image", "dep:ratatui-image"]
-input = ["dep:tui-textarea"]
+input = ["dep:ratatui-textarea"]
 spinner = ["throbber-widgets-tui", "getrandom"]

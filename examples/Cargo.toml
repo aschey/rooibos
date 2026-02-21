@@ -23,7 +23,7 @@ tokio = { workspace = true, features = ["rt", "macros"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["registry", "env-filter"] }
 rand = { workspace = true }
-tui-textarea = { workspace = true }
+ratatui-textarea = { workspace = true }
 tui-tree-widget = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true }

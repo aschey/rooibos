@@ -24,7 +24,7 @@ bitflags = { workspace = true }
 educe = { workspace = true }
 futures = { workspace = true }
 rustc-hash = { workspace = true }
-tui-textarea = { workspace = true, optional = true, default-features = false }
+ratatui-textarea = { workspace = true, optional = true, default-features = false }
 paste = { workspace = true }
 wasm-compat = { workspace = true, features = ["all"] }
 taffy = { workspace = true }
@@ -41,6 +41,6 @@ any_spawner = { workspace = true, features = ["wasm-bindgen"] }
 # TODO: re-enable when the breaking changes for https://github.com/leptos-rs/leptos/pull/4273 work with nightly
 #nightly = ["reactive_graph/nightly", "tachys/nightly"]
 nightly = []
-input = ["tui-textarea"]
+input = ["ratatui-textarea"]
 effects = ["rooibos-dom/effects"]
 scrolling-regions = ["rooibos-dom/scrolling-regions"]

@@ -1,6 +1,7 @@
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::widgets::Widget;
+use ratatui_textarea::{CursorMove, TextArea};
 use rooibos_dom::events::{
     BlurEvent, EventData, EventHandle, FocusEvent, KeyEventProps, StateChangeEvent,
 };
@@ -21,7 +22,6 @@ use rooibos_reactive::graph::traits::{
 use rooibos_reactive::graph::wrappers::read::Signal;
 use rooibos_theme::Style;
 use tokio::sync::broadcast;
-use tui_textarea::{CursorMove, TextArea};
 use wasm_compat::futures::spawn_local;
 
 use crate::ColorThemeColorTheme;
@@ -330,9 +330,9 @@ impl Input {
     }
 }
 
-fn to_input(event: Event) -> Option<tui_textarea::Input> {
+fn to_input(event: Event) -> Option<ratatui_textarea::Input> {
     let (key, modifiers) = to_key(event)?;
-    Some(tui_textarea::Input {
+    Some(ratatui_textarea::Input {
         key,
         shift: modifiers.intersects(KeyModifiers::SHIFT),
         ctrl: modifiers.intersects(KeyModifiers::CTRL),
@@ -340,14 +340,17 @@ fn to_input(event: Event) -> Option<tui_textarea::Input> {
     })
 }
 
-fn to_key(event: Event) -> Option<(tui_textarea::Key, KeyModifiers)> {
+fn to_key(event: Event) -> Option<(ratatui_textarea::Key, KeyModifiers)> {
     if let Some((mouse_event, direction)) = event.as_mouse_scroll() {
         match direction {
             ScrollDirection::Up => {
-                return Some((tui_textarea::Key::MouseScrollUp, mouse_event.modifiers));
+                return Some((ratatui_textarea::Key::MouseScrollUp, mouse_event.modifiers));
             }
             ScrollDirection::Down => {
-                return Some((tui_textarea::Key::MouseScrollDown, mouse_event.modifiers));
+                return Some((
+                    ratatui_textarea::Key::MouseScrollDown,
+                    mouse_event.modifiers,
+                ));
             }
             _ => {}
         }
@@ -356,21 +359,21 @@ fn to_key(event: Event) -> Option<(tui_textarea::Key, KeyModifiers)> {
     let key_event = event.as_key_press(Repeats::Include)?;
 
     let key_code = match key_event.code {
-        KeyCode::Backspace => tui_textarea::Key::Backspace,
-        KeyCode::Enter => tui_textarea::Key::Enter,
-        KeyCode::Left => tui_textarea::Key::Left,
-        KeyCode::Right => tui_textarea::Key::Right,
-        KeyCode::Up => tui_textarea::Key::Up,
-        KeyCode::Down => tui_textarea::Key::Down,
-        KeyCode::Home => tui_textarea::Key::Home,
-        KeyCode::End => tui_textarea::Key::End,
-        KeyCode::PageUp => tui_textarea::Key::PageUp,
-        KeyCode::PageDown => tui_textarea::Key::PageDown,
-        KeyCode::Tab => tui_textarea::Key::Tab,
-        KeyCode::Delete => tui_textarea::Key::Delete,
-        KeyCode::F(f) => tui_textarea::Key::F(f),
-        KeyCode::Char(c) => tui_textarea::Key::Char(c),
-        KeyCode::Esc => tui_textarea::Key::Esc,
+        KeyCode::Backspace => ratatui_textarea::Key::Backspace,
+        KeyCode::Enter => ratatui_textarea::Key::Enter,
+        KeyCode::Left => ratatui_textarea::Key::Left,
+        KeyCode::Right => ratatui_textarea::Key::Right,
+        KeyCode::Up => ratatui_textarea::Key::Up,
+        KeyCode::Down => ratatui_textarea::Key::Down,
+        KeyCode::Home => ratatui_textarea::Key::Home,
+        KeyCode::End => ratatui_textarea::Key::End,
+        KeyCode::PageUp => ratatui_textarea::Key::PageUp,
+        KeyCode::PageDown => ratatui_textarea::Key::PageDown,
+        KeyCode::Tab => ratatui_textarea::Key::Tab,
+        KeyCode::Delete => ratatui_textarea::Key::Delete,
+        KeyCode::F(f) => ratatui_textarea::Key::F(f),
+        KeyCode::Char(c) => ratatui_textarea::Key::Char(c),
+        KeyCode::Esc => ratatui_textarea::Key::Esc,
         _ => return None,
     };
     Some((key_code, key_event.modifiers))
