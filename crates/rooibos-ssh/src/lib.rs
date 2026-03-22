@@ -58,7 +58,7 @@ impl std::io::Write for TerminalHandle {
     fn flush(&mut self) -> std::io::Result<()> {
         let handle = self.handle.clone();
         let channel_id = self.channel_id;
-        let data = self.sink.clone().into();
+        let data = self.sink.clone();
         futures::executor::block_on(async move {
             let result = handle.data(channel_id, data).await;
             if result.is_err() {
