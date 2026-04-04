@@ -17,7 +17,6 @@ use rooibos_reactive::graph::computed::ScopedFuture;
 use rooibos_reactive::graph::owner::Owner;
 use tokio::runtime::Handle;
 use tokio::sync::broadcast;
-use tokio::task::LocalSet;
 
 use crate::{ControlFlow, ExitPayload, OsSignal, RuntimeCommand, with_all_state, with_state};
 
@@ -176,14 +175,6 @@ pub fn spawn_service_on<S: BackgroundService + Send + 'static>(
 
 pub fn spawn_local_service<S: LocalBackgroundService + 'static>(service: S) -> TaskId {
     with_state(|s| s.context.spawn_local(service))
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-pub fn spawn_local_service_on<S: LocalBackgroundService + 'static>(
-    service: S,
-    local_set: &LocalSet,
-) -> TaskId {
-    with_state(|s| s.context.spawn_local_on(service, local_set))
 }
 
 #[cfg(not(target_arch = "wasm32"))]

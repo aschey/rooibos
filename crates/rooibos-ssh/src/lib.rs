@@ -28,8 +28,8 @@ use tap::TapFallible;
 use termina::Parser;
 use terminput_termina::to_terminput;
 use tokio::net::{TcpListener, ToSocketAddrs};
+use tokio::runtime::LocalOptions;
 use tokio::sync::{RwLock, broadcast, mpsc};
-use tokio::task::LocalSet;
 use tokio_util::future::FutureExt;
 use tracing::{error, warn};
 
@@ -385,32 +385,26 @@ impl<T: SshHandler> Handler for AppHandler<T> {
                 owner.with(move || {
                     let rt = tokio::runtime::Builder::new_current_thread()
                         .enable_all()
-                        .build()
+                        .build_local(LocalOptions::default())
                         .unwrap();
 
                     rt.block_on(async move {
-                        let local_set = LocalSet::new();
-                        local_set
-                            .run_until(async move {
-                                with_runtime_async(client_id, async move {
-                                    let params = SshParams {
-                                        handle: ArcHandle(Arc::new(std::sync::RwLock::new(
-                                            terminal_handle,
-                                        ))),
-                                        events: SshEventReceiver {
-                                            events: event_rx,
-                                            query_events: query_event_rx,
-                                            window_size,
-                                        },
-                                        term,
-                                    };
-                                    handler.run_terminal(client_id, params, socket_addr).await;
-                                    restore_terminal().unwrap();
-                                })
-                                .await
-                            })
-                            .await;
-
+                        with_runtime_async(client_id, async move {
+                            let params = SshParams {
+                                handle: ArcHandle(Arc::new(std::sync::RwLock::new(
+                                    terminal_handle,
+                                ))),
+                                events: SshEventReceiver {
+                                    events: event_rx,
+                                    query_events: query_event_rx,
+                                    window_size,
+                                },
+                                term,
+                            };
+                            handler.run_terminal(client_id, params, socket_addr).await;
+                            restore_terminal().unwrap();
+                        })
+                        .await;
                         let mut clients = clients.write().await;
                         clients.remove(&client_id);
 

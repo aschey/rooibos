@@ -77,8 +77,7 @@ where
     F: Future<Output = T>,
 {
     init_executor();
-    let local = tokio::task::LocalSet::new();
-    local.run_until(f).await
+    f.await
 }
 
 #[cfg(target_arch = "wasm32")]

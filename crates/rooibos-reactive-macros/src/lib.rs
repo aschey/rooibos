@@ -35,7 +35,7 @@ fn parse_runtime_flavor_attr(attrs: TokenStream) -> manyhow::Result {
     // applications.
     // However, for UIs, a single thread is usually sufficient.
     if flavor.is_none() {
-        args_parsed.push(parse_quote!(flavor = "current_thread"));
+        args_parsed.push(parse_quote!(flavor = "local"));
     }
     Ok(quote!(#args_parsed))
 }

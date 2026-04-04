@@ -1,6 +1,5 @@
 use std::process::ExitCode;
 
-use rand::Rng;
 use reqwest::Client;
 use rooibos::components::Button;
 use rooibos::reactive::dom::layout::padding;
