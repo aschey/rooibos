@@ -34,7 +34,7 @@ fn app() -> impl Render {
         Button::new()
             .width(12)
             .on_click(move || {
-                set_id.set(rand::thread_rng().gen_range(1..80));
+                set_id.set(rand::random_range(1..80));
             })
             .render(text!("fetch next")),
         suspense!(

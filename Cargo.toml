@@ -49,13 +49,13 @@ ratzilla = "0.3"
 modalkit-ratatui = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
 
 # other TUI things
-termina = "0.2.0"
+termina = "0.3.0"
 vt100 = "0.16"
 portable-pty = "0.9"
 modalkit = { git = "https://github.com/aschey/modalkit", rev = "740d1a85a4273279635e1f44775e5be368d9a63d" }
 terminput = "0.5.9"
 terminput-web-sys = "0.2.5"
-terminput-termina = "0.2.0"
+terminput-termina = "0.3.0"
 termprofile = "0.2.0"
 anstyle-crossterm = "4"
 
@@ -70,7 +70,7 @@ darling = "0.23"
 # misc
 wasm-compat = { git = "https://github.com/aschey/wasm-compat", rev = "ef5760036e0c49d3bc8b5e0d85722f6b88bc9f87" }
 educe = "0.6"
-tokio = { version = "1", default-features = false }
+tokio = { version = "1.51", default-features = false }
 tracing = "0.1"
 image = { version = "0.25" }
 tokio-util = "0.7.16"
@@ -82,7 +82,7 @@ bitflags = "2"
 futures = "0.3"
 rustc-hash = "2"
 paste = "1"
-taffy = "0.9.2"
+taffy = "0.10.0"
 thiserror = "2"
 textwrap = "0.16.2"
 unicode-width = "0.2.2"
@@ -100,7 +100,7 @@ proc-exit = "2.0.2"
 console_error_panic_hook = "0.1"
 signal-hook = "0.4"
 async-signal = "0.2"
-russh = "0.58"
+russh = "0.60"
 tap = "1"
 tokio-stream = "0.1.17"
 web-sys = "0.3.77"
@@ -125,7 +125,7 @@ winit = "0.30"
 # examples/testing
 tracing-subscriber = "0.3.19"
 tracing-appender = "0.2.3"
-rand = "0.8.5"
+rand = "0.10"
 reqwest = "0.13.1"
 serde = "1.0.219"
 axum = "0.8.1"

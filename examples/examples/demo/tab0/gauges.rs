@@ -5,7 +5,7 @@ use rooibos::reactive::dom::{Render, span};
 use rooibos::reactive::graph::effect::Effect;
 use rooibos::reactive::graph::owner::use_context;
 use rooibos::reactive::graph::signal::{ReadSignal, RwSignal, signal};
-use rooibos::reactive::graph::traits::{Get, Update};
+use rooibos::reactive::graph::traits::{Get, Update, With};
 use rooibos::reactive::{col, wgt};
 use rooibos::theme::{Style, Stylize};
 use rooibos::tui::symbols;
@@ -113,7 +113,7 @@ fn demo_sparkline(enhanced_graphics: bool) -> impl Render {
         Sparkline::default()
             .block(Block::new().title("Sparkline:"))
             .green()
-            .data(sparkline_signal.get().points)
+            .data(sparkline_signal.with(|s| s.points.clone()))
             .bar_set(if enhanced_graphics {
                 symbols::bar::NINE_LEVELS
             } else {

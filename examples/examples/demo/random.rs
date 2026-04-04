@@ -1,19 +1,17 @@
 use rand::SeedableRng;
-use rand::distributions::{Distribution, Uniform};
-use rand::rngs::StdRng;
+use rand::distr::{Distribution, Uniform};
+use rand::rngs::{StdRng, SysRng};
 
 #[derive(Clone)]
 pub(crate) struct RandomData<S>
 where
-    S: Iterator + Clone,
-    S::Item: Clone,
+    S: Iterator,
 {
     pub(crate) source: S,
     pub(crate) points: Vec<S::Item>,
     pub(crate) tick_rate: usize,
 }
 
-#[derive(Clone)]
 pub(crate) struct RandomDistribution {
     distribution: Uniform<u64>,
     rng: StdRng,
@@ -22,8 +20,8 @@ pub(crate) struct RandomDistribution {
 impl RandomDistribution {
     pub fn new(lower: u64, upper: u64) -> RandomDistribution {
         RandomDistribution {
-            distribution: Uniform::new(lower, upper),
-            rng: rand::rngs::StdRng::from_entropy(),
+            distribution: Uniform::new(lower, upper).unwrap(),
+            rng: rand::rngs::StdRng::try_from_rng(&mut SysRng).unwrap(),
         }
     }
 }
@@ -37,7 +35,7 @@ impl Iterator for RandomDistribution {
 
 impl<S> RandomData<S>
 where
-    S: Iterator + Clone,
+    S: Iterator,
     S::Item: Clone,
 {
     pub(crate) fn on_tick(&mut self) {
